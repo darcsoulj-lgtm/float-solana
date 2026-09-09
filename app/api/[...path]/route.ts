@@ -72,12 +72,6 @@ async function handler(req: Request) {
       });
     }
     if (p[0] === 'tokens' && method === 'GET') return json(TOKENS);
-    if (p[0] === 'bootstrap' && method === 'POST') {
-      const secret = runtime().SEED_KEY;
-      if (!secret || req.headers.get('x-seed-key') !== secret)
-        throw new AppError('Not authorized.', 403);
-      return json(await seedDemos());
-    }
     if (p[0] === 'orders') {
       const a = await actor();
       if (method === 'GET')

@@ -20,7 +20,7 @@ Deploy only saved, tested source versions. Applied Drizzle migrations are immuta
 
 ## Seed data
 
-Three fixed example studies have IDs `demo-mu`, `demo-skhy`, and `demo-spcx`, each with 24 deterministic simulated answers. Seeding is idempotent and never changes an existing live study. No seeds appear as live responses. Remove the temporary `SEED_KEY` after any initial bootstrap and apply the new environment revision with a deployment.
+Three fixed example studies have IDs `demo-mu`, `demo-skhy`, and `demo-spcx`, each with 24 deterministic simulated answers. Seeding is idempotent and never changes an existing live study. No seeds appear as live responses. The temporary bootstrap route used during initial provisioning was removed from the deployed code. Use the authenticated admin action for any subsequent seeding.
 
 ## Data access and deletion
 

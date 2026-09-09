@@ -18,7 +18,6 @@ The Vite plugin reads `.dev.vars` for local Worker bindings. Restart the server 
 
 - `ADMIN_EMAILS`: comma-separated exact emails supplied by the trusted Sites dispatcher. Empty means nobody has administrator privileges. Researchers are identified by stable site-specific user IDs; every study access is checked on the server.
 - `SOLANA_RPC_URL`: server-only authenticated Solana mainnet JSON-RPC endpoint. Defaults to `https://api.mainnet-beta.solana.com`. Use a dedicated provider for production throughput. Public RPC can return 403/429 from hosted runtimes; errors never grant eligibility. Keep API keys secret.
-- `SEED_KEY`: optional temporary secret for the one-purpose `/api/bootstrap` POST endpoint. It can only insert three fixed, labeled demo studies and deterministic simulated responses. Remove this key and redeploy after provisioning. Alternatively seed through an authenticated administrator; no seed key is needed.
 
 Configure hosted values through Sites environment settings and deploy the saved version to apply them. Sites provisions the logical `DB` D1 binding and applies `drizzle/` migrations. `.openai/hosting.json` preserves the Site project ID. Never deploy the test-only `.dev.vars` file or its localhost RPC fixture.
 
@@ -50,3 +49,5 @@ Integration tests require a running local server, applied migrations, and local 
 ## Remaining integrations
 
 A successful mainnet holder submission from an actual funded user wallet has not been tested. A dedicated RPC URL, real wallet-browser compatibility testing, payment/subscription processing, USDC funding and payout worker, historical indexer, operator privacy procedures, monitoring, backups, and independent security review remain necessary before paid institutional operation. Mobile currently requires a compatible wallet browser; deep-link pairing is not included. The public site is an initial working release, not a claim of audited institutional readiness.
+
+Initial provisioning used a temporary fixed-data bootstrap route. That route has been removed from the published application; subsequent demo seeding is available only to signed-in administrators.

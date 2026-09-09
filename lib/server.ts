@@ -7,7 +7,6 @@ export const runtime = () =>
     DB: D1Database;
     SOLANA_RPC_URL?: string;
     ADMIN_EMAILS?: string;
-    SEED_KEY?: string;
   };
 export function db() {
   const d = runtime().DB;
