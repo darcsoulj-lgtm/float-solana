@@ -1,0 +1,21 @@
+export async function api<T = unknown>(
+  path: string,
+  body?: unknown,
+): Promise<T> {
+  const response = await fetch('/api/' + path, {
+    method: body ? 'POST' : 'GET',
+    headers: body ? { 'Content-Type': 'application/json' } : {},
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const data: unknown = await response.json();
+  if (!response.ok)
+    throw new Error(
+      data &&
+        typeof data === 'object' &&
+        'error' in data &&
+        typeof data.error === 'string'
+        ? data.error
+        : 'Request failed.',
+    );
+  return data as T;
+}
