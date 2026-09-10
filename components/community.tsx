@@ -384,29 +384,39 @@ export function Community() {
       </div>
       <Dialog open={join} onOpenChange={setJoin}>
         <DialogContent className="community-dialog">
-          <DialogTitle>One holding. Every topic.</DialogTitle>
-          <DialogDescription>
-            Verify a supported stock token to join for 24 hours. No payment or
-            asset transfer.
-          </DialogDescription>
-          <Picker
-            label="Wallet"
-            value={provider}
-            onChange={setProvider}
-            items={['backpack', 'phantom', 'solflare'].map((x) => ({
-              value: x,
-              label: x[0].toUpperCase() + x.slice(1),
-            }))}
-          />
-          <Picker
-            label="Token you hold"
-            value={symbol}
-            onChange={setSymbol}
-            items={[
-              { value: 'MU', label: 'MU · Micron' },
-              { value: 'SKHY', label: 'SKHY · SK Hynix' },
-            ]}
-          />
+          <div className="join-heading">
+            <div className="join-symbol">
+              <ShieldCheck size={22} aria-hidden="true" />
+            </div>
+            <DialogTitle>Join the common room</DialogTitle>
+            <DialogDescription>
+              Verify one supported holding to access every discussion.
+            </DialogDescription>
+          </div>
+          <div className="join-field">
+            <span id="wallet-label">Your wallet</span>
+            <Picker
+              label="Your wallet"
+              value={provider}
+              onChange={setProvider}
+              items={['backpack', 'phantom', 'solflare'].map((x) => ({
+                value: x,
+                label: x[0].toUpperCase() + x.slice(1),
+              }))}
+            />
+          </div>
+          <div className="join-field">
+            <span>Token you hold</span>
+            <Picker
+              label="Token you hold"
+              value={symbol}
+              onChange={setSymbol}
+              items={[
+                { value: 'MU', label: 'MU · Micron' },
+                { value: 'SKHY', label: 'SKHY · SK Hynix' },
+              ]}
+            />
+          </div>
           <label className="choice">
             <Checkbox
               checked={consent}
@@ -420,6 +430,11 @@ export function Community() {
           <Button disabled={busy || !consent} onClick={verify}>
             {busy ? 'Verifying…' : 'Connect & verify'}
           </Button>
+          <p className="join-note">
+            Message signature only. No transaction or transfer.
+            <br />
+            Verification renews every 24 hours.
+          </p>
           <output>{stage}</output>
           {error && (
             <p role="alert" className="error">

@@ -121,7 +121,7 @@ export function SurveyList({ mine = false }: { mine?: boolean }) {
       </div>
     );
   return (
-    <div className="grid">
+    <div className="research-grid">
       {rows.map((s) => (
         <SurveyCard key={s.id} s={s} workspace={mine} />
       ))}
@@ -229,7 +229,7 @@ export function CreateSurvey({ id }: { id?: string }) {
         SPCX awaits official mint validation. All live eligibility checks use
         Solana mainnet.
       </p>
-      <div className="grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+      <div className="research-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
         <div>
           <label htmlFor="target">Response target</label>
           <input
@@ -492,7 +492,7 @@ export function Analytics({ id }: { id: string }) {
           )}
         </section>
       ))}
-      <div className="grid">
+      <div className="research-grid">
         <section className="panel">
           <h3>Position-size cohorts</h3>
           {d.cohortsSuppressed ? (

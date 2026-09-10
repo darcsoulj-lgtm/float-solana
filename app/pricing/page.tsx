@@ -10,7 +10,7 @@ export default function Page() {
         evidence earns its place.
       </p>
       <div
-        className="grid"
+        className="research-grid"
         style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(270px,1fr))' }}
       >
         <section className="panel">

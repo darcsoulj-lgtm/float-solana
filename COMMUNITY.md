@@ -27,6 +27,10 @@ All member API reads enforce current membership. Mutation requests require same-
 `node --test tests/core.test.mjs`: existing signature and validation checks.
 `node tests/community-flow.mjs`: local Worker integration with real ephemeral wallet signatures and an explicit mock RPC. Covers guest access, invalid/replayed signature, MU entry into SKHY topic, persistent threads/replies, optional badge/privacy, reports and moderation, suspension, zero balance rejection, logout. Requires dev server at localhost:3000 and local test admin config, restores local env in finally.
 
-No live funded holder-wallet session or mobile extension pairing has been tested. No browser automation was run for this update. Server render, API tests, strict lint/type checking and production build are performed. Live RPC membership reliability depends on configured provider.
+No live funded holder-wallet session or mobile extension pairing has been tested. Dialog regression coverage now includes real Chromium renders at 1440, 768, 390 and 320px, with browser-only member fixtures for profile/report/removal dialogs. `tests/dialog-browser.mjs` accepts PLAYWRIGHT_MODULE and CHROME_PATH when using a bundled browser runtime. Server render, API tests, strict lint/type checking and production build are performed. Live RPC membership reliability depends on configured provider.
 
 No rewards, airdrops, payments or partner programs are active. Community discussion is not investment advice and does not imply affiliation with Backpack or underlying companies.
+
+## Visual system
+
+Warm ivory surfaces, dark ink, deep blue accents, and serif display headlines. Backpack red was considered and explicitly rejected by the user. Legacy research grids use a namespaced class to avoid overriding Tailwind and shared dialog/checkbox/radio components. Every community dialog has one vertical flow, bounded viewport sizing, accessible close controls, and visible field labels.
