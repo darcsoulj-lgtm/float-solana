@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import Link from './site-link';
 import {
   Home,
@@ -30,6 +30,7 @@ import { SearchPicker } from './search-picker';
 import { Thread } from './community-thread';
 import { api } from '@/lib/client';
 import { TOKENS } from '@/lib/tokens';
+import { communityPostErrors, POST_LIMITS } from '@/lib/community-post';
 import {
   TOPICS,
   type CommunityStatus,
@@ -78,6 +79,19 @@ export function MemberDashboard({
   const [compose, setCompose] = useState(false);
   const [draftTitle, setDraftTitle] = useState('');
   const [draftTopic, setDraftTopic] = useState('general');
+  const [draftBody, setDraftBody] = useState('');
+  const [draftAttempted, setDraftAttempted] = useState(false);
+  const [draftError, setDraftError] = useState('');
+  const [draftPosting, setDraftPosting] = useState(false);
+  const posting = useRef(false);
+  const draftId = useId();
+  const draftErrors = draftAttempted
+    ? communityPostErrors({
+        title: draftTitle,
+        body: draftBody,
+        topic: draftTopic,
+      })
+    : {};
   const [notifications, setNotifications] = useState(false);
   const [alias, setAlias] = useState(member.alias);
   const [badge, setBadge] = useState(!!member.show_badge);
@@ -153,6 +167,9 @@ export function MemberDashboard({
   ) {
     setDraftTitle(title);
     setDraftTopic(selectedTopic);
+    setDraftBody('');
+    setDraftAttempted(false);
+    setDraftError('');
     setCompose(true);
     setError('');
   }
@@ -807,7 +824,7 @@ export function MemberDashboard({
       <Dialog
         open={compose}
         onOpenChange={(v) => {
-          if (!busy) setCompose(v);
+          if (!posting.current) setCompose(v);
         }}
       >
         <DialogContent className="compose-dialog">
@@ -816,66 +833,133 @@ export function MemberDashboard({
             Share a question, a source, or a thesis worth discussing.
           </DialogDescription>
           <form
-            className="form"
-            onSubmit={(e) => {
+            className="discussion-form"
+            noValidate
+            aria-busy={draftPosting}
+            onSubmit={async (e) => {
               e.preventDefault();
-              const form = e.currentTarget,
-                body = new FormData(form).get('body');
-              void run(async () => {
-                await api('community/threads', {
-                  title: draftTitle,
-                  body,
-                  topic: draftTopic,
-                });
+              if (posting.current) return;
+              setDraftAttempted(true);
+              setDraftError('');
+              const payload = {
+                title: draftTitle,
+                body: draftBody,
+                topic: draftTopic,
+              };
+              const errors = communityPostErrors(payload);
+              const invalidField = errors.topic
+                ? 'topic'
+                : errors.title
+                  ? 'title'
+                  : errors.body
+                    ? 'body'
+                    : null;
+              if (invalidField) {
+                document.getElementById(`${draftId}-${invalidField}`)?.focus();
+                return;
+              }
+              posting.current = true;
+              setDraftPosting(true);
+              try {
+                const result = await api<{ id: string }>(
+                  'community/threads',
+                  payload,
+                );
                 setView('home');
                 setFeed('all');
                 setTopic(draftTopic);
-                setThreadId('');
+                setThreadId(result.id);
+                setNotice('Discussion posted.');
                 setCompose(false);
-                await refresh();
-              });
+              } catch (e) {
+                setDraftError(
+                  e instanceof Error
+                    ? e.message
+                    : 'Could not post. Your draft is still here; please try again.',
+                );
+              } finally {
+                posting.current = false;
+                setDraftPosting(false);
+              }
             }}
           >
-            <SearchPicker
-              label="Discussion topic"
-              value={draftTopic}
-              onChange={setDraftTopic}
-              items={TOPICS.filter((t) => t.id !== 'all').map((t) => ({
-                value: t.id,
-                label: t.label,
-              }))}
-            />
-            <label>
-              Title
+            <div className="discussion-field">
+              <label htmlFor={`${draftId}-topic`}>Topic</label>
+              <SearchPicker
+                inputId={`${draftId}-topic`}
+                label="Discussion topic"
+                disabled={draftPosting}
+                value={draftTopic}
+                onChange={setDraftTopic}
+                items={TOPICS.filter((t) => t.id !== 'all').map((t) => ({
+                  value: t.id,
+                  label: t.label,
+                }))}
+              />
+              {draftErrors.topic && (
+                <p className="field-error" role="alert">
+                  {draftErrors.topic}
+                </p>
+              )}
+            </div>
+            <div className="discussion-field">
+              <label htmlFor={`${draftId}-title`}>Title</label>
               <input
+                id={`${draftId}-title`}
                 aria-label="Discussion title"
+                aria-invalid={!!draftErrors.title}
+                aria-describedby={`${draftId}-title-help`}
                 value={draftTitle}
                 onChange={(e) => setDraftTitle(e.target.value)}
-                minLength={5}
-                maxLength={140}
+                disabled={draftPosting}
+                name="title"
+                placeholder="What would you like to discuss?"
+                minLength={POST_LIMITS.title.min}
+                maxLength={POST_LIMITS.title.max}
                 required
               />
-            </label>
-            <label>
-              Your perspective
+              <p
+                id={`${draftId}-title-help`}
+                className={draftErrors.title ? 'field-error' : 'field-help'}
+                role={draftErrors.title ? 'alert' : undefined}
+              >
+                {draftErrors.title || '5–140 characters'}
+              </p>
+            </div>
+            <div className="discussion-field">
+              <label htmlFor={`${draftId}-body`}>Your perspective</label>
               <textarea
+                id={`${draftId}-body`}
                 aria-label="Your perspective"
+                aria-invalid={!!draftErrors.body}
+                aria-describedby={`${draftId}-body-help`}
                 name="body"
+                value={draftBody}
+                onChange={(e) => setDraftBody(e.target.value)}
+                disabled={draftPosting}
                 placeholder="What’s the evidence? What would change your mind?"
-                minLength={10}
-                maxLength={4000}
+                minLength={POST_LIMITS.body.min}
+                maxLength={POST_LIMITS.body.max}
                 required
               />
-            </label>
-            <Button type="submit" disabled={busy}>
-              Post discussion <ArrowUpRight size={16} />
+              <p
+                id={`${draftId}-body-help`}
+                className={draftErrors.body ? 'field-error' : 'field-help'}
+                role={draftErrors.body ? 'alert' : undefined}
+              >
+                {draftErrors.body || '10–4,000 characters'}
+              </p>
+            </div>
+            {draftError && (
+              <p className="error" role="alert">
+                {draftError}
+              </p>
+            )}
+            <Button type="submit" disabled={draftPosting}>
+              {draftPosting ? 'Posting…' : 'Post discussion'}{' '}
+              <ArrowUpRight size={16} />
             </Button>
           </form>
-          {error && (
-            <p className="error" role="alert">
-              {error}
-            </p>
-          )}
         </DialogContent>
       </Dialog>
       <Dialog open={notifications} onOpenChange={setNotifications}>

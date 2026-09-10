@@ -7,7 +7,13 @@ import ts from 'typescript';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const dir = await mkdtemp(tmpdir() + '/holderpulse-test-');
-for (const file of ['tokens', 'validation', 'solana']) {
+for (const file of [
+  'tokens',
+  'validation',
+  'solana',
+  'community-types',
+  'community-post',
+]) {
   const source = await readFile(
     new URL('../lib/' + file + '.ts', import.meta.url),
     'utf8',
@@ -19,7 +25,10 @@ for (const file of ['tokens', 'validation', 'solana']) {
         module: ts.ModuleKind.ES2022,
       },
     })
-    .outputText.replace(/from '\.\/(tokens|validation)'/g, "from './$1.mjs'");
+    .outputText.replace(
+      /from '\.\/(tokens|validation|community-types|community-post)'/g,
+      "from './$1.mjs'",
+    );
   await writeFile(
     dir + '/' + file + '.mjs',
     output.replace(
@@ -42,6 +51,39 @@ const {
 const { TOKENS, TOKEN_PROGRAMS } = await import(
   pathToFileURL(dir + '/tokens.mjs')
 );
+const { communityPostErrors } = await import(
+  pathToFileURL(dir + '/community-post.mjs')
+);
+test('Discussion validation identifies every invalid field before submission', () => {
+  assert.deepEqual(
+    Object.keys(communityPostErrors({ title: '', body: '', topic: 'all' })),
+    ['topic', 'title', 'body'],
+  );
+  assert.deepEqual(
+    communityPostErrors({
+      title: 'A real question',
+      body: 'Here is my perspective.',
+      topic: 'general',
+    }),
+    {},
+  );
+});
+test('Discussion validation uses trimmed lengths and accepts every available room', () => {
+  for (const topic of ['general', ...TOKENS.map((t) => t.symbol)])
+    assert.deepEqual(
+      communityPostErrors({ title: ' 12345 ', body: ' 1234567890 ', topic }),
+      {},
+    );
+  for (const title of ['    a    ', null, 12345, 'x'.repeat(141)])
+    assert.ok(
+      communityPostErrors({ title, body: 'A valid perspective', topic: 'MU' })
+        .title,
+    );
+  for (const body of ['         a         ', undefined, {}, 'x'.repeat(4001)])
+    assert.ok(
+      communityPostErrors({ title: 'Valid title', body, topic: 'MU' }).body,
+    );
+});
 const good = {
   title: 'A valid research question',
   description: 'This is a detailed research study brief.',

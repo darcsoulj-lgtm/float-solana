@@ -258,6 +258,20 @@ try {
     { status: 404 },
   );
 
+  // Invalid drafts must return useful validation errors without spending the
+  // three-post allowance. The next valid submission must still be accepted.
+  for (const title of ['', 'a', '  a  ', 'xxxx']) {
+    const invalid = await call(
+      'threads',
+      {
+        title,
+        body: 'A valid perspective.',
+        topic: 'general',
+      },
+      { status: 400 },
+    );
+    assert.match(invalid.d.error, /Title must contain/);
+  }
   const t = (
     await call(
       'threads',
@@ -269,6 +283,12 @@ try {
       { status: 201 },
     )
   ).d;
+  const posted = (await call('threads?feed=all&topic=SPCX&thread=' + t.id)).d
+    .threads;
+  assert.equal(posted.length, 1);
+  assert.equal(posted[0].id, t.id);
+  assert.equal(posted[0].title, 'Cross ticker test');
+  assert.equal(posted[0].body, 'An MU holder can discuss SK Hynix here.');
   await call('save', { type: 'thread', id: t.id, save: true });
   assert.ok(
     (await call('threads?feed=saved')).d.threads.some(

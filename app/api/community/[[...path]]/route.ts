@@ -544,9 +544,9 @@ async function handler(req: Request) {
     }
     if (path[0] === 'threads' && !path[1]) {
       if (post) {
+        const p = validateCommunityPost(b);
         await rateLimit('community-post:' + member.id, 3);
-        const p = validateCommunityPost(b),
-          id = crypto.randomUUID(),
+        const id = crypto.randomUUID(),
           now = Date.now();
         await db()
           .prepare(

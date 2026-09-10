@@ -1,6 +1,7 @@
 import { db, digest } from './server';
 import { AppError, textValue } from './validation';
-import { TOPICS, type CommunityMember } from './community-types';
+import { type CommunityMember } from './community-types';
+import { communityPostErrors } from './community-post';
 export const MEMBERSHIP_MS = 24 * 60 * 60 * 1000;
 export function communityCookie(req: Request) {
   const cookies = req.headers.get('cookie') || '';
@@ -33,11 +34,13 @@ export function sessionCookie(value: string, req: Request, clear = false) {
   return `hp_member=${value}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${clear ? 0 : 86400}${new URL(req.url).protocol === 'https:' ? '; Secure' : ''}`;
 }
 export function validateCommunityPost(b: Record<string, unknown>) {
-  const title = textValue(b.title, 5, 140, 'Discussion title'),
-    body = textValue(b.body, 10, 4000, 'Post');
-  if (!TOPICS.some((t) => t.id !== 'all' && t.id === b.topic))
-    throw new AppError('Choose a discussion topic.');
-  return { title, body, topic: String(b.topic) };
+  const error = Object.values(communityPostErrors(b))[0];
+  if (error) throw new AppError(error);
+  return {
+    title: String(b.title).trim(),
+    body: String(b.body).trim(),
+    topic: String(b.topic),
+  };
 }
 export function validateAlias(value: unknown) {
   const alias = textValue(value, 3, 24, 'Display name');
