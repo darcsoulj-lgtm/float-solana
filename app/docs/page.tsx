@@ -7,9 +7,10 @@ export default function Page() {
         <h2>1. Verify a supported token</h2>
         <p>
           On the community homepage choose Connect wallet & join, select your
-          wallet and MU or SKHY, accept the guidelines, and sign the membership
-          message. Desktop wallet extensions and compatible wallet browsers are
-          supported; mobile deep-link pairing is not enabled.
+          wallet and search for the stock token you hold, accept the guidelines,
+          and sign the membership message. Desktop wallet extensions and
+          compatible wallet browsers are supported; mobile deep-link pairing is
+          not enabled.
         </p>
       </section>
       <section className="panel">

@@ -88,7 +88,7 @@ async function handler(req: Request) {
     if (path[0] === 'challenge' && post) {
       const wallet = validWallet(textValue(b.wallet, 32, 44, 'Wallet'));
       if (!TOKENS.some((t) => t.symbol === b.symbol && t.mint))
-        throw new AppError('Choose a supported token: MU or SKHY.');
+        throw new AppError('Choose a token from the supported stock list.');
       await rateLimit('community-wallet:' + wallet, 5);
       await communityCleanup();
       const id = crypto.randomUUID(),

@@ -50,6 +50,7 @@ export default function RootLayout({
             <Link href="/about">About</Link>
             <Link href="/trust">Trust & privacy</Link>
             <Link href="/methodology">Methodology</Link>
+            <Link href="/tokens">Supported stocks</Link>
             <Link href="/docs">Help</Link>
             <Link href="/admin/community">Administration</Link>
           </div>

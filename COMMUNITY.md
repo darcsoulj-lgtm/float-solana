@@ -1,6 +1,6 @@
 # HolderPulse community
 
-Current product: one shared discussion board. A positive supported MU or SKHY token balance unlocks all topics, including SPCX discussion. No simulated community posts or fabricated membership. Legacy surveys and records remain accessible through their original routes but are outside the main community navigation.
+Current product: one shared discussion board. A positive balance of any token in the reviewed registry unlocks all topics. The registry currently has 39 enabled Backpack stock/ETF tokens, including SPCX. No simulated community posts or fabricated membership. Legacy surveys and records remain accessible through their original routes but are outside the main community navigation.
 
 ## Runtime
 
@@ -34,3 +34,7 @@ No rewards, airdrops, payments or partner programs are active. Community discuss
 ## Visual system
 
 Warm ivory surfaces, dark ink, deep blue accents, and serif display headlines. Backpack red was considered and explicitly rejected by the user. Legacy research grids use a namespaced class to avoid overriding Tailwind and shared dialog/checkbox/radio components. Every community dialog has one vertical flow, bounded viewport sizing, accessible close controls, and visible field labels.
+
+## Token registry expansion — 2026-09-10
+
+39 enabled Solana security mints selected from the official Backpack /api/v1/assets endpoint (US securities with deposits or withdrawals enabled). All passed finalized getMultipleAccounts mint/program/initialized checks; evidence and exact addresses are in docs/token-registry-review.json. Disabled catalogue entries and crypto assets were excluded. Registry is a reviewed snapshot, not automatically refreshed or expanded from untrusted token symbols. The public /tokens page shows sources and review date.

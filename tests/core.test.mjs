@@ -239,3 +239,53 @@ test('Malformed provider JSON fails with a controlled service error', async () =
     /unreadable response/,
   );
 });
+
+test('Reviewed registry includes every enabled Solana security from the captured official source', async () => {
+  const evidence = JSON.parse(
+    await readFile(
+      new URL('../docs/token-registry-review.json', import.meta.url),
+      'utf8',
+    ),
+  );
+  assert.equal(TOKENS.length, 39);
+  assert.equal(new Set(TOKENS.map((t) => t.mint)).size, TOKENS.length);
+  assert.deepEqual(
+    TOKENS.map((t) => [t.symbol, t.mint]),
+    evidence.tokens.map((t) => [t.symbol, t.mint]),
+  );
+  for (const t of TOKENS) {
+    assert.equal(decodeBase58(t.mint).length, 32);
+    assert.equal(
+      validateSurvey({ ...good, symbol: t.symbol }).symbol,
+      t.symbol,
+    );
+  }
+  assert.ok(TOKENS.find((t) => t.symbol === 'SPCX')?.mint);
+});
+test('Wallet client does not request transaction signing or sending', async () => {
+  for (const file of ['community', 'participant']) {
+    const source = await readFile(
+      new URL('../components/' + file + '.tsx', import.meta.url),
+      'utf8',
+    );
+    assert.ok(source.includes('signMessage'));
+    assert.doesNotMatch(
+      source,
+      /signTransaction|signAllTransactions|signAndSendTransaction|sendTransaction/,
+    );
+  }
+});
+
+test('Every supported stock verifies only against its exact registry mint', async () => {
+  for (const token of TOKENS) {
+    const fixture = mock([{ mint: token.mint, amount: '1' }]);
+    await verifyHolding(
+      wallet,
+      token.symbol,
+      'https://fixture.invalid',
+      fixture.fetcher,
+    );
+    assert.equal(fixture.calls[0].params[0], token.mint);
+    assert.equal(fixture.calls[1].params[1].mint, token.mint);
+  }
+});

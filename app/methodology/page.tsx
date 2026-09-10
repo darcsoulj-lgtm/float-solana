@@ -1,3 +1,5 @@
+import Link from 'next/link';
+import { TOKENS } from '@/lib/tokens';
 export default function Page() {
   return (
     <div className="page">
@@ -6,10 +8,11 @@ export default function Page() {
       <section className="panel">
         <h2>The gate</h2>
         <p>
-          A positive balance of a supported MU or SKHY token in a Solana wallet
-          you control unlocks all discussion topics, including topics for tokens
-          you do not own. SPCX is a discussion topic, not an enabled membership
-          token.
+          A positive balance of any of our {TOKENS.length} supported Backpack
+          stock and ETF tokens in a Solana wallet you control unlocks every
+          discussion topic.{' '}
+          <Link href="/tokens">See the supported token directory</Link>.
+          Brokerage balances and perpetual positions do not qualify.
         </p>
       </section>
       <section className="panel">

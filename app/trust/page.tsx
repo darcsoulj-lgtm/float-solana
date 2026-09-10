@@ -4,6 +4,24 @@ export default function Page() {
       <p className="eyebrow">Trust & privacy</p>
       <h1>Verified entry, considered disclosure.</h1>
       <section className="panel">
+        <h2>What connecting authorizes</h2>
+        <p>
+          Connecting shares your public wallet address. The site requests a
+          readable, one-use membership message signature and reads token
+          balances through Helius. It does not request transaction signing,
+          spending approvals, token transfers, or your recovery phrase. Check
+          that the signing domain is holderpulse.glossy-kid-6048.chatgpt.site
+          and that the message says HolderPulse community membership. Cancel any
+          unexpected transaction request.
+        </p>
+        <p>
+          This is a limited code review and testing, not an independent security
+          audit or a guarantee. Website, dependency, account, and wallet
+          compromise remain possible. Your public address can reveal onchain
+          activity even though it is not shown on your community profile.
+        </p>
+      </section>
+      <section className="panel">
         <h2>What we store</h2>
         <p>
           We store a private hash of your wallet address, display name,

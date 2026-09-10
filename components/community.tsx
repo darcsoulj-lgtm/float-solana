@@ -11,6 +11,8 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Picker } from './workspace';
+import { SearchPicker } from './search-picker';
+import { TOKENS } from '@/lib/tokens';
 import { api } from '@/lib/client';
 import {
   TOPICS,
@@ -37,6 +39,7 @@ export function Community() {
   const [status, setStatus] = useState<CommunityStatus | null>(null),
     [threads, setThreads] = useState<CommunityThread[]>([]),
     [topic, setTopic] = useState('all'),
+    [topicSearch, setTopicSearch] = useState(''),
     [cursor, setCursor] = useState<string | null>(null),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false),
@@ -165,15 +168,26 @@ export function Community() {
       <div className="club-grid">
         <aside className="club-aside">
           <span className="club-kicker">DISCUSSIONS</span>
-          {TOPICS.map((t) => (
-            <Button
-              key={t.id}
-              variant={topic === t.id ? 'secondary' : 'ghost'}
-              onClick={() => setTopic(t.id)}
-            >
-              {t.label}
-            </Button>
-          ))}
+          <input
+            className="topic-search"
+            aria-label="Search discussion topics"
+            placeholder="Find a ticker…"
+            value={topicSearch}
+            onChange={(e) => setTopicSearch(e.target.value)}
+          />
+          <div className="topic-list">
+            {TOPICS.filter((t) =>
+              t.label.toLowerCase().includes(topicSearch.toLowerCase()),
+            ).map((t) => (
+              <Button
+                key={t.id}
+                variant={topic === t.id ? 'secondary' : 'ghost'}
+                onClick={() => setTopic(t.id)}
+              >
+                {t.label}
+              </Button>
+            ))}
+          </div>
           <div className="club-aside-note">
             <ShieldCheck size={20} />
             <p>
@@ -210,8 +224,8 @@ export function Community() {
               <MessageSquare size={30} />
               <h2>Meet the people behind the positions.</h2>
               <p>
-                Verify a supported MU or SKHY token to read discussions, start a
-                thread, and reply in every topic.
+                Verify any of our {TOKENS.length} supported stock and ETF tokens
+                to read discussions, start a thread, and reply in every topic.
               </p>
               <Button onClick={() => setJoin(true)}>
                 Connect wallet & join
@@ -251,7 +265,7 @@ export function Community() {
                 </Button>
               </div>
               <div className="community-topics">
-                <Picker
+                <SearchPicker
                   label="Discussion topic"
                   value={topic}
                   onChange={setTopic}
@@ -407,15 +421,15 @@ export function Community() {
             />
           </div>
           <div className="join-field">
-            <span>Token you hold</span>
-            <Picker
+            <span>Token you hold · {TOKENS.length} supported</span>
+            <SearchPicker
               label="Token you hold"
               value={symbol}
               onChange={setSymbol}
-              items={[
-                { value: 'MU', label: 'MU · Micron' },
-                { value: 'SKHY', label: 'SKHY · SK Hynix' },
-              ]}
+              items={TOKENS.map((t) => ({
+                value: t.symbol,
+                label: t.symbol + ' · ' + t.shortName,
+              }))}
             />
           </div>
           <label className="choice">

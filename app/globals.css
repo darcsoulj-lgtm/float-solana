@@ -1446,3 +1446,94 @@ body {
     font-size: 34px;
   }
 }
+.topic-search {
+  width: 100%;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: white;
+  margin: 12px 0;
+  font-size: 14px;
+}
+.topic-list {
+  max-height: 480px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.topic-list > button {
+  display: flex;
+  width: 100%;
+  justify-content: flex-start;
+  text-align: left;
+  white-space: normal;
+  min-height: 40px;
+  height: auto;
+  margin: 3px 0;
+  font-size: 13px;
+}
+.join-field [data-slot='input-group'],
+.community-topics [data-slot='input-group'] {
+  width: 100%;
+  min-width: 0;
+  height: 48px;
+  background: white;
+  border-radius: 8px;
+}
+.join-field [data-slot='input-group'] input {
+  border: 0;
+  min-width: 0;
+  width: 100%;
+  box-shadow: none;
+  background: transparent;
+  padding: 0 12px;
+}
+.join-field [data-slot='input-group-addon'] {
+  flex-shrink: 0;
+  padding: 0 10px 0 0;
+}
+[data-slot='combobox-list'] {
+  max-height: 260px;
+  overflow-y: auto;
+}
+[data-slot='combobox-item'] {
+  min-height: 38px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+[data-slot='combobox-content'] {
+  max-width: calc(100vw - 32px);
+  min-width: 0;
+}
+.token-directory {
+  border-top: 1px solid var(--border);
+  margin-top: 32px;
+}
+.token-directory-row {
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) minmax(0, 1.5fr);
+  gap: 24px;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--border);
+  align-items: center;
+}
+.token-directory-row h2 {
+  margin: 0;
+  font-size: 18px;
+}
+.token-directory-row p {
+  margin: 4px 0;
+  font-size: 14px;
+}
+.token-directory-row code {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.token-directory-row a {
+  color: var(--brand-accent-ink);
+}
+@media (max-width: 760px) {
+  .token-directory-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}

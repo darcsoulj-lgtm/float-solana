@@ -1,10 +1,12 @@
+import { TOKENS } from './tokens';
 export const TOPICS = [
   { id: 'all', label: 'All discussions' },
   { id: 'general', label: 'General' },
-  { id: 'MU', label: 'MU · Micron' },
-  { id: 'SKHY', label: 'SKHY · SK Hynix' },
-  { id: 'SPCX', label: 'SPCX · SpaceX' },
-] as const;
+  ...TOKENS.map((t) => ({
+    id: t.symbol,
+    label: t.symbol + ' · ' + t.shortName,
+  })),
+];
 export type CommunityMember = {
   id: string;
   alias: string;
