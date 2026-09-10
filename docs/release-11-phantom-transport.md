@@ -43,3 +43,11 @@ Final TypeScript, targeted lint, formatting and whitespace checks passed. The pr
 - The validated archive contains the built Worker/client assets and excludes environment files, tests and dependencies.
 
 Publication success does not establish real-extension behavior. The browser-policy service outage still prevents direct Chrome verification; the coexistence result remains pending.
+
+## Subsequent failure report
+
+The user reports that the published candidate still does not work. Two production attempts at 12:59:26–12:59:33 UTC and 13:00:14–13:00:26 UTC on 2026-09-10 both recorded Phantom connection success, a 200 holdings challenge, a requested signature and a generic signing failure. Neither reached `/api/community/verify`. The existing diagnostic schema cannot distinguish the exact extension error behind `failed`; it intentionally excludes free-form errors and wallet data. The user has been asked whether Backpack still opens, no wallet opens, or Phantom opens but verification fails. No answer was available during this investigation.
+
+The current app dispatch, captured native transport and server challenge were inspected. Current primary Phantom docs still document the native request interface used here. Backpack's public injection/content-script source does not establish why the installed extension handles this user's request; repository source must not be assumed to match the installed extension release. No alternative wallet API was substituted and no new application release was published without further evidence.
+
+A broad browser inventory was rejected by automatic approval review because it could expose unrelated tabs. The safer, HolderPulse-only Chrome check was then denied by the unavailable administrator-enforced browser policy service. No indirect browser access or security-control bypass was attempted. Real extension behavior and the exact error remain unobserved. **Version 11 is not a confirmed fix.**
