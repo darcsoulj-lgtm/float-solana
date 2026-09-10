@@ -32,3 +32,14 @@ That reproduction is simulated. Direct Chrome inspection was again denied by the
 The old `tests/fixtures/wallet-qa.tsx` predates native Phantom selection and must not be used to claim current Phantom coverage. The dedicated native transport is exercised by `tests/wallet-provider.test.mjs`; the old fixture remains archival and is not a public route.
 
 Final TypeScript, targeted lint, formatting and whitespace checks passed. The production build completed successfully from the final application source.
+
+## Publication
+
+- Source: `81415f5bfce12ee52f8c184ea75c44f2c01e4e65`, pushed successfully before saving.
+- Saved version: 11, `appgprj_6aa16c80630081918b8b86d4f513fc17~appgver_fbbe560f67288191b3123920745b58d8`.
+- Deployment: `appgdep_6aa2a8aa6f208191a252c32c10b50b00`, succeeded at 2026-09-10 12:55:19 UTC.
+- Public URL: https://holderpulse.glossy-kid-6048.chatgpt.site/
+- Hosted environment revision: 3, unchanged. No secret or RPC configuration mutation.
+- The validated archive contains the built Worker/client assets and excludes environment files, tests and dependencies.
+
+Publication success does not establish real-extension behavior. The browser-policy service outage still prevents direct Chrome verification; the coexistence result remains pending.
