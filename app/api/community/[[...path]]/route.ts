@@ -712,4 +712,18 @@ async function handler(req: Request) {
   }
 }
 export const GET = handler;
-export const POST = handler;
+export async function POST(req: Request) {
+  const response = await handler(req);
+  const path = new URL(req.url).pathname;
+  const operation =
+    path === '/api/community/verify'
+      ? 'verify'
+      : path === '/api/community/threads'
+        ? 'post'
+        : null;
+  if (operation) {
+    const { recordOperation } = await import('@/lib/editorial-server');
+    await recordOperation(operation, response.status);
+  }
+  return response;
+}

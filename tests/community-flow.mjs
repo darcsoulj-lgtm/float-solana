@@ -1,5 +1,6 @@
 // Local integration fixture only: never configure this RPC in a hosted environment.
 import http from 'node:http';
+import { editorialFlow } from './editorial-flow.mjs';
 import assert from 'node:assert/strict';
 import { readFile, writeFile } from 'node:fs/promises';
 import { ed25519 } from '@noble/curves/ed25519.js';
@@ -289,6 +290,7 @@ try {
   assert.equal(posted[0].id, t.id);
   assert.equal(posted[0].title, 'Cross ticker test');
   assert.equal(posted[0].body, 'An MU holder can discuss SK Hynix here.');
+  await editorialFlow(base, cookie);
   await call('save', { type: 'thread', id: t.id, save: true });
   assert.ok(
     (await call('threads?feed=saved')).d.threads.some(

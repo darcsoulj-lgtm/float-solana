@@ -2,6 +2,8 @@
 
 The primary product is now a wallet-gated community. Read [COMMUNITY.md](COMMUNITY.md) for current behavior, operations, privacy and test coverage. The research documentation below describes retained legacy survey tools.
 
+The member home now includes **Your brief** and **Calendar**. Administrators publish sourced stories and events, manage reports and members, and inspect request counters at `/admin`. See [editorial operations](docs/EDITORIAL.md) for publishing instructions and coverage limitations. Legacy survey administration has moved to `/admin/research`.
+
 # HolderPulse
 
 A persistent research application for verified tokenized-equity holder surveys. Built with React 19, Vinext, Cloudflare Workers, D1 SQLite, and platform-managed Sign in with ChatGPT. This is working application code, with explicit integration boundaries below.
@@ -14,7 +16,7 @@ Use Node 22.13+ and the bundled pnpm runtime. Install with `pnpm install`; prese
 2. Create an ignored `.dev.vars` file with `ADMIN_EMAILS=seedy@sites.test` for local testing. The Sites dev plugin signs in as this fixed local identity. Never use this local identity as a production administrator.
 3. `pnpm db:local` applies generated migrations to the local database.
 4. `pnpm dev` starts the app; use its printed URL. Sign in from the workspace.
-5. Visit `/admin` and use **Add labeled example studies** to seed the local database.
+5. Visit `/admin` for the editorial workspace. Use `/admin/research` → **Add labeled example studies** only if you need legacy survey examples locally.
 
 The Vite plugin reads `.dev.vars` for local Worker bindings. Restart the server after editing it. `.env` and `.env.example` document the same supported configuration keys; production values belong in Sites settings. No local test data is deployed.
 

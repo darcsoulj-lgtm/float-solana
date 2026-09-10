@@ -1,22 +1,21 @@
-import Link from '@/components/site-link';
 import { requireChatGPTUser } from '@/app/chatgpt-auth';
-import { Admin } from '@/components/workspace';
+import { actor } from '@/lib/server';
+import { OperationsWorkspace } from '@/components/operations-workspace';
 export const dynamic = 'force-dynamic';
 export default async function Page() {
   await requireChatGPTUser('/admin');
-  return (
-    <div className="page">
-      <p className="eyebrow">OPERATIONS</p>
-      <h1>Research oversight.</h1>
-      <p>
-        Review research objectives and participant disclosures before approving
-        a live study. Do not approve requests for sensitive or material
-        nonpublic information.
-      </p>
-      <p>
-        <Link href="/admin/community">Open community moderation →</Link>
-      </p>
-      <Admin />
-    </div>
-  );
+  const user = await actor();
+  if (!user.admin)
+    return (
+      <main className="page">
+        <p className="eyebrow">ADMIN ACCESS</p>
+        <h1>This workspace is for administrators.</h1>
+        <p>
+          Your signed-in account is not on the administrator list. Wallet
+          membership does not grant publishing or moderation access.
+        </p>
+        <a href="/">Return to the community →</a>
+      </main>
+    );
+  return <OperationsWorkspace />;
 }

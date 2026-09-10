@@ -13,6 +13,8 @@ for (const file of [
   'solana',
   'community-types',
   'community-post',
+  'editorial',
+  'editorial-starter',
 ]) {
   const source = await readFile(
     new URL('../lib/' + file + '.ts', import.meta.url),
@@ -26,7 +28,7 @@ for (const file of [
       },
     })
     .outputText.replace(
-      /from '\.\/(tokens|validation|community-types|community-post)'/g,
+      /from '\.\/(tokens|validation|community-types|community-post|editorial|editorial-starter)'/g,
       "from './$1.mjs'",
     );
   await writeFile(
@@ -481,4 +483,58 @@ test('Discovery fails closed on invalid mint, malformed amount, and account owne
       (e) => e.status === 503,
     );
   }
+});
+
+const { validateEditorial, canonicalSource, dateValue, eventLabel } =
+  await import(pathToFileURL(dir + '/editorial.mjs'));
+const { STARTER_CONTENT } = await import(
+  pathToFileURL(dir + '/editorial-starter.mjs')
+);
+test('Reviewed starter stories and events satisfy the real publishing contract', () => {
+  for (const item of STARTER_CONTENT)
+    assert.ok(validateEditorial(item, Date.parse('2026-09-11T00:00:00Z')));
+});
+test('Source normalization removes tracking and rejects unsafe links', () => {
+  assert.equal(
+    canonicalSource('https://example.com/news?utm_a=1&utm_b=2&gclid=3#part'),
+    'https://example.com/news',
+  );
+  for (const url of [
+    'javascript:alert(1)',
+    'http://example.com',
+    'https://user:pass@example.com',
+    'https://127.0.0.1/private',
+  ])
+    assert.throws(() => canonicalSource(url));
+});
+test('Editorial rules reject invalid dates, unsupported tags and ambiguous timestamps', () => {
+  for (const day of ['2026-02-30', '2026-13-01', 'yesterday'])
+    assert.throws(() => dateValue(day));
+  for (const changes of [
+    { symbols: ['FAKE'] },
+    { status: 'approved' },
+    { published_date: '2099-01-01' },
+    {
+      kind: 'event',
+      event_date: '2026-09-30',
+      event_at: '2026-10-01T01:00:00Z',
+    },
+  ])
+    assert.throws(() =>
+      validateEditorial({ ...STARTER_CONTENT[0], ...changes }),
+    );
+});
+test('Calendar times convert across days; date-only events do not shift', () => {
+  const timed = {
+    event_at: Date.parse('2026-09-30T20:30:00Z'),
+    event_date: '2026-09-30',
+  };
+  assert.match(eventLabel(timed, 'Asia/Seoul'), /Oct 1/);
+  assert.match(eventLabel(timed, 'America/Denver'), /Sep 30/);
+  const dateOnly = { ...timed, event_at: null };
+  assert.equal(
+    eventLabel(dateOnly, 'Asia/Seoul'),
+    eventLabel(dateOnly, 'America/Los_Angeles'),
+  );
+  assert.match(eventLabel(dateOnly), /Time not announced/);
 });

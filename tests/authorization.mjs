@@ -27,6 +27,9 @@ try {
   }
   assert.equal((await request('me', null, 200)).role, 'researcher');
   await request('admin', null, 403);
+  await request('editorial/operations', null, 403);
+  await request('editorial/items', {}, 403);
+  await request('editorial/operations', null, 401, false);
   await request('me', null, 401, false);
   await request('surveys/demo-mu/status', { status: 'closed' }, 403);
   const s = await request(
@@ -52,7 +55,7 @@ try {
   await request(`surveys/${s.id}/status`, { status: 'active' }, 400);
   await request(`surveys/${s.id}/status`, { status: 'closed' }, 200);
   console.log(
-    '8 authorization checks passed: researcher role, admin denial, spoofed identity rejection, foreign ownership, no self-publication.',
+    '11 authorization checks passed: researcher role, admin/editorial denial, spoofed identity rejection, foreign ownership, no self-publication.',
   );
 } finally {
   await writeFile('.dev.vars', original);

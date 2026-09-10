@@ -269,3 +269,59 @@ export const communityNotifications = sqliteTable(
     ),
   ],
 );
+
+export const editorialItems = sqliteTable(
+  'editorial_items',
+  {
+    id: text('id').primaryKey(),
+    kind: text('kind').notNull(),
+    title: text('title').notNull(),
+    summary: text('summary').notNull(),
+    publisher: text('publisher').notNull(),
+    url: text('url').notNull(),
+    publishedAt: integer('published_at').notNull(),
+    eventDate: text('event_date'),
+    eventAt: integer('event_at'),
+    certainty: text('certainty').notNull().default('confirmed'),
+    status: text('status').notNull().default('draft'),
+    featured: integer('featured').notNull().default(0),
+    createdAt: integer('created_at').notNull(),
+    updatedAt: integer('updated_at').notNull(),
+    editToken: text('edit_token').notNull().default(''),
+  },
+  (t) => [
+    uniqueIndex('idx_editorial_kind_url').on(t.kind, t.url),
+    index('idx_editorial_feed').on(t.status, t.kind, t.publishedAt),
+    index('idx_editorial_calendar').on(t.status, t.kind, t.eventDate),
+  ],
+);
+export const editorialTags = sqliteTable(
+  'editorial_tags',
+  {
+    itemId: text('item_id')
+      .notNull()
+      .references(() => editorialItems.id),
+    symbol: text('symbol').notNull(),
+  },
+  (t) => [
+    uniqueIndex('idx_editorial_tag').on(t.itemId, t.symbol),
+    index('idx_editorial_symbol').on(t.symbol, t.itemId),
+  ],
+);
+export const contentReleases = sqliteTable('content_releases', {
+  id: text('id').primaryKey(),
+  appliedAt: integer('applied_at').notNull(),
+});
+export const operationCounts = sqliteTable(
+  'operation_counts',
+  {
+    bucket: integer('bucket').notNull(),
+    operation: text('operation').notNull(),
+    outcome: text('outcome').notNull(),
+    count: integer('count').notNull(),
+    lastAt: integer('last_at').notNull(),
+  },
+  (t) => [
+    uniqueIndex('idx_operation_bucket').on(t.bucket, t.operation, t.outcome),
+  ],
+);

@@ -3,6 +3,8 @@ import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import Link from './site-link';
 import {
   Home,
+  Newspaper,
+  CalendarDays,
   Compass,
   Bookmark,
   UserRound,
@@ -28,6 +30,7 @@ import {
 } from './ui/dialog';
 import { SearchPicker } from './search-picker';
 import { Thread } from './community-thread';
+import { MemberBrief } from './member-brief';
 import { api } from '@/lib/client';
 import { TOKENS } from '@/lib/tokens';
 import { communityPostErrors, POST_LIMITS } from '@/lib/community-post';
@@ -39,9 +42,11 @@ import {
   type ThreadPage,
   type CommunitySource,
 } from '@/lib/community-types';
-type View = 'home' | 'topics' | 'saved' | 'profile';
+type View = 'brief' | 'calendar' | 'home' | 'topics' | 'saved' | 'profile';
 const destinations = [
-  { id: 'home', label: 'Home', icon: Home },
+  { id: 'brief', label: 'Your brief', icon: Newspaper },
+  { id: 'home', label: 'Discussions', icon: Home },
+  { id: 'calendar', label: 'Calendar', icon: CalendarDays },
   { id: 'topics', label: 'Topics', icon: Compass },
   { id: 'saved', label: 'Saved', icon: Bookmark },
   { id: 'profile', label: 'Profile', icon: UserRound },
@@ -61,7 +66,7 @@ export function MemberDashboard({
       typeof window !== 'undefined'
         ? new URLSearchParams(window.location.search).get('view')
         : null;
-    return destinations.some((d) => d.id === value) ? (value as View) : 'home';
+    return destinations.some((d) => d.id === value) ? (value as View) : 'brief';
   });
   const [feed, setFeed] = useState('personal');
   const [topic, setTopic] = useState('all');
@@ -194,7 +199,9 @@ export function MemberDashboard({
         (feed === 'all' || relevant.has(s.symbol)),
   );
   return (
-    <div className="member-shell">
+    <div
+      className={`member-shell ${view === 'brief' || view === 'calendar' ? 'reading-view' : ''}`}
+    >
       <aside className="member-sidebar">
         <Link className="member-brand" href="/">
           h<span>p</span>
@@ -240,7 +247,7 @@ export function MemberDashboard({
         <div className="sidebar-bottom">
           {status.admin && (
             <Link href="/admin/community">
-              Moderation <ArrowUpRight size={15} />
+              Admin <ArrowUpRight size={15} />
             </Link>
           )}
           <Link href="/trust">
@@ -286,31 +293,43 @@ export function MemberDashboard({
             <div className="member-page-heading">
               <div>
                 <p className="eyebrow">
-                  {view === 'home'
-                    ? 'A PLACE FOR YOUR PERSPECTIVE'
-                    : view === 'topics'
-                      ? 'FOLLOW YOUR CURIOSITY'
-                      : view === 'saved'
-                        ? 'KEEP THE GOOD STUFF CLOSE'
-                        : 'MAKE YOURSELF AT HOME'}
+                  {view === 'brief'
+                    ? 'THE HOLDER EDITION'
+                    : view === 'calendar'
+                      ? 'ON THE HORIZON'
+                      : view === 'home'
+                        ? 'A PLACE FOR YOUR PERSPECTIVE'
+                        : view === 'topics'
+                          ? 'FOLLOW YOUR CURIOSITY'
+                          : view === 'saved'
+                            ? 'KEEP THE GOOD STUFF CLOSE'
+                            : 'MAKE YOURSELF AT HOME'}
                 </p>
                 <h1>
-                  {view === 'home'
-                    ? 'Your common ground.'
-                    : view === 'topics'
-                      ? 'Beyond your own position.'
-                      : view === 'saved'
-                        ? 'Worth another look.'
-                        : 'A name. A little personality.'}
+                  {view === 'brief'
+                    ? 'A little context. A clearer view.'
+                    : view === 'calendar'
+                      ? 'Know what’s coming.'
+                      : view === 'home'
+                        ? 'Your common ground.'
+                        : view === 'topics'
+                          ? 'Beyond your own position.'
+                          : view === 'saved'
+                            ? 'Worth another look.'
+                            : 'A name. A little personality.'}
                 </h1>
                 <p>
-                  {view === 'home'
-                    ? 'Start with what you hold. Stay for a different point of view.'
-                    : view === 'topics'
-                      ? 'One membership opens every topic. Follow a few to shape your home.'
-                      : view === 'saved'
-                        ? 'Your private collection of discussions and sources.'
-                        : 'Choose how you appear to other members.'}
+                  {view === 'brief'
+                    ? 'The stories that connect to what you hold.'
+                    : view === 'calendar'
+                      ? 'Earnings, company events, and dates worth keeping in view.'
+                      : view === 'home'
+                        ? 'Start with what you hold. Stay for a different point of view.'
+                        : view === 'topics'
+                          ? 'One membership opens every topic. Follow a few to shape your home.'
+                          : view === 'saved'
+                            ? 'Your private collection of discussions and sources.'
+                            : 'Choose how you appear to other members.'}
                 </p>
               </div>
               {view === 'home' && (
@@ -332,7 +351,17 @@ export function MemberDashboard({
               </div>
             )}
             {notice && <output className="member-notice">{notice}</output>}
-            {view === 'topics' ? (
+            {view === 'brief' || view === 'calendar' ? (
+              <MemberBrief
+                key={view}
+                kind={view === 'brief' ? 'news' : 'event'}
+                onCalendar={() => navigate('calendar')}
+                onDiscuss={(item) => {
+                  startDiscussion(item.title.slice(0, 140), item.symbols[0]);
+                  setDraftBody(`Source: ${item.url}\n\nMy perspective: `);
+                }}
+              />
+            ) : view === 'topics' ? (
               <>
                 <label className="member-search">
                   <Search size={18} />
