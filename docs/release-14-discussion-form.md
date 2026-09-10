@@ -22,3 +22,12 @@ The user also reported being unable to post a thread. Recent production logs sho
 - Local homepage returned HTTP 200.
 - Chrome visual/interaction QA was attempted through the approved browser tool and denied because its admin-policy security check was unavailable. No alternate browser or access workaround was used. The revised visual layout and real-user submission are not yet browser-verified.
 - No hosted test member/content was created. The integration fixture restored local environment files; production RPC configuration is unchanged.
+
+## Publication
+
+- Production build passed; packaged output contains the discussion form and picker corrections and excludes local fixtures and environment files.
+- Source: `e159ed30e62b8d0504a350328bcae978af44f3a1` (pushed before saving).
+- Saved version 14: `appgprj_6aa16c80630081918b8b86d4f513fc17~appgver_f01031e5b4e881918bce3e5c5d028b33`.
+- Deployment `appgdep_6aa2b6c509348191969c38a4ef868285` reached `succeeded` at 2026-09-10 13:55:30 UTC with hosted environment revision 3 retained.
+- Live URL: https://holderpulse.glossy-kid-6048.chatgpt.site
+- No browser-verified claim is made; the reported click behavior remains unconfirmed.
