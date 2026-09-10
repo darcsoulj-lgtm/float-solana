@@ -235,7 +235,9 @@ export function Community() {
           message,
         )
           ? 'invalid-response'
-          : /account changed/.test(message)
+          : /account(?: or connection)? changed|connection changed/.test(
+                message,
+              )
             ? 'account-changed'
             : /reject|cancel|denied/i.test(message)
               ? 'cancelled'

@@ -25,10 +25,205 @@ for (const name of ['@wallet-standard/app', '@noble/curves/ed25519.js'])
     JSON.stringify(pathToFileURL(require.resolve(name)).href),
   );
 await writeFile(dir + '/wallet.mjs', output);
-const { selectedWallet, walletAvailability } = await import(
-  pathToFileURL(dir + '/wallet.mjs')
-);
+const {
+  standardWallet: selectedWallet,
+  selectedWallet: routeWallet,
+  walletAvailability,
+} = await import(pathToFileURL(dir + '/wallet.mjs'));
 const message = new TextEncoder().encode('HolderPulse test challenge');
+function toBase58(bytes) {
+  const alphabet = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+  let n = BigInt('0x' + Buffer.from(bytes).toString('hex')),
+    out = '';
+  while (n) {
+    out = alphabet[Number(n % 58n)] + out;
+    n /= 58n;
+  }
+  for (const b of bytes) {
+    if (b) break;
+    out = '1' + out;
+  }
+  return out;
+}
+function phantomFixture(options = {}) {
+  const pair = ed25519.keygen(),
+    calls = [],
+    listeners = new Map();
+  const key = {
+    toBytes: () => new Uint8Array(pair.publicKey),
+    toString: () => toBase58(pair.publicKey),
+  };
+  const provider = {
+    isPhantom: true,
+    isConnected: false,
+    publicKey: null,
+    async request(input) {
+      assert.equal(this, provider);
+      calls.push(input.method);
+      if (input.method === 'connect') {
+        provider.publicKey = key;
+        provider.isConnected = true;
+        return { publicKey: key };
+      }
+      assert.equal(input.method, 'signMessage');
+      assert.equal(input.params.display, 'utf8');
+      if (options.reject) throw new Error('User rejected the request.');
+      const signed = options.wrongMessage
+        ? new Uint8Array([1, 2, 3])
+        : input.params.message;
+      const signature = ed25519.sign(
+        signed,
+        options.wrongKey ? ed25519.keygen().secretKey : pair.secretKey,
+      );
+      options.duringSign?.(provider);
+      return {
+        publicKey: options.wrongAddress
+          ? '11111111111111111111111111111111'
+          : key.toString(),
+        signature: options.base58
+          ? toBase58(signature)
+          : options.serialized
+            ? Array.from(signature)
+            : signature,
+      };
+    },
+    on(event, listener) {
+      listeners.set(event, listener);
+    },
+    removeListener(event, listener) {
+      if (listeners.get(event) === listener) listeners.delete(event);
+    },
+  };
+  return {
+    provider,
+    calls,
+    key,
+    listeners,
+    providers: { phantom: { solana: provider } },
+  };
+}
+
+test('Phantom uses its dedicated request transport even when its standard signing wrapper routes to Backpack', async () => {
+  const p = phantomFixture(),
+    standard = fixture(),
+    backpack = fixture('Backpack');
+  standard.wallet.features['solana:signMessage'] =
+    backpack.wallet.features['solana:signMessage'];
+  const c = routeWallet(
+    'phantom',
+    [standard.wallet, backpack.wallet],
+    p.providers,
+  );
+  assert.equal((await c.connect()).publicKey.toString(), p.key.toString());
+  assert.equal((await c.signMessage(message)).length, 64);
+  assert.deepEqual(p.calls, ['connect', 'signMessage']);
+  assert.deepEqual(standard.calls, []);
+  assert.deepEqual(backpack.calls, []);
+});
+
+test('Missing native Phantom never falls back to a named registration or shared Backpack provider', () => {
+  const b = phantomFixture();
+  assert.throws(
+    () =>
+      routeWallet('phantom', [fixture().wallet], {
+        backpack: b.provider,
+        solana: b.provider,
+      }),
+    /dedicated Solana connection/,
+  );
+  assert.deepEqual(b.calls, []);
+});
+
+for (const collision of ['isBackpack', 'sameObject', 'sameRequest']) {
+  test(`Phantom rejects ${collision} conflicts before opening a wallet`, () => {
+    const p = phantomFixture();
+    if (collision === 'isBackpack') p.provider.isBackpack = true;
+    if (collision === 'sameObject') p.providers.backpack = p.provider;
+    if (collision === 'sameRequest')
+      p.providers.backpack = { request: p.provider.request };
+    assert.throws(() => routeWallet('phantom', [], p.providers), /conflicts/);
+    assert.deepEqual(p.calls, []);
+  });
+}
+
+for (const representation of ['base58', 'serialized']) {
+  test(`Phantom validates a ${representation} JSON-RPC signature`, async () => {
+    const p = phantomFixture({ [representation]: true }),
+      c = routeWallet('phantom', [], p.providers);
+    await c.connect();
+    assert.equal((await c.signMessage(message)).length, 64);
+  });
+}
+
+for (const invalid of ['wrongMessage', 'wrongKey', 'wrongAddress']) {
+  test(`Phantom rejects ${invalid} from its dedicated request transport`, async () => {
+    const p = phantomFixture({ [invalid]: true }),
+      c = routeWallet('phantom', [], p.providers);
+    await c.connect();
+    await assert.rejects(
+      c.signMessage(message),
+      /different account or message/,
+    );
+  });
+}
+
+test('Phantom rejection never opens another wallet or retries another signing API', async () => {
+  const p = phantomFixture({ reject: true }),
+    c = routeWallet('phantom', [], p.providers);
+  await c.connect();
+  await assert.rejects(c.signMessage(message), /User rejected/);
+  assert.deepEqual(p.calls, ['connect', 'signMessage']);
+});
+
+for (const change of ['account', 'request', 'namespace']) {
+  test(`Phantom ${change} replacement after connect prevents signing`, async () => {
+    const p = phantomFixture(),
+      c = routeWallet('phantom', [], p.providers);
+    await c.connect();
+    if (change === 'account') p.provider.publicKey = phantomFixture().key;
+    if (change === 'request')
+      p.provider.request = phantomFixture().provider.request;
+    if (change === 'namespace')
+      p.providers.phantom.solana = phantomFixture().provider;
+    assert.equal(c.accountUnchanged(), false);
+    await assert.rejects(c.signMessage(message), /connection changed/);
+    assert.deepEqual(p.calls, ['connect']);
+  });
+}
+
+test('Phantom account changes during signing reject the result', async () => {
+  const p = phantomFixture({
+    duringSign(provider) {
+      provider.publicKey = null;
+    },
+  });
+  const c = routeWallet('phantom', [], p.providers);
+  await c.connect();
+  await assert.rejects(c.signMessage(message), /connection changed/);
+});
+
+test('Native Phantom detection works without a Wallet Standard registration', () => {
+  const p = phantomFixture();
+  assert.equal(
+    walletAvailability([], p.providers).find((w) => w.id === 'phantom').state,
+    'detected',
+  );
+});
+
+test('Native Phantom disconnect events invalidate the session and remove listeners on cleanup', async () => {
+  const p = phantomFixture(),
+    c = routeWallet('phantom', [], p.providers);
+  await c.connect();
+  let changes = 0;
+  const cleanup = c.onAccountChange(() => changes++);
+  p.listeners.get('accountChanged')();
+  assert.equal(changes, 0);
+  p.provider.isConnected = false;
+  p.listeners.get('disconnect')();
+  assert.equal(changes, 1);
+  cleanup();
+  assert.equal(p.listeners.size, 0);
+});
 function fixture(name = 'Phantom', options = {}) {
   const calls = [];
   const key = ed25519.utils.randomSecretKey();
@@ -72,7 +267,7 @@ function fixture(name = 'Phantom', options = {}) {
   };
   return { wallet, account, calls };
 }
-test('Phantom connect and signing use only the named Solana wallet when Backpack and Phantom Sui coexist', async () => {
+test('Wallet Standard adapter separates named Solana accounts from other wallets and Sui', async () => {
   const p = fixture(),
     b = fixture('Backpack'),
     s = fixture();
@@ -228,7 +423,7 @@ for (const bad of [-1, 256, 1.5, '1', null]) {
   });
 }
 
-test('Wallet picker detects compatible wallets, duplicate providers, and missing capabilities', () => {
+test('Wallet picker requires native Phantom and detects missing capabilities on other wallets', () => {
   const phantom = fixture(),
     backpack = fixture('Backpack'),
     solflare = fixture('Solflare');
@@ -242,7 +437,7 @@ test('Wallet picker detects compatible wallets, duplicate providers, and missing
   assert.deepEqual(
     result.map((w) => [w.id, w.state]),
     [
-      ['phantom', 'ambiguous'],
+      ['phantom', 'missing'],
       ['backpack', 'detected'],
       ['solflare', 'missing'],
     ],

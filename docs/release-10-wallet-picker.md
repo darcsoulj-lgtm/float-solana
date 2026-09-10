@@ -33,3 +33,21 @@ This release supplies compatibility fixes and better evidence for the unresolved
 - Deployment: `appgdep_6aa2a1818a188191bf861873d05b0dc3`; succeeded at 2026-09-10 12:25:02 UTC.
 - Public URL: https://holderpulse.glossy-kid-6048.chatgpt.site/ . Existing public audience and environment revision 3 retained.
 - The deployment service confirmed publication. Post-publication browser QA remains blocked; no rendered-page or real-wallet success is claimed. The initial recent worker-log query returned no events.
+
+## Subsequent user report: wrong wallet still opens
+
+The user reports Backpack still opening after selecting Phantom. The new production diagnostic events confirm an actual v10 Phantom attempt (not merely an old dropdown or an inference from a generic challenge request):
+
+1. `provider=phantom`, `phase=connect`, `code=ok`.
+2. `/api/community/challenge` returned 200.
+3. `provider=phantom`, `phase=holdings`, `code=ok`.
+4. `provider=phantom`, `phase=sign`, `code=requested`.
+5. About 2.7 seconds later: `provider=phantom`, `phase=sign`, `code=failed`; no verification request.
+
+This establishes that v10 did not resolve the reported cross-wallet popup. Successful selection and holdings preflight do not establish which extension handles signing. The exact extension/host transport cause remains unknown; the public Phantom documentation's default-wallet advice applies to EVM and must not be presented as a proven fix for this Solana flow.
+
+Follow-up scoped browser inspection was again denied because the administrator-enforced browser policy service was unavailable. Browser type and whether the popup opens during connect or during the separate signing action have been requested from the user. No further speculative routing replacement was published. Reproduce the extension boundary before claiming a fix or changing integrations again.
+
+The user subsequently confirmed Chrome. A direct, task-scoped Chrome request through the authorized browser tool was denied by the same unavailable security-policy service. No browser access or extension changes occurred. The next isolation check is to close pending wallet prompts, temporarily disable only Backpack in the same Chrome profile (without removing it), hard-refresh HolderPulse, and request the Phantom membership-message popup without approving it. Restore Backpack afterward. Whether Phantom opens in that isolated setup will distinguish coexistence interference from an independently failing Phantom path; either result still requires testing with both extensions enabled before declaring resolution.
+
+The user subsequently corrected the isolated result: Phantom does work while Backpack is disabled, but re-enabling Backpack brings back the wrong popup. This is user-confirmed coexistence evidence, not an agent-observed browser test. See `release-11-phantom-transport.md` for the ensuing transport change and its remaining verification limit.

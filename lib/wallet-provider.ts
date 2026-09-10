@@ -12,6 +12,41 @@ type SignFeature = {
     message: Uint8Array;
   }): Promise<readonly { signedMessage: Uint8Array; signature: Uint8Array }[]>;
 };
+type PublicKey = { toString(): string; toBytes(): Uint8Array };
+type PhantomProvider = {
+  isPhantom?: boolean;
+  isBackpack?: boolean;
+  publicKey?: PublicKey | null;
+  isConnected?: boolean;
+  request(input: {
+    method: 'connect' | 'signMessage';
+    params?: { message: Uint8Array; display: 'utf8' };
+  }): Promise<{ publicKey?: PublicKey | string; signature?: unknown }>;
+  on?: (event: string, listener: () => void) => void;
+  removeListener?: (event: string, listener: () => void) => void;
+};
+export type WalletProviders = {
+  phantom?: { solana?: PhantomProvider };
+  backpack?: Partial<PhantomProvider>;
+  solflare?: Partial<PhantomProvider>;
+};
+function browserProviders(): WalletProviders {
+  return typeof window === 'undefined' ? {} : (window as WalletProviders);
+}
+function nativePhantom(providers: WalletProviders) {
+  const p = providers.phantom?.solana;
+  if (!p || p.isPhantom !== true || typeof p.request !== 'function')
+    return undefined;
+  if (
+    p.isBackpack === true ||
+    p === providers.backpack ||
+    p === providers.solflare ||
+    p.request === providers.backpack?.request ||
+    p.request === providers.solflare?.request
+  )
+    return undefined;
+  return p;
+}
 export const WALLET_NAMES: Record<string, string> = {
   phantom: 'Phantom',
   backpack: 'Backpack',
@@ -23,8 +58,17 @@ const equalBytes = (a: ArrayLike<number>, b: ArrayLike<number>) =>
 
 export function walletAvailability(
   wallets: readonly RegisteredWallet[] = getWallets().get(),
+  providers: WalletProviders = browserProviders(),
 ) {
   return Object.keys(WALLET_NAMES).map((id) => {
+    if (id === 'phantom')
+      return {
+        id,
+        label: WALLET_NAMES[id],
+        state: nativePhantom(providers)
+          ? ('detected' as const)
+          : ('missing' as const),
+      };
     const matches = wallets.filter(
       (w) =>
         w.name === WALLET_NAMES[id] &&
@@ -71,7 +115,7 @@ function bytes(value: unknown, description: string) {
 }
 // Discover exact named Solana wallets. A browser's shared injected provider may
 // route to another wallet. Never use it as a substitute for the user's choice.
-export function selectedWallet(
+export function standardWallet(
   name: string,
   wallets: readonly RegisteredWallet[] = getWallets().get(),
 ) {
@@ -178,4 +222,145 @@ export function selectedWallet(
       return signature;
     },
   };
+}
+
+const BASE58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+function base58(input: Uint8Array) {
+  let value = 0n;
+  for (const byte of input) value = value * 256n + BigInt(byte);
+  let encoded = '';
+  while (value) {
+    encoded = BASE58[Number(value % 58n)] + encoded;
+    value /= 58n;
+  }
+  for (const byte of input) {
+    if (byte !== 0) break;
+    encoded = '1' + encoded;
+  }
+  return encoded;
+}
+function phantomSignature(input: unknown) {
+  if (typeof input !== 'string') return bytes(input, 'signature');
+  // Phantom's JSON-RPC interface may serialize the signature as base58.
+  if (!/^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(input))
+    throw new Error('Phantom returned an invalid signature.');
+  let value = 0n;
+  for (const char of input) value = value * 58n + BigInt(BASE58.indexOf(char));
+  const decoded: number[] = [];
+  while (value) {
+    decoded.unshift(Number(value % 256n));
+    value /= 256n;
+  }
+  for (const char of input) {
+    if (char !== '1') break;
+    decoded.unshift(0);
+  }
+  return Uint8Array.from(decoded);
+}
+
+export function phantomWallet(providers: WalletProviders = browserProviders()) {
+  const p = nativePhantom(providers);
+  if (!p)
+    throw new Error(
+      'Phantom’s dedicated Solana connection is unavailable or conflicts with another extension. No other wallet was opened. Reload this page with Phantom enabled.',
+    );
+  // Do not call the registered wallet's signing wrapper or a shared provider.
+  // The same captured Phantom request transport handles both operations.
+  // oxlint-disable-next-line typescript/unbound-method -- Identity check only; calls use the explicitly bound function below.
+  const requestMethod = p.request;
+  const request = requestMethod.bind(p);
+  let address = '';
+  let publicKey: Uint8Array | undefined;
+  const sameProvider = () =>
+    nativePhantom(providers) === p && p.request === requestMethod;
+  const key = () => {
+    const current = p.publicKey;
+    if (!current || typeof current.toBytes !== 'function') return undefined;
+    const data = bytes(current.toBytes(), 'account');
+    if (data.length !== 32 || current.toString() !== base58(data))
+      return undefined;
+    return { address: current.toString(), bytes: data };
+  };
+  const unchanged = () => {
+    try {
+      if (!publicKey || !sameProvider() || p.isConnected === false)
+        return false;
+      const current = key();
+      return (
+        !!current &&
+        current.address === address &&
+        equalBytes(current.bytes, publicKey)
+      );
+    } catch {
+      return false;
+    }
+  };
+  const requireUnchanged = () => {
+    if (!unchanged())
+      throw new Error(
+        'The Phantom account or connection changed. Reload and connect again.',
+      );
+  };
+  return {
+    accountUnchanged: unchanged,
+    onAccountChange(callback: () => void) {
+      const listener = () => {
+        if (!unchanged()) callback();
+      };
+      p.on?.('accountChanged', listener);
+      p.on?.('disconnect', listener);
+      return () => {
+        p.removeListener?.('accountChanged', listener);
+        p.removeListener?.('disconnect', listener);
+      };
+    },
+    async connect() {
+      if (!sameProvider())
+        throw new Error('The Phantom connection changed. Reload this page.');
+      const result = await request({ method: 'connect' });
+      const current = key();
+      if (
+        !sameProvider() ||
+        !current ||
+        result?.publicKey?.toString() !== current.address
+      )
+        throw new Error(
+          'Phantom returned an inconsistent Solana account. Reload and connect again.',
+        );
+      address = current.address;
+      publicKey = new Uint8Array(current.bytes);
+      requireUnchanged();
+      return { publicKey: { toString: () => address } };
+    },
+    async signMessage(message: Uint8Array) {
+      requireUnchanged();
+      const expected = new Uint8Array(message);
+      const result = await request({
+        method: 'signMessage',
+        params: { message: new Uint8Array(expected), display: 'utf8' },
+      });
+      requireUnchanged();
+      const signature = phantomSignature(result?.signature);
+      if (
+        (result?.publicKey !== undefined &&
+          result.publicKey.toString() !== address) ||
+        signature.length !== 64 ||
+        !ed25519.verify(signature, expected, publicKey!, { zip215: false })
+      )
+        throw new Error(
+          'Phantom returned a signature for a different account or message. Verification was stopped.',
+        );
+      return signature;
+    },
+  };
+}
+
+export function selectedWallet(
+  name: string,
+  wallets: readonly RegisteredWallet[] = getWallets().get(),
+  providers: WalletProviders = browserProviders(),
+) {
+  return name === 'phantom'
+    ? phantomWallet(providers)
+    : standardWallet(name, wallets);
 }
