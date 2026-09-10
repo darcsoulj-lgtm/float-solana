@@ -87,7 +87,9 @@ async function handler(req: Request) {
         ].includes(b.code) ||
         typeof b.flowId !== 'string' ||
         !/^[a-f0-9-]{36}$/.test(b.flowId) ||
-        (b.clientVersion !== undefined && b.clientVersion !== 12) ||
+        (b.clientVersion !== undefined &&
+          b.clientVersion !== 12 &&
+          b.clientVersion !== 13) ||
         (b.method !== undefined &&
           (typeof b.method !== 'string' ||
             !['signIn', 'signMessage'].includes(b.method)))

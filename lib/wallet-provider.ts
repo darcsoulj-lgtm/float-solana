@@ -24,7 +24,8 @@ type PhantomProvider = {
     params?: { message: Uint8Array; display: 'utf8' };
   }): Promise<{ publicKey?: PublicKey | string; signature?: unknown }>;
   signIn?(input: CommunitySignInInput): Promise<{
-    account: { address: string; publicKey: Uint8Array };
+    // Native Phantom differs from the Wallet Standard wrapper's account object.
+    address: string | Pick<PublicKey, 'toString'>;
     signedMessage: Uint8Array;
     signature: Uint8Array;
     signatureType?: string;
@@ -392,14 +393,23 @@ export function phantomWallet(providers: WalletProviders = browserProviders()) {
       requireUnchanged();
       const signature = bytes(result?.signature, 'signature');
       const signedMessage = bytes(result?.signedMessage, 'signed message');
-      const accountKey = bytes(result?.account?.publicKey, 'account');
+      const returnedAddress = result?.address;
+      const signedAddress =
+        typeof returnedAddress === 'string'
+          ? returnedAddress
+          : returnedAddress &&
+              typeof returnedAddress === 'object' &&
+              !Array.isArray(returnedAddress) &&
+              typeof returnedAddress.toString === 'function'
+            ? returnedAddress.toString()
+            : undefined;
       if (
         (result.signatureType !== undefined &&
           result.signatureType !== 'ed25519') ||
-        result.account.address !== address ||
-        !equalBytes(accountKey, publicKey!) ||
+        signedAddress !== address ||
         !equalBytes(signedMessage, expected) ||
         signature.length !== 64 ||
+        // Authenticate with the immutable key captured at connection, not response metadata.
         !ed25519.verify(signature, expected, publicKey!, { zip215: false })
       )
         throw new Error(

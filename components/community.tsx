@@ -107,7 +107,7 @@ export function Community() {
       phase,
       code,
       flowId,
-      clientVersion: 12,
+      clientVersion: 13,
       method: providerName === 'phantom' ? 'signIn' : 'signMessage',
     }).catch(() => {});
   }

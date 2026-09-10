@@ -119,10 +119,8 @@ function phantomFixture(options = {}) {
       if (options.signInError) throw options.signInError;
       const signedMessage = new TextEncoder().encode(walletSignInText(input));
       const result = {
-        account: {
-          address: key.toString(),
-          publicKey: new Uint8Array(pair.publicKey),
-        },
+        // Native Phantom returns address as a PublicKey-like object, not WalletAccount.
+        address: key,
         signedMessage,
         signature: ed25519.sign(signedMessage, pair.secretKey),
         signatureType: 'ed25519',
@@ -184,6 +182,55 @@ test('Phantom membership uses the distinct signIn operation even when generic si
   assert.deepEqual(p.calls, ['connect', 'signIn']);
 });
 
+test('Native Phantom SIWS accepts the SDK string-address response without an account field', async () => {
+  const p = phantomFixture({
+      onSignIn(result) {
+        assert.equal(result.account, undefined);
+        result.address = result.address.toString();
+        delete result.signatureType;
+      },
+    }),
+    c = signInChallenge(p);
+  const connection = routeWallet('phantom', [], p.providers);
+  await connection.connect();
+  assert.equal((await connection.signIn(c.input, c.message)).length, 64);
+  assert.deepEqual(p.calls, ['connect', 'signIn']);
+});
+
+for (const value of [undefined, null, 123, [], {}]) {
+  test(`Native Phantom SIWS rejects malformed address ${JSON.stringify(value)}`, async () => {
+    const p = phantomFixture({
+        onSignIn(result) {
+          result.address = value;
+        },
+      }),
+      c = signInChallenge(p);
+    const connection = routeWallet('phantom', [], p.providers);
+    await connection.connect();
+    await assert.rejects(
+      connection.signIn(c.input, c.message),
+      /different account or message/,
+    );
+    assert.deepEqual(p.calls, ['connect', 'signIn']);
+  });
+}
+
+test('A Wallet Standard account cannot substitute for the native Phantom address field', async () => {
+  const p = phantomFixture({
+      onSignIn(result) {
+        result.account = { address: result.address.toString() };
+        delete result.address;
+      },
+    }),
+    c = signInChallenge(p);
+  const connection = routeWallet('phantom', [], p.providers);
+  await connection.connect();
+  await assert.rejects(
+    connection.signIn(c.input, c.message),
+    /different account or message/,
+  );
+});
+
 test('Missing or shared Phantom signIn stops before requesting another operation', async () => {
   for (const kind of ['missing', 'shared']) {
     const p = phantomFixture();
@@ -232,9 +279,12 @@ for (const kind of [
     const p = phantomFixture({
         onSignIn(result, provider) {
           if (kind === 'address')
-            result.account.address = '11111111111111111111111111111111';
+            result.address = '11111111111111111111111111111111';
           if (kind === 'key')
-            result.account.publicKey = ed25519.keygen().publicKey;
+            result.signature = ed25519.sign(
+              result.signedMessage,
+              ed25519.keygen().secretKey,
+            );
           if (kind === 'signature') result.signature = new Uint8Array(64);
           if (kind === 'message') result.signedMessage = new Uint8Array([1]);
           if (kind === 'type') result.signatureType = 'other';
