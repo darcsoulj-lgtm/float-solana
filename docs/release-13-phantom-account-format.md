@@ -27,3 +27,13 @@ Read directly from Phantom's public repository during this investigation:
 - https://github.com/phantom/phantom-connect-sdk/blob/main/packages/browser-injected-sdk/src/solana/strategies/injected.ts
 - https://github.com/phantom/phantom-connect-sdk/blob/main/packages/browser-injected-sdk/src/solana/signIn.ts
 - https://github.com/phantom/phantom-connect-sdk/blob/main/packages/browser-injected-sdk/src/solana/signIn.test.ts
+
+## Publication
+
+- Production build passed; the packaged client contains version 13 and the native sign-in correction. The archive excludes local environment files, tests and mock RPC endpoints.
+- Source commit: `6630c1e19629fb1b25b527fd3507a73de8f928b3`, pushed before packaging.
+- Saved version: `appgprj_6aa16c80630081918b8b86d4f513fc17~appgver_4fc446b389548191a3e34e8e33e8b90a` (13).
+- Deployment: `appgdep_6aa2b26efed88191811a3d629502dfa4` reached `succeeded` at 2026-09-10 13:37:19 UTC.
+- Public URL: https://holderpulse.glossy-kid-6048.chatgpt.site
+- Hosted environment revision 3 retained; no secret or RPC configuration changes.
+- Publication is confirmed. A completed real-wallet login remains unverified, as described above.
