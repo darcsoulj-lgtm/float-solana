@@ -22,4 +22,14 @@ Do not mark the real Phantom flow fixed based on simulated tests. The previous n
 - 93 local community checks passed using disposable real Ed25519 signatures and an explicitly simulated Solana RPC. Includes full member persistence/privacy/access flows and diagnostic input rejection. Test RPC configuration was restored afterward; it was never sent to production.
 - Browser rendering and the real funded-holder Phantom flow are **not verified**. Scoped CUA inspection of the existing HolderPulse tab was denied because the administrator-enforced browser security policy service was unavailable. A later retry returned the same denial. No alternate browser or indirect bypass was used, and no user wallet signature or transaction was approved.
 
-This release supplies compatibility fixes and better evidence for the unresolved report; it is not proof of a completed real-wallet login. Final build/publication results are recorded separately after completion.
+This release supplies compatibility fixes and better evidence for the unresolved report; it is not proof of a completed real-wallet login.
+
+## Publication
+
+- Type checking, targeted lint, diff whitespace checks and the production build passed.
+- Archive validated with all three wallet icons and the expected Worker entrypoint. Built JavaScript contained neither test RPC configuration nor API-key URL literals.
+- Pushed/built source: `449cf9f7d4e323c14d925db6cfe42458f28e8d0f`.
+- Saved version 10: `appgprj_6aa16c80630081918b8b86d4f513fc17~appgver_132586a381d88191a8612cdf1696cd73`.
+- Deployment: `appgdep_6aa2a1818a188191bf861873d05b0dc3`; succeeded at 2026-09-10 12:25:02 UTC.
+- Public URL: https://holderpulse.glossy-kid-6048.chatgpt.site/ . Existing public audience and environment revision 3 retained.
+- The deployment service confirmed publication. Post-publication browser QA remains blocked; no rendered-page or real-wallet success is claimed. The initial recent worker-log query returned no events.
