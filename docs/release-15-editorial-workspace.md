@@ -23,3 +23,13 @@ The approved browser tool denied scoped HolderPulse access because its administr
 The standard Sites build helper attempted an unnecessary dependency installation and stopped on ignored package build scripts. No package-install security policy was relaxed; the existing installed `vinext` build command was used instead.
 
 See EDITORIAL.md for operation and coverage limits. Hosted RPC/admin settings remain at environment revision 3.
+
+## Publication
+
+- Sites version 15 successfully published September 10, 2026 at 23:05:11 UTC (September 11 in Korea).
+- URL: https://holderpulse.glossy-kid-6048.chatgpt.site
+- Source: `a55ce16f0b4a110acf842d51ec52ba9d28adba90`
+- Version: `appgprj_6aa16c80630081918b8b86d4f513fc17~appgver_ea847fb9566481919def71ed277cb6f3`
+- Deployment: `appgdep_6aa337982b608191ad89d6fed93ff0eb`
+- Environment revision: 3, preserving the configured admin allowlist and RPC secret.
+- Local development server stopped after completion. Production publication succeeded; a signed-in browser smoke test remains unverified due to the browser security-service denial described above.
