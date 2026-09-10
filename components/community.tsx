@@ -21,20 +21,7 @@ import {
   type ReplyPage,
   type ThreadPage,
 } from '@/lib/community-types';
-type Provider = {
-  publicKey?: { toString(): string };
-  connect(): Promise<{ publicKey?: { toString(): string } }>;
-  signMessage(
-    m: Uint8Array,
-    e: string,
-  ): Promise<Uint8Array | { signature: Uint8Array }>;
-};
-type WalletWindow = {
-  backpack?: Provider;
-  phantom?: { solana?: Provider };
-  solana?: Provider;
-  solflare?: Provider;
-};
+import { selectedWallet, type WalletWindow } from '@/lib/wallet-provider';
 export function Community() {
   const [status, setStatus] = useState<CommunityStatus | null>(null),
     [threads, setThreads] = useState<CommunityThread[]>([]),
@@ -98,17 +85,7 @@ export function Community() {
   }
   async function verify() {
     await run(async () => {
-      const w = window as unknown as WalletWindow,
-        p =
-          provider === 'backpack'
-            ? w.backpack
-            : provider === 'phantom'
-              ? w.phantom?.solana || w.solana
-              : w.solflare;
-      if (!p?.signMessage)
-        throw new Error(
-          'Open this site inside your wallet browser, or install and unlock the selected Solana wallet extension.',
-        );
+      const p = selectedWallet(provider, window as unknown as WalletWindow);
       setStage('Connect your wallet…');
       const c = await p.connect(),
         wallet = (c.publicKey || p.publicKey)?.toString();

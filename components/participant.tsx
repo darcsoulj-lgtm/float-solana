@@ -7,20 +7,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { api } from '@/lib/client';
 import { Analytics, Picker } from './workspace';
 import { TOKENS, type Survey, type ResponseReceipt } from '@/lib/tokens';
-type WalletProvider = {
-  publicKey?: { toString(): string };
-  connect: () => Promise<{ publicKey?: { toString(): string } }>;
-  signMessage: (
-    message: Uint8Array,
-    encoding: string,
-  ) => Promise<Uint8Array | { signature: Uint8Array }>;
-};
-type WalletWindow = {
-  backpack?: WalletProvider;
-  phantom?: { solana?: WalletProvider };
-  solana?: WalletProvider;
-  solflare?: WalletProvider;
-};
+import { selectedWallet, type WalletWindow } from '@/lib/wallet-provider';
 export function Participant({ id }: { id: string }) {
   const [s, setS] = useState<Survey | null>(null),
     [error, setError] = useState(''),
@@ -42,17 +29,7 @@ export function Participant({ id }: { id: string }) {
     setError('');
     setProof('');
     try {
-      const w = window as unknown as WalletWindow;
-      const p =
-        provider === 'backpack'
-          ? w.backpack
-          : provider === 'phantom'
-            ? w.phantom?.solana || w.solana
-            : w.solflare;
-      if (!p?.connect || !p?.signMessage)
-        throw new Error(
-          'Open this site in your wallet’s browser or install and unlock the selected Solana wallet extension. Mobile deep-link pairing is not enabled.',
-        );
+      const p = selectedWallet(provider, window as unknown as WalletWindow);
       setStage('Connect your wallet…');
       const c = await p.connect(),
         address = (c?.publicKey || p.publicKey)?.toString();
