@@ -30,3 +30,12 @@ Phantom community membership now uses the distinct native `signIn` operation doc
 
 - https://github.com/phantom/sign-in-with-solana — provider `signIn` interface, field requirements, output structure and SIWS message grammar.
 - https://github.com/solana-labs/wallet-standard/blob/master/packages/core/util/src/signIn.ts — canonical field order and signature/message verification contract. The app uses a fixed explicit field set and exact server-stored bytes, not a permissive parser.
+
+## Publication
+
+- Pushed source: `a78636a4ecea32aeae8869255a58a7eb8e83447d`.
+- Version 12: `appgprj_6aa16c80630081918b8b86d4f513fc17~appgver_92a0e1ee13748191a28c5d27903bb6b2`.
+- Deployment: `appgdep_6aa2afbd02888191aa1b5645fdf76b2a`, succeeded at 2026-09-10 13:25:44 UTC.
+- Public URL: https://holderpulse.glossy-kid-6048.chatgpt.site/ . Existing public audience and runtime environment revision 3 retained.
+- Archive validation confirmed the SIWS operation and static client version marker in built assets, expected Worker entrypoint, and exclusion of test RPC configuration, environment files and test source.
+- Deployment success was confirmed by Sites. Real Chrome extension selection/sign-in remains unverified because the task-scoped browser security check was unavailable.
