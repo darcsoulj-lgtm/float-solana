@@ -11,6 +11,10 @@ import { AppError, textValue } from '@/lib/validation';
 import { validWallet, verifySignature, detectHoldings } from '@/lib/solana';
 import { TOKENS } from '@/lib/tokens';
 import {
+  communitySignInInput,
+  communitySignInMessage,
+} from '@/lib/community-sign-in';
+import {
   TOPICS,
   type CommunityMember,
   type CommunityThread,
@@ -82,7 +86,11 @@ async function handler(req: Request) {
           'invalid-response',
         ].includes(b.code) ||
         typeof b.flowId !== 'string' ||
-        !/^[a-f0-9-]{36}$/.test(b.flowId)
+        !/^[a-f0-9-]{36}$/.test(b.flowId) ||
+        (b.clientVersion !== undefined && b.clientVersion !== 12) ||
+        (b.method !== undefined &&
+          (typeof b.method !== 'string' ||
+            !['signIn', 'signMessage'].includes(b.method)))
       )
         throw new AppError('Invalid diagnostic.');
       console.info(
@@ -92,6 +100,8 @@ async function handler(req: Request) {
           phase: b.phase,
           code: b.code,
           flowId: b.flowId,
+          clientVersion: b.clientVersion,
+          method: b.method,
         }),
       );
       return json({ ok: true });
@@ -117,6 +127,8 @@ async function handler(req: Request) {
       });
     }
     if (path[0] === 'challenge' && post) {
+      if (b.authMethod !== undefined && b.authMethod !== 'signIn')
+        throw new AppError('Unsupported authentication method.');
       const wallet = validWallet(textValue(b.wallet, 32, 44, 'Wallet'));
       await rateLimit('community-wallet:' + wallet, 5);
       await communityCleanup();
@@ -127,8 +139,15 @@ async function handler(req: Request) {
           403,
         );
       const id = crypto.randomUUID(),
-        expires = Date.now() + 300000;
-      const message = `HolderPulse community membership\nOrigin: ${url.origin}\nWallet: ${wallet}\nAccess: All community topics\nNonce: ${id}\nExpires: ${new Date(expires).toISOString()}\nSign to prove control of this wallet and verify supported tokenized-equity holdings for 24-hour community access. Only supported holdings are retained for your private feed; balances are not saved. No transaction or asset transfer is authorized.`;
+        issuedAt = Date.now(),
+        expires = issuedAt + 300000;
+      const signInInput =
+        b.authMethod === 'signIn'
+          ? communitySignInInput(url.origin, wallet, id, issuedAt, expires)
+          : undefined;
+      const message = signInInput
+        ? communitySignInMessage(signInInput)
+        : `HolderPulse community membership\nOrigin: ${url.origin}\nWallet: ${wallet}\nAccess: All community topics\nNonce: ${id}\nExpires: ${new Date(expires).toISOString()}\nSign to prove control of this wallet and verify supported tokenized-equity holdings for 24-hour community access. Only supported holdings are retained for your private feed; balances are not saved. No transaction or asset transfer is authorized.`;
       await db()
         .prepare(
           'INSERT INTO community_challenges (id,wallet,symbol,message,expires_at,consumed) VALUES (?,?,?,?,?,0)',
@@ -140,6 +159,7 @@ async function handler(req: Request) {
         message,
         expiresAt: expires,
         holdingCount: holdings.length,
+        signInInput,
       });
     }
     if (path[0] === 'verify' && post) {

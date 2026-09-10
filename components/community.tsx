@@ -22,6 +22,7 @@ import { MemberDashboard } from './member-dashboard';
 import { TOKENS } from '@/lib/tokens';
 import { api } from '@/lib/client';
 import type { CommunityStatus } from '@/lib/community-types';
+import type { CommunitySignInInput } from '@/lib/community-sign-in';
 import { selectedWallet, walletLabel } from '@/lib/wallet-provider';
 export function Community() {
   const [status, setStatus] = useState<CommunityStatus | null>(null);
@@ -37,6 +38,7 @@ export function Community() {
     message: string;
     holdingCount: number;
     expiresAt: number;
+    signInInput?: CommunitySignInInput;
     provider: string;
     connection: ReturnType<typeof selectedWallet>;
     flowId: string;
@@ -105,6 +107,8 @@ export function Community() {
       phase,
       code,
       flowId,
+      clientVersion: 12,
+      method: providerName === 'phantom' ? 'signIn' : 'signMessage',
     }).catch(() => {});
   }
   async function walletRequest<T>(
@@ -142,6 +146,7 @@ export function Community() {
     let phase = 'connect';
     try {
       const p = selectedWallet(providerName);
+      if (providerName === 'phantom' && 'requireSignIn' in p) p.requireSignIn();
       setStage(`Connecting to ${walletLabel(providerName)}…`);
       const connected = await walletRequest(
         p.connect(),
@@ -155,7 +160,11 @@ export function Community() {
         message: string;
         holdingCount: number;
         expiresAt: number;
-      }>('community/challenge', { wallet: connected.publicKey.toString() });
+        signInInput?: CommunitySignInInput;
+      }>('community/challenge', {
+        wallet: connected.publicKey.toString(),
+        ...(providerName === 'phantom' ? { authMethod: 'signIn' } : {}),
+      });
       if (!p.accountUnchanged())
         throw new Error(
           'Your wallet account changed. Connect and verify again.',
@@ -193,9 +202,16 @@ export function Community() {
         `Open ${walletLabel(pending.provider)} and review the membership message…`,
       );
       // This request starts directly inside the click, without an intervening RPC await.
-      const signing = pending.connection.signMessage(
-        new TextEncoder().encode(pending.message),
-      );
+      const message = new TextEncoder().encode(pending.message);
+      const signing = (() => {
+        if (pending.provider !== 'phantom')
+          return pending.connection.signMessage(message);
+        if (!pending.signInInput || !('signIn' in pending.connection))
+          throw new Error(
+            'This sign-in check is outdated. Reload and connect again.',
+          );
+        return pending.connection.signIn(pending.signInInput, message);
+      })();
       diagnostic(pending.provider, phase, 'requested', pending.flowId);
       const signature = Array.from(
         await walletRequest(signing, walletLabel(pending.provider)),

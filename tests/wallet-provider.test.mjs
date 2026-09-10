@@ -31,6 +31,26 @@ const {
   walletAvailability,
 } = await import(pathToFileURL(dir + '/wallet.mjs'));
 const message = new TextEncoder().encode('HolderPulse test challenge');
+const signInSource = await readFile(
+  new URL('../lib/community-sign-in.ts', import.meta.url),
+  'utf8',
+);
+await writeFile(
+  dir + '/sign-in.mjs',
+  ts.transpileModule(signInSource, {
+    compilerOptions: {
+      target: ts.ScriptTarget.ES2022,
+      module: ts.ModuleKind.ES2022,
+    },
+  }).outputText,
+);
+const { communitySignInInput, communitySignInMessage } = await import(
+  pathToFileURL(dir + '/sign-in.mjs')
+);
+// Independent fixed-field rendering of the SIWS protocol returned by a wallet.
+function walletSignInText(i) {
+  return `${i.domain} wants you to sign in with your Solana account:\n${i.address}\n\n${i.statement}\n\nURI: ${i.uri}\nVersion: ${i.version}\nChain ID: ${i.chainId}\nNonce: ${i.nonce}\nIssued At: ${i.issuedAt}\nExpiration Time: ${i.expirationTime}`;
+}
 function toBase58(bytes) {
   const alphabet = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
   let n = BigInt('0x' + Buffer.from(bytes).toString('hex')),
@@ -93,6 +113,23 @@ function phantomFixture(options = {}) {
     removeListener(event, listener) {
       if (listeners.get(event) === listener) listeners.delete(event);
     },
+    async signIn(input) {
+      assert.equal(this, provider);
+      calls.push('signIn');
+      if (options.signInError) throw options.signInError;
+      const signedMessage = new TextEncoder().encode(walletSignInText(input));
+      const result = {
+        account: {
+          address: key.toString(),
+          publicKey: new Uint8Array(pair.publicKey),
+        },
+        signedMessage,
+        signature: ed25519.sign(signedMessage, pair.secretKey),
+        signatureType: 'ed25519',
+      };
+      options.onSignIn?.(result, provider, input);
+      return result;
+    },
   };
   return {
     provider,
@@ -101,6 +138,119 @@ function phantomFixture(options = {}) {
     listeners,
     providers: { phantom: { solana: provider } },
   };
+}
+
+function signInChallenge(p) {
+  const input = communitySignInInput(
+    'https://holderpulse.example',
+    p.key.toString(),
+    '12345678-1234-4123-a123-123456789abc',
+    Date.parse('2026-09-10T13:00:00Z'),
+    Date.parse('2026-09-10T13:05:00Z'),
+  );
+  return {
+    input,
+    message: new TextEncoder().encode(communitySignInMessage(input)),
+  };
+}
+
+test('SIWS fields bind the server origin, account, mainnet, alphanumeric nonce and five-minute expiry', () => {
+  const p = phantomFixture(),
+    c = signInChallenge(p);
+  assert.equal(c.input.domain, 'holderpulse.example');
+  assert.equal(c.input.uri, 'https://holderpulse.example');
+  assert.equal(c.input.address, p.key.toString());
+  assert.equal(c.input.chainId, 'solana:mainnet');
+  assert.match(c.input.nonce, /^[a-zA-Z0-9]{32}$/);
+  assert.equal(
+    Date.parse(c.input.expirationTime) - Date.parse(c.input.issuedAt),
+    300000,
+  );
+  assert.equal(new TextDecoder().decode(c.message), walletSignInText(c.input));
+  assert.equal(c.message.at(-1), 'Z'.charCodeAt(0));
+});
+
+test('Phantom membership uses the distinct signIn operation even when generic signing fails', async () => {
+  const p = phantomFixture({ reject: true }),
+    c = signInChallenge(p);
+  const connection = routeWallet(
+    'phantom',
+    [fixture().wallet, fixture('Backpack').wallet],
+    p.providers,
+  );
+  connection.requireSignIn();
+  await connection.connect();
+  assert.equal((await connection.signIn(c.input, c.message)).length, 64);
+  assert.deepEqual(p.calls, ['connect', 'signIn']);
+});
+
+test('Missing or shared Phantom signIn stops before requesting another operation', async () => {
+  for (const kind of ['missing', 'shared']) {
+    const p = phantomFixture();
+    if (kind === 'missing') delete p.provider.signIn;
+    else p.providers.backpack = { signIn: p.provider.signIn };
+    const connection = routeWallet('phantom', [], p.providers);
+    assert.throws(() => connection.requireSignIn());
+    assert.deepEqual(p.calls, []);
+  }
+});
+
+test('Rejected SIWS never retries generic signing or another wallet', async () => {
+  const p = phantomFixture({
+      signInError: new Error('User rejected the request.'),
+    }),
+    c = signInChallenge(p);
+  const connection = routeWallet('phantom', [], p.providers);
+  await connection.connect();
+  await assert.rejects(connection.signIn(c.input, c.message), /rejected/);
+  assert.deepEqual(p.calls, ['connect', 'signIn']);
+});
+
+for (const field of ['domain', 'nonce', 'expirationTime', 'address']) {
+  test(`SIWS rejects a changed ${field} rather than granting membership`, async () => {
+    const p = phantomFixture(),
+      c = signInChallenge(p);
+    const connection = routeWallet('phantom', [], p.providers);
+    await connection.connect();
+    await assert.rejects(
+      connection.signIn({ ...c.input, [field]: 'changed' }, c.message),
+      /changed|different account or message/,
+    );
+  });
+}
+
+for (const kind of [
+  'address',
+  'key',
+  'signature',
+  'message',
+  'type',
+  'connection',
+  'method',
+]) {
+  test(`SIWS rejects a changed response ${kind}`, async () => {
+    const p = phantomFixture({
+        onSignIn(result, provider) {
+          if (kind === 'address')
+            result.account.address = '11111111111111111111111111111111';
+          if (kind === 'key')
+            result.account.publicKey = ed25519.keygen().publicKey;
+          if (kind === 'signature') result.signature = new Uint8Array(64);
+          if (kind === 'message') result.signedMessage = new Uint8Array([1]);
+          if (kind === 'type') result.signatureType = 'other';
+          if (kind === 'connection') provider.publicKey = null;
+          if (kind === 'method') provider.signIn = async () => result;
+        },
+      }),
+      c = signInChallenge(p);
+    const connection = routeWallet('phantom', [], p.providers);
+    await connection.connect();
+    await assert.rejects(
+      connection.signIn(c.input, c.message),
+      /changed|different account or message/,
+    );
+    assert.deepEqual(p.calls, ['connect', 'signIn']);
+  });
 }
 
 test('Phantom uses its dedicated request transport even when its standard signing wrapper routes to Backpack', async () => {

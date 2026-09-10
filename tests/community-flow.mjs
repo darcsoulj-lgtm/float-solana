@@ -126,8 +126,20 @@ try {
     phase: 'sign',
     code: 'requested',
     flowId: crypto.randomUUID(),
+    clientVersion: 12,
+    method: 'signIn',
   };
   await call('wallet-diagnostic', diagnostic);
+  await call(
+    'wallet-diagnostic',
+    { ...diagnostic, clientVersion: 'private data' },
+    { status: 400 },
+  );
+  await call(
+    'wallet-diagnostic',
+    { ...diagnostic, method: 'unknown' },
+    { status: 400 },
+  );
   await call(
     'wallet-diagnostic',
     { ...diagnostic, provider: 'unknown' },
@@ -152,10 +164,42 @@ try {
   await call('moderation', undefined, { status: 401 });
   await call('home', undefined, { status: 401 });
   await call('save', { type: 'thread', id: 'x', save: true }, { status: 401 });
-  const c = (await call('challenge', { wallet })).d;
+  await call('challenge', { wallet, authMethod: 'unknown' }, { status: 400 });
+  const c = (await call('challenge', { wallet, authMethod: 'signIn' })).d;
+  assert.equal(c.signInInput.domain, new URL(base).host);
+  assert.equal(c.signInInput.uri, base);
+  assert.equal(c.signInInput.address, wallet);
+  assert.equal(c.signInInput.chainId, 'solana:mainnet');
+  assert.equal(c.signInInput.nonce, c.id.replaceAll('-', ''));
+  assert.equal(Date.parse(c.signInInput.expirationTime), c.expiresAt);
+  assert.ok(
+    c.message.startsWith(
+      new URL(base).host +
+        ' wants you to sign in with your Solana account:\n' +
+        wallet,
+    ),
+  );
+  assert.ok(c.message.includes('Nonce: ' + c.signInInput.nonce));
+  checks += 8;
   assert.equal(c.holdingCount, 2);
   assert.ok(!c.message.includes('Token: MU'));
   checks += 2;
+  const alteredMessage = c.message.replace(
+    c.signInInput.domain,
+    'wrong.example',
+  );
+  await call(
+    'verify',
+    {
+      challengeId: c.id,
+      signature: Array.from(
+        ed25519.sign(new TextEncoder().encode(alteredMessage), pair.secretKey),
+      ),
+      message: alteredMessage,
+      consent: true,
+    },
+    { status: 403 },
+  );
   await call(
     'verify',
     { challengeId: c.id, signature: Array(64).fill(0), consent: true },
@@ -263,6 +307,11 @@ try {
   });
   // Separate member: bookmarks and preferences must not leak across sessions.
   const secondChallenge = (await call('challenge', { wallet: secondWallet })).d;
+  assert.equal(secondChallenge.signInInput, undefined);
+  assert.ok(
+    secondChallenge.message.startsWith('HolderPulse community membership\n'),
+  );
+  checks += 2;
   const secondLogin = await call('verify', {
     challengeId: secondChallenge.id,
     signature: Array.from(
@@ -368,7 +417,7 @@ try {
     { auth: true },
   );
   await call('threads', undefined, { status: 401 });
-  const z = (await call('challenge', { wallet })).d;
+  const z = (await call('challenge', { wallet, authMethod: 'signIn' })).d;
   balance = '0';
   await call('challenge', { wallet }, { status: 403 });
   await call(

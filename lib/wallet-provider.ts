@@ -1,5 +1,6 @@
 import { getWallets } from '@wallet-standard/app';
 import { ed25519 } from '@noble/curves/ed25519.js';
+import type { CommunitySignInInput } from './community-sign-in';
 
 type RegisteredWallet = ReturnType<
   ReturnType<typeof getWallets>['get']
@@ -22,6 +23,12 @@ type PhantomProvider = {
     method: 'connect' | 'signMessage';
     params?: { message: Uint8Array; display: 'utf8' };
   }): Promise<{ publicKey?: PublicKey | string; signature?: unknown }>;
+  signIn?(input: CommunitySignInInput): Promise<{
+    account: { address: string; publicKey: Uint8Array };
+    signedMessage: Uint8Array;
+    signature: Uint8Array;
+    signatureType?: string;
+  }>;
   on?: (event: string, listener: () => void) => void;
   removeListener?: (event: string, listener: () => void) => void;
 };
@@ -265,10 +272,15 @@ export function phantomWallet(providers: WalletProviders = browserProviders()) {
       'Phantom’s dedicated Solana connection is unavailable or conflicts with another extension. No other wallet was opened. Reload this page with Phantom enabled.',
     );
   // Do not call the registered wallet's signing wrapper or a shared provider.
-  // The same captured Phantom request transport handles both operations.
+  // Capture native transports; community authentication uses the separate SIWS method.
   // oxlint-disable-next-line typescript/unbound-method -- Identity check only; calls use the explicitly bound function below.
   const requestMethod = p.request;
   const request = requestMethod.bind(p);
+  // Capture the separate authentication method before any asynchronous work.
+  // oxlint-disable-next-line typescript/unbound-method -- Compared by identity; invoked only via its bound copy.
+  const signInMethod = p.signIn;
+  const signIn =
+    typeof signInMethod === 'function' ? signInMethod.bind(p) : undefined;
   let address = '';
   let publicKey: Uint8Array | undefined;
   const sameProvider = () =>
@@ -301,8 +313,24 @@ export function phantomWallet(providers: WalletProviders = browserProviders()) {
         'The Phantom account or connection changed. Reload and connect again.',
       );
   };
+  const requireSignIn = () => {
+    if (!signIn || !signInMethod)
+      throw new Error(
+        'This Phantom connection does not support Sign In with Solana. Update Phantom and reload this page. No other wallet was opened.',
+      );
+    if (
+      !sameProvider() ||
+      p.signIn !== signInMethod ||
+      signInMethod === providers.backpack?.signIn ||
+      signInMethod === providers.solflare?.signIn
+    )
+      throw new Error(
+        'The Phantom sign-in connection changed or conflicts with another wallet. Reload and connect again.',
+      );
+  };
   return {
     accountUnchanged: unchanged,
+    requireSignIn,
     onAccountChange(callback: () => void) {
       const listener = () => {
         if (!unchanged()) callback();
@@ -352,6 +380,33 @@ export function phantomWallet(providers: WalletProviders = browserProviders()) {
         );
       return signature;
     },
+    async signIn(input: CommunitySignInInput, message: Uint8Array) {
+      requireSignIn();
+      requireUnchanged();
+      if (input.address !== address)
+        throw new Error('The Phantom account changed. Connect again.');
+      const expected = new Uint8Array(message);
+      // SIWS uses its own provider operation. Never fall back to signMessage.
+      const result = await signIn!({ ...input });
+      requireSignIn();
+      requireUnchanged();
+      const signature = bytes(result?.signature, 'signature');
+      const signedMessage = bytes(result?.signedMessage, 'signed message');
+      const accountKey = bytes(result?.account?.publicKey, 'account');
+      if (
+        (result.signatureType !== undefined &&
+          result.signatureType !== 'ed25519') ||
+        result.account.address !== address ||
+        !equalBytes(accountKey, publicKey!) ||
+        !equalBytes(signedMessage, expected) ||
+        signature.length !== 64 ||
+        !ed25519.verify(signature, expected, publicKey!, { zip215: false })
+      )
+        throw new Error(
+          'Phantom returned a signature for a different account or message. Verification was stopped.',
+        );
+      return signature;
+    },
   };
 }
 
@@ -359,7 +414,7 @@ export function selectedWallet(
   name: string,
   wallets: readonly RegisteredWallet[] = getWallets().get(),
   providers: WalletProviders = browserProviders(),
-) {
+): ReturnType<typeof phantomWallet> | ReturnType<typeof standardWallet> {
   return name === 'phantom'
     ? phantomWallet(providers)
     : standardWallet(name, wallets);
