@@ -67,6 +67,19 @@ export function selectedWallet(
         equalBytes(a.publicKey, publicKey),
     );
   return {
+    accountUnchanged() {
+      return !!stillSelected();
+    },
+    onAccountChange(callback: () => void) {
+      const events = wallet.features['standard:events'] as
+        | { on?: (event: 'change', callback: () => void) => () => void }
+        | undefined;
+      return (
+        events?.on?.('change', () => {
+          if (account && !stillSelected()) callback();
+        }) || (() => {})
+      );
+    },
     async connect() {
       const response = await connect();
       account = response.accounts.find(

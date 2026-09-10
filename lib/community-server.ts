@@ -17,7 +17,7 @@ export async function communityMember(req: Request, required = true) {
   const member = session
     ? await db()
         .prepare(
-          'SELECT m.id,m.alias,m.qualifying_symbol,m.show_badge,m.verified_until,m.suspended,m.created_at FROM community_sessions s JOIN community_members m ON m.id=s.member_id WHERE s.hash=? AND s.expires_at>? AND m.verified_until>? AND m.suspended=0',
+          'SELECT m.id,m.alias,m.qualifying_symbol,m.show_badge,m.notify_replies,m.verified_until,m.suspended,m.created_at FROM community_sessions s JOIN community_members m ON m.id=s.member_id WHERE s.hash=? AND s.expires_at>? AND m.verified_until>? AND m.suspended=0',
         )
         .bind(await digest(session), Date.now(), Date.now())
         .first<CommunityMember>()

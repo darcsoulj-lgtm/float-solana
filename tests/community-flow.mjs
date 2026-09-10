@@ -18,6 +18,19 @@ for (const b of pair.publicKey) {
   if (b !== 0) break;
   wallet = '1' + wallet;
 }
+const secondPair = ed25519.keygen();
+let secondNumber = BigInt(
+    '0x' + Buffer.from(secondPair.publicKey).toString('hex'),
+  ),
+  secondWallet = '';
+while (secondNumber) {
+  secondWallet = alphabet[Number(secondNumber % 58n)] + secondWallet;
+  secondNumber /= 58n;
+}
+for (const byte of secondPair.publicKey) {
+  if (byte !== 0) break;
+  secondWallet = '1' + secondWallet;
+}
 let balance = '25000000',
   rpcCalls = 0;
 const server = http.createServer(async (req, res) => {
@@ -26,7 +39,7 @@ const server = http.createServer(async (req, res) => {
   const b = JSON.parse(raw);
   rpcCalls++;
   let result;
-  if (b.method === 'getAccountInfo')
+  if (b.method === 'getAccountInfo' || b.method === 'getMultipleAccounts')
     result = {
       context: { slot: 100 },
       value: {
@@ -40,7 +53,8 @@ const server = http.createServer(async (req, res) => {
     result = {
       context: { slot: 102 },
       value:
-        b.params[0] === wallet
+        [wallet, secondWallet].includes(b.params[0]) &&
+        b.params[1].programId === program
           ? [
               {
                 account: {
@@ -49,7 +63,7 @@ const server = http.createServer(async (req, res) => {
                     parsed: {
                       type: 'account',
                       info: {
-                        owner: wallet,
+                        owner: b.params[0],
                         mint,
                         state: 'initialized',
                         tokenAmount: { amount: balance, decimals: 6 },
@@ -61,6 +75,16 @@ const server = http.createServer(async (req, res) => {
             ]
           : [],
     };
+  if (b.method === 'getMultipleAccounts') {
+    result.value = b.params[0].map(() => result.value);
+    result.context.slot = 103;
+  }
+  if (b.method === 'getTokenAccountsByOwner' && result.value.length) {
+    const extra = structuredClone(result.value[0]);
+    extra.account.data.parsed.info.mint =
+      'SKHYhSjuRWHgikq8eRKbtBbpABgJSkd7ytQV14i9EQ3';
+    result.value.push(extra);
+  }
   res.setHeader('Content-Type', 'application/json');
   res.end(JSON.stringify({ jsonrpc: '2.0', id: b.id, result }));
 });
@@ -104,7 +128,12 @@ try {
     { status: 401 },
   );
   await call('moderation', undefined, { status: 401 });
-  const c = (await call('challenge', { wallet, symbol: 'MU' })).d;
+  await call('home', undefined, { status: 401 });
+  await call('save', { type: 'thread', id: 'x', save: true }, { status: 401 });
+  const c = (await call('challenge', { wallet })).d;
+  assert.equal(c.holdingCount, 2);
+  assert.ok(!c.message.includes('Token: MU'));
+  checks += 2;
   await call(
     'verify',
     { challengeId: c.id, signature: Array(64).fill(0), consent: true },
@@ -129,19 +158,66 @@ try {
   const m = (await call('status')).d.member;
   assert.equal(m.show_badge, 0);
   assert.equal(m.qualifying_symbol, 'MU');
-  await call('profile', { alias: 'Curious Holder', showBadge: true });
+  const home = (await call('home')).d;
+  assert.deepEqual(
+    home.holdings.map((h) => h.symbol),
+    ['MU', 'SKHY'],
+  );
+  assert.ok(!JSON.stringify(home).includes('25000000'));
+  checks += 2;
+  await call('follow', { symbol: 'SPCX', follow: true });
+  assert.ok((await call('home')).d.follows.includes('SPCX'));
+  await call('follow', { symbol: 'FAKE', follow: true }, { status: 400 });
+  await call(
+    'profile',
+    { alias: 'Curious Holder', showBadge: true, badgeSymbol: 'SPCX' },
+    { status: 400 },
+  );
+  await call('profile', {
+    alias: 'Curious Holder',
+    showBadge: true,
+    notifyReplies: false,
+  });
+  assert.equal((await call('status')).d.member.notify_replies, 0);
+  await call('save', { type: 'source', id: home.sources[0].id, save: true });
+  assert.equal(
+    (await call('home')).d.sources.find((s) => s.id === home.sources[0].id)
+      .saved,
+    1,
+  );
+  await call('save', { type: 'source', id: home.sources[0].id, save: false });
+  await call(
+    'save',
+    { type: 'source', id: 'missing', save: true },
+    { status: 404 },
+  );
+
   const t = (
     await call(
       'threads',
       {
         title: 'Cross ticker test',
         body: 'An MU holder can discuss SK Hynix here.',
-        topic: 'SKHY',
+        topic: 'SPCX',
       },
       { status: 201 },
     )
   ).d;
-  let feed = (await call('threads?topic=SKHY')).d;
+  await call('save', { type: 'thread', id: t.id, save: true });
+  assert.ok(
+    (await call('threads?feed=saved')).d.threads.some(
+      (x) => x.id === t.id && x.saved,
+    ),
+  );
+  assert.ok(
+    (await call('threads?feed=personal')).d.threads.some((x) => x.id === t.id),
+  );
+  await call('follow', { symbol: 'SPCX', follow: false });
+  assert.ok(
+    !(await call('threads?feed=personal')).d.threads.some((x) => x.id === t.id),
+  );
+  let feed = (await call('threads?topic=SPCX')).d;
+
   assert.ok(feed.threads.some((x) => x.id === t.id && x.badge === 'MU'));
   assert.ok(!JSON.stringify(feed).includes(wallet));
   assert.ok(!JSON.stringify(feed).includes('wallet_hash'));
@@ -163,6 +239,70 @@ try {
     session: '',
     status: 401,
   });
+  // Separate member: bookmarks and preferences must not leak across sessions.
+  const secondChallenge = (await call('challenge', { wallet: secondWallet })).d;
+  const secondLogin = await call('verify', {
+    challengeId: secondChallenge.id,
+    signature: Array.from(
+      ed25519.sign(
+        new TextEncoder().encode(secondChallenge.message),
+        secondPair.secretKey,
+      ),
+    ),
+    consent: true,
+  });
+  const secondCookie = secondLogin.r.headers.get('set-cookie').split(';')[0];
+  const secondHome = (await call('home', undefined, { session: secondCookie }))
+    .d;
+  assert.equal(secondHome.follows.length, 0);
+  assert.ok(secondHome.sources.every((s) => !s.saved));
+  assert.equal(
+    (await call('threads?feed=saved', undefined, { session: secondCookie })).d
+      .threads.length,
+    0,
+  );
+  await call(
+    'threads/' + t.id + '/remove',
+    {},
+    { session: secondCookie, status: 403 },
+  );
+  await call(
+    'threads/' + t.id + '/replies',
+    { body: 'Notification should be disabled for this reply.' },
+    { session: secondCookie, status: 201 },
+  );
+  assert.equal((await call('home')).d.notifications.length, 0);
+  await call('profile', {
+    alias: 'Curious Holder',
+    showBadge: true,
+    notifyReplies: true,
+    badgeSymbol: 'SKHY',
+  });
+  const noticeReply = (
+    await call(
+      'threads/' + t.id + '/replies',
+      { body: 'A useful second perspective from another holder.' },
+      { session: secondCookie, status: 201 },
+    )
+  ).d;
+  const notices = (await call('home')).d.notifications;
+  assert.equal(notices.length, 1);
+  assert.equal(notices[0].read, 0);
+  await call('notifications', {});
+  assert.equal((await call('home')).d.notifications[0].read, 1);
+  assert.equal(
+    (await call('home', undefined, { session: secondCookie })).d.notifications
+      .length,
+    0,
+  );
+  await call(
+    'replies/' + noticeReply.id + '/remove',
+    {},
+    { session: secondCookie },
+  );
+  assert.equal((await call('home')).d.notifications.length, 0);
+  await call('logout', {}, { session: secondCookie });
+  checks += 8;
   await call('reports', {
     type: 'thread',
     id: t.id,
@@ -192,9 +332,10 @@ try {
     { auth: true },
   );
   await call('replies/' + reply.id + '/remove', {});
-  assert.equal(
-    (await call('threads/' + t.id + '/replies')).d.replies.length,
-    0,
+  assert.ok(
+    !(await call('threads/' + t.id + '/replies')).d.replies.some(
+      (r) => r.id === reply.id,
+    ),
   );
   checks++;
   await call('moderation', { action: 'suspend', id: m.id }, { auth: true });
@@ -205,8 +346,9 @@ try {
     { auth: true },
   );
   await call('threads', undefined, { status: 401 });
+  const z = (await call('challenge', { wallet })).d;
   balance = '0';
-  const z = (await call('challenge', { wallet, symbol: 'MU' })).d;
+  await call('challenge', { wallet }, { status: 403 });
   await call(
     'verify',
     {
@@ -233,7 +375,7 @@ try {
   await call('threads', undefined, { status: 401 });
   console.log(
     checks +
-      ' community checks passed: real signature + mock RPC, one-token cross-topic entry, persistent posts/replies, privacy, moderation, suspension, zero holding, replay and logout.',
+      ' community checks passed: real signature + mock RPC, automatic multi-holding discovery and cross-topic entry, persistent posts/replies, privacy, moderation, suspension, zero holding, replay and logout.',
   );
 } finally {
   await writeFile('.dev.vars', original);

@@ -18,10 +18,12 @@ export default function Page() {
       <section className="panel">
         <h2>The check</h2>
         <p>
-          Connect your wallet and sign a one-use message for this site. We
-          verify its signature, the approved token mint, and a positive
-          token-account balance using finalized Solana RPC data. Signing
-          authorizes no asset transfer.
+          Connect your wallet. We read token accounts from both Solana token
+          programs, match their mint addresses against our reviewed registry,
+          and validate detected mints onchain. If a supported holding is found,
+          sign a one-use message for this site. We then verify the signature and
+          check the holdings again using finalized data before opening your
+          home. Signing authorizes no asset transfer.
         </p>
       </section>
       <section className="panel">
@@ -37,10 +39,12 @@ export default function Page() {
       <section className="panel">
         <h2>The profile</h2>
         <p>
-          Choose a display name. Your qualifying token badge is optional and
-          hidden by default. Exact balances and wallet addresses are not
-          displayed to other members. Hosted exchange balances cannot be
-          verified through this wallet-only flow.
+          Your detected supported stocks personalize your home. You can follow
+          other stocks and participate in every topic. Choose a display name.
+          Your qualifying token badge is optional and hidden by default. Exact
+          balances and wallet addresses are not displayed to other members.
+          Hosted exchange balances cannot be verified through this wallet-only
+          flow.
         </p>
       </section>
     </div>

@@ -32,8 +32,13 @@ for (const file of ['tokens', 'validation', 'solana']) {
 }
 const { validateSurvey, validateAnswers, cohortFor, canTransition } =
   await import(pathToFileURL(dir + '/validation.mjs'));
-const { decodeBase58, validWallet, verifySignature, verifyHolding } =
-  await import(pathToFileURL(dir + '/solana.mjs'));
+const {
+  decodeBase58,
+  validWallet,
+  verifySignature,
+  verifyHolding,
+  detectHoldings,
+} = await import(pathToFileURL(dir + '/solana.mjs'));
 const { TOKENS, TOKEN_PROGRAMS } = await import(
   pathToFileURL(dir + '/tokens.mjs')
 );
@@ -287,5 +292,151 @@ test('Every supported stock verifies only against its exact registry mint', asyn
     );
     assert.equal(fixture.calls[0].params[0], token.mint);
     assert.equal(fixture.calls[1].params[1].mint, token.mint);
+  }
+});
+
+function discoveryMock({
+  assets = [
+    { mint: TOKENS[0].mint, amount: '1', program: TOKEN_PROGRAMS[0] },
+    { mint: TOKENS[1].mint, amount: '2', program: TOKEN_PROGRAMS[1] },
+  ],
+  failProgram = '',
+  invalidMint = false,
+  amountOverride,
+  malformed = false,
+} = {}) {
+  const calls = [];
+  return {
+    calls,
+    fetcher: async (_, opts) => {
+      const b = JSON.parse(opts.body);
+      calls.push(b);
+      if (b.method === 'getTokenAccountsByOwner') {
+        if (b.params[1].programId === failProgram)
+          return new Response('', { status: 403 });
+        if (malformed)
+          return Response.json({
+            result: { context: { slot: 100 }, value: null },
+          });
+        return Response.json({
+          result: {
+            context: { slot: 100 },
+            value: assets
+              .filter((a) => a.program === b.params[1].programId)
+              .map((a, i) => ({
+                pubkey: a.mint + i,
+                account: {
+                  owner: a.program,
+                  data: {
+                    parsed: {
+                      type: 'account',
+                      info: {
+                        mint: a.mint,
+                        owner: a.owner || wallet,
+                        state: 'initialized',
+                        tokenAmount: {
+                          amount: amountOverride ?? a.amount,
+                          decimals: 6,
+                        },
+                      },
+                    },
+                  },
+                },
+              })),
+          },
+        });
+      }
+      assert.equal(b.method, 'getMultipleAccounts');
+      return Response.json({
+        result: {
+          context: { slot: 102 },
+          value: b.params[0].map((mint) => ({
+            owner: invalidMint
+              ? 'fake'
+              : assets.find((a) => a.mint === mint).program,
+            data: {
+              parsed: {
+                type: 'mint',
+                info: { decimals: 6, isInitialized: true },
+              },
+            },
+          })),
+        },
+      });
+    },
+  };
+}
+test('Automatic discovery scans both programs and returns only verified supported symbols', async () => {
+  const fixture = discoveryMock({
+    assets: [
+      { mint: TOKENS[0].mint, amount: '1', program: TOKEN_PROGRAMS[0] },
+      { mint: TOKENS[1].mint, amount: '1', program: TOKEN_PROGRAMS[1] },
+      { mint: TOKENS[2].mint, amount: '0', program: TOKEN_PROGRAMS[1] },
+      { mint: wallet, amount: '100000000', program: TOKEN_PROGRAMS[0] },
+    ],
+  });
+  const result = await detectHoldings(
+    wallet,
+    'https://fixture.invalid',
+    fixture.fetcher,
+  );
+  assert.deepEqual(
+    result.map((h) => h.symbol).sort(),
+    TOKENS.slice(0, 2)
+      .map((t) => t.symbol)
+      .sort(),
+  );
+  assert.equal(fixture.calls.length, 3);
+  assert.deepEqual(
+    fixture.calls.slice(0, 2).map((c) => c.params[1].programId),
+    TOKEN_PROGRAMS,
+  );
+  assert.equal(fixture.calls[2].params[1].minContextSlot, 100);
+  assert.deepEqual(Object.keys(result[0]).sort(), [
+    'slot',
+    'symbol',
+    'verifiedAt',
+  ]);
+  assert.ok(!JSON.stringify(result).includes(wallet));
+});
+test('Discovery distinguishes a truly empty wallet from a failed or malformed program scan', async () => {
+  const empty = discoveryMock({ assets: [] });
+  assert.deepEqual(
+    await detectHoldings(wallet, 'https://fixture.invalid', empty.fetcher),
+    [],
+  );
+  assert.equal(empty.calls.length, 2);
+  for (const options of [
+    { failProgram: TOKEN_PROGRAMS[1] },
+    { malformed: true },
+  ]) {
+    const fixture = discoveryMock(options);
+    await assert.rejects(
+      detectHoldings(wallet, 'https://fixture.invalid', fixture.fetcher),
+      (e) => e.status === 503,
+    );
+  }
+});
+test('Discovery fails closed on invalid mint, malformed amount, and account ownership mismatch', async () => {
+  for (const options of [
+    { invalidMint: true },
+    { amountOverride: '-1' },
+    { amountOverride: '18446744073709551616' },
+    {
+      assets: [
+        {
+          mint: TOKENS[0].mint,
+          program: TOKEN_PROGRAMS[0],
+          amount: '1',
+          owner: TOKENS[0].mint,
+        },
+      ],
+    },
+  ]) {
+    const fixture = discoveryMock(options);
+    await assert.rejects(
+      detectHoldings(wallet, 'https://fixture.invalid', fixture.fetcher),
+      (e) => e.status === 503,
+    );
   }
 });

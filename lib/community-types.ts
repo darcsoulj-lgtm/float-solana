@@ -12,6 +12,7 @@ export type CommunityMember = {
   alias: string;
   qualifying_symbol: string;
   show_badge: number;
+  notify_replies: number;
   verified_until: number;
   suspended: number;
   created_at: number;
@@ -29,6 +30,7 @@ export type CommunityThread = CommunityAuthor & {
   created_at: number;
   reply_count: number;
   hidden: number;
+  saved: number;
 };
 export type CommunityReply = CommunityAuthor & {
   id: string;
@@ -62,8 +64,33 @@ export type CommunityReport = {
   content: string | null;
 };
 export type ModerationData = {
+  sources: (CommunitySource & { active: number })[];
   reports: CommunityReport[];
   members: CommunityMember[];
   hiddenThreads: CommunityThread[];
   hiddenReplies: CommunityReply[];
+};
+
+export type Holding = { symbol: string; verified_at: number; slot: number };
+export type CommunitySource = {
+  id: string;
+  symbol: string;
+  title: string;
+  publisher: string;
+  url: string;
+  saved: number;
+};
+export type CommunityNotification = {
+  id: string;
+  thread_id: string;
+  title: string;
+  alias: string;
+  read: number;
+  created_at: number;
+};
+export type MemberHome = {
+  holdings: Holding[];
+  follows: string[];
+  sources: CommunitySource[];
+  notifications: CommunityNotification[];
 };

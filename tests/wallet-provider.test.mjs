@@ -165,3 +165,31 @@ test('Both entry points use named-wallet selection without shared injected globa
     assert.doesNotMatch(s, /window\.solana|w\.solana|\bphantom\?\.solana/);
   }
 });
+
+test('Wallet account-change subscriptions invalidate the captured account and can be removed', async () => {
+  const p = fixture();
+  let onChange,
+    changed = 0,
+    cleaned = false;
+  p.wallet.features['standard:events'] = {
+    on(event, callback) {
+      assert.equal(event, 'change');
+      onChange = callback;
+      return () => {
+        cleaned = true;
+      };
+    },
+  };
+  const c = selectedWallet('phantom', [p.wallet]);
+  await c.connect();
+  const unsubscribe = c.onAccountChange(() => changed++);
+  onChange();
+  assert.equal(changed, 0);
+  assert.equal(c.accountUnchanged(), true);
+  p.wallet.accounts = [];
+  onChange();
+  assert.equal(changed, 1);
+  assert.equal(c.accountUnchanged(), false);
+  unsubscribe();
+  assert.equal(cleaned, true);
+});

@@ -12,7 +12,7 @@ type RpcAccount = {
 };
 type RpcResult = {
   context: { slot: number };
-  value: RpcAccount | { account: RpcAccount }[] | null;
+  value: RpcAccount | { pubkey?: string; account: RpcAccount }[] | null;
 };
 import { ed25519 } from '@noble/curves/ed25519.js';
 import { AppError, cohortFor } from './validation';
@@ -74,55 +74,7 @@ export async function verifyHolding(
   const token = TOKENS.find((t) => t.symbol === symbol);
   if (!token?.mint)
     throw new AppError('This token is not enabled for live verification.', 503);
-  const rpc = async (method: string, params: unknown[]) => {
-    let r: Response | undefined;
-    for (let attempt = 0; attempt < 2; attempt++) {
-      try {
-        r = await fetcher(rpcUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
-          signal: AbortSignal.timeout(8000),
-        });
-      } catch {
-        r = undefined;
-      }
-      if (r && r.status !== 429 && r.status < 500) break;
-      if (attempt === 0)
-        await new Promise((resolve) => setTimeout(resolve, 350));
-    }
-    if (!r)
-      throw new AppError(
-        'The balance service could not be reached. Please try verification again.',
-        503,
-      );
-    if (!r.ok) {
-      // Status only: never log an RPC URL, API key, wallet, or provider response body.
-      console.warn('Solana RPC HTTP failure', r.status);
-      const message =
-        r.status === 401 || r.status === 403
-          ? 'Our balance service connection was rejected. Please contact support; this is not a problem with your holdings.'
-          : r.status === 429
-            ? 'The balance service has reached its request limit. Please wait a moment and verify again.'
-            : 'The balance service is temporarily unavailable. Please try verification again.';
-      throw new AppError(message, 503);
-    }
-    let data: { error?: unknown; result?: RpcResult };
-    try {
-      data = await r.json();
-    } catch {
-      throw new AppError(
-        'The balance service returned an unreadable response. Please try verification again.',
-        503,
-      );
-    }
-    if (data.error || !data.result)
-      throw new AppError(
-        'The balance service could not complete the check. Please try verification again.',
-        503,
-      );
-    return data.result;
-  };
+  const rpc = rpcClient(rpcUrl, fetcher);
   const info = await rpc('getAccountInfo', [
     token.mint,
     { encoding: 'jsonParsed', commitment: 'finalized' },
@@ -182,4 +134,187 @@ export async function verifyHolding(
     verifiedAt: Date.now(),
     mint: token.mint,
   };
+}
+
+function rpcClient(rpcUrl: string, fetcher: typeof fetch) {
+  return async (method: string, params: unknown[]): Promise<RpcResult> => {
+    let r: Response | undefined;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        r = await fetcher(rpcUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
+          signal: AbortSignal.timeout(8000),
+        });
+      } catch {
+        r = undefined;
+      }
+      if (r && r.status !== 429 && r.status < 500) break;
+      if (attempt === 0)
+        await new Promise((resolve) => setTimeout(resolve, 350));
+    }
+    if (!r)
+      throw new AppError(
+        'The balance service could not be reached. Please try verification again.',
+        503,
+      );
+    if (!r.ok) {
+      // Status only: never log an RPC URL, API key, wallet, or provider response body.
+      console.warn('Solana RPC HTTP failure', r.status);
+      const message =
+        r.status === 401 || r.status === 403
+          ? 'Our balance service connection was rejected. Please contact support; this is not a problem with your holdings.'
+          : r.status === 429
+            ? 'The balance service has reached its request limit. Please wait a moment and verify again.'
+            : 'The balance service is temporarily unavailable. Please try verification again.';
+      throw new AppError(message, 503);
+    }
+    let data: { error?: unknown; result?: RpcResult };
+    try {
+      data = await r.json();
+    } catch {
+      throw new AppError(
+        'The balance service returned an unreadable response. Please try verification again.',
+        503,
+      );
+    }
+    if (data.error || !data.result)
+      throw new AppError(
+        'The balance service could not complete the check. Please try verification again.',
+        503,
+      );
+    return data.result;
+  };
+}
+
+/** Detect only registry-approved assets. Unrelated tokens never leave this function. */
+export async function detectHoldings(
+  wallet: string,
+  rpcUrl = 'https://api.mainnet-beta.solana.com',
+  fetcher: typeof fetch = fetch,
+) {
+  validWallet(wallet);
+  const rpc = rpcClient(rpcUrl, fetcher);
+  const scans = await Promise.all(
+    TOKEN_PROGRAMS.map((program) =>
+      rpc('getTokenAccountsByOwner', [
+        wallet,
+        { programId: program },
+        { encoding: 'jsonParsed', commitment: 'finalized' },
+      ]),
+    ),
+  );
+  const candidates = new Map<
+    string,
+    {
+      symbol: string;
+      program: string;
+      decimals: number;
+      amount: bigint;
+      slot: number;
+    }
+  >();
+  const seen = new Set<string>();
+  for (const [index, scan] of scans.entries()) {
+    if (
+      !Array.isArray(scan.value) ||
+      !Number.isSafeInteger(scan.context?.slot) ||
+      scan.context.slot < 0
+    )
+      throw new AppError(
+        'The balance service returned an incomplete holdings check. Please try again.',
+        503,
+      );
+    for (const entry of scan.value) {
+      const parsed = entry.account?.data?.parsed;
+      const token = TOKENS.find((t) => t.mint === parsed?.info?.mint);
+      if (!token) continue;
+      const info = parsed!.info;
+      if (
+        entry.account.owner !== TOKEN_PROGRAMS[index] ||
+        parsed?.type !== 'account' ||
+        info.owner !== wallet ||
+        !['initialized', 'frozen'].includes(info.state || '')
+      )
+        throw new AppError(
+          'A supported token account could not be validated. Please try again.',
+          503,
+        );
+      const amount = info.tokenAmount?.amount,
+        decimals = info.tokenAmount?.decimals;
+      if (
+        typeof amount !== 'string' ||
+        !/^\d{1,20}$/.test(amount) ||
+        BigInt(amount) > 18446744073709551615n ||
+        !Number.isInteger(decimals) ||
+        decimals! < 0 ||
+        decimals! > 18
+      )
+        throw new AppError(
+          'The balance service returned an invalid token balance.',
+          503,
+        );
+      if (entry.pubkey && seen.has(entry.pubkey)) continue;
+      if (entry.pubkey) seen.add(entry.pubkey);
+      if (BigInt(amount) === 0n) continue;
+      const previous = candidates.get(token.mint);
+      if (
+        previous &&
+        (previous.program !== entry.account.owner ||
+          previous.decimals !== decimals)
+      )
+        throw new AppError(
+          'The balance service returned inconsistent token accounts.',
+          503,
+        );
+      candidates.set(token.mint, {
+        symbol: token.symbol,
+        program: entry.account.owner,
+        decimals: decimals!,
+        amount: (previous?.amount || 0n) + BigInt(amount),
+        slot: scan.context.slot,
+      });
+    }
+  }
+  if (!candidates.size) return [];
+  // One bounded batch validates every detected mint against its actual token program.
+  const mints = [...candidates.keys()];
+  const result = await rpc('getMultipleAccounts', [
+    mints,
+    {
+      encoding: 'jsonParsed',
+      commitment: 'finalized',
+      minContextSlot: Math.max(...scans.map((s) => s.context.slot)),
+    },
+  ]);
+  const values = result.value as unknown as (RpcAccount | null)[];
+  if (
+    !Array.isArray(values) ||
+    values.length !== mints.length ||
+    !Number.isSafeInteger(result.context?.slot) ||
+    result.context.slot < Math.max(...scans.map((s) => s.context.slot))
+  )
+    throw new AppError(
+      'The balance service returned an incomplete mint check.',
+      503,
+    );
+  const verifiedAt = Date.now();
+  const holdings = mints.map((mint, index) => {
+    const candidate = candidates.get(mint)!,
+      value = values[index],
+      parsed = value?.data?.parsed;
+    if (
+      value?.owner !== candidate.program ||
+      parsed?.type !== 'mint' ||
+      parsed.info.isInitialized !== true ||
+      parsed.info.decimals !== candidate.decimals
+    )
+      throw new AppError(
+        'A supported mint did not pass onchain validation.',
+        503,
+      );
+    return { symbol: candidate.symbol, verifiedAt, slot: candidate.slot };
+  });
+  return holdings.sort((a, b) => a.symbol.localeCompare(b.symbol));
 }

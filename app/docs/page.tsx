@@ -7,10 +7,10 @@ export default function Page() {
         <h2>1. Verify a supported token</h2>
         <p>
           On the community homepage choose Connect wallet & join, select your
-          wallet and search for the stock token you hold, accept the guidelines,
-          and sign the membership message. Desktop wallet extensions and
-          compatible wallet browsers are supported; mobile deep-link pairing is
-          not enabled.
+          wallet and accept the guidelines. We automatically detect supported
+          stock tokens before asking you to sign a membership message. No stock
+          picker is needed. Desktop wallet extensions and compatible wallet
+          browsers are supported; mobile deep-link pairing is not enabled.
         </p>
       </section>
       <section className="panel">
@@ -18,8 +18,17 @@ export default function Page() {
         <p>
           Choose General or a ticker, write a question or thesis, and post. You
           can reply across every topic regardless of which supported token
-          unlocked membership. Use Edit profile to choose an alias and
-          optionally display a token badge.
+          unlocked membership. Use Profile to choose an alias and optionally
+          display a token badge.
+        </p>
+      </section>
+      <section className="panel">
+        <h2>Make your home your own</h2>
+        <p>
+          For you includes your detected holdings, followed topics, and General.
+          Topics lets you explore every stock and follow others. Save
+          discussions and curated source links to your private Saved page. Reply
+          notifications are in-app only and can be switched off in Profile.
         </p>
       </section>
       <section className="panel">

@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { TOKENS } from '@/lib/tokens';
 import { api } from '@/lib/client';
 import type { ModerationData } from '@/lib/community-types';
 export function CommunityAdmin() {
@@ -38,6 +39,72 @@ export function CommunityAdmin() {
         <p>Administrator authorization required. {error ? '' : 'Loading…'}</p>
       ) : (
         <>
+          <h2>Curated source library</h2>
+          <p>
+            Real source links shown in member homes. Use accurate publisher
+            names and descriptive titles.
+          </p>
+          <form
+            className="form panel"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const form = e.currentTarget,
+                f = new FormData(form);
+              void act({
+                action: 'source',
+                title: f.get('title'),
+                publisher: f.get('publisher'),
+                url: f.get('url'),
+                symbol: f.get('symbol'),
+                active: true,
+              });
+            }}
+          >
+            <label>
+              Title
+              <input name="title" required minLength={5} maxLength={160} />
+            </label>
+            <label>
+              Publisher
+              <input name="publisher" required minLength={2} maxLength={80} />
+            </label>
+            <label>
+              HTTPS URL
+              <input name="url" type="url" required />
+            </label>
+            <label>
+              Stock
+              <select name="symbol">
+                {TOKENS.map((t) => (
+                  <option key={t.symbol}>{t.symbol}</option>
+                ))}
+              </select>
+            </label>
+            <Button type="submit" disabled={busy}>
+              Add source
+            </Button>
+          </form>
+          {data.sources.map((s) => (
+            <div className="panel" key={s.id}>
+              <strong>
+                {s.publisher} · {s.symbol}
+              </strong>
+              <p>
+                <a href={s.url} target="_blank" rel="noopener noreferrer">
+                  {s.title} ↗
+                </a>
+              </p>
+              <Button
+                variant="outline"
+                disabled={busy}
+                onClick={() =>
+                  act({ ...s, action: 'source', active: !s.active })
+                }
+              >
+                {s.active ? 'Hide source' : 'Restore source'}
+              </Button>
+            </div>
+          ))}
           <h2>Open reports ({data.reports.length})</h2>
           {!data.reports.length && <p>No open reports.</p>}
           {data.reports.map((r) => (

@@ -8,7 +8,7 @@ import {
   runtime,
 } from '@/lib/server';
 import { AppError, textValue } from '@/lib/validation';
-import { validWallet, verifySignature, verifyHolding } from '@/lib/solana';
+import { validWallet, verifySignature, detectHoldings } from '@/lib/solana';
 import { TOKENS } from '@/lib/tokens';
 import {
   TOPICS,
@@ -87,20 +87,29 @@ async function handler(req: Request) {
     }
     if (path[0] === 'challenge' && post) {
       const wallet = validWallet(textValue(b.wallet, 32, 44, 'Wallet'));
-      if (!TOKENS.some((t) => t.symbol === b.symbol && t.mint))
-        throw new AppError('Choose a token from the supported stock list.');
       await rateLimit('community-wallet:' + wallet, 5);
       await communityCleanup();
+      const holdings = await detectHoldings(wallet, runtime().SOLANA_RPC_URL);
+      if (!holdings.length)
+        throw new AppError(
+          'No supported stock tokens were found in this wallet. Try another Solana account, or check the supported stocks list. No signature is needed.',
+          403,
+        );
       const id = crypto.randomUUID(),
         expires = Date.now() + 300000;
-      const message = `HolderPulse community membership\nOrigin: ${url.origin}\nWallet: ${wallet}\nToken: ${String(b.symbol)}\nNonce: ${id}\nExpires: ${new Date(expires).toISOString()}\nSign to verify a holding and join all community topics for 24 hours. No transaction or asset transfer is authorized.`;
+      const message = `HolderPulse community membership\nOrigin: ${url.origin}\nWallet: ${wallet}\nAccess: All community topics\nNonce: ${id}\nExpires: ${new Date(expires).toISOString()}\nSign to prove control of this wallet and verify supported tokenized-equity holdings for 24-hour community access. Only supported holdings are retained for your private feed; balances are not saved. No transaction or asset transfer is authorized.`;
       await db()
         .prepare(
           'INSERT INTO community_challenges (id,wallet,symbol,message,expires_at,consumed) VALUES (?,?,?,?,?,0)',
         )
-        .bind(id, wallet, b.symbol, message, expires)
+        .bind(id, wallet, '*', message, expires)
         .run();
-      return json({ id, message, expiresAt: expires });
+      return json({
+        id,
+        message,
+        expiresAt: expires,
+        holdingCount: holdings.length,
+      });
     }
     if (path[0] === 'verify' && post) {
       if (b.consent !== true)
@@ -132,19 +141,24 @@ async function handler(req: Request) {
         .first();
       if (!consumed)
         throw new AppError('This signature has already been used.', 409);
-      await verifyHolding(c.wallet, c.symbol, runtime().SOLANA_RPC_URL);
+      const holdings = await detectHoldings(c.wallet, runtime().SOLANA_RPC_URL);
+      if (!holdings.length)
+        throw new AppError(
+          'This wallet no longer holds a supported stock token. Please reconnect after checking your holdings.',
+          403,
+        );
       const walletHash = await digest('holderpulse-community:' + c.wallet),
         now = Date.now(),
         id = crypto.randomUUID();
       await db()
         .prepare(
-          'INSERT INTO community_members (id,wallet_hash,alias,qualifying_symbol,show_badge,verified_until,suspended,created_at) VALUES (?,?,?,?,0,?,0,?) ON CONFLICT(wallet_hash) DO UPDATE SET qualifying_symbol=excluded.qualifying_symbol,verified_until=excluded.verified_until',
+          'INSERT INTO community_members (id,wallet_hash,alias,qualifying_symbol,show_badge,verified_until,suspended,created_at) VALUES (?,?,?,?,0,?,0,?) ON CONFLICT(wallet_hash) DO UPDATE SET verified_until=excluded.verified_until',
         )
         .bind(
           id,
           walletHash,
           'Holder-' + id.slice(0, 6),
-          c.symbol,
+          holdings[0].symbol,
           now + MEMBERSHIP_MS,
           now,
         )
@@ -162,6 +176,27 @@ async function handler(req: Request) {
         );
       const session = crypto.randomUUID() + crypto.randomUUID();
       await db().batch([
+        db()
+          .prepare('DELETE FROM community_holdings WHERE member_id=?')
+          .bind(member.id),
+        ...holdings.map((h) =>
+          db()
+            .prepare(
+              'INSERT INTO community_holdings (member_id,symbol,verified_at,slot) VALUES (?,?,?,?)',
+            )
+            .bind(member.id, h.symbol, h.verifiedAt, h.slot),
+        ),
+        db()
+          .prepare(
+            'UPDATE community_members SET show_badge=0,qualifying_symbol=? WHERE id=? AND qualifying_symbol NOT IN (' +
+              holdings.map(() => '?').join(',') +
+              ')',
+          )
+          .bind(
+            holdings[0].symbol,
+            member.id,
+            ...holdings.map((h) => h.symbol),
+          ),
         db()
           .prepare('DELETE FROM community_sessions WHERE member_id=?')
           .bind(member.id),
@@ -187,6 +222,47 @@ async function handler(req: Request) {
       const admin = await actor();
       if (!admin.admin)
         throw new AppError('Administrator access is required.', 403);
+      if (post && b.action === 'source') {
+        const id = b.id
+          ? textValue(b.id, 1, 100, 'Source')
+          : crypto.randomUUID();
+        const title = textValue(b.title, 5, 160, 'Source title'),
+          publisher = textValue(b.publisher, 2, 80, 'Publisher');
+        const link = textValue(b.url, 10, 1000, 'Source URL');
+        let sourceUrl: URL;
+        try {
+          sourceUrl = new URL(link);
+        } catch {
+          throw new AppError('Use a valid HTTPS source URL.');
+        }
+        if (
+          sourceUrl.protocol !== 'https:' ||
+          sourceUrl.username ||
+          sourceUrl.password ||
+          !TOKENS.some((t) => t.symbol === b.symbol) ||
+          typeof b.active !== 'boolean'
+        )
+          throw new AppError(
+            'Choose a supported symbol, HTTPS source, and visibility.',
+          );
+        await db().batch([
+          db()
+            .prepare(
+              'INSERT INTO community_sources (id,symbol,title,publisher,url,active,created_at) VALUES (?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET symbol=excluded.symbol,title=excluded.title,publisher=excluded.publisher,url=excluded.url,active=excluded.active',
+            )
+            .bind(
+              id,
+              b.symbol,
+              title,
+              publisher,
+              sourceUrl.href,
+              b.active ? 1 : 0,
+              Date.now(),
+            ),
+          auditStatement(admin.userId, 'community:source', id),
+        ]);
+        return json({ ok: true });
+      }
       if (!post) {
         const result = await db().batch([
           db().prepare(
@@ -201,8 +277,12 @@ async function handler(req: Request) {
           db().prepare(
             'SELECT r.*,m.alias FROM community_replies r JOIN community_members m ON m.id=r.member_id WHERE r.hidden=1 ORDER BY r.created_at DESC LIMIT 50',
           ),
+          db().prepare(
+            'SELECT * FROM community_sources ORDER BY created_at DESC LIMIT 100',
+          ),
         ]);
         return json({
+          sources: result[4].results,
           reports: result[0].results as CommunityReport[],
           members: result[1].results as CommunityMember[],
           hiddenThreads: result[2].results,
@@ -250,13 +330,162 @@ async function handler(req: Request) {
     }
     const member = await communityMember(req);
     if (!member) throw new AppError('Membership required.', 401);
+    if (path[0] === 'home' && !post) {
+      // Reviewed source directories, not generated headlines or member activity.
+      const sources = [
+        [
+          'micron-ir',
+          'MU',
+          'Earnings, filings & investor updates',
+          'Micron',
+          'https://investors.micron.com/overview/default.aspx',
+        ],
+        [
+          'skhynix-news',
+          'SKHY',
+          'Inside the memory industry',
+          'SK hynix Newsroom',
+          'https://news.skhynix.com/en/',
+        ],
+        [
+          'nvidia-ir',
+          'NVDA',
+          'Results & company announcements',
+          'NVIDIA',
+          'https://investor.nvidia.com/home/default.aspx',
+        ],
+      ];
+      await db().batch(
+        sources.map((source) =>
+          db()
+            .prepare(
+              'INSERT OR IGNORE INTO community_sources (id,symbol,title,publisher,url,created_at) VALUES (?,?,?,?,?,?)',
+            )
+            .bind(...source, 1788994800000),
+        ),
+      );
+      const result = await db().batch([
+        db()
+          .prepare(
+            'SELECT symbol,verified_at,slot FROM community_holdings WHERE member_id=? ORDER BY symbol',
+          )
+          .bind(member.id),
+        db()
+          .prepare(
+            'SELECT symbol FROM community_follows WHERE member_id=? ORDER BY symbol',
+          )
+          .bind(member.id),
+        db()
+          .prepare(
+            "SELECT s.*,EXISTS(SELECT 1 FROM community_bookmarks b WHERE b.member_id=? AND b.target_type='source' AND b.target_id=s.id) saved FROM community_sources s WHERE s.active=1 ORDER BY s.created_at DESC,s.id LIMIT 100",
+          )
+          .bind(member.id),
+        db()
+          .prepare(
+            'SELECT n.id,n.thread_id,n.read,n.created_at,t.title,m.alias FROM community_notifications n JOIN community_threads t ON t.id=n.thread_id JOIN community_replies r ON r.id=n.reply_id JOIN community_members m ON m.id=r.member_id WHERE n.member_id=? AND t.hidden=0 AND r.hidden=0 ORDER BY n.created_at DESC LIMIT 30',
+          )
+          .bind(member.id),
+      ]);
+      return json({
+        holdings: result[0].results,
+        follows: (result[1].results as { symbol: string }[]).map(
+          (r) => r.symbol,
+        ),
+        sources: result[2].results,
+        notifications: result[3].results,
+      });
+    }
+    if (path[0] === 'follow' && post) {
+      if (
+        !TOKENS.some((t) => t.symbol === b.symbol) ||
+        typeof b.follow !== 'boolean'
+      )
+        throw new AppError('Choose a supported topic and follow preference.');
+      await db()
+        .prepare(
+          b.follow
+            ? 'INSERT OR IGNORE INTO community_follows (member_id,symbol) VALUES (?,?)'
+            : 'DELETE FROM community_follows WHERE member_id=? AND symbol=?',
+        )
+        .bind(member.id, b.symbol)
+        .run();
+      return json({ ok: true });
+    }
+    if (path[0] === 'save' && post) {
+      if (
+        !['thread', 'source'].includes(String(b.type)) ||
+        typeof b.save !== 'boolean'
+      )
+        throw new AppError('Invalid saved item.');
+      const id = textValue(b.id, 1, 100, 'Item');
+      const table =
+        b.type === 'thread' ? 'community_threads' : 'community_sources';
+      const visible = b.type === 'thread' ? 'hidden=0' : 'active=1';
+      if (
+        b.save &&
+        !(await db()
+          .prepare(`SELECT id FROM ${table} WHERE id=? AND ${visible}`)
+          .bind(id)
+          .first())
+      )
+        throw new AppError('Item unavailable.', 404);
+      await (
+        b.save
+          ? db()
+              .prepare(
+                'INSERT OR IGNORE INTO community_bookmarks (member_id,target_type,target_id,created_at) VALUES (?,?,?,?)',
+              )
+              .bind(member.id, b.type, id, Date.now())
+          : db()
+              .prepare(
+                'DELETE FROM community_bookmarks WHERE member_id=? AND target_type=? AND target_id=?',
+              )
+              .bind(member.id, b.type, id)
+      ).run();
+      return json({ ok: true });
+    }
+    if (path[0] === 'notifications' && post) {
+      await db()
+        .prepare('UPDATE community_notifications SET read=1 WHERE member_id=?')
+        .bind(member.id)
+        .run();
+      return json({ ok: true });
+    }
     if (path[0] === 'profile' && post) {
       const alias = validateAlias(b.alias);
       if (typeof b.showBadge !== 'boolean')
         throw new AppError('Choose a badge preference.');
+      const symbol =
+        typeof b.badgeSymbol === 'string'
+          ? b.badgeSymbol
+          : member.qualifying_symbol;
+      if (
+        symbol !== member.qualifying_symbol &&
+        !(await db()
+          .prepare(
+            'SELECT 1 FROM community_holdings WHERE member_id=? AND symbol=?',
+          )
+          .bind(member.id, symbol)
+          .first())
+      )
+        throw new AppError('Only a verified holding can appear as your badge.');
+      if (b.notifyReplies !== undefined && typeof b.notifyReplies !== 'boolean')
+        throw new AppError('Invalid notification preference.');
       await db()
-        .prepare('UPDATE community_members SET alias=?,show_badge=? WHERE id=?')
-        .bind(alias, b.showBadge ? 1 : 0, member.id)
+        .prepare(
+          'UPDATE community_members SET alias=?,show_badge=?,qualifying_symbol=?,notify_replies=? WHERE id=?',
+        )
+        .bind(
+          alias,
+          b.showBadge ? 1 : 0,
+          symbol,
+          b.notifyReplies === undefined
+            ? member.notify_replies
+            : b.notifyReplies
+              ? 1
+              : 0,
+          member.id,
+        )
         .run();
       return json({ ok: true });
     }
@@ -275,6 +504,11 @@ async function handler(req: Request) {
         return json({ id }, 201);
       }
       const topic = url.searchParams.get('topic') || 'all';
+      const feed = url.searchParams.get('feed') || 'all';
+      if (!['all', 'personal', 'saved'].includes(feed))
+        throw new AppError('Unknown feed.');
+      const threadId = url.searchParams.get('thread') || '';
+      if (threadId.length > 100) throw new AppError('Invalid discussion.');
       if (!TOPICS.some((t) => t.id === topic))
         throw new AppError('Unknown topic.');
       const [stamp, key = '~'] = (
@@ -286,9 +520,24 @@ async function handler(req: Request) {
       const rows = (
         await db()
           .prepare(
-            `SELECT t.id,t.member_id,t.topic,t.title,t.body,t.created_at,t.hidden,${authorColumns},(SELECT count(*) FROM community_replies r WHERE r.thread_id=t.id AND r.hidden=0) reply_count FROM community_threads t JOIN community_members m ON m.id=t.member_id WHERE t.hidden=0 AND (?='all' OR t.topic=?) AND (t.created_at<? OR (t.created_at=? AND t.id<?)) ORDER BY t.created_at DESC,t.id DESC LIMIT 31`,
+            `SELECT t.id,t.member_id,t.topic,t.title,t.body,t.created_at,t.hidden,${authorColumns},EXISTS(SELECT 1 FROM community_bookmarks b WHERE b.member_id=? AND b.target_type='thread' AND b.target_id=t.id) saved,(SELECT count(*) FROM community_replies r WHERE r.thread_id=t.id AND r.hidden=0) reply_count FROM community_threads t JOIN community_members m ON m.id=t.member_id WHERE t.hidden=0 AND (?='all' OR t.topic=?) AND (?='' OR t.id=?) AND (?!='personal' OR t.topic='general' OR t.topic IN (SELECT symbol FROM community_holdings WHERE member_id=? UNION SELECT symbol FROM community_follows WHERE member_id=?)) AND (?!='saved' OR EXISTS(SELECT 1 FROM community_bookmarks b WHERE b.member_id=? AND b.target_type='thread' AND b.target_id=t.id)) AND (t.created_at<? OR (t.created_at=? AND t.id<?)) ORDER BY t.created_at DESC,t.id DESC LIMIT 31`,
           )
-          .bind(Date.now(), topic, topic, cursor, cursor, key)
+          .bind(
+            Date.now(),
+            member.id,
+            topic,
+            topic,
+            threadId,
+            threadId,
+            feed,
+            member.id,
+            member.id,
+            feed,
+            member.id,
+            cursor,
+            cursor,
+            key,
+          )
           .all<CommunityThread>()
       ).results;
       return json({
@@ -327,6 +576,20 @@ async function handler(req: Request) {
             .run();
           if (!inserted.meta.changes)
             throw new AppError('Discussion unavailable.', 404);
+          if (thread.member_id !== member.id)
+            await db()
+              .prepare(
+                'INSERT INTO community_notifications (id,member_id,thread_id,reply_id,read,created_at) SELECT ?,?,?,?,0,? WHERE EXISTS(SELECT 1 FROM community_members WHERE id=? AND notify_replies=1 AND suspended=0)',
+              )
+              .bind(
+                crypto.randomUUID(),
+                thread.member_id,
+                thread.id,
+                id,
+                now,
+                thread.member_id,
+              )
+              .run();
           return json({ id }, 201);
         }
         const [stamp, key = ''] = (url.searchParams.get('cursor') || '0').split(

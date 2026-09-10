@@ -107,6 +107,7 @@ export const communityMembers = sqliteTable(
     alias: text('alias').notNull(),
     qualifyingSymbol: text('qualifying_symbol').notNull(),
     showBadge: integer('show_badge').notNull().default(0),
+    notifyReplies: integer('notify_replies').notNull().default(1),
     verifiedUntil: integer('verified_until').notNull(),
     suspended: integer('suspended').notNull().default(0),
     createdAt: integer('created_at').notNull(),
@@ -186,5 +187,85 @@ export const communityReports = sqliteTable(
       t.targetId,
     ),
     index('idx_community_report_status').on(t.status),
+  ],
+);
+
+export const communityHoldings = sqliteTable(
+  'community_holdings',
+  {
+    memberId: text('member_id')
+      .notNull()
+      .references(() => communityMembers.id),
+    symbol: text('symbol').notNull(),
+    verifiedAt: integer('verified_at').notNull(),
+    slot: integer('slot').notNull(),
+  },
+  (t) => [
+    uniqueIndex('idx_community_holdings_member_symbol').on(
+      t.memberId,
+      t.symbol,
+    ),
+  ],
+);
+export const communityFollows = sqliteTable(
+  'community_follows',
+  {
+    memberId: text('member_id')
+      .notNull()
+      .references(() => communityMembers.id),
+    symbol: text('symbol').notNull(),
+  },
+  (t) => [
+    uniqueIndex('idx_community_follows_member_symbol').on(t.memberId, t.symbol),
+  ],
+);
+export const communityBookmarks = sqliteTable(
+  'community_bookmarks',
+  {
+    memberId: text('member_id')
+      .notNull()
+      .references(() => communityMembers.id),
+    targetType: text('target_type').notNull(),
+    targetId: text('target_id').notNull(),
+    createdAt: integer('created_at').notNull(),
+  },
+  (t) => [
+    uniqueIndex('idx_community_bookmarks_member_target').on(
+      t.memberId,
+      t.targetType,
+      t.targetId,
+    ),
+  ],
+);
+export const communitySources = sqliteTable('community_sources', {
+  id: text('id').primaryKey(),
+  symbol: text('symbol').notNull(),
+  title: text('title').notNull(),
+  publisher: text('publisher').notNull(),
+  url: text('url').notNull(),
+  active: integer('active').notNull().default(1),
+  createdAt: integer('created_at').notNull(),
+});
+export const communityNotifications = sqliteTable(
+  'community_notifications',
+  {
+    id: text('id').primaryKey(),
+    memberId: text('member_id')
+      .notNull()
+      .references(() => communityMembers.id),
+    threadId: text('thread_id')
+      .notNull()
+      .references(() => communityThreads.id),
+    replyId: text('reply_id')
+      .notNull()
+      .references(() => communityReplies.id),
+    read: integer('read').notNull().default(0),
+    createdAt: integer('created_at').notNull(),
+  },
+  (t) => [
+    index('idx_community_notifications_member_created').on(
+      t.memberId,
+      t.createdAt,
+    ),
   ],
 );

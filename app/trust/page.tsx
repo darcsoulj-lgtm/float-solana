@@ -25,11 +25,15 @@ export default function Page() {
         <h2>What we store</h2>
         <p>
           We store a private hash of your wallet address, display name,
-          qualifying token, verification expiry, badge preference, posts,
-          replies, reports, and moderation records. Raw wallet addresses are
-          temporarily stored in five-minute challenges and deleted after
-          successful verification or cleanup on later verification requests.
-          Exact balances are checked but not saved in the community data model.
+          supported token symbols and verification slots/times, verification
+          expiry, badge choice, followed topics, saved-item references, reply
+          notification preferences and in-app notifications, posts, replies,
+          reports, and moderation records. Raw wallet addresses are temporarily
+          stored in five-minute challenges and deleted after successful
+          verification or cleanup on later verification requests. Exact balances
+          are checked but not saved in the community data model. Unrelated token
+          holdings are discarded. Detected holdings are replaced on each
+          successful verification.
         </p>
       </section>
       <section className="panel">
@@ -37,9 +41,11 @@ export default function Page() {
         <p>
           Member discussions require an active verified session. Other members
           see your alias, contributions, and optional qualifying-token badge.
-          Public visitors see aggregate member and discussion counts.
-          Administrators can review content, reports, and member records.
-          Members can copy content, so this is not a confidential channel.
+          Public visitors see an illustrative preview with no member data. Your
+          full holdings list, followed topics, saved items, and notifications
+          are returned only to your own active session. Administrators can
+          review content, reports, and member records. Members can copy content,
+          so this is not a confidential channel.
         </p>
       </section>
       <section className="panel">

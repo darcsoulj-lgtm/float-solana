@@ -3,12 +3,21 @@ export async function api<T = unknown>(
   body?: unknown,
 ): Promise<T> {
   const response = await fetch('/api/' + path, {
-    signal: AbortSignal.timeout(25000),
+    signal: AbortSignal.timeout(
+      /^community\/(challenge|verify)$/.test(path) ? 45000 : 25000,
+    ),
     method: body ? 'POST' : 'GET',
     headers: body ? { 'Content-Type': 'application/json' } : {},
     body: body ? JSON.stringify(body) : undefined,
   });
   const data: unknown = await response.json();
+  if (
+    response.status === 401 &&
+    path.startsWith('community/') &&
+    !path.includes('moderation') &&
+    typeof window !== 'undefined'
+  )
+    window.dispatchEvent(new Event('hp-session-expired'));
   if (!response.ok)
     throw new Error(
       data &&
