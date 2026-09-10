@@ -291,6 +291,57 @@ try {
   assert.equal(posted[0].title, 'Cross ticker test');
   assert.equal(posted[0].body, 'An MU holder can discuss SK Hynix here.');
   await editorialFlow(base, cookie);
+  const roomName = 'Memory club ' + crypto.randomUUID();
+  await call(
+    'rooms',
+    { name: roomName, description: 'Member-created room for local testing.' },
+    { session: '', status: 401 },
+  );
+  const room = (
+    await call(
+      'rooms',
+      { name: roomName, description: 'Member-created room for local testing.' },
+      { status: 201 },
+    )
+  ).d;
+  const roomHome = (await call('home')).d;
+  assert.ok(
+    roomHome.rooms.some((r) => r.id === room.id && r.thread_count === 0),
+  );
+  assert.ok(
+    roomHome.rooms.every((r) => r.id.startsWith('room-') || r.thread_count > 0),
+    'No empty auto-generated stock rooms',
+  );
+  assert.ok(roomHome.follows.includes(room.id));
+  await call(
+    'rooms',
+    {
+      name: roomName.toUpperCase(),
+      description: 'Duplicate room should be rejected.',
+    },
+    { status: 409 },
+  );
+  const roomPost = (
+    await call(
+      'threads',
+      {
+        topic: room.id,
+        title: 'First room discussion',
+        body: 'A persistent discussion in a member-created room.',
+      },
+      { status: 201 },
+    )
+  ).d;
+  const roomFeed = (await call('threads?topic=' + room.id)).d;
+  assert.equal(roomFeed.threads[0].room_name, roomName);
+  assert.ok(
+    (await call('threads?feed=personal')).d.threads.some(
+      (t) => t.id === roomPost.id,
+    ),
+  );
+  await call('threads/' + roomPost.id + '/remove', {});
+  await call('follow', { symbol: room.id, follow: false });
+
   await call('save', { type: 'thread', id: t.id, save: true });
   assert.ok(
     (await call('threads?feed=saved')).d.threads.some(

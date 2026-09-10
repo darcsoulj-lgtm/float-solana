@@ -287,6 +287,7 @@ export const editorialItems = sqliteTable(
     featured: integer('featured').notNull().default(0),
     createdAt: integer('created_at').notNull(),
     updatedAt: integer('updated_at').notNull(),
+    coverage: text('coverage').notNull().default('direct'),
     editToken: text('edit_token').notNull().default(''),
   },
   (t) => [
@@ -324,4 +325,19 @@ export const operationCounts = sqliteTable(
   (t) => [
     uniqueIndex('idx_operation_bucket').on(t.bucket, t.operation, t.outcome),
   ],
+);
+
+export const communityRooms = sqliteTable(
+  'community_rooms',
+  {
+    id: text('id').primaryKey(),
+    name: text('name').notNull(),
+    nameKey: text('name_key').notNull(),
+    description: text('description').notNull(),
+    creatorId: text('creator_id')
+      .notNull()
+      .references(() => communityMembers.id),
+    createdAt: integer('created_at').notNull(),
+  },
+  (t) => [uniqueIndex('idx_room_name').on(t.nameKey)],
 );

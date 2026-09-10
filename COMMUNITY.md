@@ -1,6 +1,16 @@
+# Member-created rooms update
+
+Members create rooms from **Rooms → Create a room** with a name and description. Every verified member can create, follow, and post in a room. Creation persists the room and follows it for its creator in one transaction; duplicate normalized names are rejected and creation is limited to three attempts per minute per member. Existing global membership and suspension rules apply. Room creation does not confer admin privileges.
+
+The directory no longer maps the token registry into empty topics. It shows member-created rooms and existing legacy topics with visible discussions. Existing posts are preserved. General remains the shared posting destination; it appears in discovery only when it has discussions. Newly supported stocks do not generate room entries.
+
+Your brief now defaults to **My holdings**: direct company coverage for verified holdings only. Following rooms affects discussions, not this news filter. Broader industry stories remain in **All coverage** with a context label. The reviewed NVIDIA story is industry context, not evidence of NVIDIA ownership. Administrators choose the coverage relationship in the editor.
+
+The sections below document earlier community behavior where not superseded by this update.
+
 # HolderPulse community
 
-Current product: a private member home with one shared discussion feed, personalized by automatically detected holdings and followed topics. A positive balance of any token in the reviewed registry unlocks all topics. The registry currently has 39 enabled Backpack stock/ETF tokens, including SPCX. No simulated community posts or fabricated membership. Legacy surveys and records remain accessible through their original routes but are outside the main community navigation.
+Current product (updated September 11, 2026): a private member home with one shared discussion feed, personalized by automatically detected holdings and followed topics. A positive balance of any token in the reviewed registry unlocks all topics. The registry currently has 39 enabled Backpack stock/ETF tokens, including SPCX. No simulated community posts or fabricated membership. Legacy surveys and records remain accessible through their original routes but are outside the main community navigation.
 
 ## Runtime
 

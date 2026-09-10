@@ -33,6 +33,17 @@ export async function editorialFlow(base, cookie) {
   await call('initialize', { title: 'Injected content' }, { status: 400 });
   await call('initialize', {}, { origin: 'https://evil.invalid', status: 403 });
   await call('initialize', {});
+  assert.ok(
+    !(await call('brief?scope=personal')).items.some(
+      (i) => i.id === 'nvda-2026-q2-memory-context',
+    ),
+  );
+  assert.equal(
+    (await call('brief?scope=all')).items.find(
+      (i) => i.id === 'nvda-2026-q2-memory-context',
+    ).coverage,
+    'context',
+  );
   const initial = await call('operations', undefined, { admin: true });
   const seed = initial.items.find((i) => i.id === 'skhy-future-forum-2026');
   assert.ok(seed);

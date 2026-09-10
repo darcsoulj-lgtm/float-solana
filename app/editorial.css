@@ -966,3 +966,36 @@ body:has(.operations-page) > footer {
 .operations-notice {
   display: block;
 }
+
+.room-create-button {
+  margin-bottom: 20px;
+}
+.room-directory article > div {
+  min-width: 0;
+  flex: 1;
+}
+.room-directory .topic-title {
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+.room-directory article p {
+  color: #657083;
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 8px 0;
+  overflow-wrap: anywhere;
+}
+.room-help,
+.coverage-context {
+  color: #657083;
+  font-size: 13px;
+  line-height: 1.6;
+}
+@media (max-width: 700px) {
+  .room-directory article {
+    flex-wrap: wrap;
+  }
+  .room-directory article > div {
+    flex-basis: calc(100% - 75px);
+  }
+}

@@ -6,7 +6,7 @@ import {
 } from './editorial-starter';
 import { validateEditorial, type EditorialItem } from './editorial';
 
-export const editorialColumns = `e.id,e.kind,e.title,e.summary,e.publisher,e.url,e.published_at,e.event_date,e.event_at,e.certainty,e.status,e.featured,e.created_at,e.updated_at, (SELECT json_group_array(symbol) FROM editorial_tags WHERE item_id=e.id) symbols`;
+export const editorialColumns = `e.id,e.coverage,e.kind,e.title,e.summary,e.publisher,e.url,e.published_at,e.event_date,e.event_at,e.certainty,e.status,e.featured,e.created_at,e.updated_at, (SELECT json_group_array(symbol) FROM editorial_tags WHERE item_id=e.id) symbols`;
 export function editorialRow(row: Record<string, unknown>): EditorialItem {
   return {
     ...row,
@@ -14,6 +14,27 @@ export function editorialRow(row: Record<string, unknown>): EditorialItem {
   } as EditorialItem;
 }
 export async function initializeEditorial() {
+  // Correct only the untouched reviewed NVIDIA record; never reset later admin edits.
+  if (
+    !(await db()
+      .prepare('SELECT id FROM content_releases WHERE id=?')
+      .bind('editorial-direct-coverage-v1')
+      .first())
+  ) {
+    await db().batch([
+      db()
+        .prepare(
+          "UPDATE editorial_items SET coverage='context' WHERE id='nvda-2026-q2-memory-context' AND updated_at=? AND NOT EXISTS (SELECT 1 FROM content_releases WHERE id=?)",
+        )
+        .bind(REVIEWED_AT, 'editorial-direct-coverage-v1'),
+      db()
+        .prepare(
+          'INSERT OR IGNORE INTO content_releases (id,applied_at) VALUES (?,?)',
+        )
+        .bind('editorial-direct-coverage-v1', Date.now()),
+    ]);
+  }
+
   if (
     await db()
       .prepare('SELECT id FROM content_releases WHERE id=?')
@@ -27,7 +48,7 @@ export async function initializeEditorial() {
     statements.push(
       db()
         .prepare(
-          `INSERT OR IGNORE INTO editorial_items (id,kind,title,summary,publisher,url,published_at,event_date,event_at,certainty,status,featured,created_at,updated_at) SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,? WHERE NOT EXISTS (SELECT 1 FROM content_releases WHERE id=?)`,
+          `INSERT OR IGNORE INTO editorial_items (id,kind,title,summary,publisher,url,published_at,event_date,event_at,certainty,status,featured,created_at,updated_at,coverage) SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,? WHERE NOT EXISTS (SELECT 1 FROM content_releases WHERE id=?)`,
         )
         .bind(
           raw.id,
@@ -44,6 +65,7 @@ export async function initializeEditorial() {
           p.featured,
           REVIEWED_AT,
           REVIEWED_AT,
+          p.coverage,
           EDITORIAL_RELEASE,
         ),
     );

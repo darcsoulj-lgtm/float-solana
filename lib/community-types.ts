@@ -25,6 +25,7 @@ export type CommunityAuthor = {
 export type CommunityThread = CommunityAuthor & {
   id: string;
   topic: string;
+  room_name?: string;
   title: string;
   body: string;
   created_at: number;
@@ -88,7 +89,14 @@ export type CommunityNotification = {
   read: number;
   created_at: number;
 };
+export type CommunityRoom = {
+  id: string;
+  name: string;
+  description: string;
+  thread_count: number;
+};
 export type MemberHome = {
+  rooms: CommunityRoom[];
   holdings: Holding[];
   follows: string[];
   sources: CommunitySource[];

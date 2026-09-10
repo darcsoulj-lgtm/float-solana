@@ -38,6 +38,7 @@ export function EditorialEditor({
     submitting = useRef(false);
   const [symbols, setSymbols] = useState(item?.symbols || []),
     [search, setSearch] = useState('');
+  const [coverage, setCoverage] = useState(item?.coverage || 'direct');
   const [certainty, setCertainty] = useState(item?.certainty || 'confirmed'),
     [featured, setFeatured] = useState(!!item?.featured);
   const [knownTime, setKnownTime] = useState(item?.event_at != null),
@@ -63,6 +64,7 @@ export function EditorialEditor({
       event_date: time ? time.slice(0, 10) : f.get('eventDate'),
       event_at: time,
       certainty,
+      coverage,
       status,
       symbols,
       featured,
@@ -111,6 +113,19 @@ export function EditorialEditor({
           }}
         >
           <fieldset disabled={busy}>
+            <Tabs
+              value={coverage}
+              onValueChange={(v) => setCoverage(v as 'direct' | 'context')}
+            >
+              <TabsList aria-label="Coverage relationship">
+                <TabsTrigger value="direct">Direct company news</TabsTrigger>
+                <TabsTrigger value="context">Industry context</TabsTrigger>
+              </TabsList>
+            </Tabs>
+            <p className="editorial-help">
+              Only direct company coverage appears in My holdings. Use industry
+              context when the story is about another company.
+            </p>
             <label htmlFor={id + '-title'}>
               Title
               <input

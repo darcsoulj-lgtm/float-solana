@@ -4,6 +4,7 @@ import { AppError, textValue } from './validation';
 export type EditorialItem = {
   id: string;
   kind: 'news' | 'event';
+  coverage: 'direct' | 'context';
   title: string;
   summary: string;
   publisher: string;
@@ -92,6 +93,11 @@ export function validateEditorial(
     throw new AppError('Label the event date as confirmed or estimated.');
   if (typeof b.featured !== 'boolean')
     throw new AppError('Invalid featured setting.');
+  if (
+    b.coverage !== undefined &&
+    !['direct', 'context'].includes(String(b.coverage))
+  )
+    throw new AppError('Choose direct company news or industry context.');
   const published = dateValue(b.published_date);
   if (published > new Date(now).toISOString().slice(0, 10))
     throw new AppError('The source publication date cannot be in the future.');
@@ -113,6 +119,7 @@ export function validateEditorial(
   }
   return {
     kind: b.kind,
+    coverage: (b.coverage || 'direct') as 'direct' | 'context',
     title: textValue(b.title, 5, 160, 'Title'),
     summary: textValue(b.summary, 20, 800, 'Summary'),
     publisher: textValue(b.publisher, 2, 80, 'Publisher'),

@@ -20,6 +20,7 @@ import {
   type CommunityThread,
   type CommunityReply,
   type CommunityReport,
+  type CommunityRoom,
 } from '@/lib/community-types';
 import {
   authorColumns,
@@ -43,6 +44,33 @@ function json(data: unknown, status = 200, cookie?: string) {
     },
   });
 }
+
+async function listRooms(): Promise<CommunityRoom[]> {
+  const custom = (
+    await db()
+      .prepare(
+        'SELECT r.id,r.name,r.description,(SELECT count(*) FROM community_threads WHERE topic=r.id AND hidden=0) thread_count FROM community_rooms r ORDER BY r.created_at DESC',
+      )
+      .all<CommunityRoom>()
+  ).results;
+  const legacy = (
+    await db()
+      .prepare(
+        'SELECT topic,count(*) thread_count FROM community_threads WHERE hidden=0 AND topic NOT IN (SELECT id FROM community_rooms) GROUP BY topic',
+      )
+      .all<{ topic: string; thread_count: number }>()
+  ).results;
+  return [
+    ...custom,
+    ...legacy.map((r) => ({
+      id: r.topic,
+      name: TOPICS.find((t) => t.id === r.topic)?.label || r.topic,
+      description: 'Community discussions',
+      thread_count: r.thread_count,
+    })),
+  ];
+}
+
 async function handler(req: Request) {
   try {
     const url = new URL(req.url),
@@ -383,6 +411,62 @@ async function handler(req: Request) {
     }
     const member = await communityMember(req);
     if (!member) throw new AppError('Membership required.', 401);
+    if (path[0] === 'rooms' && post) {
+      const name = textValue(b.name, 3, 60, 'Room name')
+        .normalize('NFKC')
+        .replace(/\s+/g, ' ')
+        .trim();
+      const description = textValue(b.description, 10, 240, 'Description');
+      if (name.length < 3 || /[\p{Cc}\p{Cf}]/u.test(name))
+        throw new AppError('Use a readable room name of 3–60 characters.');
+      const nameKey = name.toLowerCase();
+      if (['all', 'general', 'all discussions'].includes(nameKey))
+        throw new AppError(
+          'That name is reserved for the shared discussion feed.',
+        );
+      const legacy = TOPICS.find(
+        (t) =>
+          t.id.toLowerCase() === nameKey || t.label.toLowerCase() === nameKey,
+      );
+      if (
+        legacy &&
+        (await db()
+          .prepare(
+            'SELECT 1 FROM community_threads WHERE topic=? AND hidden=0 LIMIT 1',
+          )
+          .bind(legacy.id)
+          .first())
+      )
+        throw new AppError(
+          'That room already has discussions. Find it in Rooms.',
+          409,
+        );
+      await rateLimit('community-room:' + member.id, 3);
+      const id = 'room-' + crypto.randomUUID();
+      try {
+        await db().batch([
+          db()
+            .prepare(
+              'INSERT INTO community_rooms (id,name,name_key,description,creator_id,created_at) VALUES (?,?,?,?,?,?)',
+            )
+            .bind(id, name, nameKey, description, member.id, Date.now()),
+          db()
+            .prepare(
+              'INSERT INTO community_follows (member_id,symbol) VALUES (?,?)',
+            )
+            .bind(member.id, id),
+          auditStatement(member.id, 'community:create-room', id),
+        ]);
+      } catch (e) {
+        if (e instanceof Error && /UNIQUE constraint/.test(e.message))
+          throw new AppError(
+            'A room with that name already exists. Find it in Rooms.',
+            409,
+          );
+        throw e;
+      }
+      return json({ id }, 201);
+    }
     if (path[0] === 'home' && !post) {
       // Reviewed source directories, not generated headlines or member activity.
       const sources = [
@@ -440,6 +524,7 @@ async function handler(req: Request) {
           .bind(member.id),
       ]);
       return json({
+        rooms: await listRooms(),
         holdings: result[0].results,
         follows: (result[1].results as { symbol: string }[]).map(
           (r) => r.symbol,
@@ -450,7 +535,15 @@ async function handler(req: Request) {
     }
     if (path[0] === 'follow' && post) {
       if (
-        !TOKENS.some((t) => t.symbol === b.symbol) ||
+        (b.symbol !== 'general' &&
+          !TOKENS.some((t) => t.symbol === b.symbol) &&
+          !(
+            typeof b.symbol === 'string' &&
+            (await db()
+              .prepare('SELECT id FROM community_rooms WHERE id=?')
+              .bind(b.symbol)
+              .first())
+          )) ||
         typeof b.follow !== 'boolean'
       )
         throw new AppError('Choose a supported topic and follow preference.');
@@ -545,6 +638,14 @@ async function handler(req: Request) {
     if (path[0] === 'threads' && !path[1]) {
       if (post) {
         const p = validateCommunityPost(b);
+        if (
+          p.topic.startsWith('room-') &&
+          !(await db()
+            .prepare('SELECT id FROM community_rooms WHERE id=?')
+            .bind(p.topic)
+            .first())
+        )
+          throw new AppError('Room no longer exists.', 404);
         await rateLimit('community-post:' + member.id, 3);
         const id = crypto.randomUUID(),
           now = Date.now();
@@ -562,7 +663,13 @@ async function handler(req: Request) {
         throw new AppError('Unknown feed.');
       const threadId = url.searchParams.get('thread') || '';
       if (threadId.length > 100) throw new AppError('Invalid discussion.');
-      if (!TOPICS.some((t) => t.id === topic))
+      if (
+        !TOPICS.some((t) => t.id === topic) &&
+        !(await db()
+          .prepare('SELECT id FROM community_rooms WHERE id=?')
+          .bind(topic)
+          .first())
+      )
         throw new AppError('Unknown topic.');
       const [stamp, key = '~'] = (
         url.searchParams.get('cursor') || String(Date.now() + 1)
@@ -573,7 +680,7 @@ async function handler(req: Request) {
       const rows = (
         await db()
           .prepare(
-            `SELECT t.id,t.member_id,t.topic,t.title,t.body,t.created_at,t.hidden,${authorColumns},EXISTS(SELECT 1 FROM community_bookmarks b WHERE b.member_id=? AND b.target_type='thread' AND b.target_id=t.id) saved,(SELECT count(*) FROM community_replies r WHERE r.thread_id=t.id AND r.hidden=0) reply_count FROM community_threads t JOIN community_members m ON m.id=t.member_id WHERE t.hidden=0 AND (?='all' OR t.topic=?) AND (?='' OR t.id=?) AND (?!='personal' OR t.topic='general' OR t.topic IN (SELECT symbol FROM community_holdings WHERE member_id=? UNION SELECT symbol FROM community_follows WHERE member_id=?)) AND (?!='saved' OR EXISTS(SELECT 1 FROM community_bookmarks b WHERE b.member_id=? AND b.target_type='thread' AND b.target_id=t.id)) AND (t.created_at<? OR (t.created_at=? AND t.id<?)) ORDER BY t.created_at DESC,t.id DESC LIMIT 31`,
+            `SELECT t.id,t.member_id,t.topic,(SELECT name FROM community_rooms WHERE id=t.topic) room_name,t.title,t.body,t.created_at,t.hidden,${authorColumns},EXISTS(SELECT 1 FROM community_bookmarks b WHERE b.member_id=? AND b.target_type='thread' AND b.target_id=t.id) saved,(SELECT count(*) FROM community_replies r WHERE r.thread_id=t.id AND r.hidden=0) reply_count FROM community_threads t JOIN community_members m ON m.id=t.member_id WHERE t.hidden=0 AND (?='all' OR t.topic=?) AND (?='' OR t.id=?) AND (?!='personal' OR t.topic='general' OR t.topic IN (SELECT symbol FROM community_holdings WHERE member_id=? UNION SELECT symbol FROM community_follows WHERE member_id=?)) AND (?!='saved' OR EXISTS(SELECT 1 FROM community_bookmarks b WHERE b.member_id=? AND b.target_type='thread' AND b.target_id=t.id)) AND (t.created_at<? OR (t.created_at=? AND t.id<?)) ORDER BY t.created_at DESC,t.id DESC LIMIT 31`,
           )
           .bind(
             Date.now(),

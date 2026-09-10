@@ -69,14 +69,13 @@ async function handler(req: Request) {
       );
       const rows = await db()
         .prepare(
-          `SELECT ${editorialColumns} FROM editorial_items e WHERE e.status='published' AND e.kind=? AND (?='all' OR EXISTS (SELECT 1 FROM editorial_tags WHERE item_id=e.id AND symbol=?)) AND (?='all' OR EXISTS (SELECT 1 FROM editorial_tags WHERE item_id=e.id AND symbol IN (SELECT symbol FROM community_holdings WHERE member_id=? UNION SELECT symbol FROM community_follows WHERE member_id=?))) AND (?='news' OR (e.event_at IS NOT NULL AND e.event_at>=?) OR (e.event_at IS NULL AND e.event_date>=?)) ORDER BY ${kind === 'news' ? 'e.featured DESC,e.published_at DESC,e.id' : 'e.event_date ASC,coalesce(e.event_at,0) ASC,e.id'} LIMIT 21 OFFSET ?`,
+          `SELECT ${editorialColumns} FROM editorial_items e WHERE e.status='published' AND e.kind=? AND (?='all' OR EXISTS (SELECT 1 FROM editorial_tags WHERE item_id=e.id AND symbol=?)) AND (?='all' OR (e.coverage='direct' AND EXISTS (SELECT 1 FROM editorial_tags WHERE item_id=e.id AND symbol IN (SELECT symbol FROM community_holdings WHERE member_id=?)))) AND (?='news' OR (e.event_at IS NOT NULL AND e.event_at>=?) OR (e.event_at IS NULL AND e.event_date>=?)) ORDER BY ${kind === 'news' ? 'e.featured DESC,e.published_at DESC,e.id' : 'e.event_date ASC,coalesce(e.event_at,0) ASC,e.id'} LIMIT 21 OFFSET ?`,
         )
         .bind(
           kind,
           symbol,
           symbol,
           scope,
-          member!.id,
           member!.id,
           kind,
           Date.now(),
@@ -163,7 +162,7 @@ async function handler(req: Request) {
         existing
           ? db()
               .prepare(
-                'UPDATE editorial_items SET kind=?,title=?,summary=?,publisher=?,url=?,published_at=?,event_date=?,event_at=?,certainty=?,status=?,featured=?,updated_at=?,edit_token=? WHERE id=? AND updated_at=?',
+                'UPDATE editorial_items SET kind=?,title=?,summary=?,publisher=?,url=?,published_at=?,event_date=?,event_at=?,certainty=?,status=?,featured=?,updated_at=?,edit_token=?,coverage=? WHERE id=? AND updated_at=?',
               )
               .bind(
                 p.kind,
@@ -179,12 +178,13 @@ async function handler(req: Request) {
                 p.featured,
                 stamp,
                 editToken,
+                p.coverage,
                 id,
                 existing.updated_at,
               )
           : db()
               .prepare(
-                'INSERT INTO editorial_items (id,kind,title,summary,publisher,url,published_at,event_date,event_at,certainty,status,featured,created_at,updated_at,edit_token) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+                'INSERT INTO editorial_items (id,kind,title,summary,publisher,url,published_at,event_date,event_at,certainty,status,featured,created_at,updated_at,edit_token,coverage) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
               )
               .bind(
                 id,
@@ -202,6 +202,7 @@ async function handler(req: Request) {
                 stamp,
                 stamp,
                 editToken,
+                p.coverage,
               ),
         db()
           .prepare(

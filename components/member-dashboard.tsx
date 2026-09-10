@@ -30,12 +30,11 @@ import {
 } from './ui/dialog';
 import { SearchPicker } from './search-picker';
 import { Thread } from './community-thread';
+import { RoomCreator } from './room-creator';
 import { MemberBrief } from './member-brief';
 import { api } from '@/lib/client';
-import { TOKENS } from '@/lib/tokens';
 import { communityPostErrors, POST_LIMITS } from '@/lib/community-post';
 import {
-  TOPICS,
   type CommunityStatus,
   type MemberHome,
   type CommunityThread,
@@ -47,7 +46,7 @@ const destinations = [
   { id: 'brief', label: 'Your brief', icon: Newspaper },
   { id: 'home', label: 'Discussions', icon: Home },
   { id: 'calendar', label: 'Calendar', icon: CalendarDays },
-  { id: 'topics', label: 'Topics', icon: Compass },
+  { id: 'topics', label: 'Rooms', icon: Compass },
   { id: 'saved', label: 'Saved', icon: Bookmark },
   { id: 'profile', label: 'Profile', icon: UserRound },
 ] as const;
@@ -81,6 +80,7 @@ export function MemberDashboard({
   const requestSequence = useRef(0);
   const [signOut, setSignOut] = useState(false);
   const [search, setSearch] = useState('');
+  const [createRoom, setCreateRoom] = useState(false);
   const [compose, setCompose] = useState(false);
   const [draftTitle, setDraftTitle] = useState('');
   const [draftTopic, setDraftTopic] = useState('general');
@@ -162,6 +162,8 @@ export function MemberDashboard({
     url.hash = '';
     window.history.replaceState(null, '', url.pathname + url.search);
   }
+  const rooms = data?.rooms || [];
+  const roomName = (id: string) => rooms.find((r) => r.id === id)?.name || id;
   const holdings = data?.holdings || [];
   const held = new Set(holdings.map((h) => h.symbol));
   const relevant = new Set([...held, ...(data?.follows || [])]);
@@ -171,7 +173,11 @@ export function MemberDashboard({
     selectedTopic = topic === 'all' ? 'general' : topic,
   ) {
     setDraftTitle(title);
-    setDraftTopic(selectedTopic);
+    setDraftTopic(
+      selectedTopic === 'general' || rooms.some((r) => r.id === selectedTopic)
+        ? selectedTopic
+        : 'general',
+    );
     setDraftBody('');
     setDraftAttempted(false);
     setDraftError('');
@@ -313,7 +319,7 @@ export function MemberDashboard({
                       : view === 'home'
                         ? 'Your common ground.'
                         : view === 'topics'
-                          ? 'Beyond your own position.'
+                          ? 'Find your room. Or start one.'
                           : view === 'saved'
                             ? 'Worth another look.'
                             : 'A name. A little personality.'}
@@ -326,7 +332,7 @@ export function MemberDashboard({
                       : view === 'home'
                         ? 'Start with what you hold. Stay for a different point of view.'
                         : view === 'topics'
-                          ? 'One membership opens every topic. Follow a few to shape your home.'
+                          ? 'Rooms are started by members. Anyone verified can join the conversation.'
                           : view === 'saved'
                             ? 'Your private collection of discussions and sources.'
                             : 'Choose how you appear to other members.'}
@@ -363,85 +369,94 @@ export function MemberDashboard({
               />
             ) : view === 'topics' ? (
               <>
+                <Button
+                  className="room-create-button"
+                  onClick={() => setCreateRoom(true)}
+                >
+                  <Plus size={17} /> Create a room
+                </Button>
                 <label className="member-search">
                   <Search size={18} />
                   <input
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Find a company or ticker"
-                    aria-label="Find a company or ticker"
+                    placeholder="Find a room"
+                    aria-label="Find a room"
                   />
                 </label>
-                <div className="topic-directory">
-                  {TOKENS.filter((t) =>
-                    `${t.symbol} ${t.name}`
-                      .toLowerCase()
-                      .includes(search.toLowerCase()),
-                  )
-                    .sort(
-                      (a, b) =>
-                        Number(held.has(b.symbol)) - Number(held.has(a.symbol)),
+                <div className="topic-directory room-directory">
+                  {rooms
+                    .filter((r) =>
+                      (r.name + ' ' + r.description)
+                        .toLowerCase()
+                        .includes(search.toLowerCase()),
                     )
-                    .map((t) => (
-                      <article key={t.symbol}>
-                        <span className="ticker-tile">{t.symbol}</span>
+                    .map((r) => (
+                      <article key={r.id}>
+                        <span className="ticker-tile">
+                          <MessageSquare size={22} />
+                        </span>
                         <div>
                           <button
                             className="topic-title"
-                            onClick={() => openTopic(t.symbol)}
+                            onClick={() => openTopic(r.id)}
                           >
-                            {t.shortName} <ArrowUpRight size={14} />
+                            {r.name} <ArrowUpRight size={14} />
                           </button>
+                          <p>{r.description}</p>
                           <span>
-                            {held.has(t.symbol) ? (
-                              <>
-                                <LockKeyhole size={12} /> In your wallet · only
-                                you see this
-                              </>
-                            ) : (
-                              t.symbol + ' discussion topic'
-                            )}
+                            {r.thread_count}{' '}
+                            {r.thread_count === 1
+                              ? 'discussion'
+                              : 'discussions'}
                           </span>
                         </div>
                         <Button
                           variant={
-                            data?.follows.includes(t.symbol)
+                            data?.follows.includes(r.id)
                               ? 'secondary'
                               : 'outline'
                           }
-                          disabled={busy || !data}
+                          disabled={busy}
                           onClick={() =>
                             run(async () => {
                               await api('community/follow', {
-                                symbol: t.symbol,
-                                follow: !data?.follows.includes(t.symbol),
+                                symbol: r.id,
+                                follow: !data?.follows.includes(r.id),
                               });
                               await refresh();
                             })
                           }
                         >
-                          {data?.follows.includes(t.symbol) ? (
-                            <>
-                              <Check size={15} /> Following
-                            </>
-                          ) : (
-                            <>
-                              <Plus size={15} /> Follow
-                            </>
-                          )}
+                          {data?.follows.includes(r.id)
+                            ? 'Following'
+                            : 'Follow'}
                         </Button>
                       </article>
                     ))}
                 </div>
-                {!TOKENS.some((t) =>
-                  `${t.symbol} ${t.name}`
-                    .toLowerCase()
-                    .includes(search.toLowerCase()),
-                ) && (
-                  <p className="member-empty">
-                    No matching topic. Try a ticker or company name.
-                  </p>
-                )}
+                {!data && <p className="member-empty">Loading rooms…</p>}
+                {data &&
+                  !rooms.some((r) =>
+                    (r.name + ' ' + r.description)
+                      .toLowerCase()
+                      .includes(search.toLowerCase()),
+                  ) && (
+                    <div className="member-empty">
+                      <h2>
+                        {search
+                          ? 'No matching rooms.'
+                          : 'Be the first to start a room.'}
+                      </h2>
+                      <p>Choose a name and give people a reason to join.</p>
+                      <Button
+                        variant="outline"
+                        onClick={() => setCreateRoom(true)}
+                      >
+                        Create a room
+                      </Button>
+                    </div>
+                  )}
               </>
             ) : view === 'profile' ? (
               <form
@@ -597,7 +612,7 @@ export function MemberDashboard({
                     )}
                     {topic !== 'all' && (
                       <span className="filter-chip">
-                        {topic}
+                        {roomName(topic)}
                         <button
                           aria-label="Clear topic filter"
                           onClick={() => setTopic('all')}
@@ -794,13 +809,15 @@ export function MemberDashboard({
                 <Compass size={17} />
                 <span>ON YOUR RADAR</span>
               </div>
-              {data?.follows.length ? (
+              {data?.follows.some((id) => rooms.some((r) => r.id === id)) ? (
                 <div className="following-tags">
-                  {data.follows.map((symbol) => (
-                    <button key={symbol} onClick={() => openTopic(symbol)}>
-                      {symbol} <ArrowUpRight size={12} />
-                    </button>
-                  ))}
+                  {data.follows
+                    .filter((id) => rooms.some((r) => r.id === id))
+                    .map((symbol) => (
+                      <button key={symbol} onClick={() => openTopic(symbol)}>
+                        {roomName(symbol)} <ArrowUpRight size={12} />
+                      </button>
+                    ))}
                 </div>
               ) : (
                 <p>Curiosity doesn’t have to follow your portfolio.</p>
@@ -809,7 +826,7 @@ export function MemberDashboard({
                 className="text-action"
                 onClick={() => navigate('topics')}
               >
-                Explore topics <ArrowRight size={14} />
+                Explore rooms <ArrowRight size={14} />
               </button>
             </section>
             <div className="context-principle">
@@ -850,6 +867,16 @@ export function MemberDashboard({
           </Button>
         </DialogContent>
       </Dialog>
+      {createRoom && (
+        <RoomCreator
+          onClose={() => setCreateRoom(false)}
+          onCreated={async (id) => {
+            setCreateRoom(false);
+            openTopic(id);
+            setNotice('Room created. Start the first discussion.');
+          }}
+        />
+      )}
       <Dialog
         open={compose}
         onOpenChange={(v) => {
@@ -913,17 +940,19 @@ export function MemberDashboard({
             }}
           >
             <div className="discussion-field">
-              <label htmlFor={`${draftId}-topic`}>Topic</label>
+              <label htmlFor={`${draftId}-topic`}>Room</label>
               <SearchPicker
                 inputId={`${draftId}-topic`}
-                label="Discussion topic"
+                label="Discussion room"
                 disabled={draftPosting}
                 value={draftTopic}
                 onChange={setDraftTopic}
-                items={TOPICS.filter((t) => t.id !== 'all').map((t) => ({
-                  value: t.id,
-                  label: t.label,
-                }))}
+                items={[
+                  { value: 'general', label: 'General' },
+                  ...rooms
+                    .filter((r) => r.id !== 'general')
+                    .map((r) => ({ value: r.id, label: r.name })),
+                ]}
               />
               {draftErrors.topic && (
                 <p className="field-error" role="alert">

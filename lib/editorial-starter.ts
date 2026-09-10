@@ -29,6 +29,7 @@ export const STARTER_CONTENT = [
   },
   {
     id: 'nvda-2026-q2-memory-context',
+    coverage: 'context',
     kind: 'news',
     title: 'NVIDIA releases its latest quarterly results',
     summary:
@@ -53,4 +54,9 @@ export const STARTER_CONTENT = [
     symbols: ['MU'],
     featured: false,
   },
-].map((item) => ({ certainty: 'confirmed', status: 'published', ...item }));
+].map((item) => ({
+  certainty: 'confirmed',
+  status: 'published',
+  coverage: 'direct',
+  ...item,
+}));

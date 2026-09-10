@@ -11,7 +11,13 @@ export function communityPostErrors(
   input: Record<string, unknown>,
 ): PostErrors {
   const errors: PostErrors = {};
-  if (!TOPICS.some((topic) => topic.id !== 'all' && topic.id === input.topic))
+  if (
+    !TOPICS.some((topic) => topic.id !== 'all' && topic.id === input.topic) &&
+    !(
+      typeof input.topic === 'string' &&
+      /^room-[a-f0-9-]{36}$/.test(input.topic)
+    )
+  )
     errors.topic = 'Choose a discussion topic.';
   for (const field of ['title', 'body'] as const) {
     const length =

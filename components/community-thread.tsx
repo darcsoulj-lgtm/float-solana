@@ -47,7 +47,8 @@ export function Thread({
         <strong>{t.alias}</strong>
         {t.badge && <span className="pill">{t.badge} holder</span>}
         <span>
-          {t.topic} · {new Date(t.created_at).toLocaleDateString()}
+          {t.room_name || t.topic} ·{' '}
+          {new Date(t.created_at).toLocaleDateString()}
         </span>
       </div>
       <h3>{t.title}</h3>

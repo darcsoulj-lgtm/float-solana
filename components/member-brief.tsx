@@ -41,6 +41,11 @@ export function SourceCard({
         </time>
         {!!item.featured && <span className="brief-featured">Featured</span>}
       </div>
+      {item.coverage === 'context' && (
+        <p className="coverage-context">
+          Industry context · not a detected holding
+        </p>
+      )}
       <div className="brief-story-tags">
         {item.symbols.map((s) => (
           <span key={s}>{s}</span>
@@ -169,7 +174,7 @@ export function MemberBrief({
           className="brief-scope"
         >
           <TabsList aria-label="Coverage">
-            <TabsTrigger value="personal">For you</TabsTrigger>
+            <TabsTrigger value="personal">My holdings</TabsTrigger>
             <TabsTrigger value="all">All coverage</TabsTrigger>
           </TabsList>
         </Tabs>
@@ -197,7 +202,9 @@ export function MemberBrief({
       </div>
       <p className="brief-scope-note">
         {scope === 'personal'
-          ? 'Matched to your verified holdings and followed topics.'
+          ? kind === 'news'
+            ? 'Direct company news for your verified holdings.'
+            : 'Company events for your verified holdings.'
           : 'Reviewed coverage across supported stocks.'}{' '}
         <span>
           {kind === 'event'
@@ -266,7 +273,7 @@ export function MemberBrief({
               </h2>
               <p>
                 {kind === 'news'
-                  ? 'Coverage is curated and growing. Explore all coverage or follow another topic.'
+                  ? 'Coverage is curated and growing. Explore all coverage for broader industry news.'
                   : 'Only sourced dates appear here. We’ll label estimates clearly when they are added.'}
               </p>
               {(scope === 'personal' || symbol !== 'all') && (
