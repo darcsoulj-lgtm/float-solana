@@ -1,5 +1,5 @@
 'use client';
-import Link from 'next/link';
+import Link from '@/components/site-link';
 import { useCallback, useEffect, useState } from 'react';
 import { ArrowUpRight, MessageSquare, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -21,7 +21,7 @@ import {
   type ReplyPage,
   type ThreadPage,
 } from '@/lib/community-types';
-import { selectedWallet, type WalletWindow } from '@/lib/wallet-provider';
+import { selectedWallet, walletLabel } from '@/lib/wallet-provider';
 export function Community() {
   const [status, setStatus] = useState<CommunityStatus | null>(null),
     [threads, setThreads] = useState<CommunityThread[]>([]),
@@ -85,23 +85,20 @@ export function Community() {
   }
   async function verify() {
     await run(async () => {
-      const p = selectedWallet(provider, window as unknown as WalletWindow);
-      setStage('Connect your wallet…');
+      const p = selectedWallet(provider);
+      setStage(`Connecting to ${walletLabel(provider)}…`);
       const c = await p.connect(),
-        wallet = (c.publicKey || p.publicKey)?.toString();
+        wallet = c.publicKey.toString();
       if (!wallet) throw new Error('Wallet address unavailable.');
       const challenge = await api<{ id: string; message: string }>(
         'community/challenge',
         { wallet, symbol },
       );
-      setStage('Sign the membership message…');
+      setStage(`Check ${walletLabel(provider)} for the membership message…`);
       const signed = await p.signMessage(
           new TextEncoder().encode(challenge.message),
-          'utf8',
         ),
-        signature = Array.from(
-          signed instanceof Uint8Array ? signed : signed.signature,
-        );
+        signature = Array.from(signed);
       setStage('Checking your holding on Solana…');
       await api('community/verify', {
         challengeId: challenge.id,
@@ -195,7 +192,13 @@ export function Community() {
             </p>
           )}
           {!status ? (
-            <output>Opening the community…</output>
+            error ? (
+              <Button disabled={busy} onClick={() => run(refresh)}>
+                {busy ? 'Retrying…' : 'Retry loading community'}
+              </Button>
+            ) : (
+              <output>Opening the community…</output>
+            )
           ) : !member ? (
             <div className="join-gate" id="join">
               <MessageSquare size={30} />
@@ -385,19 +388,23 @@ export function Community() {
               Verify one supported holding to access every discussion.
             </DialogDescription>
           </div>
-          <div className="join-field">
+          <fieldset disabled={busy} className="join-field border-0 p-0 m-0">
             <span id="wallet-label">Your wallet</span>
             <Picker
               label="Your wallet"
               value={provider}
-              onChange={setProvider}
+              onChange={(v) => {
+                setProvider(v);
+                setError('');
+                setStage('');
+              }}
               items={['backpack', 'phantom', 'solflare'].map((x) => ({
                 value: x,
                 label: x[0].toUpperCase() + x.slice(1),
               }))}
             />
-          </div>
-          <div className="join-field">
+          </fieldset>
+          <fieldset disabled={busy} className="join-field border-0 p-0 m-0">
             <span>Token you hold · {TOKENS.length} supported</span>
             <SearchPicker
               label="Token you hold"
@@ -408,7 +415,7 @@ export function Community() {
                 label: t.symbol + ' · ' + t.shortName,
               }))}
             />
-          </div>
+          </fieldset>
           <label className="choice">
             <Checkbox
               checked={consent}
@@ -420,7 +427,9 @@ export function Community() {
             </span>
           </label>
           <Button disabled={busy || !consent} onClick={verify}>
-            {busy ? 'Verifying…' : 'Connect & verify'}
+            {busy
+              ? `Waiting for ${walletLabel(provider)}…`
+              : `Connect ${walletLabel(provider)} & verify`}
           </Button>
           <p className="join-note">
             Message signature only. No transaction or transfer.

@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/site-link';
 import { requireChatGPTUser } from '@/app/chatgpt-auth';
 import { CreateSurvey } from '@/components/workspace';
 export const dynamic = 'force-dynamic';

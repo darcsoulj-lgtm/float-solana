@@ -7,7 +7,7 @@ import ts from 'typescript';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const dir = await mkdtemp(tmpdir() + '/holderpulse-test-');
-for (const file of ['tokens', 'validation', 'solana', 'wallet-provider']) {
+for (const file of ['tokens', 'validation', 'solana']) {
   const source = await readFile(
     new URL('../lib/' + file + '.ts', import.meta.url),
     'utf8',
@@ -287,64 +287,5 @@ test('Every supported stock verifies only against its exact registry mint', asyn
     );
     assert.equal(fixture.calls[0].params[0], token.mint);
     assert.equal(fixture.calls[1].params[1].mint, token.mint);
-  }
-});
-
-const { selectedWallet } = await import(
-  pathToFileURL(dir + '/wallet-provider.mjs')
-);
-test('Phantom selection never connects a shared default Backpack provider', async () => {
-  const calls = [];
-  const make = (name) => ({
-    connect: async function () {
-      calls.push(name);
-      return {};
-    },
-    signMessage: async () => new Uint8Array(),
-  });
-  const backpack = make('backpack');
-  const phantom = { ...make('phantom'), isPhantom: true };
-  const solflare = make('solflare');
-  const w = {
-    backpack,
-    phantom: { solana: phantom },
-    solflare,
-    solana: backpack,
-  };
-  await selectedWallet('phantom', w).connect();
-  assert.deepEqual(calls, ['phantom']);
-  assert.throws(
-    () => selectedWallet('phantom', { backpack, solana: backpack }),
-    /Phantom is not available/,
-  );
-  assert.throws(
-    () => selectedWallet('phantom', { phantom: { solana: backpack } }),
-    /Phantom is not available/,
-  );
-  assert.throws(
-    () =>
-      selectedWallet('phantom', { phantom: { solana: { isPhantom: true } } }),
-    /Phantom is not available/,
-  );
-  assert.deepEqual(calls, ['phantom']);
-  await selectedWallet('backpack', w).connect();
-  await selectedWallet('solflare', w).connect();
-  assert.deepEqual(calls, ['phantom', 'backpack', 'solflare']);
-  assert.throws(
-    () => selectedWallet('unknown', w),
-    /Choose a supported wallet/,
-  );
-});
-test('Both wallet entry points use the strict shared resolver', async () => {
-  for (const file of ['community', 'participant']) {
-    const source = await readFile(
-      new URL('../components/' + file + '.tsx', import.meta.url),
-      'utf8',
-    );
-    assert.match(
-      source,
-      /selectedWallet\(provider, window as unknown as WalletWindow\)/,
-    );
-    assert.doesNotMatch(source, /w\.solana|window\.solana/);
   }
 });

@@ -3,6 +3,7 @@ export async function api<T = unknown>(
   body?: unknown,
 ): Promise<T> {
   const response = await fetch('/api/' + path, {
+    signal: AbortSignal.timeout(25000),
     method: body ? 'POST' : 'GET',
     headers: body ? { 'Content-Type': 'application/json' } : {},
     body: body ? JSON.stringify(body) : undefined,

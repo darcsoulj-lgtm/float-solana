@@ -1,5 +1,5 @@
 /* eslint-disable next/no-html-link-for-pages -- Sites authentication requires top-level anchor navigation and forbids prefetched sign-in links. */
-import Link from 'next/link';
+import Link from '@/components/site-link';
 import { requireChatGPTUser } from '@/app/chatgpt-auth';
 import { SurveyList } from '@/components/workspace';
 export const dynamic = 'force-dynamic';

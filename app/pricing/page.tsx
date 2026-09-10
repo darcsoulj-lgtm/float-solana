@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/site-link';
 export const metadata = { title: 'Pricing' };
 export default function Page() {
   return (

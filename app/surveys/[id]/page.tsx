@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/site-link';
 import { Participant } from '@/components/participant';
 export default async function Page({
   params,

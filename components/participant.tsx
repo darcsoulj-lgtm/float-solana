@@ -1,5 +1,5 @@
 'use client';
-import Link from 'next/link';
+import Link from '@/components/site-link';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -7,7 +7,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { api } from '@/lib/client';
 import { Analytics, Picker } from './workspace';
 import { TOKENS, type Survey, type ResponseReceipt } from '@/lib/tokens';
-import { selectedWallet, type WalletWindow } from '@/lib/wallet-provider';
+import { selectedWallet, walletLabel } from '@/lib/wallet-provider';
 export function Participant({ id }: { id: string }) {
   const [s, setS] = useState<Survey | null>(null),
     [error, setError] = useState(''),
@@ -29,10 +29,10 @@ export function Participant({ id }: { id: string }) {
     setError('');
     setProof('');
     try {
-      const p = selectedWallet(provider, window as unknown as WalletWindow);
-      setStage('Connect your wallet…');
+      const p = selectedWallet(provider);
+      setStage(`Connecting to ${walletLabel(provider)}…`);
       const c = await p.connect(),
-        address = (c?.publicKey || p.publicKey)?.toString();
+        address = c.publicKey.toString();
       if (!address)
         throw new Error('The wallet did not return a public address.');
       setWallet(address);
@@ -42,12 +42,11 @@ export function Participant({ id }: { id: string }) {
           wallet: address,
         },
       );
-      setStage('Sign the ownership message in your wallet…');
+      setStage(`Check ${walletLabel(provider)} for the ownership message…`);
       const signed = await p.signMessage(
           new TextEncoder().encode(challenge.message),
-          'utf8',
         ),
-        sig = signed instanceof Uint8Array ? signed : signed.signature;
+        sig = signed;
       setStage('Checking your holding on Solana…');
       const r = await api<{ proof: string }>(`surveys/${id}/verify`, {
         challengeId: challenge.id,
@@ -159,6 +158,8 @@ export function Participant({ id }: { id: string }) {
               value={provider}
               onChange={(v) => {
                 setProvider(v);
+                setError('');
+                setStage('');
                 setProof('');
                 setWallet('');
               }}
@@ -179,10 +180,10 @@ export function Participant({ id }: { id: string }) {
               onClick={connect}
             >
               {busy && !proof
-                ? 'Checking…'
+                ? `Waiting for ${walletLabel(provider)}…`
                 : proof
                   ? '✓ Holding verified'
-                  : 'Connect wallet & verify'}
+                  : `Connect ${walletLabel(provider)} & verify`}
             </Button>
             <output className="muted">{stage}</output>
             {wallet && (

@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/site-link';
 import { TOKENS } from '@/lib/tokens';
 export default function Page() {
   return (

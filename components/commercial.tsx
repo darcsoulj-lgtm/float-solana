@@ -1,6 +1,6 @@
 /* eslint-disable next/no-html-link-for-pages -- Sites authentication requires top-level anchor navigation and forbids prefetched sign-in links. */
 'use client';
-import Link from 'next/link';
+import Link from '@/components/site-link';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Picker } from './workspace';
