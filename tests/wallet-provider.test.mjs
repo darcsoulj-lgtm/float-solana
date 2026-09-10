@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { pathToFileURL } from 'node:url';
 import { createRequire } from 'node:module';
 import ts from 'typescript';
+import { runInNewContext } from 'node:vm';
 import { ed25519 } from '@noble/curves/ed25519.js';
 const require = createRequire(import.meta.url);
 const dir = await mkdtemp(tmpdir() + '/hp-wallet-');
@@ -24,7 +25,9 @@ for (const name of ['@wallet-standard/app', '@noble/curves/ed25519.js'])
     JSON.stringify(pathToFileURL(require.resolve(name)).href),
   );
 await writeFile(dir + '/wallet.mjs', output);
-const { selectedWallet } = await import(pathToFileURL(dir + '/wallet.mjs'));
+const { selectedWallet, walletAvailability } = await import(
+  pathToFileURL(dir + '/wallet.mjs')
+);
 const message = new TextEncoder().encode('HolderPulse test challenge');
 function fixture(name = 'Phantom', options = {}) {
   const calls = [];
@@ -49,7 +52,7 @@ function fixture(name = 'Phantom', options = {}) {
       'solana:signMessage': {
         signMessage: async (input) => {
           calls.push('sign');
-          assert.equal(input.account, account);
+          assert.equal(input.account, wallet.accounts[0]);
           if (options.changeAccount) wallet.accounts = [];
           const signedMessage = options.wrongMessage
             ? new Uint8Array([1, 2])
@@ -161,9 +164,90 @@ test('Both entry points use named-wallet selection without shared injected globa
       new URL('../components/' + name + '.tsx', import.meta.url),
       'utf8',
     );
-    assert.match(s, /selectedWallet\(provider\)/);
+    assert.match(s, /selectedWallet\(provider(?:Name)?\)/);
     assert.doesNotMatch(s, /window\.solana|w\.solana|\bphantom\?\.solana/);
   }
+});
+
+test('Equivalent refreshed account objects stay connected and use the current account for signing', async () => {
+  const p = fixture(),
+    c = selectedWallet('phantom', [p.wallet]);
+  // A connect result can be an equivalent data object, not the same reference.
+  p.wallet.accounts = [structuredClone(p.account)];
+  await c.connect();
+  p.wallet.accounts = [structuredClone(p.account)];
+  assert.equal(c.accountUnchanged(), true);
+  assert.equal((await c.signMessage(message)).length, 64);
+});
+
+test('Same address with a changed public key is rejected before signing', async () => {
+  const p = fixture(),
+    c = selectedWallet('phantom', [p.wallet]);
+  await c.connect();
+  p.wallet.accounts = [{ ...p.account, publicKey: ed25519.keygen().publicKey }];
+  assert.equal(c.accountUnchanged(), false);
+  await assert.rejects(c.signMessage(message), /account changed/);
+  assert.deepEqual(p.calls, ['connect']);
+});
+
+for (const shape of ['serialized', 'cross-realm']) {
+  test(`Accepts cryptographically valid ${shape} signature bytes`, async () => {
+    const p = fixture();
+    const feature = p.wallet.features['solana:signMessage'];
+    const original = feature.signMessage;
+    const convert = (bytes) =>
+      shape === 'serialized'
+        ? Array.from(bytes)
+        : runInNewContext('new Uint8Array(values)', {
+            values: Array.from(bytes),
+          });
+    feature.signMessage = async (input) => {
+      const [result] = await original(input);
+      return [
+        {
+          signedMessage: convert(result.signedMessage),
+          signature: convert(result.signature),
+        },
+      ];
+    };
+    const c = selectedWallet('phantom', [p.wallet]);
+    await c.connect();
+    assert.equal((await c.signMessage(message)).length, 64);
+  });
+}
+
+for (const bad of [-1, 256, 1.5, '1', null]) {
+  test(`Rejects malformed signature byte ${JSON.stringify(bad)}`, async () => {
+    const p = fixture();
+    p.wallet.features['solana:signMessage'].signMessage = async () => [
+      { signedMessage: message, signature: [bad, ...Array(63).fill(0)] },
+    ];
+    const c = selectedWallet('phantom', [p.wallet]);
+    await c.connect();
+    await assert.rejects(c.signMessage(message), /invalid signature/);
+  });
+}
+
+test('Wallet picker detects compatible wallets, duplicate providers, and missing capabilities', () => {
+  const phantom = fixture(),
+    backpack = fixture('Backpack'),
+    solflare = fixture('Solflare');
+  delete solflare.wallet.features['solana:signMessage'];
+  const result = walletAvailability([
+    phantom.wallet,
+    fixture().wallet,
+    backpack.wallet,
+    solflare.wallet,
+  ]);
+  assert.deepEqual(
+    result.map((w) => [w.id, w.state]),
+    [
+      ['phantom', 'ambiguous'],
+      ['backpack', 'detected'],
+      ['solflare', 'missing'],
+    ],
+  );
+  assert.deepEqual(backpack.calls, []);
 });
 
 test('Wallet account-change subscriptions invalidate the captured account and can be removed', async () => {

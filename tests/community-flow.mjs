@@ -121,6 +121,28 @@ try {
     originalEnv + '\n# Community fixture ' + Date.now() + '\n',
   );
   await new Promise((r) => setTimeout(r, 4500));
+  const diagnostic = {
+    provider: 'phantom',
+    phase: 'sign',
+    code: 'requested',
+    flowId: crypto.randomUUID(),
+  };
+  await call('wallet-diagnostic', diagnostic);
+  await call(
+    'wallet-diagnostic',
+    { ...diagnostic, provider: 'unknown' },
+    { status: 400 },
+  );
+  await call(
+    'wallet-diagnostic',
+    { ...diagnostic, code: 'Arbitrary free-form private detail' },
+    { status: 400 },
+  );
+  await call(
+    'wallet-diagnostic',
+    { ...diagnostic, flowId: 'invalid' },
+    { status: 400 },
+  );
   await call('threads', undefined, { status: 401 });
   await call(
     'threads',

@@ -1,5 +1,6 @@
 'use client';
 import Link from '@/components/site-link';
+import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ArrowUpRight,
@@ -16,7 +17,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { Picker } from './workspace';
+import { WalletList } from './wallet-list';
 import { MemberDashboard } from './member-dashboard';
 import { TOKENS } from '@/lib/tokens';
 import { api } from '@/lib/client';
@@ -31,6 +32,17 @@ export function Community() {
   const [provider, setProvider] = useState('backpack');
   const [consent, setConsent] = useState(false);
   const [stage, setStage] = useState('');
+  const [pending, setPending] = useState<{
+    id: string;
+    message: string;
+    holdingCount: number;
+    expiresAt: number;
+    provider: string;
+    connection: ReturnType<typeof selectedWallet>;
+    flowId: string;
+  } | null>(null);
+  const inFlight = useRef(false);
+
   const walletUnsubscribe = useRef<(() => void) | null>(null);
   useEffect(() => () => walletUnsubscribe.current?.(), []);
   const refresh = useCallback(async () => {
@@ -81,39 +93,130 @@ export function Community() {
     );
     return () => clearTimeout(timer);
   }, [status?.member]);
-  async function verify() {
+  function diagnostic(
+    providerName: string,
+    phase: string,
+    code: string,
+    flowId: string,
+  ) {
+    // Allowlisted operational details only: no wallet, balance, signature, or free-form error.
+    void api('community/wallet-diagnostic', {
+      provider: providerName,
+      phase,
+      code,
+      flowId,
+    }).catch(() => {});
+  }
+  async function walletRequest<T>(
+    request: Promise<T>,
+    name: string,
+  ): Promise<T> {
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([
+        request,
+        new Promise<never>((_, reject) => {
+          timeout = setTimeout(
+            () =>
+              reject(
+                new Error(
+                  `No response from ${name} yet. Open the wallet and approve or reject its pending request, then try again.`,
+                ),
+              ),
+            90000,
+          );
+        }),
+      ]);
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+  async function beginVerification(providerName: string) {
+    if (inFlight.current) return;
+    inFlight.current = true;
+    setProvider(providerName);
     setBusy(true);
     setJoinError('');
+    setPending(null);
+    const flowId = crypto.randomUUID();
+    let phase = 'connect';
     try {
-      const p = selectedWallet(provider);
-      setStage(`Connecting to ${walletLabel(provider)}…`);
-      const connected = await p.connect();
+      const p = selectedWallet(providerName);
+      setStage(`Connecting to ${walletLabel(providerName)}…`);
+      const connected = await walletRequest(
+        p.connect(),
+        walletLabel(providerName),
+      );
+      diagnostic(providerName, 'connect', 'ok', flowId);
+      phase = 'holdings';
       setStage('Finding your supported stock tokens…');
       const challenge = await api<{
         id: string;
         message: string;
         holdingCount: number;
+        expiresAt: number;
       }>('community/challenge', { wallet: connected.publicKey.toString() });
+      if (!p.accountUnchanged())
+        throw new Error(
+          'Your wallet account changed. Connect and verify again.',
+        );
+      setPending({
+        ...challenge,
+        provider: providerName,
+        connection: p,
+        flowId,
+      });
+      diagnostic(providerName, phase, 'ok', flowId);
+      setStage('');
+    } catch (e) {
+      diagnostic(providerName, phase, 'failed', flowId);
+      setStage('');
+      setJoinError((e as Error).message);
+    } finally {
+      inFlight.current = false;
+      setBusy(false);
+    }
+  }
+  async function signPrepared() {
+    if (inFlight.current || !pending || !consent) return;
+    if (Date.now() >= pending.expiresAt) {
+      setPending(null);
+      setJoinError('This check expired. Choose your wallet to check again.');
+      return;
+    }
+    inFlight.current = true;
+    setBusy(true);
+    setJoinError('');
+    let phase = 'sign';
+    try {
       setStage(
-        `${challenge.holdingCount} supported holding${challenge.holdingCount === 1 ? '' : 's'} found. Sign the membership message in ${walletLabel(provider)}…`,
+        `Open ${walletLabel(pending.provider)} and review the membership message…`,
       );
+      // This request starts directly inside the click, without an intervening RPC await.
+      const signing = pending.connection.signMessage(
+        new TextEncoder().encode(pending.message),
+      );
+      diagnostic(pending.provider, phase, 'requested', pending.flowId);
       const signature = Array.from(
-        await p.signMessage(new TextEncoder().encode(challenge.message)),
+        await walletRequest(signing, walletLabel(pending.provider)),
       );
+      diagnostic(pending.provider, phase, 'ok', pending.flowId);
+      phase = 'verify';
       setStage('Confirming your holdings and opening your home…');
       await api('community/verify', {
-        challengeId: challenge.id,
+        challengeId: pending.id,
         signature,
         consent,
       });
-      if (!p.accountUnchanged()) {
+      if (!pending.connection.accountUnchanged()) {
         await api('community/logout', {});
         throw new Error(
           'Your wallet account changed. Connect and verify again.',
         );
       }
+      diagnostic(pending.provider, phase, 'ok', pending.flowId);
       walletUnsubscribe.current?.();
-      walletUnsubscribe.current = p.onAccountChange(() => {
+      walletUnsubscribe.current = pending.connection.onAccountChange(() => {
         setStatus((s) => (s ? { ...s, member: null } : s));
         setError(
           'Your connected account changed. Verify the new account to return.',
@@ -123,15 +226,38 @@ export function Community() {
       await refresh();
       setJoin(false);
       setStage('');
+      setPending(null);
       window.scrollTo({ top: 0 });
     } catch (e) {
+      const message = (e as Error).message || 'Wallet request failed.';
+      const code =
+        /different account or message|invalid signature|invalid signed message|invalid signing response/.test(
+          message,
+        )
+          ? 'invalid-response'
+          : /account changed/.test(message)
+            ? 'account-changed'
+            : /reject|cancel|denied/i.test(message)
+              ? 'cancelled'
+              : /No response/.test(message)
+                ? 'timeout'
+                : 'failed';
+      diagnostic(pending.provider, phase, code, pending.flowId);
       setStage('');
-      setJoinError((e as Error).message);
+      setJoinError(message);
+      if (
+        phase === 'verify' ||
+        code === 'account-changed' ||
+        code === 'invalid-response'
+      )
+        setPending(null);
     } finally {
+      inFlight.current = false;
       setBusy(false);
     }
   }
   const openJoin = () => {
+    setPending(null);
     setJoinError('');
     setStage('');
     setJoin(true);
@@ -297,50 +423,83 @@ export function Community() {
           if (!busy) setJoin(value);
         }}
       >
-        <DialogContent className="community-dialog">
+        <DialogContent className="community-dialog wallet-connect-dialog">
           <div className="join-heading">
             <div className="join-symbol">
               <ShieldCheck size={22} />
             </div>
-            <DialogTitle>Your wallet. Your way in.</DialogTitle>
+            <DialogTitle>
+              {pending ? 'One signature to join.' : 'Connect your wallet'}
+            </DialogTitle>
             <DialogDescription>
               We’ll find your supported stock tokens automatically. One holding
               unlocks the whole community.
             </DialogDescription>
           </div>
-          <fieldset disabled={busy} className="join-field border-0 p-0 m-0">
-            <span id="wallet-label">Choose your wallet</span>
-            <Picker
-              label="Wallet provider"
-              value={provider}
-              onChange={(value) => {
-                setProvider(value);
-                setJoinError('');
-                setStage('');
-              }}
-              items={[
-                { value: 'backpack', label: 'Backpack' },
-                { value: 'phantom', label: 'Phantom' },
-                { value: 'solflare', label: 'Solflare' },
-              ]}
-            />
-          </fieldset>
-          <label className="choice">
-            <Checkbox
+          {pending ? (
+            <div className="wallet-sign-step">
+              <div className="verified-wallet-summary">
+                <Image
+                  src={
+                    '/wallets/' +
+                    pending.provider +
+                    (pending.provider === 'backpack' ? '.png' : '.svg')
+                  }
+                  alt=""
+                  width={44}
+                  height={44}
+                  unoptimized
+                />
+                <div>
+                  <strong>{walletLabel(pending.provider)} connected</strong>
+                  <span>
+                    {pending.holdingCount} supported stock token
+                    {pending.holdingCount === 1 ? '' : 's'} found
+                  </span>
+                </div>
+                <ShieldCheck size={22} />
+              </div>
+              <label className="choice">
+                <Checkbox
+                  disabled={busy}
+                  checked={consent}
+                  onCheckedChange={(v) => setConsent(v === true)}
+                />
+                <span>
+                  I accept the <Link href="/rules">guidelines</Link> and{' '}
+                  <Link href="/trust">privacy notice</Link>.
+                </span>
+              </label>
+              <Button
+                className="wallet-sign-button"
+                disabled={busy || !consent}
+                onClick={signPrepared}
+              >
+                {busy
+                  ? 'Waiting for verification…'
+                  : `Sign in ${walletLabel(pending.provider)}`}
+                <ArrowUpRight size={18} />
+              </Button>
+              <Button
+                className="wallet-back-button"
+                variant="ghost"
+                disabled={busy}
+                onClick={() => {
+                  setPending(null);
+                  setStage('');
+                  setJoinError('');
+                }}
+              >
+                Choose another wallet
+              </Button>
+            </div>
+          ) : (
+            <WalletList
               disabled={busy}
-              checked={consent}
-              onCheckedChange={(v) => setConsent(v === true)}
+              selected={busy ? provider : undefined}
+              onConnect={beginVerification}
             />
-            <span>
-              I accept the <Link href="/rules">guidelines</Link> and{' '}
-              <Link href="/trust">privacy notice</Link>.
-            </span>
-          </label>
-          <Button disabled={busy || !consent} onClick={verify}>
-            {busy
-              ? 'Verification in progress…'
-              : `Connect ${walletLabel(provider)} & verify`}
-          </Button>
+          )}
           <p className="join-note">
             Message signature only. No transaction or transfer.
             <br />

@@ -65,6 +65,37 @@ async function handler(req: Request) {
         60,
       );
     }
+    if (path[0] === 'wallet-diagnostic' && post) {
+      if (
+        typeof b.provider !== 'string' ||
+        !['phantom', 'backpack', 'solflare'].includes(b.provider) ||
+        typeof b.phase !== 'string' ||
+        !['connect', 'holdings', 'sign', 'verify'].includes(b.phase) ||
+        typeof b.code !== 'string' ||
+        ![
+          'ok',
+          'requested',
+          'failed',
+          'cancelled',
+          'timeout',
+          'account-changed',
+          'invalid-response',
+        ].includes(b.code) ||
+        typeof b.flowId !== 'string' ||
+        !/^[a-f0-9-]{36}$/.test(b.flowId)
+      )
+        throw new AppError('Invalid diagnostic.');
+      console.info(
+        'Wallet flow',
+        JSON.stringify({
+          provider: b.provider,
+          phase: b.phase,
+          code: b.code,
+          flowId: b.flowId,
+        }),
+      );
+      return json({ ok: true });
+    }
     if (path[0] === 'status' && !post) {
       const member = await communityMember(req, false),
         user = await getChatGPTUser();

@@ -35,6 +35,12 @@ export default function Page() {
           holdings are discarded. Detected holdings are replaced on each
           successful verification.
         </p>
+        <p>
+          Wallet troubleshooting logs record the wallet app name, the completed
+          or failed step, a fixed error category, and a random attempt ID. These
+          diagnostic events exclude wallet addresses, balances, signatures, and
+          the message being signed.
+        </p>
       </section>
       <section className="panel">
         <h2>What others see</h2>

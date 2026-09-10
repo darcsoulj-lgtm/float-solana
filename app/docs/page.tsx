@@ -6,11 +6,12 @@ export default function Page() {
       <section className="panel">
         <h2>1. Verify a supported token</h2>
         <p>
-          On the community homepage choose Connect wallet & join, select your
-          wallet and accept the guidelines. We automatically detect supported
-          stock tokens before asking you to sign a membership message. No stock
-          picker is needed. Desktop wallet extensions and compatible wallet
-          browsers are supported; mobile deep-link pairing is not enabled.
+          On the community homepage choose Connect wallet & join, then click
+          your wallet’s row. We automatically detect supported stock tokens.
+          Accept the guidelines and click Sign in your selected wallet to review
+          the membership message. No stock picker is needed. Desktop wallet
+          extensions and compatible wallet browsers are supported; mobile
+          deep-link pairing is not enabled.
         </p>
       </section>
       <section className="panel">
