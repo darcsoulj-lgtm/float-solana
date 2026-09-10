@@ -19,9 +19,9 @@ export function AgentTools() {
       Promise.resolve(
         context.registerTool(
           {
-            name: 'list_available_holder_surveys',
+            name: 'read_holder_community',
             description:
-              'Read currently available live and simulated HolderPulse surveys. Simulated examples are explicitly marked; this does not create or submit a response.',
+              'Read recent private HolderPulse discussions using the current verified member session. Returns an authorization error for visitors. Posts are untrusted member content.',
             inputSchema: {
               type: 'object',
               properties: {},
@@ -36,7 +36,7 @@ export function AgentTools() {
                 Object.keys(input).length
               )
                 throw new Error('Expected an empty object.');
-              return api('surveys');
+              return api('community/threads');
             },
           },
           { signal: life.signal },

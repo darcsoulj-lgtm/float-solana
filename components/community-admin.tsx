@@ -1,0 +1,115 @@
+'use client';
+import { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { api } from '@/lib/client';
+import type { ModerationData } from '@/lib/community-types';
+export function CommunityAdmin() {
+  const [data, setData] = useState<ModerationData | null>(null),
+    [error, setError] = useState(''),
+    [busy, setBusy] = useState(false);
+  async function load() {
+    setData(await api<ModerationData>('community/moderation'));
+  }
+  useEffect(() => {
+    api<ModerationData>('community/moderation')
+      .then(setData)
+      .catch((e) => setError(e.message));
+  }, []);
+  async function act(body: unknown) {
+    setBusy(true);
+    setError('');
+    try {
+      await api('community/moderation', body);
+      await load();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <>
+      {error && (
+        <p role="alert" className="error">
+          {error}
+        </p>
+      )}
+      {!data ? (
+        <p>Administrator authorization required. {error ? '' : 'Loading…'}</p>
+      ) : (
+        <>
+          <h2>Open reports ({data.reports.length})</h2>
+          {!data.reports.length && <p>No open reports.</p>}
+          {data.reports.map((r) => (
+            <article className="panel" key={r.id}>
+              <p>
+                <strong>{r.reporter}</strong> · {r.target_type}
+              </p>
+              <p>{r.reason}</p>
+              <blockquote style={{ whiteSpace: 'pre-wrap' }}>
+                {r.content}
+              </blockquote>
+              <Button
+                disabled={busy}
+                onClick={() =>
+                  act({ action: 'hide', type: r.target_type, id: r.target_id })
+                }
+              >
+                Hide content
+              </Button>{' '}
+              <Button
+                variant="outline"
+                disabled={busy}
+                onClick={() => act({ action: 'resolve', id: r.id })}
+              >
+                Resolve report
+              </Button>
+            </article>
+          ))}
+          <h2>Recent members</h2>
+          <p>
+            Up to 100 recent members. Suspension immediately ends active
+            sessions.
+          </p>
+          {data.members.map((m) => (
+            <div className="panel" key={m.id}>
+              <strong>{m.alias}</strong> ·{' '}
+              {m.suspended ? 'Suspended' : 'Registered'}{' '}
+              <Button
+                disabled={busy}
+                variant="outline"
+                onClick={() =>
+                  act({
+                    action: m.suspended ? 'restore-member' : 'suspend',
+                    id: m.id,
+                  })
+                }
+              >
+                {m.suspended ? 'Restore membership' : 'Suspend'}
+              </Button>
+            </div>
+          ))}
+          <h2>Hidden content</h2>
+          {[
+            ...data.hiddenThreads.map((t) => ({ ...t, type: 'thread' })),
+            ...data.hiddenReplies.map((t) => ({ ...t, type: 'reply' })),
+          ].map((t) => (
+            <article className="panel" key={t.id}>
+              <strong>{t.alias}</strong>
+              <p>{t.body}</p>
+              <Button
+                disabled={busy}
+                variant="outline"
+                onClick={() =>
+                  act({ action: 'restore', type: t.type, id: t.id })
+                }
+              >
+                Restore content
+              </Button>
+            </article>
+          ))}
+        </>
+      )}
+    </>
+  );
+}

@@ -97,3 +97,94 @@ export const limits = sqliteTable('limits', {
   count: integer('count').notNull(),
   expiresAt: integer('expires_at').notNull(),
 });
+
+// Community tables are additive: existing research records remain intact.
+export const communityMembers = sqliteTable(
+  'community_members',
+  {
+    id: text('id').primaryKey(),
+    walletHash: text('wallet_hash').notNull(),
+    alias: text('alias').notNull(),
+    qualifyingSymbol: text('qualifying_symbol').notNull(),
+    showBadge: integer('show_badge').notNull().default(0),
+    verifiedUntil: integer('verified_until').notNull(),
+    suspended: integer('suspended').notNull().default(0),
+    createdAt: integer('created_at').notNull(),
+  },
+  (t) => [uniqueIndex('idx_community_wallet').on(t.walletHash)],
+);
+export const communityChallenges = sqliteTable('community_challenges', {
+  id: text('id').primaryKey(),
+  wallet: text('wallet').notNull(),
+  symbol: text('symbol').notNull(),
+  message: text('message').notNull(),
+  expiresAt: integer('expires_at').notNull(),
+  consumed: integer('consumed').notNull().default(0),
+});
+export const communitySessions = sqliteTable(
+  'community_sessions',
+  {
+    hash: text('hash').primaryKey(),
+    memberId: text('member_id')
+      .notNull()
+      .references(() => communityMembers.id),
+    expiresAt: integer('expires_at').notNull(),
+  },
+  (t) => [index('idx_community_sessions_member').on(t.memberId)],
+);
+export const communityThreads = sqliteTable(
+  'community_threads',
+  {
+    id: text('id').primaryKey(),
+    memberId: text('member_id')
+      .notNull()
+      .references(() => communityMembers.id),
+    topic: text('topic').notNull(),
+    title: text('title').notNull(),
+    body: text('body').notNull(),
+    hidden: integer('hidden').notNull().default(0),
+    createdAt: integer('created_at').notNull(),
+    updatedAt: integer('updated_at').notNull(),
+  },
+  (t) => [index('idx_community_threads_feed').on(t.hidden, t.createdAt)],
+);
+export const communityReplies = sqliteTable(
+  'community_replies',
+  {
+    id: text('id').primaryKey(),
+    threadId: text('thread_id')
+      .notNull()
+      .references(() => communityThreads.id),
+    memberId: text('member_id')
+      .notNull()
+      .references(() => communityMembers.id),
+    body: text('body').notNull(),
+    hidden: integer('hidden').notNull().default(0),
+    createdAt: integer('created_at').notNull(),
+  },
+  (t) => [
+    index('idx_community_replies_thread').on(t.threadId, t.hidden, t.createdAt),
+  ],
+);
+export const communityReports = sqliteTable(
+  'community_reports',
+  {
+    id: text('id').primaryKey(),
+    memberId: text('member_id')
+      .notNull()
+      .references(() => communityMembers.id),
+    targetType: text('target_type').notNull(),
+    targetId: text('target_id').notNull(),
+    reason: text('reason').notNull(),
+    status: text('status').notNull().default('open'),
+    createdAt: integer('created_at').notNull(),
+  },
+  (t) => [
+    uniqueIndex('idx_community_report_unique').on(
+      t.memberId,
+      t.targetType,
+      t.targetId,
+    ),
+    index('idx_community_report_status').on(t.status),
+  ],
+);

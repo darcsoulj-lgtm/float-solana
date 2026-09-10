@@ -16,7 +16,8 @@
     "test:integration": "node tests/integration.mjs",
     "test:wallet": "node tests/verified-flow.mjs",
     "typecheck": "tsc --noEmit",
-    "db:local": "wrangler d1 migrations apply DB --local --config wrangler.local.jsonc"
+    "db:local": "wrangler d1 migrations apply DB --local --config wrangler.local.jsonc",
+    "test:community": "node tests/community-flow.mjs"
   },
   "dependencies": {
     "@base-ui/react": "1.7.0",

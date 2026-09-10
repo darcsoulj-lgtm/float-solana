@@ -8,6 +8,13 @@
       "when": 1788964406602,
       "tag": "0000_parallel_major_mapleleaf",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1789018422016,
+      "tag": "0001_gorgeous_proteus",
+      "breakpoints": true
     }
   ]
 }

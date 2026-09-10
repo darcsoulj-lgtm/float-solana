@@ -778,3 +778,423 @@ textarea {
 .page .actions {
   margin-top: 0;
 }
+/* Community workspace */
+:root,
+.dark {
+  --background: #f5f7f8;
+  --foreground: #142c32;
+  --card: #fff;
+  --card-foreground: #142c32;
+  --primary: #12645a;
+  --primary-foreground: #fff;
+  --secondary: #eaf2f1;
+  --secondary-foreground: #155a50;
+  --muted: #eaf0f1;
+  --muted-foreground: #5c7078;
+  --border: #dce5e7;
+  --input: #cbd9dc;
+  --ring: #268e7f;
+}
+header {
+  max-width: 1500px;
+  height: 88px;
+}
+nav {
+  font-size: 14px;
+}
+.brand strong span {
+  font-size: 10px;
+  letter-spacing: 1.4px;
+}
+.brandmark {
+  color: #218f7c;
+}
+.nav-cta {
+  font-size: 14px;
+  border-color: #12645a;
+}
+.cta {
+  background: #12645a;
+  font-size: 14px;
+}
+.club {
+  max-width: 1500px;
+  margin: auto;
+  padding: 46px 5% 85px;
+}
+.club-intro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 30px;
+  padding-bottom: 42px;
+  border-bottom: 1px solid var(--border);
+}
+.club-kicker {
+  font-size: 12px;
+  letter-spacing: 1.5px;
+  font-weight: 600;
+  color: #547078;
+}
+.club h1 {
+  font-size: 42px;
+  letter-spacing: -1.4px;
+  line-height: 1.15;
+  margin: 17px 0 16px;
+  font-weight: 500;
+}
+.club h1 span {
+  color: #12796b;
+}
+.club-intro > div > p:last-child {
+  font-size: 16px;
+  line-height: 1.75;
+  color: #63777e;
+}
+.club-grid {
+  display: grid;
+  grid-template-columns: 185px minmax(0, 1fr) 220px;
+  gap: 32px;
+  padding-top: 32px;
+}
+.club-aside {
+  font-size: 14px;
+}
+.club-aside > p {
+  padding: 9px 13px;
+  margin: 4px 0;
+}
+.topic-current {
+  background: #e5efed;
+  color: #146b5c;
+  border-radius: 5px;
+  font-weight: 600;
+}
+.club-aside-note {
+  border-top: 1px solid var(--border);
+  margin-top: 32px;
+  padding-top: 25px;
+  font-size: 13px;
+  color: #6e7e84;
+}
+.club-aside-note a {
+  font-size: 12px;
+  color: #176757;
+}
+.board-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+.board-heading h2 {
+  font-size: 20px;
+  letter-spacing: -0.5px;
+  font-weight: 600;
+  margin: 0;
+}
+.pill {
+  font-size: 10px;
+  letter-spacing: 0.7px;
+  padding: 5px 8px;
+  border: 1px solid #a6c5bb;
+  color: #237460;
+  border-radius: 4px;
+}
+.welcome-post {
+  background: #eaf2ef;
+  padding: 25px;
+  border-left: 3px solid #187665;
+  border-radius: 0 7px 7px 0;
+}
+.welcome-post h2 {
+  font-size: 23px;
+  font-weight: 500;
+  letter-spacing: -0.5px;
+  line-height: 1.35;
+  margin: 14px 0;
+}
+.welcome-post > p:not(.club-kicker) {
+  font-size: 15px;
+  color: #566f6a;
+  line-height: 1.8;
+}
+.welcome-post a {
+  font-size: 13px;
+  color: #126857;
+}
+.join-gate {
+  padding: 40px 30px;
+  text-align: center;
+  border: 1px solid var(--border);
+  background: white;
+  border-radius: 8px;
+  margin-top: 24px;
+}
+.join-gate > svg {
+  margin: auto;
+  color: #629288;
+}
+.join-gate h2 {
+  font-size: 23px;
+  font-weight: 500;
+  margin-top: 20px;
+}
+.join-gate p {
+  font-size: 15px;
+  color: #6c7d83;
+  max-width: 450px;
+  margin: 15px auto;
+}
+.club-right {
+  font-size: 14px;
+  color: #61757c;
+}
+.club-right h3 {
+  font-size: 19px;
+  color: #233f44;
+  line-height: 1.4;
+  font-weight: 500;
+}
+.club-right hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: 25px 0;
+}
+.club .muted {
+  font-size: 13px;
+}
+.club-right .muted {
+  line-height: 1.7;
+}
+.field-label {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 18px 0 8px;
+}
+.club button {
+  min-height: 38px;
+}
+.club .cta {
+  margin-top: 10px;
+}
+.club-footer {
+  font-size: 13px;
+}
+.thread-post {
+  padding: 24px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  margin-top: 16px;
+}
+.thread-post h3 {
+  font-size: 20px;
+  line-height: 1.4;
+  letter-spacing: -0.4px;
+  margin: 14px 0;
+}
+.thread-post p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 16px;
+  line-height: 1.7;
+}
+.thread-meta {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 12px;
+  color: #647c82;
+  flex-wrap: wrap;
+}
+.avatar-letter {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #e7eff0;
+  color: #315963;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+}
+.thread-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid #eef1f2;
+  padding-top: 12px;
+  margin-top: 16px;
+}
+.thread-bottom button {
+  font-size: 13px;
+}
+.compose {
+  background: #fff;
+  border: 1px solid var(--border);
+  padding: 20px;
+  border-radius: 7px;
+  margin: 22px 0;
+}
+.compose input,
+.compose textarea,
+.club-input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--input);
+  border-radius: 4px;
+  font: inherit;
+  background: #fff;
+}
+.compose textarea {
+  min-height: 100px;
+  margin-top: 10px;
+}
+.compose label {
+  font-size: 14px;
+  display: block;
+  margin-bottom: 8px;
+}
+.compose .row {
+  margin-top: 12px;
+}
+.club-member {
+  background: #e5f0ed;
+  padding: 16px;
+  border-radius: 5px;
+  margin: 18px 0;
+  font-size: 13px;
+}
+.club-member strong {
+  display: block;
+  font-size: 15px;
+}
+.empty-community {
+  padding: 30px 0;
+  text-align: center;
+  color: #63777e;
+}
+.reply {
+  padding: 18px 0;
+  border-top: 1px solid var(--border);
+}
+.reply .thread-meta {
+  margin-bottom: 8px;
+}
+.reply p {
+  margin: 0;
+  font-size: 15px;
+}
+.topic-tabs {
+  display: flex !important;
+  flex-wrap: wrap;
+  background: none !important;
+  gap: 5px !important;
+  height: auto !important;
+}
+.topic-tabs button {
+  font-size: 13px;
+  padding: 8px 12px;
+  border-radius: 5px;
+}
+.topic-tabs button[data-active] {
+  background: #e3eeec;
+  color: #166757;
+}
+.community-topics {
+  margin: 20px 0;
+}
+.club-more {
+  padding: 18px;
+  text-align: center;
+}
+.club-error {
+  font-size: 14px;
+}
+.community-dialog p {
+  font-size: 14px;
+  color: #5c747a;
+}
+.community-dialog label {
+  font-size: 14px;
+}
+.community-dialog .choice {
+  font-size: 13px;
+}
+@media (max-width: 1150px) {
+  .club-grid {
+    grid-template-columns: 165px minmax(0, 1fr);
+    gap: 28px;
+  }
+  .club-right {
+    display: none;
+  }
+}
+@media (max-width: 760px) {
+  header {
+    height: auto;
+  }
+  .club {
+    padding: 28px 5% 45px;
+  }
+  .club-intro {
+    display: block;
+    padding-bottom: 25px;
+  }
+  .club h1 {
+    font-size: 34px;
+  }
+  .club-grid {
+    display: block;
+    padding-top: 24px;
+  }
+  .club-aside {
+    display: none;
+  }
+  .board-heading {
+    flex-wrap: wrap;
+  }
+  .welcome-post {
+    padding: 20px;
+  }
+  .join-gate {
+    padding: 30px 20px;
+  }
+  .club .cta {
+    width: 100%;
+  }
+  .thread-post {
+    padding: 18px;
+  }
+  .thread-post h3 {
+    font-size: 19px;
+  }
+  .club nav {
+    gap: 14px;
+  }
+}
+.club-aside > button {
+  display: flex;
+  width: 100%;
+  justify-content: flex-start;
+  margin: 5px 0;
+  font-size: 14px;
+  white-space: normal;
+  height: auto;
+  min-height: 40px;
+  text-align: left;
+}
+[data-slot='dialog-content'] {
+  max-height: 90dvh;
+  overflow-y: auto;
+}
+[data-slot='dialog-content'] input,
+[data-slot='dialog-content'] textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  padding: 10px;
+  border-radius: 4px;
+}

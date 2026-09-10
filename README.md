@@ -1,3 +1,7 @@
+# HolderPulse community launch
+
+The primary product is now a wallet-gated community. Read [COMMUNITY.md](COMMUNITY.md) for current behavior, operations, privacy and test coverage. The research documentation below describes retained legacy survey tools.
+
 # HolderPulse
 
 A persistent research application for verified tokenized-equity holder surveys. Built with React 19, Vinext, Cloudflare Workers, D1 SQLite, and platform-managed Sign in with ChatGPT. This is working application code, with explicit integration boundaries below.
