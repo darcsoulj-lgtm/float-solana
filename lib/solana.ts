@@ -75,29 +75,50 @@ export async function verifyHolding(
   if (!token?.mint)
     throw new AppError('This token is not enabled for live verification.', 503);
   const rpc = async (method: string, params: unknown[]) => {
-    let r: Response;
+    let r: Response | undefined;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        r = await fetcher(rpcUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
+          signal: AbortSignal.timeout(8000),
+        });
+      } catch {
+        r = undefined;
+      }
+      if (r && r.status !== 429 && r.status < 500) break;
+      if (attempt === 0)
+        await new Promise((resolve) => setTimeout(resolve, 350));
+    }
+    if (!r)
+      throw new AppError(
+        'The balance service could not be reached. Please try verification again.',
+        503,
+      );
+    if (!r.ok) {
+      // Status only: never log an RPC URL, API key, wallet, or provider response body.
+      console.warn('Solana RPC HTTP failure', r.status);
+      const message =
+        r.status === 401 || r.status === 403
+          ? 'Our balance service connection was rejected. Please contact support; this is not a problem with your holdings.'
+          : r.status === 429
+            ? 'The balance service has reached its request limit. Please wait a moment and verify again.'
+            : 'The balance service is temporarily unavailable. Please try verification again.';
+      throw new AppError(message, 503);
+    }
+    let data: { error?: unknown; result?: RpcResult };
     try {
-      r = await fetcher(rpcUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
-        signal: AbortSignal.timeout(12000),
-      });
+      data = await r.json();
     } catch {
       throw new AppError(
-        'The Solana provider is unavailable. Please retry shortly.',
+        'The balance service returned an unreadable response. Please try verification again.',
         503,
       );
     }
-    if (!r.ok)
-      throw new AppError(
-        'The Solana provider is busy. Please retry shortly.',
-        503,
-      );
-    const data = (await r.json()) as { error?: unknown; result?: RpcResult };
     if (data.error || !data.result)
       throw new AppError(
-        'The Solana provider could not verify this holding.',
+        'The balance service could not complete the check. Please try verification again.',
         503,
       );
     return data.result;

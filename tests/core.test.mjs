@@ -208,3 +208,34 @@ test('Small-order public keys cannot authenticate with zero signatures', async (
     ),
   );
 });
+
+test('Transient RPC errors retry once and recover', async () => {
+  const good = mock([{ amount: '1' }]);
+  let calls = 0;
+  const fetcher = async (...args) =>
+    ++calls === 1 ? new Response('', { status: 429 }) : good.fetcher(...args);
+  await verifyHolding(wallet, 'MU', 'https://fixture.invalid', fetcher);
+  assert.equal(calls, 3);
+});
+test('Provider authorization rejection is not described as busy or retried', async () => {
+  let calls = 0;
+  await assert.rejects(
+    verifyHolding(wallet, 'MU', 'https://fixture.invalid', async () => {
+      calls++;
+      return new Response('', { status: 403 });
+    }),
+    /connection was rejected/,
+  );
+  assert.equal(calls, 1);
+});
+test('Malformed provider JSON fails with a controlled service error', async () => {
+  await assert.rejects(
+    verifyHolding(
+      wallet,
+      'MU',
+      'https://fixture.invalid',
+      async () => new Response('not JSON'),
+    ),
+    /unreadable response/,
+  );
+});

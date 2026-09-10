@@ -87,6 +87,7 @@ export function Community() {
     try {
       await action();
     } catch (e) {
+      setStage('');
       setError((e as Error).message);
     } finally {
       setBusy(false);
