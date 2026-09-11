@@ -11,4 +11,15 @@
 
 TypeScript and targeted lint pass. 93 unit checks cover wallet behavior, source normalization, provider validation/error handling and real SQLite import persistence/idempotency. Local synthetic-wallet integration: 43 editorial and 121 community checks pass, including authentication, exact repaired URLs, holdings-only filters, publication and calendar behavior. Provider responses are mocked because no licensed API key is configured.
 
-Browser inspection remains blocked by the administrator-policy security service. No alternative browser or other bypass was attempted. Visual layout is not claimed as browser-verified. Production build passed. Compiled styles were inspected for the new sans-serif heading rules. Publication status will be recorded after completion.
+Browser inspection remains blocked by the administrator-policy security service. No alternative browser or other bypass was attempted. Visual layout is not claimed as browser-verified. Production build passed. Compiled styles were inspected for the new sans-serif heading rules. Published successfully as version 19 on September 11, 2026 at 04:57:33 UTC. Environment revision 3 preserved.
+
+
+Production: https://holderpulse.glossy-kid-6048.chatgpt.site
+
+Source: `7f92b0583335c4b64f05b4f4bcf8557091574d62`
+
+Version: `appgprj_6aa16c80630081918b8b86d4f513fc17~appgver_ea3ff7fa1928819188f8c7d67d29760c`
+
+Deployment: `appgdep_6aa38a31c32c8191b411b1ceebe5337f`
+
+Local test configuration restored and development server stopped.
