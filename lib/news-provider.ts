@@ -41,7 +41,7 @@ export async function fetchNewsDrafts(
     response = await fetcher(url, {
       headers: { Accept: 'application/json' },
       signal: AbortSignal.timeout(12000),
-      redirect: 'error',
+      redirect: 'manual',
     });
   } catch {
     throw new AppError(

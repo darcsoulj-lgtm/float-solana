@@ -13,7 +13,7 @@ export async function api<T = unknown>(
   const data: unknown = await response.json();
   if (
     response.status === 401 &&
-    path.startsWith('community/') &&
+    (path.startsWith('community/') || path.startsWith('market-data')) &&
     !path.includes('moderation') &&
     typeof window !== 'undefined'
   )

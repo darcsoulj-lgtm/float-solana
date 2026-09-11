@@ -570,7 +570,7 @@ test('News adapter keeps exact ticker matches, original links and publication da
   const fetcher = async (url, options) => {
     assert.equal(url.searchParams.get('tickers'), 'MU');
     assert.equal(url.searchParams.get('displayOutput'), 'headline');
-    assert.equal(options.redirect, 'error');
+    assert.equal(options.redirect, 'manual');
     return Response.json([
       story,
       story,

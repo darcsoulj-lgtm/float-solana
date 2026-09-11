@@ -1,5 +1,6 @@
 // Local integration fixture only: never configure this RPC in a hosted environment.
 import http from 'node:http';
+import { marketFlow } from './market-flow.mjs';
 import { editorialFlow } from './editorial-flow.mjs';
 import assert from 'node:assert/strict';
 import { readFile, writeFile } from 'node:fs/promises';
@@ -291,6 +292,7 @@ try {
   assert.equal(posted[0].title, 'Cross ticker test');
   assert.equal(posted[0].body, 'An MU holder can discuss SK Hynix here.');
   await editorialFlow(base, cookie);
+  if (process.env.TEST_LIVE_MARKETS === '1') await marketFlow(base, cookie);
   const roomName = 'Memory club ' + crypto.randomUUID();
   await call(
     'rooms',

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import Link from './site-link';
 import {
   Home,
+  ChartNoAxesCombined,
   Newspaper,
   CalendarDays,
   Compass,
@@ -31,6 +32,7 @@ import {
 import { SearchPicker } from './search-picker';
 import { Thread } from './community-thread';
 import { RoomCreator } from './room-creator';
+import { MarketOverviewPanel } from './market-overview';
 import { MemberBrief } from './member-brief';
 import { api } from '@/lib/client';
 import { communityPostErrors, POST_LIMITS } from '@/lib/community-post';
@@ -41,9 +43,17 @@ import {
   type ThreadPage,
   type CommunitySource,
 } from '@/lib/community-types';
-type View = 'brief' | 'calendar' | 'home' | 'topics' | 'saved' | 'profile';
+type View =
+  | 'markets'
+  | 'brief'
+  | 'calendar'
+  | 'home'
+  | 'topics'
+  | 'saved'
+  | 'profile';
 const destinations = [
   { id: 'brief', label: 'Your brief', icon: Newspaper },
+  { id: 'markets', label: 'Markets', icon: ChartNoAxesCombined },
   { id: 'home', label: 'Discussions', icon: Home },
   { id: 'calendar', label: 'Calendar', icon: CalendarDays },
   { id: 'topics', label: 'Rooms', icon: Compass },
@@ -207,7 +217,7 @@ export function MemberDashboard({
   );
   return (
     <div
-      className={`member-shell ${view === 'brief' || view === 'calendar' ? 'reading-view' : ''}`}
+      className={`member-shell ${view === 'markets' ? 'markets-view' : ''} ${view === 'brief' || view === 'calendar' ? 'reading-view' : ''}`}
     >
       <aside className="member-sidebar">
         <Link className="member-brand" href="/">
@@ -307,30 +317,34 @@ export function MemberDashboard({
                             : 'MAKE YOURSELF AT HOME'}
                 </p>
                 <h1>
-                  {view === 'brief'
-                    ? 'Your news'
-                    : view === 'calendar'
-                      ? 'Calendar'
-                      : view === 'home'
-                        ? 'Discussions'
-                        : view === 'topics'
-                          ? 'Rooms'
-                          : view === 'saved'
-                            ? 'Saved'
-                            : 'Your profile'}
+                  {view === 'markets'
+                    ? 'Tokenized stocks'
+                    : view === 'brief'
+                      ? 'Your news'
+                      : view === 'calendar'
+                        ? 'Calendar'
+                        : view === 'home'
+                          ? 'Discussions'
+                          : view === 'topics'
+                            ? 'Rooms'
+                            : view === 'saved'
+                              ? 'Saved'
+                              : 'Your profile'}
                 </h1>
                 <p>
-                  {view === 'brief'
-                    ? 'The stories that connect to what you hold.'
-                    : view === 'calendar'
-                      ? 'Earnings, company events, and dates worth keeping in view.'
-                      : view === 'home'
-                        ? 'Start with what you hold. Stay for a different point of view.'
-                        : view === 'topics'
-                          ? 'Rooms are started by members. Anyone verified can join the conversation.'
-                          : view === 'saved'
-                            ? 'Your private collection of discussions and sources.'
-                            : 'Choose how you appear to other members.'}
+                  {view === 'markets'
+                    ? 'Prices, liquidity and access for Backpack-issued stock tokens.'
+                    : view === 'brief'
+                      ? 'The stories that connect to what you hold.'
+                      : view === 'calendar'
+                        ? 'Earnings, company events, and dates worth keeping in view.'
+                        : view === 'home'
+                          ? 'Start with what you hold. Stay for a different point of view.'
+                          : view === 'topics'
+                            ? 'Rooms are started by members. Anyone verified can join the conversation.'
+                            : view === 'saved'
+                              ? 'Your private collection of discussions and sources.'
+                              : 'Choose how you appear to other members.'}
                 </p>
               </div>
               {view === 'home' && (
@@ -352,7 +366,17 @@ export function MemberDashboard({
               </div>
             )}
             {notice && <output className="member-notice">{notice}</output>}
-            {view === 'brief' || view === 'calendar' ? (
+            {view === 'markets' ? (
+              <>
+                {data ? (
+                  <MarketOverviewPanel
+                    holdings={holdings.map((h) => h.symbol)}
+                  />
+                ) : (
+                  <p>Loading your holdings…</p>
+                )}
+              </>
+            ) : view === 'brief' || view === 'calendar' ? (
               <MemberBrief
                 key={view}
                 kind={view === 'brief' ? 'news' : 'event'}

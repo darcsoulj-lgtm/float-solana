@@ -341,3 +341,11 @@ export const communityRooms = sqliteTable(
   },
   (t) => [uniqueIndex('idx_room_name').on(t.nameKey)],
 );
+
+// Shared source cache with a bounded refresh lease; no user or wallet data.
+export const marketCache = sqliteTable('market_cache', {
+  key: text('key').primaryKey(),
+  payload: text('payload'),
+  fetchedAt: integer('fetched_at').notNull().default(0),
+  retryAfter: integer('retry_after').notNull().default(0),
+});
