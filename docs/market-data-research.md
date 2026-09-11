@@ -52,3 +52,7 @@ Markets polls every 120 seconds while visible. Registry is cached for five minut
 5. Partner benefits: show only funded, attributable offers with clear eligibility. Do not fill the page with speculative airdrops.
 
 Avoid generic AI sentiment, TVL leaderboards mislabeled as backing, and token-holder rankings that reward whales. The community's eventual differentiator is useful context plus contributions from verified holders.
+
+## September 11 update: CoinMarketCap integration
+
+See [release-21-backpack-market-context.md](./release-21-backpack-market-context.md) for the working free public CMC feed, exact six-token coverage, refreshed Markets UX and regulatory-branding findings. Earlier statements about unavailable CMC commercial/free access are superseded by the current pricing and public-API documentation verified in that review. Token Terminal remains an external dashboard only.

@@ -4,7 +4,7 @@ import './globals.css';
 import { AgentTools } from '@/components/agent-tools';
 export const metadata: Metadata = {
   title: {
-    default: 'HolderPulse — The holder community',
+    default: 'HolderPulse — For Backpack stock-token holders',
     template: '%s | HolderPulse',
   },
   description:
@@ -26,7 +26,7 @@ export default function RootLayout({
           <Link className="brand" href="/">
             h<span className="brandmark">p</span>
             <strong>
-              HolderPulse<span>THE HOLDER COMMUNITY</span>
+              HolderPulse<span>FOR BACKPACK HOLDERS</span>
             </strong>
           </Link>
           <nav aria-label="Main navigation">
@@ -44,7 +44,7 @@ export default function RootLayout({
             <Link className="footer-brand" href="/">
               HolderPulse
             </Link>
-            <p>One shared space. Many perspectives.</p>
+            <p>An independent community for Backpack stock-token holders.</p>
           </div>
           <div className="footerlinks">
             <Link href="/about">About</Link>

@@ -1,5 +1,6 @@
 import { communityMember } from '@/lib/community-server';
-import { db, rateLimit } from '@/lib/server';
+import { CMC_REFRESH_MS, fetchTokenMarkets } from '@/lib/cmc-data';
+import { db, rateLimit, runtime } from '@/lib/server';
 import { AppError } from '@/lib/validation';
 import { TOKENS } from '@/lib/tokens';
 import {
@@ -55,13 +56,16 @@ export async function GET(req: Request) {
       );
       return json({ book, reason: null });
     }
-    const [pools, prices] = await Promise.all([
+    const [pools, prices, markets] = await Promise.all([
       cachedMarket(db(), 'dex-pools-v1', MARKET_REFRESH_MS, () => fetchPools()),
       cachedMarket(db(), 'llama-prices-v1', MARKET_REFRESH_MS, () =>
         fetchPrices(),
       ),
+      cachedMarket(db(), 'cmc-tokens-v1', CMC_REFRESH_MS, () =>
+        fetchTokenMarkets(runtime().CMC_API_KEY),
+      ),
     ]);
-    return json({ catalog, pools, prices });
+    return json({ catalog, pools, prices, markets });
   } catch (e) {
     if (e instanceof AppError) return json({ error: e.message }, e.status);
     console.error(

@@ -293,8 +293,7 @@ export function Community() {
         <div className="club public-club">
           <section className="public-hero">
             <div className="eyebrow">
-              <span className="small-dot" /> A COMMON ROOM FOR STOCK TOKEN
-              HOLDERS
+              <span className="small-dot" /> FOR BACKPACK STOCK-TOKEN HOLDERS
             </div>
             <h1>
               A position. A perspective.
@@ -302,7 +301,7 @@ export function Community() {
               <em>A better conversation.</em>
             </h1>
             <p>
-              Meet the people behind the positions. A private place to compare
+              An independent community for Backpack stock-token holders. Compare
               ideas,
               <br className="desktop-break" /> find a different angle, and stay
               curious about what you hold.
@@ -368,8 +367,8 @@ export function Community() {
                 <div className="preview-tags">
                   <span>MU</span>
                   <span>SKHY</span>
-                  <span>NVDA</span>
-                  <span>+ every supported topic</span>
+                  <span>SPCX</span>
+                  <span>+ member-created rooms</span>
                 </div>
               </div>
               <div className="preview-note">

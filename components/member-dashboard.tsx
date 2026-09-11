@@ -223,7 +223,7 @@ export function MemberDashboard({
         <Link className="member-brand" href="/">
           h<span>p</span>
           <strong>
-            HolderPulse<small>THE COMMON ROOM</small>
+            HolderPulse<small>FOR BACKPACK HOLDERS</small>
           </strong>
         </Link>
         <div className="member-identity">
@@ -318,7 +318,7 @@ export function MemberDashboard({
                 </p>
                 <h1>
                   {view === 'markets'
-                    ? 'Tokenized stocks'
+                    ? 'Backpack stocks'
                     : view === 'brief'
                       ? 'Your news'
                       : view === 'calendar'
@@ -333,7 +333,7 @@ export function MemberDashboard({
                 </h1>
                 <p>
                   {view === 'markets'
-                    ? 'Prices, liquidity and access for Backpack-issued stock tokens.'
+                    ? 'The tokens you hold. The market around them.'
                     : view === 'brief'
                       ? 'The stories that connect to what you hold.'
                       : view === 'calendar'

@@ -1,0 +1,115 @@
+{
+  "data": [
+    {
+      "id": 40817,
+      "name": "Micron Technology Inc tokenized stock (Backpack)",
+      "symbol": "MU",
+      "slug": "micron-technology-inc-tokenized-stock-backpack",
+      "rank": 1194,
+      "is_active": 1,
+      "first_historical_data": "2026-06-22T13:55:00.000Z",
+      "last_historical_data": "2026-09-11T06:15:00.000Z",
+      "platform": {
+        "id": 16,
+        "name": "Solana",
+        "symbol": "SOL",
+        "slug": "solana",
+        "token_address": "MUxEsUKSMACyw5fZf68wxf5FLnZVhtU9CwH8uNNGay1"
+      }
+    },
+    {
+      "id": 40833,
+      "name": "SK Hynix tokenized stock (Backpack)",
+      "symbol": "SKHY",
+      "slug": "sk-hynix-tokenized-stock-backpack",
+      "rank": 1638,
+      "is_active": 1,
+      "first_historical_data": "2026-07-10T15:55:00.000Z",
+      "last_historical_data": "2026-09-11T06:15:00.000Z",
+      "platform": {
+        "id": 16,
+        "name": "Solana",
+        "symbol": "SOL",
+        "slug": "solana",
+        "token_address": "SKHYhSjuRWHgikq8eRKbtBbpABgJSkd7ytQV14i9EQ3"
+      }
+    },
+    {
+      "id": 40238,
+      "name": "SpaceX tokenized stock (Backpack)",
+      "symbol": "SPCX",
+      "slug": "spacex-tokenized-stock-backpack",
+      "rank": 1114,
+      "is_active": 1,
+      "first_historical_data": "2026-06-12T15:45:00.000Z",
+      "last_historical_data": "2026-09-11T06:15:00.000Z",
+      "platform": {
+        "id": 16,
+        "name": "Solana",
+        "symbol": "SOL",
+        "slug": "solana",
+        "token_address": "SPCXxcqXj6e5dJDVNovHN8744zkbhM2bYudU45BimGb"
+      }
+    },
+    {
+      "id": 42024,
+      "name": "AMC Entertainment Holdings Tokenized Stock (Backpack Securities)",
+      "symbol": "AMC",
+      "slug": "amc-entertainment-holdings-tokenized-stock-backpack-securities",
+      "rank": 4159,
+      "is_active": 1,
+      "first_historical_data": "2026-09-04T13:55:00.000Z",
+      "last_historical_data": "2026-09-11T06:15:00.000Z",
+      "platform": {
+        "id": 16,
+        "name": "Solana",
+        "symbol": "SOL",
+        "slug": "solana",
+        "token_address": "AMC1qwR9KhiyrQBRPrxnfo4JfMeMZqEBvt5tgTytNNoc"
+      }
+    },
+    {
+      "id": 40816,
+      "name": "RoboStrategy Inc tokenized stock (Backpack)",
+      "symbol": "BOT",
+      "slug": "robostrategy-inc-tokenized-stock-backpack",
+      "rank": 1752,
+      "is_active": 1,
+      "first_historical_data": "2026-07-02T13:50:00.000Z",
+      "last_historical_data": "2026-09-11T06:15:00.000Z",
+      "platform": {
+        "id": 16,
+        "name": "Solana",
+        "symbol": "SOL",
+        "slug": "solana",
+        "token_address": "BoTx8y9ynfdxf5ZjWtCoBVkff52qKA82ysaLU8ZM6d8T"
+      }
+    },
+    {
+      "id": 40815,
+      "name": "SanDisk Corp tokenized stock (Backpack)",
+      "symbol": "SNDK",
+      "slug": "sandisk-corp-tokenized-stock-backpack",
+      "rank": 1628,
+      "is_active": 1,
+      "first_historical_data": "2026-06-24T13:30:00.000Z",
+      "last_historical_data": "2026-09-11T06:15:00.000Z",
+      "platform": {
+        "id": 16,
+        "name": "Solana",
+        "symbol": "SOL",
+        "slug": "solana",
+        "token_address": "SNDKbwMUQvZhnLnxLduradgLHG5KrPuKwpnrkkGRhfH"
+      }
+    }
+  ],
+  "status": {
+    "timestamp": "2026-09-11T06:21:08.102Z",
+    "error_code": 0,
+    "error_message": null,
+    "elapsed": 2,
+    "credit_count": 1,
+    "notice": null
+  },
+  "research_note": "Filtered research capture: only exact supported Solana mint matches retained. Not a runtime data source."
+}

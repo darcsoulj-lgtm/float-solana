@@ -8,6 +8,7 @@ export const runtime = () =>
     SOLANA_RPC_URL?: string;
     ADMIN_EMAILS?: string;
     BENZINGA_API_KEY?: string;
+    CMC_API_KEY?: string;
   };
 export function db() {
   const d = runtime().DB;

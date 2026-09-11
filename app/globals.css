@@ -3764,3 +3764,233 @@ body:has(.member-shell) > footer {
 .market-empty {
   display: block;
 }
+
+/* Backpack market overview: compact scan first, context on demand. */
+.market-cell-source {
+  display: block;
+  margin-top: 4px;
+  color: #687487;
+  font-size: 11px;
+  font-weight: 400;
+}
+.market-detail {
+  scroll-margin-top: 24px;
+}
+.market-performance {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+  padding: 18px 24px 0;
+  font-size: 14px;
+}
+.market-performance > span {
+  color: #687487;
+}
+.market-performance > div {
+  display: flex;
+  gap: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.market-performance > a {
+  margin-left: auto;
+}
+.market-source-line {
+  padding: 0 24px;
+}
+.market-checks {
+  display: flex;
+  gap: 12px 24px;
+  flex-wrap: wrap;
+  font-size: 14px;
+  margin: 14px 0;
+  color: #566477;
+}
+.market-attribution {
+  font-size: 13px !important;
+  line-height: 1.6 !important;
+  color: #647187;
+  margin: 20px 0 !important;
+}
+.market-attribution a {
+  color: #334e75;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.ecosystem-overview {
+  margin: 24px 0 32px;
+}
+.ecosystem-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.ecosystem-heading h2 {
+  font-size: clamp(20px, 2vw, 28px);
+  letter-spacing: -0.6px;
+  margin: 7px 0 0;
+  font-weight: 600;
+}
+.ecosystem-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  background: #233954;
+  border-radius: 12px;
+  color: #fff;
+  overflow: hidden;
+}
+.ecosystem-stats > div {
+  padding: 22px 24px;
+  border-right: 1px solid #ffffff24;
+}
+.ecosystem-stats > div:last-child {
+  border: 0;
+}
+.ecosystem-stats span,
+.ecosystem-stats small {
+  display: block;
+  color: #ced9e8;
+  line-height: 1.5;
+  font-size: 13px;
+}
+.ecosystem-stats strong {
+  display: block;
+  margin: 8px 0;
+  font-size: clamp(25px, 2.8vw, 36px);
+  font-weight: 600;
+  letter-spacing: -1px;
+  font-variant-numeric: tabular-nums;
+}
+.ecosystem-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.ecosystem-panel {
+  min-width: 0;
+  background: #fff;
+  border: 1px solid #dfe4eb;
+  border-radius: 10px;
+  padding: 22px;
+}
+.ecosystem-panel h3 {
+  font-size: 17px;
+  font-weight: 600;
+  margin: 0 0 6px;
+}
+.ecosystem-panel > p {
+  font-size: 13px;
+  color: #687487;
+  line-height: 1.55;
+  margin: 0 0 16px;
+}
+.ecosystem-rank {
+  display: grid;
+  grid-template-columns: 85px minmax(20px, 1fr) 70px 16px;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  text-align: left;
+  padding: 14px 0;
+  border-bottom: 1px solid #edf0f4;
+  font-size: 14px;
+}
+.ecosystem-rank:hover {
+  color: #325889;
+}
+.ecosystem-rank small {
+  display: block;
+  font-size: 11px;
+  color: #687487;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 3px;
+}
+.ecosystem-rank > strong {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+.ecosystem-bar {
+  display: block;
+  height: 8px;
+  border-radius: 3px;
+  background: #edf1f6;
+  overflow: hidden;
+}
+.ecosystem-bar i {
+  display: block;
+  height: 100%;
+  background: #7994b6;
+  border-radius: 3px;
+}
+.ecosystem-resource {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid #edf0f4;
+  padding: 13px 0;
+  font-size: 14px;
+  color: #344d70;
+}
+.ecosystem-resource:hover b {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.ecosystem-resource small {
+  display: block;
+  color: #687487;
+  font-size: 12px;
+  margin-top: 4px;
+  line-height: 1.5;
+}
+.ecosystem-rights {
+  margin-top: 20px;
+}
+@media (max-width: 1100px) {
+  .ecosystem-columns {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 640px) {
+  .ecosystem-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .ecosystem-stats {
+    grid-template-columns: 1fr;
+  }
+  .ecosystem-stats > div {
+    padding: 18px 20px;
+    border-right: 0;
+    border-bottom: 1px solid #ffffff24;
+  }
+  .ecosystem-panel {
+    padding: 18px;
+  }
+  .ecosystem-rank {
+    grid-template-columns: 64px minmax(20px, 1fr) 64px 14px;
+    gap: 8px;
+  }
+  .market-performance {
+    padding: 16px 18px 0;
+    gap: 16px;
+  }
+  .market-performance > span {
+    flex-basis: 100%;
+  }
+  .market-performance > a {
+    margin-left: 0;
+  }
+  .market-source-line {
+    padding: 0 18px;
+  }
+  .market-cell-source {
+    max-width: 110px;
+    white-space: normal;
+  }
+}

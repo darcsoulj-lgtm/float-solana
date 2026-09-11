@@ -1,0 +1,443 @@
+{
+  "data": [
+    {
+      "tags": [
+        {
+          "slug": "defi",
+          "name": "DeFi",
+          "category": "CATEGORY"
+        },
+        {
+          "slug": "tokenized-stock",
+          "name": "Tokenized Stock",
+          "category": "CATEGORY"
+        },
+        {
+          "slug": "solana-ecosystem",
+          "name": "Solana Ecosystem",
+          "category": "PLATFORM"
+        },
+        {
+          "slug": "tokenized-assets",
+          "name": "Tokenized Assets",
+          "category": "CATEGORY"
+        }
+      ],
+      "id": 40238,
+      "name": "SpaceX tokenized stock (Backpack)",
+      "symbol": "SPCX",
+      "slug": "spacex-tokenized-stock-backpack",
+      "is_active": 1,
+      "infinite_supply": false,
+      "is_fiat": 0,
+      "circulating_supply": 43701.554427,
+      "total_supply": 43701.554427,
+      "max_supply": null,
+      "date_added": "2026-06-13T13:02:26.000Z",
+      "num_market_pairs": 41,
+      "cmc_rank": 1114,
+      "last_updated": "2026-09-11T06:19:00.000Z",
+      "tvl_ratio": null,
+      "platform": {
+        "id": 5426,
+        "slug": "solana",
+        "name": "Solana",
+        "symbol": "SOL",
+        "token_address": "SPCXxcqXj6e5dJDVNovHN8744zkbhM2bYudU45BimGb"
+      },
+      "self_reported_circulating_supply": null,
+      "self_reported_market_cap": null,
+      "minted_market_cap": 6484875.01,
+      "quote": [
+        {
+          "id": 2781,
+          "symbol": "USD",
+          "price": 148.390030892515,
+          "volume_24h": 1630650.38165159,
+          "volume_change_24h": -38.0197,
+          "cex_volume_24h": 0,
+          "dex_volume_24h": 1630650.38165159,
+          "percent_change_1h": 0.01143238,
+          "percent_change_24h": 0.83383763,
+          "percent_change_7d": -1.43827829,
+          "percent_change_30d": 11.08817443,
+          "percent_change_60d": 3.93981268,
+          "percent_change_90d": -10.02876247,
+          "market_cap": 6484875.0114734555,
+          "market_cap_dominance": 0,
+          "fully_diluted_market_cap": 6484875.01,
+          "minted_market_cap": 6484875.01,
+          "tvl": null,
+          "last_updated": "2026-09-11T06:20:05.000Z"
+        }
+      ]
+    },
+    {
+      "tags": [
+        {
+          "slug": "defi",
+          "name": "DeFi",
+          "category": "CATEGORY"
+        },
+        {
+          "slug": "tokenized-stock",
+          "name": "Tokenized Stock",
+          "category": "CATEGORY"
+        },
+        {
+          "slug": "solana-ecosystem",
+          "name": "Solana Ecosystem",
+          "category": "PLATFORM"
+        },
+        {
+          "slug": "tokenized-assets",
+          "name": "Tokenized Assets",
+          "category": "CATEGORY"
+        }
+      ],
+      "id": 40815,
+      "name": "SanDisk Corp tokenized stock (Backpack)",
+      "symbol": "SNDK",
+      "slug": "sandisk-corp-tokenized-stock-backpack",
+      "is_active": 1,
+      "infinite_supply": false,
+      "is_fiat": 0,
+      "circulating_supply": 1163.386195,
+      "total_supply": 1163.386195,
+      "max_supply": null,
+      "date_added": "2026-06-13T13:02:26.000Z",
+      "num_market_pairs": 11,
+      "cmc_rank": 1629,
+      "last_updated": "2026-09-11T06:19:00.000Z",
+      "tvl_ratio": null,
+      "platform": {
+        "id": 5426,
+        "slug": "solana",
+        "name": "Solana",
+        "symbol": "SOL",
+        "token_address": "SNDKbwMUQvZhnLnxLduradgLHG5KrPuKwpnrkkGRhfH"
+      },
+      "self_reported_circulating_supply": null,
+      "self_reported_market_cap": null,
+      "minted_market_cap": 1965691.39,
+      "quote": [
+        {
+          "id": 2781,
+          "symbol": "USD",
+          "price": 1689.6292914410055,
+          "volume_24h": 1114660.20235695,
+          "volume_change_24h": 743.5763,
+          "cex_volume_24h": 0,
+          "dex_volume_24h": 1114660.20235695,
+          "percent_change_1h": 0.31659864,
+          "percent_change_24h": -4.01119699,
+          "percent_change_7d": 7.21617235,
+          "percent_change_30d": 29.94236406,
+          "percent_change_60d": -6.57141147,
+          "percent_change_90d": -14.52680727,
+          "market_cap": 1965691.3923300975,
+          "market_cap_dominance": 0,
+          "fully_diluted_market_cap": 1965691.39,
+          "minted_market_cap": 1965691.39,
+          "tvl": null,
+          "last_updated": "2026-09-11T06:20:05.000Z"
+        }
+      ]
+    },
+    {
+      "tags": [
+        {
+          "slug": "defi",
+          "name": "DeFi",
+          "category": "CATEGORY"
+        },
+        {
+          "slug": "tokenized-stock",
+          "name": "Tokenized Stock",
+          "category": "CATEGORY"
+        },
+        {
+          "slug": "solana-ecosystem",
+          "name": "Solana Ecosystem",
+          "category": "PLATFORM"
+        },
+        {
+          "slug": "tokenized-assets",
+          "name": "Tokenized Assets",
+          "category": "CATEGORY"
+        }
+      ],
+      "id": 40816,
+      "name": "RoboStrategy Inc tokenized stock (Backpack)",
+      "symbol": "BOT",
+      "slug": "robostrategy-inc-tokenized-stock-backpack",
+      "is_active": 1,
+      "infinite_supply": false,
+      "is_fiat": 0,
+      "circulating_supply": 54874.454321,
+      "total_supply": 54874.454321,
+      "max_supply": null,
+      "date_added": "2026-06-13T13:02:26.000Z",
+      "num_market_pairs": 12,
+      "cmc_rank": 1758,
+      "last_updated": "2026-09-11T06:19:00.000Z",
+      "tvl_ratio": null,
+      "platform": {
+        "id": 5426,
+        "slug": "solana",
+        "name": "Solana",
+        "symbol": "SOL",
+        "token_address": "BoTx8y9ynfdxf5ZjWtCoBVkff52qKA82ysaLU8ZM6d8T"
+      },
+      "self_reported_circulating_supply": null,
+      "self_reported_market_cap": null,
+      "minted_market_cap": 1505384.19,
+      "quote": [
+        {
+          "id": 2781,
+          "symbol": "USD",
+          "price": 27.43324202499417,
+          "volume_24h": 252328.65724349,
+          "volume_change_24h": -43.2618,
+          "cex_volume_24h": 0,
+          "dex_volume_24h": 252328.65724349,
+          "percent_change_1h": 0.3394,
+          "percent_change_24h": 1.73974414,
+          "percent_change_7d": 2.02613289,
+          "percent_change_30d": -11.25967418,
+          "percent_change_60d": -15.67861406,
+          "percent_change_90d": -28.07320983,
+          "market_cap": 1505384.1863774802,
+          "market_cap_dominance": 0,
+          "fully_diluted_market_cap": 1505384.19,
+          "minted_market_cap": 1505384.19,
+          "tvl": null,
+          "last_updated": "2026-09-11T06:20:05.000Z"
+        }
+      ]
+    },
+    {
+      "tags": [
+        {
+          "slug": "defi",
+          "name": "DeFi",
+          "category": "CATEGORY"
+        },
+        {
+          "slug": "tokenized-stock",
+          "name": "Tokenized Stock",
+          "category": "CATEGORY"
+        },
+        {
+          "slug": "solana-ecosystem",
+          "name": "Solana Ecosystem",
+          "category": "PLATFORM"
+        },
+        {
+          "slug": "tokenized-assets",
+          "name": "Tokenized Assets",
+          "category": "CATEGORY"
+        }
+      ],
+      "id": 40817,
+      "name": "Micron Technology Inc tokenized stock (Backpack)",
+      "symbol": "MU",
+      "slug": "micron-technology-inc-tokenized-stock-backpack",
+      "is_active": 1,
+      "infinite_supply": false,
+      "is_fiat": 0,
+      "circulating_supply": 5567.526282,
+      "total_supply": 5567.526282,
+      "max_supply": null,
+      "date_added": "2026-06-13T13:02:26.000Z",
+      "num_market_pairs": 16,
+      "cmc_rank": 1193,
+      "last_updated": "2026-09-11T06:19:00.000Z",
+      "tvl_ratio": null,
+      "platform": {
+        "id": 5426,
+        "slug": "solana",
+        "name": "Solana",
+        "symbol": "SOL",
+        "token_address": "MUxEsUKSMACyw5fZf68wxf5FLnZVhtU9CwH8uNNGay1"
+      },
+      "self_reported_circulating_supply": null,
+      "self_reported_market_cap": null,
+      "minted_market_cap": 5476621.96,
+      "quote": [
+        {
+          "id": 2781,
+          "symbol": "USD",
+          "price": 983.6724027336373,
+          "volume_24h": 3867439.18883285,
+          "volume_change_24h": -0.0738,
+          "cex_volume_24h": 0,
+          "dex_volume_24h": 3867439.18883285,
+          "percent_change_1h": 0.01456115,
+          "percent_change_24h": -4.23927108,
+          "percent_change_7d": 1.8293852,
+          "percent_change_30d": 11.96267695,
+          "percent_change_60d": 6.79873741,
+          "percent_change_90d": -16.46694209,
+          "market_cap": 5476621.955097614,
+          "market_cap_dominance": 0,
+          "fully_diluted_market_cap": 5476621.96,
+          "minted_market_cap": 5476621.96,
+          "tvl": null,
+          "last_updated": "2026-09-11T06:20:05.000Z"
+        }
+      ]
+    },
+    {
+      "tags": [
+        {
+          "slug": "defi",
+          "name": "DeFi",
+          "category": "CATEGORY"
+        },
+        {
+          "slug": "tokenized-stock",
+          "name": "Tokenized Stock",
+          "category": "CATEGORY"
+        },
+        {
+          "slug": "solana-ecosystem",
+          "name": "Solana Ecosystem",
+          "category": "PLATFORM"
+        },
+        {
+          "slug": "tokenized-assets",
+          "name": "Tokenized Assets",
+          "category": "CATEGORY"
+        }
+      ],
+      "id": 40833,
+      "name": "SK Hynix tokenized stock (Backpack)",
+      "symbol": "SKHY",
+      "slug": "sk-hynix-tokenized-stock-backpack",
+      "is_active": 1,
+      "infinite_supply": false,
+      "is_fiat": 0,
+      "circulating_supply": 10204.144782,
+      "total_supply": 10204.144782,
+      "max_supply": null,
+      "date_added": "2026-06-13T13:02:26.000Z",
+      "num_market_pairs": 27,
+      "cmc_rank": 1637,
+      "last_updated": "2026-09-11T06:19:00.000Z",
+      "tvl_ratio": null,
+      "platform": {
+        "id": 5426,
+        "slug": "solana",
+        "name": "Solana",
+        "symbol": "SOL",
+        "token_address": "SKHYhSjuRWHgikq8eRKbtBbpABgJSkd7ytQV14i9EQ3"
+      },
+      "self_reported_circulating_supply": null,
+      "self_reported_market_cap": null,
+      "minted_market_cap": 1933139.56,
+      "quote": [
+        {
+          "id": 2781,
+          "symbol": "USD",
+          "price": 189.446504001554,
+          "volume_24h": 3825995.0656989,
+          "volume_change_24h": -2.8798,
+          "cex_volume_24h": 0,
+          "dex_volume_24h": 3825995.0656989,
+          "percent_change_1h": 0.77963725,
+          "percent_change_24h": -2.17313436,
+          "percent_change_7d": 14.78141606,
+          "percent_change_30d": 30.69485988,
+          "percent_change_60d": 19.33577535,
+          "percent_change_90d": 13.09446204,
+          "market_cap": 1933139.5552755995,
+          "market_cap_dominance": 0,
+          "fully_diluted_market_cap": 1933139.56,
+          "minted_market_cap": 1933139.56,
+          "tvl": null,
+          "last_updated": "2026-09-11T06:20:05.000Z"
+        }
+      ]
+    },
+    {
+      "tags": [
+        {
+          "slug": "defi",
+          "name": "DeFi",
+          "category": "CATEGORY"
+        },
+        {
+          "slug": "tokenized-stock",
+          "name": "Tokenized Stock",
+          "category": "CATEGORY"
+        },
+        {
+          "slug": "solana-ecosystem",
+          "name": "Solana Ecosystem",
+          "category": "PLATFORM"
+        },
+        {
+          "slug": "tokenized-assets",
+          "name": "Tokenized Assets",
+          "category": "CATEGORY"
+        }
+      ],
+      "id": 42024,
+      "name": "AMC Entertainment Holdings Tokenized Stock (Backpack Securities)",
+      "symbol": "AMC",
+      "slug": "amc-entertainment-holdings-tokenized-stock-backpack-securities",
+      "is_active": 1,
+      "infinite_supply": false,
+      "is_fiat": 0,
+      "circulating_supply": 0,
+      "total_supply": 34858.418235,
+      "max_supply": 34858.418235,
+      "date_added": "2026-08-04T07:31:24.000Z",
+      "num_market_pairs": 6,
+      "cmc_rank": 4160,
+      "last_updated": "2026-09-11T06:19:00.000Z",
+      "tvl_ratio": null,
+      "platform": {
+        "id": 5426,
+        "slug": "solana",
+        "name": "Solana",
+        "symbol": "SOL",
+        "token_address": "AMC1qwR9KhiyrQBRPrxnfo4JfMeMZqEBvt5tgTytNNoc"
+      },
+      "self_reported_circulating_supply": 34858.42,
+      "self_reported_market_cap": 82753.63842608762,
+      "minted_market_cap": 82753.63,
+      "quote": [
+        {
+          "id": 2781,
+          "symbol": "USD",
+          "price": 2.373992809372531,
+          "volume_24h": 413787.27362101,
+          "volume_change_24h": -71.4076,
+          "cex_volume_24h": 0,
+          "dex_volume_24h": 413787.27362101,
+          "percent_change_1h": -0.22457041,
+          "percent_change_24h": -2.95161267,
+          "percent_change_7d": -13.72726407,
+          "percent_change_30d": -13.72726407,
+          "percent_change_60d": -13.72726407,
+          "percent_change_90d": -13.72726407,
+          "market_cap": 0,
+          "market_cap_dominance": 0,
+          "fully_diluted_market_cap": 82753.63,
+          "minted_market_cap": 82753.63,
+          "tvl": null,
+          "last_updated": "2026-09-11T06:20:05.000Z"
+        }
+      ]
+    }
+  ],
+  "status": {
+    "timestamp": "2026-09-11T06:21:08.339Z",
+    "error_code": "0",
+    "error_message": "",
+    "elapsed": 6,
+    "credit_count": 1
+  }
+}

@@ -6,7 +6,7 @@ import { pathToFileURL } from 'node:url';
 import ts from 'typescript';
 import { DatabaseSync } from 'node:sqlite';
 const dir = await mkdtemp(tmpdir() + '/hp-markets-');
-for (const file of ['tokens', 'market-data', 'market-cache']) {
+for (const file of ['tokens', 'market-data', 'market-cache', 'cmc-data']) {
   const raw = await readFile(
     new URL('../lib/' + file + '.ts', import.meta.url),
     'utf8',
@@ -18,7 +18,10 @@ for (const file of ['tokens', 'market-data', 'market-cache']) {
         module: ts.ModuleKind.ES2022,
       },
     })
-    .outputText.replace(/from '\.\/(tokens|market-data)'/g, "from './$1.mjs'");
+    .outputText.replace(
+      /from '\.\/(tokens|market-data|cmc-data)'/g,
+      "from './$1.mjs'",
+    );
   await writeFile(dir + '/' + file + '.mjs', out);
 }
 const { TOKENS } = await import(pathToFileURL(dir + '/tokens.mjs'));
@@ -268,4 +271,127 @@ test('Concurrent refresh lease prevents duplicate loads; empty cache is unavaila
   assert.equal(a.data, null);
   assert.equal(a.stale, true);
   raw.close();
+});
+
+const {
+  parseTokenMarkets,
+  freshTokenMarket,
+  marketCoverage,
+  fetchTokenMarkets,
+  CMC_IDS,
+} = await import(pathToFileURL(dir + '/cmc-data.mjs'));
+const cmc = await fixture('cmc-quotes-all');
+const fixtureNow = Date.parse(cmc.status.timestamp);
+test('CMC live fixture matches six supported Solana mints and retains original timestamps', () => {
+  const rows = parseTokenMarkets(cmc, fixtureNow);
+  assert.equal(Object.keys(rows).length, 6);
+  assert.equal(rows.MU.id, 40817);
+  assert.ok(rows.MU.supply > 0);
+  assert.ok(rows.MU.marketCap > 0);
+  assert.ok(rows.MU.change7d !== null);
+  assert.ok(rows.MU.timestamp <= fixtureNow);
+  assert.equal(rows.NKE, undefined);
+});
+test('CMC rejects wrong mint, wrong chain, crossed IDs and duplicate token results', () => {
+  const mu = cmc.data.find((r) => r.id === 40817);
+  const base = { ...cmc, data: [mu] };
+  for (const bad of [
+    { ...mu, platform: { ...mu.platform, token_address: 'fake' } },
+    { ...mu, platform: { ...mu.platform, id: 1 } },
+    { ...mu, id: 40833 },
+  ])
+    assert.throws(() =>
+      parseTokenMarkets({ ...base, data: [bad] }, fixtureNow),
+    );
+  assert.throws(() =>
+    parseTokenMarkets({ ...base, data: [mu, mu] }, fixtureNow),
+  );
+});
+test('CMC rejects error envelopes, malformed times and unsafe links', () => {
+  const mu = cmc.data.find((r) => r.id === 40817);
+  for (const raw of [
+    { ...cmc, status: { error_code: 429 } },
+    { ...cmc, data: {} },
+    { ...cmc, data: [{ ...mu, last_updated: 'invalid' }] },
+    { ...cmc, data: [{ ...mu, slug: 'bad?redirect=evil' }] },
+    {
+      ...cmc,
+      data: [
+        {
+          ...mu,
+          last_updated: new Date(fixtureNow + 120000).toISOString(),
+          quote: mu.quote.map((q) => ({
+            ...q,
+            last_updated: new Date(fixtureNow + 120000).toISOString(),
+          })),
+        },
+      ],
+    },
+  ])
+    assert.throws(() => parseTokenMarkets(raw, fixtureNow));
+});
+test('Missing CMC supply, cap and volume are unknown; genuine zero volume is retained', () => {
+  const mu = cmc.data.find((r) => r.id === 40817);
+  const raw = {
+    ...cmc,
+    data: [
+      {
+        ...mu,
+        circulating_supply: null,
+        quote: mu.quote.map((q) => ({ ...q, market_cap: null, volume_24h: 0 })),
+      },
+    ],
+  };
+  const m = parseTokenMarkets(raw, fixtureNow).MU;
+  assert.equal(m.supply, null);
+  assert.equal(m.marketCap, null);
+  assert.equal(m.volume24h, 0);
+  const covered = marketCoverage({ MU: m }, fixtureNow);
+  assert.equal(covered.marketCap, null);
+  assert.equal(covered.capCount, 0);
+  assert.equal(covered.volume24h, 0);
+  assert.equal(covered.volumeCount, 1);
+});
+test('Ecosystem totals exclude stale observations and report each metric coverage separately', () => {
+  const rows = parseTokenMarkets(cmc, fixtureNow);
+  const old = { ...rows.MU, timestamp: fixtureNow - 900001 };
+  assert.equal(freshTokenMarket(old, fixtureNow), undefined);
+  const covered = marketCoverage({ MU: old, SKHY: rows.SKHY }, fixtureNow);
+  assert.equal(covered.fresh.length, 1);
+  assert.equal(covered.marketCap, rows.SKHY.marketCap);
+  assert.equal(marketCoverage(null).marketCap, null);
+});
+test('CMC fetch uses batched IDs, public endpoint and no secret header by default', async () => {
+  const result = await fetchTokenMarkets(undefined, async (url, options) => {
+    const u = new URL(url);
+    assert.equal(u.origin, 'https://pro-api.coinmarketcap.com');
+    assert.equal(u.pathname, '/public-api/v3/cryptocurrency/quotes/latest');
+    assert.equal(u.searchParams.get('id'), CMC_IDS.join(','));
+    assert.equal(options.headers['X-CMC_PRO_API_KEY'], undefined);
+    assert.equal(options.redirect, 'manual');
+    return Response.json(cmc);
+  });
+  assert.ok(result.MU);
+});
+test('Optional CMC credential stays in a server header; redirects and rate limits fail safely', async () => {
+  await fetchTokenMarkets('test-secret', async (url, options) => {
+    assert.equal(new URL(url).pathname, '/v3/cryptocurrency/quotes/latest');
+    assert.equal(String(url).includes('test-secret'), false);
+    assert.equal(options.headers['X-CMC_PRO_API_KEY'], 'test-secret');
+    return Response.json(cmc);
+  });
+  for (const status of [301, 429, 500])
+    await assert.rejects(
+      fetchTokenMarkets(undefined, async () => new Response('', { status })),
+    );
+});
+
+test('Unreported zero capitalization and supply are not presented as established zero value', () => {
+  const rows = parseTokenMarkets(cmc, fixtureNow);
+  assert.equal(rows.AMC.supply, null);
+  assert.equal(rows.AMC.marketCap, null);
+  assert.ok(rows.AMC.price > 0);
+  const coverage = marketCoverage(rows, fixtureNow);
+  assert.equal(coverage.fresh.length, 6);
+  assert.equal(coverage.capCount, 5);
 });

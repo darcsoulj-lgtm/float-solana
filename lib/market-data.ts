@@ -1,3 +1,4 @@
+import type { TokenMarket } from './cmc-data';
 import { TOKENS } from './tokens';
 export const MARKET_REFRESH_MS = 120000;
 export type SourceResult<T> = {
@@ -30,6 +31,7 @@ export type TokenPrice = {
   confidence: number | null;
 };
 export type MarketOverview = {
+  markets: SourceResult<Record<string, TokenMarket>>;
   catalog: SourceResult<Listing[]>;
   pools: SourceResult<Record<string, Pool[]>>;
   prices: SourceResult<Record<string, TokenPrice>>;

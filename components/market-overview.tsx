@@ -12,6 +12,8 @@ import { api } from '@/lib/client';
 import { TOKENS } from '@/lib/tokens';
 import type { MarketOverview, Book, SourceResult } from '@/lib/market-data';
 import { Button } from './ui/button';
+import { BackpackEcosystem } from './backpack-ecosystem';
+import { CMC_MAPPING, freshTokenMarket } from '@/lib/cmc-data';
 const money = (n: number | null | undefined, compact = false) =>
   n === null || n === undefined
     ? '—'
@@ -129,12 +131,15 @@ export function MarketOverviewPanel({ holdings }: { holdings: string[] }) {
     pools = data?.pools.data?.[selected] || [],
     top = pools[0],
     reference = data?.prices.data?.[selected];
+  const market = data?.markets.data?.[selected];
+  const observed = freshTokenMarket(market, now);
   const quote =
     book?.data && !book.stale && now - book.data.timestamp <= 120000
       ? book.data
       : null;
   const sourceErrors = data
     ? [
+        { name: 'CoinMarketCap', source: data.markets },
         { name: 'Backpack', source: data.catalog },
         { name: 'DEX Screener', source: data.pools },
         { name: 'DefiLlama', source: data.prices },
@@ -165,7 +170,7 @@ export function MarketOverviewPanel({ holdings }: { holdings: string[] }) {
               setPage(0);
             }}
           >
-            All supported stocks
+            Backpack overview
           </button>
         </fieldset>
         <Button
@@ -178,8 +183,9 @@ export function MarketOverviewPanel({ holdings }: { holdings: string[] }) {
         </Button>
       </div>
       <p className="market-refresh-note">
-        Market observations refresh every 2 minutes while this page is open.
-        Source update times vary.
+        CoinMarketCap updates are checked every 5 minutes; pool data every 2
+        minutes while open. This is a periodically refreshed feed, not streaming
+        quotes.
       </p>
       {error && (
         <div className="error" role="alert">
@@ -192,6 +198,19 @@ export function MarketOverviewPanel({ holdings }: { holdings: string[] }) {
           Delayed sources: {sourceErrors}. Last saved observations are marked
           below.
         </output>
+      )}
+      {scope === 'all' && (
+        <BackpackEcosystem
+          data={data}
+          now={now}
+          select={(symbol) => {
+            setSelected(symbol);
+            setCopied(false);
+            document
+              .getElementById('selected-stock-detail')
+              ?.scrollIntoView({ block: 'start' });
+          }}
+        />
       )}
       <div className="market-search-row">
         <label htmlFor="market-search">
@@ -214,20 +233,23 @@ export function MarketOverviewPanel({ holdings }: { holdings: string[] }) {
       <div className="market-table-scroll">
         <table className="market-table">
           <caption>
-            Backpack-issued tokens · observed DEX pools, not company valuations
+            Backpack stock tokens · select a stock for supply, performance and
+            liquidity
           </caption>
           <thead>
             <tr>
               <th>Stock</th>
-              <th>Pool price</th>
+              <th>Token price</th>
               <th>24h change</th>
-              <th>Top pool liquidity</th>
-              <th>Top pool volume · 24h</th>
+              <th>Token market cap</th>
+              <th>Volume · 24h</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((t) => {
               const p = data?.pools.data?.[t.symbol]?.[0];
+              const m = freshTokenMarket(data?.markets.data?.[t.symbol], now);
+              const change = m?.price != null ? m.change24h : p?.change24h;
               return (
                 <tr
                   key={t.symbol}
@@ -248,18 +270,35 @@ export function MarketOverviewPanel({ holdings }: { holdings: string[] }) {
                       )}
                     </button>
                   </td>
-                  <td>{money(p?.price)}</td>
+                  <td>
+                    {money(m?.price ?? p?.price)}
+                    <small className="market-cell-source">
+                      {m?.price != null ? 'CMC aggregate' : 'DEX pool'}
+                      {(
+                        m?.price != null
+                          ? data?.markets.stale
+                          : data?.pools.stale
+                      )
+                        ? ' · delayed'
+                        : ''}
+                    </small>
+                  </td>
                   <td
                     className={
-                      (p?.change24h || 0) < 0
-                        ? 'market-negative'
-                        : 'market-positive'
+                      (change || 0) < 0 ? 'market-negative' : 'market-positive'
                     }
                   >
-                    {pct(p?.change24h)}
+                    {pct(change)}
                   </td>
-                  <td>{money(p?.liquidity, true)}</td>
-                  <td>{money(p?.volume24h, true)}</td>
+                  <td>{money(m?.marketCap, true)}</td>
+                  <td>
+                    {money(m?.volume24h ?? p?.volume24h, true)}
+                    <small className="market-cell-source">
+                      {m?.volume24h != null
+                        ? 'CMC-covered venues'
+                        : 'Single DEX pool'}
+                    </small>
+                  </td>
                 </tr>
               );
             })}
@@ -274,8 +313,8 @@ export function MarketOverviewPanel({ holdings }: { holdings: string[] }) {
       )}
       <div className="market-pagination">
         <span>
-          DEX Screener · retrieved {time(data?.pools.fetchedAt)}
-          {data?.pools.stale ? ' · Delayed' : ''}
+          CoinMarketCap: {time(data?.markets.fetchedAt)} · Pools:{' '}
+          {time(data?.pools.fetchedAt)}
         </span>
         <div>
           <Button
@@ -301,6 +340,7 @@ export function MarketOverviewPanel({ holdings }: { holdings: string[] }) {
       </div>
       <section
         className="market-detail"
+        id="selected-stock-detail"
         aria-label={`${token.symbol} market details`}
       >
         <header>
@@ -312,32 +352,77 @@ export function MarketOverviewPanel({ holdings }: { holdings: string[] }) {
           </div>
           <span className="market-chain">Solana</span>
         </header>
-        <div className="market-metrics">
+        <div className="market-metrics token-metrics">
           <div>
-            <span>Most liquid observed pool</span>
-            <strong>{money(top?.price)}</strong>
-            <small>
-              {top ? top.dex + ' · ' + top.quote : 'No indexed base-token pool'}
-              {data?.pools.stale ? ' · Delayed' : ''}
-            </small>
+            <span>Token market cap</span>
+            <strong>{money(observed?.marketCap, true)}</strong>
+            <small>CMC · token value, not company value</small>
           </div>
           <div>
-            <span>DefiLlama token price</span>
-            <strong>{money(reference?.price)}</strong>
-            <small>
-              Source time: {time(reference?.timestamp)}
-              {reference &&
-              (now - reference.timestamp > 3600000 || data?.prices.stale)
-                ? ' · Older observation'
-                : ''}
-            </small>
+            <span>Circulating token supply</span>
+            <strong>
+              {observed?.supply == null
+                ? '—'
+                : new Intl.NumberFormat('en-US', {
+                    maximumFractionDigits: 2,
+                  }).format(observed.supply)}
+            </strong>
+            <small>Provider estimate · not unique holders</small>
           </div>
           <div>
-            <span>Observed pools</span>
-            <strong>{data?.pools.data ? pools.length : '—'}</strong>
-            <small>Coverage may be incomplete</small>
+            <span>Trading volume · 24h</span>
+            <strong>{money(observed?.volume24h, true)}</strong>
+            <small>Across CMC-covered venues</small>
           </div>
         </div>
+        <div className="market-performance">
+          <span>Token performance</span>
+          {(
+            [
+              ['24h', observed?.change24h],
+              ['7d', observed?.change7d],
+              ['30d', observed?.change30d],
+            ] as const
+          ).map(([label, value]) => (
+            <div key={label}>
+              <span>{label}</span>
+              <strong
+                className={
+                  value == null
+                    ? ''
+                    : value < 0
+                      ? 'market-negative'
+                      : 'market-positive'
+                }
+              >
+                {pct(value)}
+              </strong>
+            </div>
+          ))}
+          {observed && (
+            <a href={observed.url} target="_blank" rel="noopener noreferrer">
+              View on CoinMarketCap ↗
+            </a>
+          )}
+        </div>
+        <p className="market-footnote market-source-line">
+          {observed ? (
+            <>
+              CoinMarketCap source time: {time(observed.timestamp)}
+              {data?.markets.stale ? ' · Retrieval delayed' : ''}.{' '}
+            </>
+          ) : market ? (
+            <>
+              CoinMarketCap observation is too old to display (
+              {time(market.timestamp)}).{' '}
+            </>
+          ) : CMC_MAPPING[selected] ? (
+            'CoinMarketCap data is temporarily unavailable for this token. '
+          ) : (
+            'This token is not yet in our verified CoinMarketCap coverage. '
+          )}
+          Missing or unreported supply and value are unknown, not zero.
+        </p>
         <div className="market-detail-grid">
           <section>
             <h3>Backpack availability</h3>
@@ -424,11 +509,26 @@ export function MarketOverviewPanel({ holdings }: { holdings: string[] }) {
           </section>
         </div>
         <section className="market-pools">
-          <h3>Observed pools</h3>
+          <h3>Liquidity & price checks</h3>
+          <div className="market-checks">
+            <span>
+              Top pool: <b>{money(top?.price)}</b> · {top?.dex || 'Not indexed'}
+            </span>
+            <span>
+              DefiLlama: <b>{money(reference?.price)}</b> ·{' '}
+              {time(reference?.timestamp)}
+              {reference &&
+              (now - reference.timestamp > 3600000 || data?.prices.stale)
+                ? ' · Older observation'
+                : ''}
+            </span>
+          </div>
           <p className="market-footnote">
-            Ranked by reported pool liquidity. Each row is one pool; it is not
-            the stock’s total trading volume. Prices are observations, not
-            executable quotes.
+            {pools.length} observed pools · DEX Screener retrieved{' '}
+            {time(data?.pools.fetchedAt)}
+            {data?.pools.stale ? ' · Delayed' : ''}. Ranked by reported pool
+            liquidity. Each row is one pool; it is not the stock’s total trading
+            volume. Prices are observations, not executable quotes.
           </p>
           {pools.slice(0, 5).map((p) => (
             <a
@@ -481,15 +581,55 @@ export function MarketOverviewPanel({ holdings }: { holdings: string[] }) {
           </Button>
         </div>
       </section>
+      <p className="market-attribution">
+        Data provided by{' '}
+        <a
+          href="https://coinmarketcap.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          CoinMarketCap
+        </a>
+        ,{' '}
+        <a
+          href="https://dexscreener.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          DEX Screener
+        </a>
+        ,{' '}
+        <a
+          href="https://defillama.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          DefiLlama
+        </a>{' '}
+        and{' '}
+        <a
+          href="https://docs.backpack.exchange/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Backpack
+        </a>
+        .
+      </p>
       <details className="market-methodology">
         <summary>Sources, coverage and token rights</summary>
         <p>
-          Backpack’s registry is matched by exact Solana mint, not ticker name.
-          DEX Screener prices and liquidity come from indexed pools where the
-          stock token is the base asset. The table selects the pool with the
-          highest reported liquidity. DefiLlama is a separate token-price
-          observation, not the underlying share price. Neither source proves
-          backing or solvency.
+          CoinMarketCap listings and Backpack’s registry are matched by exact
+          Solana mint, not ticker name. CoinMarketCap supplies aggregate token
+          prices, circulating supply, token market cap, volume and price
+          changes. We display observations no older than 15 minutes; missing
+          listings stay blank. CMC market cap measures circulating tokens at the
+          provider’s price, not the underlying company’s market cap. DEX
+          Screener prices and liquidity come from indexed pools where the stock
+          token is the base asset. When a CMC price or volume is unavailable,
+          the table labels a fallback from the pool with the highest reported
+          liquidity. DefiLlama is a separate token-price observation, not the
+          underlying share price. Neither source proves backing or solvency.
         </p>
         <p>
           Fetched timestamps show when we retrieved data. DEX Screener does not
