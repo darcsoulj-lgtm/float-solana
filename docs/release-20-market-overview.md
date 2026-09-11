@@ -18,4 +18,15 @@ The RWA industry dashboards on DefiLlama and Token Terminal are external links. 
 - New schema-only migration 0005 adds the public observation cache. Existing migrations are unchanged.
 - Browser security restrictions from the preceding work remain unresolved; no browser bypass or visual verification is claimed. Typography, responsive CSS and UI behavior were inspected in code.
 
-See market-data-research.md for source documentation, costs, scope and proactive product recommendations. Production build passed. Publication status is recorded upon completion.
+See market-data-research.md for source documentation, costs, scope and proactive product recommendations. Production build passed. Published successfully September 11, 2026 at 06:04:39 UTC as version 20. Environment revision 3 preserved.
+
+
+Production: https://holderpulse.glossy-kid-6048.chatgpt.site
+
+Source: `1f78d03fac09e4b4a656a6b6c692f621963dd549`
+
+Version: `appgprj_6aa16c80630081918b8b86d4f513fc17~appgver_04fc88f1b6688191a908356bf7932a28`
+
+Deployment: `appgdep_6aa399e9a198819188c6f206637bcb4b`
+
+Local development server stopped after publication; synthetic test settings restored.
