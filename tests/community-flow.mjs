@@ -112,11 +112,25 @@ const original = await readFile('.dev.vars', 'utf8'),
   originalEnv = await readFile('.env', 'utf8');
 let checks = 0,
   cookie = '';
+let postWindow = Math.floor(Date.now() / 60000), postCount = 0;
 async function call(
   path,
   body,
   { auth = false, status = 200, session = cookie } = {},
 ) {
+  // Keep the functional suite below the real shared IP limit of 60 POSTs/minute.
+  // Do not weaken production limits or silently retry a failed assertion.
+  if (body) {
+    const currentWindow = Math.floor(Date.now() / 60000);
+    if (currentWindow !== postWindow) { postWindow = currentWindow; postCount = 0; }
+    if (postCount >= 45) {
+      console.log('Pacing local requests into the next rate-limit window.');
+      await new Promise(resolve => setTimeout(resolve, 60000 - Date.now() % 60000 + 20));
+      postWindow = Math.floor(Date.now() / 60000);
+      postCount = 0;
+    }
+    postCount++;
+  }
   const r = await fetch(base + '/api/community/' + path, {
     method: body ? 'POST' : 'GET',
     headers: {

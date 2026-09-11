@@ -2,7 +2,7 @@ import { communityMember } from '@/lib/community-server';
 import { CMC_REFRESH_MS, fetchTokenMarkets } from '@/lib/cmc-data';
 import { db, rateLimit, runtime } from '@/lib/server';
 import { AppError } from '@/lib/validation';
-import { TOKENS } from '@/lib/tokens';
+import { TOKENS, TOKEN_REVIEW_DATE } from '@/lib/tokens';
 import {
   MARKET_REFRESH_MS,
   fetchCatalog,
@@ -32,7 +32,7 @@ export async function GET(req: Request) {
       throw new AppError('Unsupported stock.');
     const catalog = await cachedMarket(
       db(),
-      'backpack-catalog-v1',
+      'backpack-catalog-v1:' + TOKEN_REVIEW_DATE,
       300000,
       () => fetchCatalog(),
     );
@@ -58,15 +58,26 @@ export async function GET(req: Request) {
       return json({ book, reason: null });
     }
     const [pools, prices, markets, supplies] = await Promise.all([
-      cachedMarket(db(), 'dex-pools-v1', MARKET_REFRESH_MS, () => fetchPools()),
-      cachedMarket(db(), 'llama-prices-v1', MARKET_REFRESH_MS, () =>
-        fetchPrices(),
+      cachedMarket(
+        db(),
+        'dex-pools-v1:' + TOKEN_REVIEW_DATE,
+        MARKET_REFRESH_MS,
+        () => fetchPools(),
+      ),
+      cachedMarket(
+        db(),
+        'llama-prices-v1:' + TOKEN_REVIEW_DATE,
+        MARKET_REFRESH_MS,
+        () => fetchPrices(),
       ),
       cachedMarket(db(), 'cmc-tokens-v1', CMC_REFRESH_MS, () =>
         fetchTokenMarkets(runtime().CMC_API_KEY),
       ),
-      cachedMarket(db(), 'solana-supplies-v1', MARKET_REFRESH_MS, () =>
-        fetchSupplies(runtime().SOLANA_RPC_URL),
+      cachedMarket(
+        db(),
+        'solana-supplies-v1:' + TOKEN_REVIEW_DATE,
+        MARKET_REFRESH_MS,
+        () => fetchSupplies(runtime().SOLANA_RPC_URL),
       ),
     ]);
     return json({ catalog, pools, prices, markets, supplies });

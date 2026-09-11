@@ -40,10 +40,12 @@ Configure hosted values through Sites environment settings and deploy the saved 
 
 See [research](docs/RESEARCH.md), [architecture](docs/ARCHITECTURE.md), [operations](docs/OPERATIONS.md), and [verification report](docs/VERIFICATION.md).
 
-Approved mints: MU and SKHY, sourced from Backpack and confirmed against Solana mainnet. SPCX examples are available, but its live registry entry remains disabled pending a sufficiently reliable official mint source. Symbols alone are never accepted as token identity. Both enabled assets are Token-2022 mints with 6 decimals and issuer-control/scaling extensions. Positive raw balances qualify; cohorts are raw token units, not adjusted economic shares. No exact balance is stored with answers.
+The reviewed registry contains 41 Backpack Solana tokens, including MU, SKHY, SPCX and BABA. See the [September 11 audit](docs/token-audit-2026-09-11.md) for every mint, evidence and two corrected omissions. Symbols alone are never accepted as token identity. Positive raw balances qualify; cohorts are raw token units, not adjusted economic shares. No exact balance is stored with answers.
 
 ## Tests
 
+- `pnpm audit:tokens`: read-only live Backpack registry check before a release. Exits unsuccessfully if entries are missing, removed or mismatched. Review exact Solana mints before changing the allowlist; update the review date and evidence together. This is not a scheduled monitor.
+- `pnpm test:markets`: source parsing, coverage, supply validation and market-row selection regressions.
 - `pnpm test`: validation, strict signatures, small-order rejection, mint/program checks, account filtering, integer balances, RPC failure behavior.
 - `pnpm test:integration`: local persistence, lifecycle, access boundaries, CSRF, demo isolation, commercial requests, server-rendered routes.
 - `node tests/authorization.mjs`: local researcher/admin/foreign-owner boundaries and forged-header rejection.

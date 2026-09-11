@@ -1,8 +1,8 @@
 {
-  "reviewedAt": "2026-09-10",
+  "reviewedAt": "2026-09-11",
   "source": "https://api.backpack.exchange/api/v1/assets",
   "selection": "US securities with an exact Solana mint and depositEnabled or withdrawEnabled; excludes disabled catalogue entries",
-  "finalizedSlot": 445823704,
+  "finalizedSlot": 446104996,
   "tokens": [
     {
       "symbol": "MU",
@@ -104,6 +104,15 @@
       "decimals": 6
     },
     {
+      "symbol": "DNUT",
+      "name": "Krispy Kreme, Inc.",
+      "shortName": "Krispy Kreme",
+      "mint": "DNUTsCvKbKwu2RM72cUuW3TD9YpzArzACcqYQssjPLSk",
+      "source": "https://api.backpack.exchange/api/v1/assets",
+      "program": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+      "decimals": 6
+    },
+    {
       "symbol": "DRAM",
       "name": "Roundhill Memory ETF",
       "shortName": "Roundhill Memory ETF",
@@ -117,6 +126,15 @@
       "name": "GoPro",
       "shortName": "GoPro",
       "mint": "GPRR2u6NS5yBQHWGauoJ9HXgjrTH8dDsrBfTV5zAYvDH",
+      "source": "https://api.backpack.exchange/api/v1/assets",
+      "program": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+      "decimals": 6
+    },
+    {
+      "symbol": "GRND",
+      "name": "Grindr",
+      "shortName": "Grindr",
+      "mint": "GRNDYDpqwpCm6jVxpbh4xT5AM4r3p391qYsKTHqgaET2",
       "source": "https://api.backpack.exchange/api/v1/assets",
       "program": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
       "decimals": 6
@@ -355,5 +373,7 @@
       "program": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
       "decimals": 6
     }
-  ]
+  ],
+  "additionalFinalizedSlot": 446105332,
+  "evidence": "../research/token-audit/2026-09-11.json"
 }

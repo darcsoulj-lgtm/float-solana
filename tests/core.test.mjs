@@ -297,7 +297,7 @@ test('Reviewed registry includes every enabled Solana security from the captured
       'utf8',
     ),
   );
-  assert.equal(TOKENS.length, 39);
+  assert.equal(TOKENS.length, 41);
   assert.equal(new Set(TOKENS.map((t) => t.mint)).size, TOKENS.length);
   assert.deepEqual(
     TOKENS.map((t) => [t.symbol, t.mint]),

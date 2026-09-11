@@ -18,7 +18,8 @@
     "typecheck": "tsc --noEmit",
     "db:local": "wrangler d1 migrations apply DB --local --config wrangler.local.jsonc",
     "test:community": "node tests/community-flow.mjs",
-    "test:markets": "node --test tests/market-data.test.mjs"
+    "test:markets": "node --test tests/market-data.test.mjs tests/market-stock-row.test.mjs",
+    "audit:tokens": "node scripts/audit-tokens.mjs"
   },
   "dependencies": {
     "@base-ui/react": "1.7.0",

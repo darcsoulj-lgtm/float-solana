@@ -1,5 +1,5 @@
 // Reviewed against Backpack public assets and finalized Solana mint accounts.
-export const TOKEN_REVIEW_DATE = '2026-09-10';
+export const TOKEN_REVIEW_DATE = '2026-09-11';
 export const TOKENS = [
   {
     symbol: 'MU',
@@ -79,6 +79,13 @@ export const TOKENS = [
     source: 'https://api.backpack.exchange/api/v1/assets',
   },
   {
+    symbol: 'DNUT',
+    name: 'Krispy Kreme, Inc.',
+    shortName: 'Krispy Kreme',
+    mint: 'DNUTsCvKbKwu2RM72cUuW3TD9YpzArzACcqYQssjPLSk',
+    source: 'https://api.backpack.exchange/api/v1/assets',
+  },
+  {
     symbol: 'DRAM',
     name: 'Roundhill Memory ETF',
     shortName: 'Roundhill Memory ETF',
@@ -90,6 +97,13 @@ export const TOKENS = [
     name: 'GoPro',
     shortName: 'GoPro',
     mint: 'GPRR2u6NS5yBQHWGauoJ9HXgjrTH8dDsrBfTV5zAYvDH',
+    source: 'https://api.backpack.exchange/api/v1/assets',
+  },
+  {
+    symbol: 'GRND',
+    name: 'Grindr',
+    shortName: 'Grindr',
+    mint: 'GRNDYDpqwpCm6jVxpbh4xT5AM4r3p391qYsKTHqgaET2',
     source: 'https://api.backpack.exchange/api/v1/assets',
   },
   {

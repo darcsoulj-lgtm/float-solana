@@ -4003,3 +4003,7 @@ body:has(.member-shell) > footer {
 .market-overview .market-metrics small,
 .ecosystem-stats span,
 .ecosystem-stats small { font-size: 14px; }
+
+/* All market cells select the stock; the native button retains keyboard access. */
+.market-table tbody tr { cursor: pointer; }
+.market-table tbody tr:focus-within { outline: 2px solid var(--ring); outline-offset: -2px; }

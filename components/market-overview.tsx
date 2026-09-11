@@ -12,6 +12,7 @@ import { api } from '@/lib/client';
 import { TOKENS } from '@/lib/tokens';
 import type { MarketOverview, Book, SourceResult } from '@/lib/market-data';
 import { Button } from './ui/button';
+import { MarketStockRow } from './market-stock-row';
 import { BackpackEcosystem } from './backpack-ecosystem';
 import { tokenObservation } from '@/lib/token-observation';
 const money = (n: number | null | undefined, compact = false) =>
@@ -258,28 +259,20 @@ export function MarketOverviewPanel({ holdings }: { holdings: string[] }) {
               const row = tokenObservation(data, t.symbol, now);
               const change = row.change24h;
               return (
-                <tr
+                <MarketStockRow
                   key={t.symbol}
-                  className={selected === t.symbol ? 'is-selected' : ''}
+                  symbol={t.symbol}
+                  name={t.shortName}
+                  selected={selected === t.symbol}
+                  held={holdings.includes(t.symbol)}
+                  onSelect={(symbol) => {
+                    setSelected(symbol);
+                    setCopied(false);
+                    document
+                      .getElementById('selected-stock-detail')
+                      ?.scrollIntoView({ block: 'start' });
+                  }}
                 >
-                  <td>
-                    <button
-                      aria-pressed={selected === t.symbol}
-                      onClick={() => {
-                        setSelected(t.symbol);
-                        setCopied(false);
-                        document
-                          .getElementById('selected-stock-detail')
-                          ?.scrollIntoView({ block: 'start' });
-                      }}
-                    >
-                      <strong>{t.symbol}</strong>
-                      <span>{t.shortName}</span>
-                      {holdings.includes(t.symbol) && (
-                        <small>Your holding</small>
-                      )}
-                    </button>
-                  </td>
                   <td>
                     {money(row.price)}
                     <small className="market-cell-source">
@@ -300,7 +293,7 @@ export function MarketOverviewPanel({ holdings }: { holdings: string[] }) {
                       {row.volumeSource}
                     </small>
                   </td>
-                </tr>
+                </MarketStockRow>
               );
             })}
           </tbody>

@@ -49,7 +49,7 @@ export async function marketFlow(base, cookie) {
   );
   assert.equal(data.markets.data.MU.id, 40817);
   assert.ok(data.markets.data.MU.timestamp <= Date.now());
-  assert.equal(Object.keys(data.supplies.data).length, 39);
+  assert.equal(Object.keys(data.supplies.data).length, 41);
   assert.ok(
     data.supplies.data.TTWO.supply > 0,
     'Mint supply available even without CMC',

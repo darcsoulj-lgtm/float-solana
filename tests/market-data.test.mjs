@@ -61,6 +61,59 @@ test('Observed live Backpack registry matches the exact mint and excludes perpet
   assert.equal(listings.find((t) => t.symbol === 'MU').spot, 'MU.US_USDC');
   assert.ok(listings.every((t) => !t.spot?.endsWith('PERP')));
 });
+test('Full September 11 audit covers every enabled security and validates all 41 finalized mints', async () => {
+  const audit = JSON.parse(
+    await readFile(
+      new URL('../research/token-audit/2026-09-11.json', import.meta.url),
+      'utf8',
+    ),
+  );
+  const eligible = audit.assets.flatMap((a) =>
+    a.symbol.endsWith('.US')
+      ? a.tokens
+          .filter(
+            (t) =>
+              t.blockchain === 'Solana' &&
+              (t.depositEnabled || t.withdrawEnabled),
+          )
+          .map((t) => `${a.symbol.slice(0, -3)}:${t.contractAddress}`)
+      : [],
+  );
+  assert.deepEqual(
+    TOKENS.map((t) => `${t.symbol}:${t.mint}`).sort(),
+    eligible.sort(),
+  );
+  const listings = parseListings(audit.assets, audit.markets);
+  assert.equal(listings.length, 41);
+  for (const symbol of ['BABA', 'DNUT', 'GRND']) {
+    const listing = listings.find((t) => t.symbol === symbol);
+    assert.ok(listing, symbol);
+  }
+  const accounts = new Map(
+    audit.rows.map((t, i) => [t.mint, audit.chain.result.value[i]]),
+  );
+  audit.newMintCheck.verified.forEach((t, i) =>
+    accounts.set(t.mint, audit.newMintCheck.chain.result.value[i]),
+  );
+  const chain = {
+    result: {
+      context: { slot: audit.chain.result.context.slot },
+      value: TOKENS.map((t) => accounts.get(t.mint)),
+    },
+  };
+  const { parseSupplies } = await import(
+    pathToFileURL(dir + '/token-supply.mjs')
+  );
+  assert.equal(Object.keys(parseSupplies(chain)).length, 41);
+  TOKENS.forEach((t) => {
+    const info = accounts.get(t.mint).data.parsed.info;
+    const metadata = info.extensions.find(
+      (e) => e.extension === 'tokenMetadata',
+    ).state;
+    assert.equal(metadata.symbol, t.symbol);
+    assert.ok(metadata.name.endsWith(' - Backpack Securities'));
+  });
+});
 test('A matching ticker with a different mint never qualifies; duplicate registry matches fail closed', () => {
   const asset = {
     symbol: 'MU.US',
