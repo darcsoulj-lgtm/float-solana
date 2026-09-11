@@ -1,6 +1,6 @@
 export default function Page() {
   return (
-    <div className="page">
+    <div className="page info-page">
       <h1>Help</h1>
       <section className="panel">
         <h2>Join</h2>

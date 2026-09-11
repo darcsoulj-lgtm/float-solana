@@ -2,7 +2,7 @@ import Link from '@/components/site-link';
 import { TOKENS } from '@/lib/tokens';
 export default function Page() {
   return (
-    <div className="page">
+    <div className="page info-page">
       <h1>Membership</h1>
       <section className="panel">
         <h2>Eligibility</h2>

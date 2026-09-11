@@ -1,8 +1,7 @@
 export default function Page() {
   return (
-    <div className="page">
-      <p className="eyebrow">Trust & privacy</p>
-      <h1>Verified entry, considered disclosure.</h1>
+    <div className="page info-page">
+      <h1>Privacy</h1>
       <section className="panel">
         <h2>What connecting authorizes</h2>
         <p>
@@ -28,19 +27,27 @@ export default function Page() {
           supported token symbols and verification slots/times, verification
           expiry, badge choice, followed topics, saved-item references, reply
           notification preferences and in-app notifications, posts, replies,
-          reports, and moderation records. Raw wallet addresses are temporarily
-          stored in five-minute challenges and deleted after successful
-          verification or cleanup on later verification requests. The signed-in
-          session also keeps the verified public wallet address to recheck
-          holdings. This address is not exposed on profiles or returned by the
-          member API. It is removed on sign-out, replacement verification, or
-          expired-session cleanup on subsequent verification/refresh requests.
+          reports, and moderation records.
+        </p>
+        <p>
+          Raw wallet addresses are temporarily stored in five-minute challenges
+          and deleted after successful verification or cleanup on later
+          verification requests. The signed-in session also keeps the verified
+          public wallet address to recheck holdings. This address is not exposed
+          on profiles or returned by the member API. It is removed on sign-out,
+          replacement verification, or expired-session cleanup on subsequent
+          verification/refresh requests.
+        </p>
+        <p>
           Your latest token quantities are saved privately to show your
           portfolio value. They are returned only to your signed-in account,
-          never in public profiles, discussions or exports. Photos and bios are
-          visible to members; uploaded photos are resized and stripped of
-          metadata. Unrelated token holdings are discarded. Detected holdings
-          are replaced on each successful holdings check.
+          never in public profiles, discussions or exports. Unrelated token
+          holdings are discarded. Detected holdings are replaced on each
+          successful holdings check.
+        </p>
+        <p>
+          Photos and bios are visible to members; uploaded photos are resized
+          and stripped of metadata.
         </p>
         <p>
           Wallet troubleshooting logs record the wallet app name, the completed
@@ -76,9 +83,10 @@ export default function Page() {
         <p>
           Contributions and moderation records persist until operator deletion.
           Removing a contribution hides it from members but retains it for
-          moderation. Contact elcresearch.support@gmail.com for privacy,
-          deletion, or appeal requests. Automatic long-term retention deletion
-          is not yet implemented.
+          moderation. Contact{' '}
+          <a href="mailto:elcresearch.support@gmail.com">support</a> for
+          privacy, deletion, or appeal requests. Automatic long-term retention
+          deletion is not yet implemented.
         </p>
       </section>
       <section className="panel">

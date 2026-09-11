@@ -1,6 +1,6 @@
 export default function Page() {
   return (
-    <div className="page">
+    <div className="page info-page">
       <h1>About HolderPulse</h1>
       <section className="panel">
         <h2>For Backpack stock-token holders</h2>

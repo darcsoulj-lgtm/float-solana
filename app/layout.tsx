@@ -58,7 +58,7 @@ export default function RootLayout({
           <div className="footerlinks">
             <Link href="/about">About</Link>
             <Link href="/trust">Privacy</Link>
-            <Link href="/methodology">Methodology</Link>
+            <Link href="/methodology">Membership</Link>
             <Link href="/tokens">Supported stocks</Link>
             <Link href="/docs">Help</Link>
             <Link href="/admin/community">Admin</Link>

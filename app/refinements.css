@@ -817,32 +817,104 @@ fieldset.holding-filter-chips {
 }
 @media (max-width: 1000px) {
   body > header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
     height: auto;
-    min-height: 88px;
-    flex-wrap: wrap;
-    padding-block: 16px;
+    min-height: 0;
+    gap: 8px 12px;
+    padding-block: 12px;
   }
   body > header nav {
-    order: 3;
-    flex-basis: 100%;
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-content: flex-start;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  body > header nav a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
   }
   body > header > .theme-choices {
-    margin-left: auto;
+    margin: 0;
+    justify-self: end;
   }
   body > header > .nav-cta {
     display: none;
   }
 }
 @media (max-width: 540px) {
-  body > header > .theme-choices {
-    order: 4;
-    margin: 0;
-    width: 100%;
+  body > header {
+    padding-inline: 16px;
+    column-gap: 8px;
+  }
+  body > header .brand {
+    font-size: 28px;
+    min-width: 0;
+  }
+  body > header .brand strong {
+    font-size: 16px;
+    margin-left: 8px;
   }
   body > header > .theme-choices button {
-    flex: 1;
-    min-height: 40px;
+    width: 40px;
+    min-width: 40px;
+    min-height: 44px;
+    padding: 0;
   }
+  body > header > .theme-choices button span {
+    display: none;
+  }
+}
+.page.info-page {
+  width: 100%;
+  max-width: 800px;
+  padding: clamp(32px, 6vw, 64px) 24px 72px;
+  color: var(--foreground);
+  overflow-wrap: anywhere;
+}
+.info-page h1 {
+  margin: 0 0 32px;
+  font-size: clamp(28px, 4vw, 36px);
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+  font-weight: 650;
+}
+.info-page > .panel {
+  background: transparent;
+  box-shadow: none;
+  border: 0;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+  margin: 0;
+  padding: 24px 0;
+}
+.info-page h2 {
+  margin: 0 0 10px;
+  font-size: 18px;
+  line-height: 1.4;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.info-page p {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 16px;
+  line-height: 1.75;
+}
+.info-page p + p {
+  margin-top: 16px;
+}
+.info-page a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.info-page a:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 4px;
+  border-radius: 2px;
 }
 .volume-sort {
   display: inline-flex;
