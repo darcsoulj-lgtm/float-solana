@@ -373,6 +373,18 @@ export function MarketOverviewPanel({
           <summary>Sources &amp; timestamps</summary>
           <dl className="market-facts">
             <div>
+              <dt>Token identity</dt>
+              <dd>
+                <a
+                  href={token.source}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Backpack issuer record ↗
+                </a>
+              </dd>
+            </div>
+            <div>
               <dt>Price / change</dt>
               <dd>
                 {observation.priceSource} · {time(observation.priceTime)}

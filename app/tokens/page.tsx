@@ -30,6 +30,14 @@ export default function Page() {
               <div>
                 <h2>{t.symbol}</h2>
                 <p>{t.name}</p>
+                <a
+                  className="token-issuer-link"
+                  href={t.source}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Issuer record ↗
+                </a>
               </div>
               <a
                 href={'https://explorer.solana.com/address/' + t.mint}

@@ -1,7 +1,13 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { Moon, Sun, Monitor } from 'lucide-react';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 type Theme = 'system' | 'light' | 'dark';
+const themes = [
+  { value: 'light', label: 'Light', icon: Sun },
+  { value: 'dark', label: 'Dark', icon: Moon },
+  { value: 'system', label: 'System', icon: Monitor },
+] as const;
 export function ThemeToggle() {
   const [theme, setTheme] = useState<Theme>('system');
   useEffect(() => {
@@ -24,33 +30,35 @@ export function ThemeToggle() {
       media.removeEventListener('change', read);
     };
   }, []);
-  const next =
-    theme === 'system' ? 'light' : theme === 'light' ? 'dark' : 'system';
   return (
-    <button
-      type="button"
-      className="theme-toggle"
-      aria-label={`Theme: ${theme}. Switch to ${next}`}
-      title={`Theme: ${theme}. Switch to ${next}`}
-      onClick={() => {
+    <ToggleGroup
+      className="theme-choices"
+      aria-label="Appearance"
+      value={[theme]}
+      onValueChange={(values) => {
+        const next = values[0];
+        if (next !== 'light' && next !== 'dark' && next !== 'system') return;
         document.documentElement.dataset.theme = next;
         try {
           localStorage.setItem('hp-theme', next);
         } catch {
-          /* Device preference can still change in memory. */
+          /* Keep the preference in memory. */
         }
         setTheme(next);
         window.dispatchEvent(new Event('hp-theme'));
       }}
     >
-      {theme === 'dark' ? (
-        <Moon size={17} />
-      ) : theme === 'light' ? (
-        <Sun size={17} />
-      ) : (
-        <Monitor size={17} />
-      )}
-      <span>{theme[0].toUpperCase() + theme.slice(1)}</span>
-    </button>
+      {themes.map(({ value, label, icon: Icon }) => (
+        <ToggleGroupItem
+          key={value}
+          value={value}
+          aria-label={`${label} mode`}
+          title={`${label} mode`}
+        >
+          <Icon size={16} aria-hidden="true" />
+          <span>{label}</span>
+        </ToggleGroupItem>
+      ))}
+    </ToggleGroup>
   );
 }

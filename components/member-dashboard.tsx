@@ -312,6 +312,9 @@ export function MemberDashboard({
             </button>
           ))}
         </nav>
+        <div className="sidebar-appearance">
+          <ThemeToggle />
+        </div>
         <div className="sidebar-note">
           <Link href="/rules">
             Guidelines <ArrowUpRight size={14} />
@@ -605,7 +608,7 @@ export function MemberDashboard({
                   )}
                 </div>
                 <label className="profile-field">
-                  Nickname
+                  <span>Nickname</span>
                   <input
                     value={alias}
                     onChange={(e) => setAlias(e.target.value)}
@@ -614,12 +617,12 @@ export function MemberDashboard({
                     required
                   />
                   <small>
-                    Use a personal alias. Your wallet address is never your
-                    display name.
+                    3–24 characters. Letters, numbers, spaces, periods,
+                    underscores or hyphens.
                   </small>
                 </label>
                 <label className="profile-field">
-                  Bio
+                  <span>Bio</span>
                   <textarea
                     value={bio}
                     maxLength={160}
@@ -668,6 +671,10 @@ export function MemberDashboard({
                     checked={notifyReplies}
                     onCheckedChange={(v) => setNotifyReplies(v === true)}
                   />
+                </div>
+                <div className="profile-appearance">
+                  <h3>Appearance</h3>
+                  <ThemeToggle />
                 </div>
                 <div className="profile-actions">
                   <Button type="submit" disabled={busy}>
