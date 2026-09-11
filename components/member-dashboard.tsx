@@ -69,6 +69,7 @@ export function MemberDashboard({
   });
   const [feed, setFeed] = useState('personal');
   const [topic, setTopic] = useState('all');
+  const [coverageSymbol, setCoverageSymbol] = useState('all');
   const [threadId, setThreadId] = useState('');
   const [data, setData] = useState<MemberHome | null>(null);
   const [threads, setThreads] = useState<CommunityThread[]>([]);
@@ -361,6 +362,9 @@ export function MemberDashboard({
               <MemberBrief
                 key={view}
                 kind={view === 'brief' ? 'news' : 'event'}
+                holdings={holdings.map((h) => h.symbol)}
+                symbol={held.has(coverageSymbol) ? coverageSymbol : 'all'}
+                onSymbolChange={setCoverageSymbol}
                 onCalendar={() => navigate('calendar')}
                 onDiscuss={(item) => {
                   startDiscussion(item.title.slice(0, 140), item.symbols[0]);

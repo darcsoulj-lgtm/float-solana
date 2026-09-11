@@ -1027,3 +1027,83 @@ body:has(.operations-page) > footer {
 .brief-story-footer button {
   min-height: 36px;
 }
+
+/* Compact reading rows: a single panel, with actions beside the story. */
+.holder-brief .brief-stories {
+  gap: 0;
+  border: 1px solid #dce1e8;
+  border-radius: 10px;
+  background: #fff;
+  overflow: hidden;
+}
+.brief-story.news-row {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 16px 20px;
+  border: 0;
+  border-bottom: 1px solid #e5e9ee;
+  border-radius: 0;
+  background: #fff;
+}
+.brief-story.news-row:last-child {
+  border-bottom: 0;
+}
+.news-row-content {
+  flex: 1;
+  min-width: 0;
+}
+.brief-story.news-row h2 {
+  font-size: 20px;
+  line-height: 1.35;
+  margin: 6px 0;
+  letter-spacing: -0.25px;
+}
+.news-row .brief-meta {
+  font-size: 12px;
+  gap: 6px;
+}
+.news-row .brief-summary {
+  margin: 0;
+  color: #5a6677;
+  font-size: 15px;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.news-row .brief-story-footer {
+  flex: 0 0 116px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.news-row .brief-story-footer a,
+.news-row .brief-story-footer button {
+  font-size: 13px;
+  min-height: 36px;
+}
+@media (max-width: 700px) {
+  .brief-story.news-row {
+    display: block;
+    padding: 14px 16px;
+  }
+  .brief-story.news-row h2 {
+    font-size: 19px;
+  }
+  .news-row .brief-story-footer {
+    flex-direction: row;
+    justify-content: space-between;
+    margin-top: 6px;
+  }
+  .news-row .brief-summary {
+    -webkit-line-clamp: 2;
+  }
+}

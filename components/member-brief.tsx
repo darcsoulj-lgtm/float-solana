@@ -8,7 +8,6 @@ import {
   RefreshCw,
   Clock3,
 } from 'lucide-react';
-import { Tabs, TabsList, TabsTrigger } from './ui/tabs';
 import { Button } from './ui/button';
 import { SearchPicker } from './search-picker';
 import { api } from '@/lib/client';
@@ -27,37 +26,41 @@ export function SourceCard({
   onDiscuss?: (item: EditorialItem) => void;
 }) {
   return (
-    <article className={`brief-story ${item.featured ? 'is-featured' : ''}`}>
-      <div className="brief-meta">
-        <span>{item.publisher}</span>
-        <span aria-hidden="true">·</span>
-        <time dateTime={new Date(item.published_at).toISOString()}>
-          {new Date(item.published_at).toLocaleDateString(undefined, {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric',
-            timeZone: 'UTC',
-          })}
-        </time>
-        <span className="brief-inline-tags">
-          {item.symbols.map((s) => (
-            <span key={s}>{s}</span>
-          ))}
-        </span>
-        {!!item.featured && <span className="brief-featured">Featured</span>}
+    <article
+      className={`brief-story news-row ${item.featured ? 'is-featured' : ''}`}
+    >
+      <div className="news-row-content">
+        <div className="brief-meta">
+          <span>{item.publisher}</span>
+          <span aria-hidden="true">·</span>
+          <time dateTime={new Date(item.published_at).toISOString()}>
+            {new Date(item.published_at).toLocaleDateString(undefined, {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+              timeZone: 'UTC',
+            })}
+          </time>
+          <span className="brief-inline-tags">
+            {item.symbols.map((s) => (
+              <span key={s}>{s}</span>
+            ))}
+          </span>
+          {!!item.featured && <span className="brief-featured">Featured</span>}
+        </div>
+        {item.coverage === 'context' && (
+          <p className="coverage-context">
+            Industry context · not a detected holding
+          </p>
+        )}
+        <h2>
+          <a href={item.url} target="_blank" rel="noopener noreferrer">
+            {item.title}
+            <ArrowUpRight size={16} />
+          </a>
+        </h2>
+        <p className="brief-summary">{item.summary}</p>
       </div>
-      {item.coverage === 'context' && (
-        <p className="coverage-context">
-          Industry context · not a detected holding
-        </p>
-      )}
-      <h2>
-        <a href={item.url} target="_blank" rel="noopener noreferrer">
-          {item.title}
-          <ArrowUpRight size={16} />
-        </a>
-      </h2>
-      <p className="brief-summary">{item.summary}</p>
       <div className="brief-story-footer">
         <a href={item.url} target="_blank" rel="noopener noreferrer">
           Read original <ArrowUpRight size={15} />
@@ -110,13 +113,17 @@ export function MemberBrief({
   kind,
   onDiscuss,
   onCalendar,
+  holdings,
+  symbol,
+  onSymbolChange,
 }: {
   kind: 'news' | 'event';
+  holdings: string[];
+  symbol: string;
+  onSymbolChange: (symbol: string) => void;
   onDiscuss: (item: EditorialItem) => void;
   onCalendar: () => void;
 }) {
-  const [scope, setScope] = useState('personal'),
-    [symbol, setSymbol] = useState('all');
   const [data, setData] = useState<BriefData | null>(null),
     [events, setEvents] = useState<EditorialItem[]>([]);
   const [error, setError] = useState(''),
@@ -131,7 +138,7 @@ export function MemberBrief({
       .toISOString()
       .slice(0, 10);
   });
-  const query = `editorial/brief?kind=${kind}&scope=${scope}&symbol=${encodeURIComponent(symbol)}&today=${today}`;
+  const query = `editorial/brief?kind=${kind}&scope=personal&symbol=${encodeURIComponent(symbol)}&today=${today}`;
   const requestKey = query + '&retry=' + retry;
   const loading = loadedKey !== requestKey;
   useEffect(() => {
@@ -143,7 +150,7 @@ export function MemberBrief({
         api<BriefData>(query),
         kind === 'news'
           ? api<BriefData>(
-              `editorial/brief?kind=event&scope=${scope}&symbol=${encodeURIComponent(symbol)}&today=${today}`,
+              `editorial/brief?kind=event&scope=personal&symbol=${encodeURIComponent(symbol)}&today=${today}`,
             )
           : Promise.resolve(null),
       ]);
@@ -164,28 +171,18 @@ export function MemberBrief({
     return () => {
       active = false;
     };
-  }, [query, kind, scope, symbol, requestKey, today]);
+  }, [query, kind, symbol, requestKey, today]);
   return (
     <div className="holder-brief">
       <div className="brief-toolbar">
-        <Tabs
-          value={scope}
-          onValueChange={(v) => setScope(String(v))}
-          className="brief-scope"
-        >
-          <TabsList aria-label="Coverage">
-            <TabsTrigger value="personal">My holdings</TabsTrigger>
-            <TabsTrigger value="all">All coverage</TabsTrigger>
-          </TabsList>
-        </Tabs>
         <div className="brief-filter">
           <SearchPicker
             label="Filter coverage by stock"
             value={symbol}
-            onChange={setSymbol}
+            onChange={onSymbolChange}
             items={[
-              { value: 'all', label: 'All stocks' },
-              ...TOKENS.map((t) => ({
+              { value: 'all', label: 'All my holdings' },
+              ...TOKENS.filter((t) => holdings.includes(t.symbol)).map((t) => ({
                 value: t.symbol,
                 label: `${t.symbol} · ${t.shortName}`,
               })),
@@ -201,11 +198,9 @@ export function MemberBrief({
         </Button>
       </div>
       <p className="brief-scope-note">
-        {scope === 'personal'
-          ? kind === 'news'
-            ? 'Direct company news for your verified holdings.'
-            : 'Company events for your verified holdings.'
-          : 'Reviewed coverage across supported stocks.'}{' '}
+        {kind === 'news'
+          ? 'News about the stocks you hold.'
+          : 'Company events for the stocks you hold.'}{' '}
         <span>
           {kind === 'event'
             ? 'Times are shown in your timezone.'
@@ -229,7 +224,10 @@ export function MemberBrief({
             <section className="up-next-strip" aria-label="Upcoming events">
               <div>
                 <CalendarDays size={19} />
-                <strong>Up next</strong>
+                <strong>
+                  Next {events.length}{' '}
+                  {events.length === 1 ? 'event' : 'events'}
+                </strong>
                 <button onClick={onCalendar}>
                   Calendar <ArrowUpRight size={14} />
                 </button>
@@ -273,18 +271,17 @@ export function MemberBrief({
               </h2>
               <p>
                 {kind === 'news'
-                  ? 'Coverage is curated and growing. Explore all coverage for broader industry news.'
+                  ? 'No company news has been published for these holdings yet.'
                   : 'Only sourced dates appear here. We’ll label estimates clearly when they are added.'}
               </p>
-              {(scope === 'personal' || symbol !== 'all') && (
+              {symbol !== 'all' && (
                 <Button
                   variant="outline"
                   onClick={() => {
-                    setScope('all');
-                    setSymbol('all');
+                    onSymbolChange('all');
                   }}
                 >
-                  Explore all coverage
+                  Show all my holdings
                 </Button>
               )}
             </div>

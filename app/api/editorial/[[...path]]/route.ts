@@ -75,7 +75,7 @@ async function handler(req: Request) {
           kind,
           symbol,
           symbol,
-          scope,
+          'personal',
           member!.id,
           kind,
           Date.now(),

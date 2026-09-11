@@ -39,10 +39,16 @@ export async function editorialFlow(base, cookie) {
     ),
   );
   assert.equal(
-    (await call('brief?scope=all')).items.find(
+    (await call('operations', undefined, { admin: true })).items.find(
       (i) => i.id === 'nvda-2026-q2-memory-context',
     ).coverage,
     'context',
+  );
+  assert.ok(
+    !(await call('brief?scope=all')).items.some(
+      (i) => i.coverage === 'context',
+    ),
+    'Legacy all-scope requests cannot broaden holdings coverage',
   );
   const initial = await call('operations', undefined, { admin: true });
   const seed = initial.items.find((i) => i.id === 'skhy-future-forum-2026');
