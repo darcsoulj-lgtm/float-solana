@@ -834,7 +834,7 @@ export function MemberDashboard({
                     Load more
                   </Button>
                 )}
-                {!loading && (
+                {!loading && view === 'saved' && sourceItems.length > 0 && (
                   <section className="member-sources">
                     <div className="source-heading">
                       <div>
