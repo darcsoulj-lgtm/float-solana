@@ -21,6 +21,7 @@ export type TokenMarket = {
   marketCap: number | null;
   supply: number | null;
   volume24h: number | null;
+  dexVolume24h?: number | null;
   change24h: number | null;
   change7d: number | null;
   change30d: number | null;
@@ -93,6 +94,7 @@ export function parseTokenMarkets(
       marketCap: positive(quote.market_cap),
       supply: positive(row.circulating_supply),
       volume24h: nonnegative(quote.volume_24h),
+      dexVolume24h: nonnegative(quote.dex_volume_24h),
       change24h: numeric(quote.percent_change_24h),
       change7d: numeric(quote.percent_change_7d),
       change30d: numeric(quote.percent_change_30d),

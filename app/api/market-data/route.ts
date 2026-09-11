@@ -8,8 +8,6 @@ import {
   fetchCatalog,
   fetchPools,
   fetchPrices,
-  fetchTokenVolumes,
-  volumeCacheKey,
   parseBook,
   publicJson,
 } from '@/lib/market-data';
@@ -59,7 +57,7 @@ export async function GET(req: Request) {
       );
       return json({ book, reason: null });
     }
-    const [pools, prices, markets, supplies, volumes] = await Promise.all([
+    const [pools, prices, markets, supplies] = await Promise.all([
       cachedMarket(
         db(),
         'dex-pools-v1:' + TOKEN_REVIEW_DATE,
@@ -72,7 +70,7 @@ export async function GET(req: Request) {
         MARKET_REFRESH_MS,
         () => fetchPrices(),
       ),
-      cachedMarket(db(), 'cmc-tokens-v1', CMC_REFRESH_MS, () =>
+      cachedMarket(db(), 'cmc-tokens-v2', CMC_REFRESH_MS, () =>
         fetchTokenMarkets(runtime().CMC_API_KEY),
       ),
       cachedMarket(
@@ -81,14 +79,8 @@ export async function GET(req: Request) {
         MARKET_REFRESH_MS,
         () => fetchSupplies(runtime().SOLANA_RPC_URL),
       ),
-      cachedMarket(
-        db(),
-        volumeCacheKey(runtime().COINGECKO_PRO_API_KEY),
-        MARKET_REFRESH_MS,
-        () => fetchTokenVolumes(fetch, runtime().COINGECKO_PRO_API_KEY),
-      ),
     ]);
-    return json({ catalog, pools, prices, markets, supplies, volumes });
+    return json({ catalog, pools, prices, markets, supplies });
   } catch (e) {
     if (e instanceof AppError) return json({ error: e.message }, e.status);
     console.error(

@@ -411,6 +411,33 @@ const {
 } = await import(pathToFileURL(dir + '/cmc-data.mjs'));
 const cmc = await fixture('cmc-quotes-all');
 const fixtureNow = Date.parse(cmc.status.timestamp);
+test('CMC detail volume uses only the explicit DEX field, preserving zero and rejecting unavailable data', () => {
+  for (const value of [1234, 0, null, -1, '', 'NaN', undefined]) {
+    const payload = structuredClone(cmc);
+    const row = payload.data.find((r) => r.id === 40817);
+    const quote = row.quote.find((q) => q.symbol === 'USD');
+    quote.dex_volume_24h = value;
+    quote.volume_24h = 999999;
+    const parsed = parseTokenMarkets(payload, fixtureNow);
+    const expected = value === 1234 || value === 0 ? value : null;
+    assert.equal(parsed.MU.dexVolume24h, expected);
+    const data = { markets: source(parsed, fixtureNow) };
+    assert.equal(
+      tokenObservation(data, 'MU', fixtureNow).cmcDexVolume24h,
+      expected,
+    );
+    data.markets.stale = true;
+    assert.equal(
+      tokenObservation(data, 'MU', fixtureNow).cmcDexVolume24h,
+      null,
+    );
+    data.markets.stale = false;
+    assert.equal(
+      tokenObservation(data, 'MU', fixtureNow + 900001).cmcDexVolume24h,
+      null,
+    );
+  }
+});
 test('CMC live fixture matches six supported Solana mints and retains original timestamps', () => {
   const rows = parseTokenMarkets(cmc, fixtureNow);
   assert.equal(Object.keys(rows).length, 6);

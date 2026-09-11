@@ -53,7 +53,6 @@ export function MarketOverviewPanel({
     [busy, setBusy] = useState(false),
     [refresh, setRefresh] = useState(0),
     [copied, setCopied] = useState(false);
-  const [volumeSort, setVolumeSort] = useState<'desc' | 'asc' | null>(null);
   const [bookData, setBook] = useState<SourceResult<Book> | null>(null),
     [bookMessage, setBookReason] = useState('Loading order book…'),
     [bookSymbol, setBookSymbol] = useState(''),
@@ -145,18 +144,6 @@ export function MarketOverviewPanel({
       (scope === 'all' || holdings.includes(t.symbol)) &&
       (t.symbol + ' ' + t.name).toLowerCase().includes(query.toLowerCase()),
   );
-  if (volumeSort)
-    matches.sort((a, b) => {
-      const av = tokenObservation(data, a.symbol, now).onchainVolume24h;
-      const bv = tokenObservation(data, b.symbol, now).onchainVolume24h;
-      if (av === null)
-        return bv === null ? a.symbol.localeCompare(b.symbol) : 1;
-      if (bv === null) return -1;
-      return (
-        (volumeSort === 'desc' ? bv - av : av - bv) ||
-        a.symbol.localeCompare(b.symbol)
-      );
-    });
   const maxPage = Math.max(0, Math.ceil(matches.length / 10) - 1),
     currentPage = Math.min(page, maxPage),
     rows = matches.slice(currentPage * 10, currentPage * 10 + 10);
@@ -235,11 +222,6 @@ export function MarketOverviewPanel({
           below.
         </output>
       )}
-      {data?.volumes?.stale && (
-        <output className="market-warning">
-          Onchain volume is temporarily unavailable. Retrying automatically.
-        </output>
-      )}
       {scope === 'all' && (
         <BackpackEcosystem
           data={data}
@@ -278,33 +260,6 @@ export function MarketOverviewPanel({
               <th>Token price</th>
               <th>24h change</th>
               <th>Issued value · est.</th>
-              <th
-                aria-sort={
-                  volumeSort === 'desc'
-                    ? 'descending'
-                    : volumeSort === 'asc'
-                      ? 'ascending'
-                      : 'none'
-                }
-              >
-                <button
-                  type="button"
-                  className="volume-sort"
-                  onClick={() => {
-                    setVolumeSort((v) => (v === 'desc' ? 'asc' : 'desc'));
-                    setPage(0);
-                  }}
-                >
-                  Onchain volume · 24h{' '}
-                  <span aria-hidden="true">
-                    {volumeSort === 'desc'
-                      ? '↓'
-                      : volumeSort === 'asc'
-                        ? '↑'
-                        : '↕'}
-                  </span>
-                </button>
-              </th>
             </tr>
           </thead>
           <tbody>
@@ -335,9 +290,6 @@ export function MarketOverviewPanel({
                     {pct(change)}
                   </td>
                   <td>{money(row.issuedValue, true)}</td>
-                  <td title="Rolling 24h token volume · GeckoTerminal-covered Solana DEX activity">
-                    {money(row.onchainVolume24h, true)}
-                  </td>
                 </MarketStockRow>
               );
             })}
@@ -354,17 +306,8 @@ export function MarketOverviewPanel({
         <details className="market-methodology">
           <summary>Table sources</summary>
           <p>
-            Prices: CoinMarketCap, then DEX pool or DefiLlama. Onchain volume:
-            rolling 24-hour token activity from{' '}
-            <a
-              href="https://www.geckoterminal.com"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              GeckoTerminal
-            </a>
-            . Updated {time(data?.volumes?.fetchedAt)}. Missing coverage stays
-            blank; CMC and pool volumes are not added to this figure.
+            Prices: CoinMarketCap, then DEX pool or DefiLlama. Issued value:
+            Solana mint supply × token price.
           </p>
         </details>
         <div>
@@ -402,7 +345,9 @@ export function MarketOverviewPanel({
           </div>
           <span className="market-chain">Solana</span>
         </header>
-        <div className="market-metrics token-metrics">
+        <div
+          className={`market-metrics token-metrics ${observation.cmcDexVolume24h === null ? 'two-metrics' : ''}`}
+        >
           <div>
             <span>Token price</span>
             <strong>{money(observation.price)}</strong>
@@ -419,10 +364,14 @@ export function MarketOverviewPanel({
               {pct(observation.change24h)}
             </strong>
           </div>
-          <div>
-            <span>Onchain volume · 24h</span>
-            <strong>{money(observation.onchainVolume24h, true)}</strong>
-          </div>
+          {observation.cmcDexVolume24h !== null && (
+            <div>
+              <span title="CoinMarketCap-covered DEX trading. Coverage may differ from other platforms.">
+                DEX volume · 24h
+              </span>
+              <strong>{money(observation.cmcDexVolume24h, true)}</strong>
+            </div>
+          )}
         </div>
         <details className="market-methodology compact-sources">
           <summary>Sources &amp; timestamps</summary>
@@ -445,39 +394,33 @@ export function MarketOverviewPanel({
                 {observation.priceSource} · {time(observation.priceTime)}
               </dd>
             </div>
-            <div>
-              <dt>Onchain volume · 24h</dt>
-              <dd>
-                <a
-                  href={
-                    'https://www.geckoterminal.com/solana/tokens/' + token.mint
-                  }
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  GeckoTerminal ↗
-                </a>{' '}
-                · {time(observation.onchainVolumeTime)}
-              </dd>
-            </div>
+            {observation.cmcDexVolume24h !== null && observed && (
+              <div>
+                <dt>DEX volume · 24h</dt>
+                <dd>
+                  <a
+                    href={observed.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    CoinMarketCap ↗
+                  </a>{' '}
+                  · {time(observed.timestamp)}
+                </dd>
+              </div>
+            )}
             <div>
               <dt>Supply</dt>
               <dd>Solana · {time(observation.supply?.timestamp)}</dd>
             </div>
-            <div>
-              <dt>CMC venue volume · 24h</dt>
-              <dd>
-                {money(observed?.volume24h, true)} · Separate venue coverage;
-                not added to onchain volume.
-              </dd>
-            </div>
           </dl>
-          <p>
-            Rolling 24-hour Solana DEX activity covered by GeckoTerminal.
-            Refreshes every two minutes while the market view is active. Venue
-            coverage and rolling windows can differ from other platforms. Volume
-            is not net investment or unique capital.
-          </p>
+          {observation.cmcDexVolume24h !== null && (
+            <p>
+              Rolling 24-hour volume across CMC-covered DEX markets. Updated
+              with the existing five-minute feed; coverage can differ from other
+              platforms.
+            </p>
+          )}
         </details>
         <div className="market-metrics token-metrics market-secondary-metrics">
           <div>
@@ -745,10 +688,10 @@ export function MarketOverviewPanel({
           CMC market cap measures circulating tokens at the provider’s price,
           not the underlying company’s market cap. DEX Screener prices and
           liquidity come from indexed pools where the stock token is the base
-          asset. When a CMC price or volume is unavailable, the table labels a
-          fallback from the pool with the highest reported liquidity. DefiLlama
-          is a separate token-price observation, not the underlying share price.
-          Neither source proves backing or solvency.
+          asset. When a CMC price is unavailable, the table uses a fallback from
+          the pool with the highest reported liquidity. DefiLlama is a separate
+          token-price observation, not the underlying share price. Neither
+          source proves backing or solvency.
         </p>
         <p>
           Fetched timestamps show when we retrieved data. DEX Screener does not
