@@ -10,7 +10,7 @@ import {
 import { editorialColumns, editorialRow } from '@/lib/editorial-server';
 import { AppError } from '@/lib/validation';
 const headers = { 'Cache-Control': 'private, no-store', Vary: 'Cookie' };
-const prefix = 'headlines-v1:';
+const prefix = 'headlines-v2:';
 async function handle(req: Request) {
   try {
     const member = await communityMember(req);
@@ -150,6 +150,7 @@ async function handle(req: Request) {
         hasMore: items.length > offset + 20,
         lastReviewed: last || null,
         pending,
+        unavailable,
         notice: unavailable
           ? `Coverage is updating or unavailable for ${unavailable} holding${unavailable === 1 ? '' : 's'}.`
           : 'Company-matched headlines via Yahoo Finance RSS. Publisher updates may be delayed.',

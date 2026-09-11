@@ -169,21 +169,36 @@ export function MemberBrief({
     let active = true;
     currentKey.current = requestKey;
     (async () => {
-      await api('editorial/initialize', {});
+      // Editorial/calendar availability must not prevent the separate news feed loading.
       if (kind === 'news')
-        await api('holder-news', { symbol }).catch(() => null);
+        await api('editorial/initialize', {}).catch(() => null);
+      else await api('editorial/initialize', {});
+      let refreshFailed = false;
+      if (kind === 'news')
+        await api('holder-news', { symbol }).catch(() => {
+          refreshFailed = true;
+        });
       const [feed, calendar] = await Promise.all([
         api<BriefData>(query),
         kind === 'news'
           ? api<BriefData>(
               `editorial/brief?kind=event&scope=personal&symbol=${encodeURIComponent(symbol)}&today=${today}`,
-            )
+            ).catch(() => null)
           : Promise.resolve(null),
       ]);
       if (active) {
         setError('');
         setLoadedKey(requestKey);
-        setData(feed);
+        setData(
+          refreshFailed
+            ? {
+                ...feed,
+                unavailable: feed.unavailable || 1,
+                notice:
+                  'News could not refresh. Showing saved headlines where available.',
+              }
+            : feed,
+        );
         setEvents(calendar?.items.slice(0, 2) || []);
       }
     })().catch((e) => {
@@ -307,13 +322,31 @@ export function MemberBrief({
                 <CalendarDays size={28} />
               )}
               <h2>
-                {kind === 'news' ? 'No news yet.' : 'No upcoming events.'}
+                {kind === 'news'
+                  ? data.pending
+                    ? 'Loading news…'
+                    : data.unavailable
+                      ? 'News unavailable'
+                      : 'No recent headlines'
+                  : 'No upcoming events.'}
               </h2>
               <p>
                 {kind === 'news'
-                  ? 'No matching headlines from the last seven days.'
+                  ? data.pending
+                    ? 'Fetching headlines for your holdings.'
+                    : data.unavailable
+                      ? 'The news feed could not update. Try again shortly.'
+                      : 'No matching headlines in this feed from the last seven days.'
                   : 'Events appear once a source is confirmed.'}
               </p>
+              {kind === 'news' && !!data.unavailable && !data.pending && (
+                <Button
+                  variant="outline"
+                  onClick={() => setRetry((v) => v + 1)}
+                >
+                  Try again
+                </Button>
+              )}
               {symbol !== 'all' && (
                 <Button
                   variant="outline"

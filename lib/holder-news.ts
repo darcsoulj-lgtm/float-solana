@@ -1,4 +1,5 @@
 import { TOKENS } from './tokens';
+import { SourceHttpError } from './market-data';
 export const NEWS_WINDOW_MS = 7 * 86400000;
 export const HEADLINE_REFRESH_MS = 15 * 60000;
 export type Headline = {
@@ -168,8 +169,9 @@ export async function fetchHeadlines(
   now = Date.now(),
 ) {
   companyAliases(symbol);
-  // Foreign listing override; all other feeds remain candidate sources and must pass company-name matching.
-  const ticker = symbol === 'SKHY' ? '000660.KS' : symbol;
+  // Feed tickers are only candidates; every headline must still match the company.
+  // Yahoo's SKHY feed covers the US listing and provides more direct company news.
+  const ticker = symbol;
   const url = new URL('https://feeds.finance.yahoo.com/rss/2.0/headline');
   url.search = new URLSearchParams({
     s: ticker,
@@ -178,10 +180,12 @@ export async function fetchHeadlines(
   }).toString();
   const r = await fetcher(url, {
     signal: AbortSignal.timeout(10000),
-    redirect: 'error',
+    // Cloudflare Workers rejects redirect:'error' before issuing a request.
+    // Manual mode plus the status check rejects redirects without following them.
+    redirect: 'manual',
     headers: { Accept: 'application/rss+xml, application/xml' },
   });
-  if (!r.ok) throw Error('Headline feed unavailable');
+  if (!r.ok) throw new SourceHttpError(url.hostname, r);
   const reader = r.body?.getReader();
   if (!reader) throw Error('Headline feed unavailable');
   const decoder = new TextDecoder();

@@ -22,6 +22,7 @@ export type EditorialItem = {
 export type BriefData = {
   notice?: string;
   pending?: number;
+  unavailable?: number;
   items: EditorialItem[];
   hasMore: boolean;
   lastReviewed: number | null;

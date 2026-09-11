@@ -17,6 +17,7 @@ for (const file of [
   'editorial-starter',
   'news-provider',
   'holder-news',
+  'market-data',
   'avatar-image',
 ]) {
   const source = await readFile(
@@ -31,7 +32,7 @@ for (const file of [
       },
     })
     .outputText.replace(
-      /from '\.\/(tokens|validation|community-types|community-post|editorial|editorial-starter)'/g,
+      /from '\.\/(tokens|validation|community-types|community-post|editorial|editorial-starter|market-data)'/g,
       "from './$1.mjs'",
     );
   await writeFile(
@@ -789,9 +790,15 @@ test('Every supported token receives an automatic company-matched feed candidate
     const now = Date.now();
     const rows = await fetchHeadlines(
       t.symbol,
-      async (url) => {
+      async (url, options) => {
         called = true;
         assert.equal(new URL(url).hostname, 'feeds.finance.yahoo.com');
+        assert.equal(
+          options.redirect,
+          'manual',
+          'Must use the Workers-supported redirect policy',
+        );
+        assert.equal(new URL(url).searchParams.get('s'), t.symbol);
         return new Response(
           `<rss><item><title>${companyAliases(t.symbol)[0]} update</title><pubDate>${new Date(now - 1000).toUTCString()}</pubDate><link>https://finance.yahoo.com/news/company-update</link></item></rss>`,
         );
@@ -800,6 +807,23 @@ test('Every supported token receives an automatic company-matched feed candidate
     );
     assert.ok(called);
     assert.equal(rows.length, 1, t.symbol);
+  }
+});
+test('Headline transport rejects redirects and upstream failures without following links', async () => {
+  for (const status of [301, 302, 307, 403, 429, 503]) {
+    let calls = 0;
+    await assert.rejects(
+      fetchHeadlines('MU', async (_url, options) => {
+        calls++;
+        assert.equal(options.redirect, 'manual');
+        return new Response(null, {
+          status,
+          headers: { Location: 'https://example.com/redirect' },
+        });
+      }),
+      new RegExp('HTTP ' + status),
+    );
+    assert.equal(calls, 1);
   }
 });
 test('Captured live feeds contain directly matched news for MU, SPCX and newly added stocks', async () => {
@@ -822,6 +846,20 @@ test('Captured live feeds contain directly matched news for MU, SPCX and newly a
     assert.ok(items.length > 0, symbol);
     assert.ok(items.every((n) => n.symbols[0] === symbol));
   }
+});
+
+test('Headline rate limits retain the provider retry delay for the shared cache', async () => {
+  await assert.rejects(
+    fetchHeadlines(
+      'MU',
+      async () =>
+        new Response(null, {
+          status: 429,
+          headers: { 'Retry-After': '600' },
+        }),
+    ),
+    (error) => error.retryAfterMs === 600000,
+  );
 });
 
 test('Profile JPEG validation accepts a real small image and rejects fake or oversized content', async () => {
