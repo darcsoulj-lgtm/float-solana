@@ -32,7 +32,7 @@ export function BackpackEcosystem({
       <div className="ecosystem-heading">
         <div>
           <span className="market-kicker">BACKPACK · SOLANA</span>
-          <h2>Backpack, at a glance.</h2>
+          <h2>Overview</h2>
         </div>
         <span className="market-chain">
           {coverage.pricedCount} / {TOKENS.length} with recent prices
@@ -52,24 +52,22 @@ export function BackpackEcosystem({
           <strong>
             {coverage.supplyCount} / {TOKENS.length}
           </strong>
-          <small>Validated directly on Solana</small>
+          <small>Solana mints checked</small>
         </div>
         <div>
           <span>Supported stock tokens</span>
           <strong>{TOKENS.length}</strong>
-          <small>Our reviewed membership registry</small>
+          <small>Supported on HolderPulse</small>
         </div>
       </div>
       <p className="market-footnote">
-        Total minted supply × recent token price, including tokens held in
-        reserves. This estimate is not circulating market cap, company value or
-        proof of backing. Coverage is shown explicitly; tokens missing supply or
-        a recent price are excluded.
+        Total minted supply × observed price. Includes reserves; not circulating
+        market cap or company value. Missing data is excluded.
       </p>
       <div className="ecosystem-columns">
         <section className="ecosystem-panel">
           <h3>Largest issued token values</h3>
-          <p>Top five estimates · all supported tokens in the table below</p>
+          <p>Top 5 · estimated issued value</p>
           {leaders.map((row) => (
             <button
               key={row.symbol}
@@ -103,7 +101,7 @@ export function BackpackEcosystem({
         </section>
       </div>
       <details className="market-methodology ecosystem-rights">
-        <summary>Why Backpack—and what a token actually proves</summary>
+        <summary>Token rights</summary>
         <p>
           We focus on people holding Backpack-supported stock tokens, with
           membership verified by the exact Solana mint. That check establishes a

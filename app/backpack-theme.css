@@ -1,0 +1,192 @@
+/* Backpack-inspired accent palette; HolderPulse remains an independent product. */
+:root,
+.dark {
+  --brand-red: #e33e3f;
+  --brand-accent: #c92d35;
+  --brand-accent-ink: #b3222b;
+  --background: #f7f7f8;
+  --foreground: #0e0f14;
+  --card: #fff;
+  --card-foreground: #0e0f14;
+  --primary: var(--brand-accent);
+  --primary-foreground: #fff;
+  --secondary: #f0f0f2;
+  --secondary-foreground: #292a30;
+  --muted: #f0f0f2;
+  --muted-foreground: #62636b;
+  --accent: #f0f0f2;
+  --accent-foreground: #0e0f14;
+  --border: #dedee3;
+  --input: #cacbd2;
+  --ring: var(--brand-accent);
+}
+body,
+.member-shell {
+  background: var(--background);
+  color: var(--foreground);
+}
+.member-sidebar,
+.preview-nav {
+  background: #f0f0f2;
+  border-color: var(--border);
+}
+.brand,
+.member-brand,
+.footer-brand,
+.public-hero h1,
+.public-club h2,
+.public-club h3 {
+  color: var(--foreground);
+}
+.brandmark,
+.member-brand > span,
+.preview-monogram {
+  color: var(--brand-red);
+}
+.member-brand small,
+.brand strong > span {
+  color: var(--muted-foreground);
+}
+.public-hero h1 {
+  font-size: clamp(36px, 4.5vw, 60px);
+  font-weight: 650;
+  font-style: normal;
+  letter-spacing: -1.8px;
+}
+.public-hero {
+  padding-block: 64px 48px;
+}
+.public-hero p {
+  max-width: 580px;
+  margin-inline: auto;
+}
+.public-hero em,
+.preview-main em,
+.preview-note em {
+  font-style: normal;
+}
+.preview-main,
+.preview-note {
+  background: #fff;
+  color: var(--foreground);
+}
+.preview-note {
+  border-left: 1px solid var(--border);
+}
+.preview-note > svg,
+.join-steps svg {
+  color: var(--brand-accent);
+}
+.member-page-heading {
+  margin-bottom: 24px;
+}
+.member-page-heading h1 {
+  margin: 0;
+}
+.member-nav button,
+.sidebar-bottom,
+.sidebar-note a {
+  color: #62636b;
+}
+.member-nav button:hover {
+  background: #e7e7eb;
+}
+.member-nav button[aria-current],
+.market-switch button[aria-pressed='true'] {
+  color: var(--brand-accent-ink);
+  background: #fff0f0;
+}
+.holdings-card,
+.context-following {
+  background: #fff;
+  border-color: var(--border);
+}
+.member-avatar,
+.holding-tags button,
+.following-tags button,
+.preview-tags span {
+  background: #f0f0f2;
+  color: #3b3c44;
+}
+.text-action,
+.sidebar-note a:hover,
+.source-item a,
+.source-heading a {
+  color: var(--brand-accent-ink);
+}
+.market-table tr.is-selected {
+  background: #fff0f0;
+}
+.market-table tr:hover {
+  background: #f6f6f8;
+}
+.market-table tr.is-selected:hover {
+  background: #ffe8e9;
+}
+.ecosystem-stats {
+  background: #0e0f14;
+}
+.ecosystem-bar i {
+  background: var(--brand-red);
+}
+.ecosystem-rank:hover {
+  background: #fff5f5;
+}
+.eyebrow,
+.market-kicker {
+  color: #62636b;
+}
+[data-slot='dialog-content'].wallet-connect-dialog {
+  background: #0e0f14;
+  border-color: #35363e;
+}
+.wallet-list .wallet-option,
+.verified-wallet-summary,
+.wallet-browser-help {
+  background: #202127;
+}
+.wallet-list .wallet-option:hover:not(:disabled) {
+  background: #2b2c34;
+  border-color: #656772;
+}
+.wallet-list .wallet-option:focus-visible {
+  outline-color: #ff8588;
+}
+.wallet-connect-dialog a,
+.wallet-sign-step .wallet-back-button {
+  color: #ffb3b6;
+}
+.wallet-sign-step .wallet-sign-button,
+.wallet-connect-dialog .choice [data-slot='checkbox'][data-checked] {
+  background: var(--brand-accent);
+  color: #fff;
+  border-color: var(--brand-accent);
+}
+.wallet-sign-step .wallet-sign-button:hover {
+  background: var(--brand-accent-ink);
+}
+.wallet-connect-dialog .join-note {
+  font-size: 14px;
+}
+.wallet-connect-dialog p,
+.wallet-connect-dialog [data-slot='dialog-description'],
+.wallet-connect-dialog .choice,
+.wallet-connect-dialog .join-note,
+.wallet-detected,
+.verified-wallet-summary span {
+  color: #b8bac4;
+}
+.wallet-connect-dialog .error {
+  color: #ffdad9;
+}
+.join-steps {
+  margin-bottom: 48px;
+}
+@media (max-width: 700px) {
+  .public-hero {
+    padding-block: 40px 32px;
+  }
+  .preview-note {
+    border-left: 0;
+  }
+}

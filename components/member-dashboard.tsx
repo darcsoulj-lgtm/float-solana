@@ -52,7 +52,7 @@ type View =
   | 'saved'
   | 'profile';
 const destinations = [
-  { id: 'brief', label: 'Your brief', icon: Newspaper },
+  { id: 'brief', label: 'News', icon: Newspaper },
   { id: 'markets', label: 'Markets', icon: ChartNoAxesCombined },
   { id: 'home', label: 'Discussions', icon: Home },
   { id: 'calendar', label: 'Calendar', icon: CalendarDays },
@@ -281,9 +281,7 @@ export function MemberDashboard({
       <aside className="member-sidebar">
         <Link className="member-brand" href="/">
           h<span>p</span>
-          <strong>
-            HolderPulse<small>FOR BACKPACK HOLDERS</small>
-          </strong>
+          <strong>HolderPulse</strong>
         </Link>
         <div className="member-identity">
           <span className="member-avatar">
@@ -311,7 +309,7 @@ export function MemberDashboard({
         </nav>
         <div className="sidebar-note">
           <Link href="/rules">
-            Our shared guidelines <ArrowUpRight size={14} />
+            Guidelines <ArrowUpRight size={14} />
           </Link>
         </div>
         <div className="sidebar-bottom">
@@ -321,7 +319,7 @@ export function MemberDashboard({
             </Link>
           )}
           <Link href="/trust">
-            Trust & privacy <ArrowUpRight size={15} />
+            Privacy <ArrowUpRight size={15} />
           </Link>
           <button
             disabled={busy}
@@ -339,7 +337,7 @@ export function MemberDashboard({
       <div className="member-workspace">
         <div className="member-topbar">
           <span>
-            The common room{' '}
+            HolderPulse{' '}
             <span className="breadcrumb">
               / {destinations.find((d) => d.id === view)?.label}
             </span>
@@ -362,19 +360,6 @@ export function MemberDashboard({
           <section className="member-main">
             <div className="member-page-heading">
               <div>
-                <p className="eyebrow">
-                  {view === 'brief'
-                    ? 'THE HOLDER EDITION'
-                    : view === 'calendar'
-                      ? 'ON THE HORIZON'
-                      : view === 'home'
-                        ? 'A PLACE FOR YOUR PERSPECTIVE'
-                        : view === 'topics'
-                          ? 'FOLLOW YOUR CURIOSITY'
-                          : view === 'saved'
-                            ? 'KEEP THE GOOD STUFF CLOSE'
-                            : 'MAKE YOURSELF AT HOME'}
-                </p>
                 <h1>
                   {view === 'markets'
                     ? 'Backpack stocks'
@@ -388,23 +373,8 @@ export function MemberDashboard({
                             ? 'Rooms'
                             : view === 'saved'
                               ? 'Saved'
-                              : 'Your profile'}
+                              : 'Profile'}
                 </h1>
-                <p>
-                  {view === 'markets'
-                    ? 'The tokens you hold. The market around them.'
-                    : view === 'brief'
-                      ? 'The stories that connect to what you hold.'
-                      : view === 'calendar'
-                        ? 'Earnings, company events, and dates worth keeping in view.'
-                        : view === 'home'
-                          ? 'Start with what you hold. Stay for a different point of view.'
-                          : view === 'topics'
-                            ? 'Rooms are started by members. Anyone verified can join the conversation.'
-                            : view === 'saved'
-                              ? 'Your private collection of discussions and sources.'
-                              : 'Choose how you appear to other members.'}
-                </p>
               </div>
               {view === 'home' && (
                 <Button onClick={() => startDiscussion()}>
@@ -458,7 +428,7 @@ export function MemberDashboard({
                 onCalendar={() => navigate('calendar')}
                 onDiscuss={(item) => {
                   startDiscussion(item.title.slice(0, 140), item.symbols[0]);
-                  setDraftBody(`Source: ${item.url}\n\nMy perspective: `);
+                  setDraftBody(`Source: ${item.url}\n\nComment: `);
                 }}
               />
             ) : view === 'topics' ? (
@@ -537,11 +507,7 @@ export function MemberDashboard({
                       .includes(search.toLowerCase()),
                   ) && (
                     <div className="member-empty">
-                      <h2>
-                        {search
-                          ? 'No matching rooms.'
-                          : 'Be the first to start a room.'}
-                      </h2>
+                      <h2>{search ? 'No matching rooms.' : 'No rooms yet.'}</h2>
                       <p>Choose a name and give people a reason to join.</p>
                       <Button
                         variant="outline"
@@ -565,7 +531,7 @@ export function MemberDashboard({
                       notifyReplies,
                     });
                     await refreshStatus();
-                    setNotice('Your profile has been saved.');
+                    setNotice('Profile has been saved.');
                   });
                 }}
               >
@@ -671,7 +637,7 @@ export function MemberDashboard({
                           )
                         }
                       >
-                        Bring a perspective <ArrowRight size={17} />
+                        New discussion <ArrowRight size={17} />
                       </button>
                     </div>
                   </article>
@@ -749,7 +715,7 @@ export function MemberDashboard({
                         ? 'This discussion is unavailable.'
                         : view === 'saved'
                           ? 'A place for your next good find.'
-                          : 'There’s room for your first question.'}
+                          : 'No discussions yet.'}
                     </h3>
                     <p>
                       {view === 'saved'
@@ -757,8 +723,8 @@ export function MemberDashboard({
                         : threadId
                           ? 'It may have been removed by its author or a moderator.'
                           : feed === 'personal'
-                            ? 'No discussions match your holdings and followed topics yet. Explore the shared feed, or start one.'
-                            : 'This community is just beginning. A thoughtful question is a good place to start.'}
+                            ? 'No matching discussions. Try All or start one.'
+                            : 'Start a discussion.'}
                     </p>
                     {view === 'home' && !threadId && (
                       <Button
@@ -792,25 +758,17 @@ export function MemberDashboard({
                       })
                     }
                   >
-                    More discussions
+                    Load more
                   </Button>
                 )}
                 {!loading && (
                   <section className="member-sources">
                     <div className="source-heading">
                       <div>
-                        <span className="eyebrow">
-                          {view === 'saved'
-                            ? 'SAVED SOURCES'
-                            : 'FROM THE SOURCE'}
-                        </span>
                         <h2>
-                          {view === 'saved'
-                            ? 'Your reading shelf.'
-                            : 'A little more context.'}
+                          {view === 'saved' ? 'Saved sources' : 'Sources'}
                         </h2>
                       </div>
-                      <span>Curated source links</span>
                     </div>
                     {sourceItems.length ? (
                       sourceItems.map((s) => (
@@ -856,14 +814,13 @@ export function MemberDashboard({
             <section className="holdings-card">
               <div className="context-heading">
                 <ShieldCheck size={18} />
-                <span>YOUR WAY IN</span>
+                <span>HOLDINGS</span>
                 <LockKeyhole size={14} />
               </div>
-              <h2>Your holdings</h2>
               <p className="context-caption">
                 {holdingsChecking
                   ? 'Checking Solana…'
-                  : 'Stock tokens in your verified wallet'}
+                  : 'Auto-updates every minute'}
               </p>
               {holdingsError && (
                 <p role="status" className="context-caption">
@@ -885,8 +842,7 @@ export function MemberDashboard({
               )}
               {data && !data.holdingsRefreshAvailable && (
                 <p className="context-caption">
-                  Verify your wallet once more to enable automatic holdings
-                  updates for this session.
+                  Verify once to enable automatic updates.
                 </p>
               )}
               <div className="holding-tags">
@@ -901,7 +857,7 @@ export function MemberDashboard({
                 <p>Refresh verification to detect all your holdings.</p>
               )}
               <p className="private-footnote">
-                <LockKeyhole size={12} /> Only you see this list.
+                <LockKeyhole size={12} /> Private
               </p>
               <div className="verification-note">
                 <span className="small-dot" />
@@ -933,13 +889,13 @@ export function MemberDashboard({
                 <RefreshCw size={13} />
               </button>
               <button className="text-action" onClick={renew}>
-                Switch or verify wallet
+                Manage wallet
               </button>
             </section>
             <section className="context-following">
               <div className="context-heading">
                 <Compass size={17} />
-                <span>ON YOUR RADAR</span>
+                <span>FOLLOWING</span>
               </div>
               {data?.follows.some((id) => rooms.some((r) => r.id === id)) ? (
                 <div className="following-tags">
@@ -952,13 +908,13 @@ export function MemberDashboard({
                     ))}
                 </div>
               ) : (
-                <p>Curiosity doesn’t have to follow your portfolio.</p>
+                <p>No followed rooms.</p>
               )}
               <button
                 className="text-action"
                 onClick={() => navigate('topics')}
               >
-                Explore rooms <ArrowRight size={14} />
+                Browse rooms <ArrowRight size={14} />
               </button>
             </section>
             <div className="context-principle">
@@ -976,7 +932,7 @@ export function MemberDashboard({
       </div>
       <Dialog open={signOut} onOpenChange={setSignOut}>
         <DialogContent>
-          <DialogTitle>Leave the common room?</DialogTitle>
+          <DialogTitle>Sign out?</DialogTitle>
           <DialogDescription>
             Your saved items and profile will be here when you verify again.
           </DialogDescription>
@@ -1010,9 +966,9 @@ export function MemberDashboard({
         }}
       >
         <DialogContent className="compose-dialog">
-          <DialogTitle>Bring a perspective.</DialogTitle>
+          <DialogTitle>New discussion</DialogTitle>
           <DialogDescription>
-            Share a question, a source, or a thesis worth discussing.
+            Visible to all verified members.
           </DialogDescription>
           <form
             className="discussion-form"
@@ -1097,7 +1053,7 @@ export function MemberDashboard({
                 onChange={(e) => setDraftTitle(e.target.value)}
                 disabled={draftPosting}
                 name="title"
-                placeholder="What would you like to discuss?"
+                placeholder="Discussion title"
                 minLength={POST_LIMITS.title.min}
                 maxLength={POST_LIMITS.title.max}
                 required
@@ -1111,17 +1067,17 @@ export function MemberDashboard({
               </p>
             </div>
             <div className="discussion-field">
-              <label htmlFor={`${draftId}-body`}>Your perspective</label>
+              <label htmlFor={`${draftId}-body`}>Message</label>
               <textarea
                 id={`${draftId}-body`}
-                aria-label="Your perspective"
+                aria-label="Message"
                 aria-invalid={!!draftErrors.body}
                 aria-describedby={`${draftId}-body-help`}
                 name="body"
                 value={draftBody}
                 onChange={(e) => setDraftBody(e.target.value)}
                 disabled={draftPosting}
-                placeholder="What’s the evidence? What would change your mind?"
+                placeholder="Write your message…"
                 minLength={POST_LIMITS.body.min}
                 maxLength={POST_LIMITS.body.max}
                 required
@@ -1148,7 +1104,7 @@ export function MemberDashboard({
       </Dialog>
       <Dialog open={notifications} onOpenChange={setNotifications}>
         <DialogContent>
-          <DialogTitle>A reply worth coming back to.</DialogTitle>
+          <DialogTitle>Notifications</DialogTitle>
           <DialogDescription>
             Replies to your discussions appear here.
           </DialogDescription>

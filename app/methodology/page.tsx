@@ -3,48 +3,43 @@ import { TOKENS } from '@/lib/tokens';
 export default function Page() {
   return (
     <div className="page">
-      <p className="eyebrow">Membership</p>
-      <h1>One verified holding. Every conversation.</h1>
+      <h1>Membership</h1>
       <section className="panel">
-        <h2>The gate</h2>
+        <h2>Eligibility</h2>
         <p>
-          A positive balance of any of our {TOKENS.length} supported Backpack
-          stock and ETF tokens in a Solana wallet you control unlocks every
-          discussion topic.{' '}
-          <Link href="/tokens">See the supported token directory</Link>.
-          Brokerage balances and perpetual positions do not qualify.
+          Hold any of the {TOKENS.length} supported stock or ETF tokens in a
+          Solana wallet you control. One holding gives access to every room.
+          Exchange balances and perpetual positions do not qualify.{' '}
+          <Link href="/tokens">Supported tokens</Link>.
         </p>
       </section>
       <section className="panel">
-        <h2>The check</h2>
+        <h2>Verification</h2>
         <p>
-          Connect your wallet. We read token accounts from both Solana token
-          programs, match their mint addresses against our reviewed registry,
-          and validate detected mints onchain. If a supported holding is found,
-          sign a one-use message for this site. We then verify the signature and
-          check the holdings again using finalized data before opening your
-          home. Signing authorizes no asset transfer.
+          We check token accounts against verified mint addresses on Solana. You
+          sign a one-use membership message to prove wallet control. This
+          authorizes no transaction or transfer.
         </p>
       </section>
       <section className="panel">
-        <h2>The window</h2>
+        <h2>Session</h2>
         <p>
-          Membership lasts 24 hours, then requires a fresh signature and balance
-          check. This is a snapshot: selling after verification does not
-          instantly remove access. A token badge means the qualifying holding
-          was checked within that window; it does not establish expertise or
-          direct shareholder rights.
+          A session lasts 24 hours. Holdings are checked every minute while the
+          site is open. If a successful check finds no supported holdings,
+          access ends. Checks are periodic, so changes are not instant.
         </p>
       </section>
       <section className="panel">
-        <h2>The profile</h2>
+        <h2>Privacy</h2>
         <p>
-          Your detected supported stocks personalize your home. You can follow
-          other stocks and participate in every topic. Choose a display name.
-          Your qualifying token badge is optional and hidden by default. Exact
-          balances and wallet addresses are not displayed to other members.
-          Hosted exchange balances cannot be verified through this wallet-only
-          flow.
+          Holdings personalize your news feed. Exact balances and wallet
+          addresses are not shown to other members. Your wallet address is
+          stored during the session for automatic checks. Token badges are
+          optional and hidden by default.
+        </p>
+        <p>
+          A verified token balance does not establish expertise or registered
+          shareholder status. <Link href="/trust">Privacy details</Link>.
         </p>
       </section>
     </div>

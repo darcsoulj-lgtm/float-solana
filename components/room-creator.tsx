@@ -29,10 +29,8 @@ export function RoomCreator({
       }}
     >
       <DialogContent className="compose-dialog">
-        <DialogTitle>Start a room.</DialogTitle>
-        <DialogDescription>
-          A company, an idea, a shared interest. Make it yours.
-        </DialogDescription>
+        <DialogTitle>Create room</DialogTitle>
+        <DialogDescription>Open to all verified members.</DialogDescription>
         <form
           className="discussion-form"
           onSubmit={async (e) => {
@@ -64,12 +62,12 @@ export function RoomCreator({
               minLength={3}
               maxLength={60}
               required
-              placeholder="e.g. The memory club"
+              placeholder="e.g. Semiconductors"
               disabled={busy}
             />
           </div>
           <div className="discussion-field">
-            <label htmlFor={id + '-description'}>What’s it about?</label>
+            <label htmlFor={id + '-description'}>Description</label>
             <textarea
               id={id + '-description'}
               value={description}
@@ -77,14 +75,11 @@ export function RoomCreator({
               minLength={10}
               maxLength={240}
               required
-              placeholder="Help people decide whether to join the conversation."
+              placeholder="What is this room about?"
               disabled={busy}
             />
           </div>
-          <p className="room-help">
-            Open to all verified members. You’ll automatically follow your new
-            room.
-          </p>
+
           {error && (
             <p className="error" role="alert">
               {error}

@@ -1,6 +1,7 @@
 import Link from '@/components/site-link';
 import type { Metadata } from 'next';
 import './globals.css';
+import './backpack-theme.css';
 import { AgentTools } from '@/components/agent-tools';
 export const metadata: Metadata = {
   title: {
@@ -25,9 +26,7 @@ export default function RootLayout({
         <header>
           <Link className="brand" href="/">
             h<span className="brandmark">p</span>
-            <strong>
-              HolderPulse<span>FOR BACKPACK HOLDERS</span>
-            </strong>
+            <strong>HolderPulse</strong>
           </Link>
           <nav aria-label="Main navigation">
             <Link href="/">Community</Link>
@@ -35,7 +34,7 @@ export default function RootLayout({
             <Link href="/rules">Guidelines</Link>
           </nav>
           <Link className="nav-cta" href="/#join">
-            Verify & join ↗
+            How to join
           </Link>
         </header>
         <main id="main">{children}</main>
@@ -48,11 +47,11 @@ export default function RootLayout({
           </div>
           <div className="footerlinks">
             <Link href="/about">About</Link>
-            <Link href="/trust">Trust & privacy</Link>
+            <Link href="/trust">Privacy</Link>
             <Link href="/methodology">Methodology</Link>
             <Link href="/tokens">Supported stocks</Link>
             <Link href="/docs">Help</Link>
-            <Link href="/admin/community">Administration</Link>
+            <Link href="/admin/community">Admin</Link>
           </div>
           <p className="legal">
             Community discussions are not investment advice. Independent of

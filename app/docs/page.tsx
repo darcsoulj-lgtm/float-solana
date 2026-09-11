@@ -1,52 +1,46 @@
 export default function Page() {
   return (
     <div className="page">
-      <p className="eyebrow">Getting started</p>
-      <h1>From holding to conversation.</h1>
+      <h1>Help</h1>
       <section className="panel">
-        <h2>1. Verify a supported token</h2>
+        <h2>Join</h2>
         <p>
-          On the community homepage choose Connect wallet & join, then click
-          your wallet’s row. We automatically detect supported stock tokens.
-          Accept the guidelines and click Sign in your selected wallet to review
-          the membership message. No stock picker is needed. Desktop wallet
-          extensions and compatible wallet browsers are supported; mobile
-          deep-link pairing is not enabled.
+          Choose Connect wallet. We detect supported tokens in your Solana
+          wallet. Accept the guidelines, then sign the membership message. No
+          transaction or transfer is required.
+        </p>
+        <p>
+          Use a desktop wallet extension or compatible wallet browser. Mobile
+          deep-link pairing is not supported.
         </p>
       </section>
       <section className="panel">
-        <h2>2. Join any topic</h2>
+        <h2>Participate</h2>
         <p>
-          Choose General or a ticker, write a question or thesis, and post. You
-          can reply across every topic regardless of which supported token
-          unlocked membership. Use Profile to choose an alias and optionally
-          display a token badge.
+          Join or create rooms, post discussions and reply. All verified members
+          can access every room. Save posts and sources for later.
+        </p>
+        <p>
+          Set your display name, optional token badge and reply notifications in
+          Profile.
         </p>
       </section>
       <section className="panel">
-        <h2>Make your home your own</h2>
+        <h2>Update holdings</h2>
         <p>
-          For you includes your detected holdings, followed topics, and General.
-          Topics lets you explore every stock and follow others. Save
-          discussions and curated source links to your private Saved page. Reply
-          notifications are in-app only and can be switched off in Profile.
+          Holdings update every minute while the site is open. You can also
+          choose Refresh holdings. Sign again when your 24-hour session expires.
         </p>
       </section>
       <section className="panel">
-        <h2>3. Keep it useful</h2>
+        <h2>Verification failed?</h2>
         <p>
-          Report content that breaks the guidelines. You can remove your own
-          posts and replies. Sign out on shared devices. Membership expires
-          after 24 hours and must be verified again.
+          Check that a supported token is in the connected Solana wallet.
+          Exchange account balances do not qualify. If the service is
+          unavailable, retry later.
         </p>
-      </section>
-      <section className="panel">
-        <h2>If verification fails</h2>
         <p>
-          Check that the supported token is in the connected Solana wallet. RPC
-          outages or rate limits prevent entry rather than granting unverified
-          access. Start a new verification if a signature expires. Support:
-          elcresearch.support@gmail.com.
+          <a href="mailto:elcresearch.support@gmail.com">Contact support</a>
         </p>
       </section>
     </div>

@@ -63,11 +63,11 @@ export function SourceCard({
       </div>
       <div className="brief-story-footer">
         <a href={item.url} target="_blank" rel="noopener noreferrer">
-          Read original <ArrowUpRight size={15} />
+          Source <ArrowUpRight size={15} />
         </a>
         {onDiscuss && (
           <button onClick={() => onDiscuss(item)}>
-            <MessageSquare size={16} /> Discuss this
+            <MessageSquare size={16} /> Discuss
           </button>
         )}
       </div>
@@ -198,16 +198,10 @@ export function MemberBrief({
           <RefreshCw size={17} />
         </Button>
       </div>
-      <p className="brief-scope-note">
-        {kind === 'news'
-          ? 'News about the stocks you hold.'
-          : 'Company events for the stocks you hold.'}{' '}
-        <span>
-          {kind === 'event'
-            ? 'Times are shown in your timezone.'
-            : 'Company sources · Manually updated when an editor publishes.'}
-        </span>
-      </p>
+      {kind === 'event' && (
+        <p className="brief-scope-note">Times shown in your timezone.</p>
+      )}
+
       {!loading && error ? (
         <div className="brief-empty" role="alert">
           <p>{error}</p>
@@ -266,14 +260,12 @@ export function MemberBrief({
                 <CalendarDays size={28} />
               )}
               <h2>
-                {kind === 'news'
-                  ? 'No stories for this selection yet.'
-                  : 'No upcoming dates in this selection.'}
+                {kind === 'news' ? 'No news yet.' : 'No upcoming events.'}
               </h2>
               <p>
                 {kind === 'news'
                   ? 'No company news has been published for these holdings yet.'
-                  : 'Only sourced dates appear here. We’ll label estimates clearly when they are added.'}
+                  : 'Events appear once a source is confirmed.'}
               </p>
               {symbol !== 'all' && (
                 <Button
@@ -320,11 +312,10 @@ export function MemberBrief({
             </p>
           )}
           <p className="brief-disclosure">
-            Curated coverage, not a real-time newswire.{' '}
+            Editor-curated · Not real-time.{' '}
             {data.lastReviewed
-              ? `Latest editorial update: ${new Date(data.lastReviewed).toLocaleDateString()}.`
+              ? `Updated ${new Date(data.lastReviewed).toLocaleDateString()}.`
               : ''}{' '}
-            Research and discussion, not investment advice.
           </p>
         </>
       )}

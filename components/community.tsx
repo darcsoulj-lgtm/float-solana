@@ -296,25 +296,19 @@ export function Community() {
               <span className="small-dot" /> FOR BACKPACK STOCK-TOKEN HOLDERS
             </div>
             <h1>
-              A position. A perspective.
+              A community for
               <br />
-              <em>A better conversation.</em>
+              Backpack stock holders.
             </h1>
             <p>
-              An independent community for Backpack stock-token holders. Compare
-              ideas,
-              <br className="desktop-break" /> find a different angle, and stay
-              curious about what you hold.
+              News, market data and discussions. Connect a wallet holding a
+              supported stock token to join.
             </p>
             <div className="hero-actions">
               <Button onClick={openJoin}>
-                Find your people <ArrowUpRight size={18} />
+                Connect wallet <ArrowUpRight size={18} />
               </Button>
-              <a href="#inside">Take a look inside ↓</a>
-            </div>
-            <div className="hero-proof">
-              <ShieldCheck size={17} /> One verified stock token. Every
-              conversation.
+              <a href="#inside">Preview ↓</a>
             </div>
             {error && (
               <div className="club-error" role="alert">
@@ -334,35 +328,25 @@ export function Community() {
             aria-label="Illustrative member home preview"
           >
             <div className="preview-label">
-              <span>INSIDE THE COMMON ROOM</span>
+              <span>MEMBER PREVIEW</span>
               <span>
-                <LockKeyhole size={13} /> Illustrative preview · no member data
+                <LockKeyhole size={13} /> Illustrative preview
               </span>
             </div>
             <div className="preview-layout">
               <div className="preview-nav">
                 <span className="preview-monogram">hp</span>
-                <strong>
-                  Your corner
-                  <br />
-                  of the market.
-                </strong>
+                <strong>Your dashboard</strong>
                 <span className="selected">⌂ &nbsp; Home</span>
                 <span>◎ &nbsp; Topics</span>
                 <span>♧ &nbsp; Saved</span>
               </div>
               <div className="preview-main">
-                <span className="eyebrow">
-                  A FEED WITH A LITTLE SKIN IN THE GAME
-                </span>
-                <h2>
-                  Different holdings.
-                  <br />
-                  <em>Shared curiosity.</em>
-                </h2>
+                <span className="eyebrow">VERIFIED MEMBERS</span>
+                <h2>News. Markets. Discussions.</h2>
                 <p>
-                  Discussions around what you own, room to explore what you
-                  don’t, and useful sources to bring to the table.
+                  News for your holdings. Market data for each token. Rooms
+                  created by members.
                 </p>
                 <div className="preview-tags">
                   <span>MU</span>
@@ -373,14 +357,9 @@ export function Community() {
               </div>
               <div className="preview-note">
                 <ShieldCheck size={25} />
-                <h3>
-                  Your holdings,
-                  <br />
-                  your business.
-                </h3>
+                <h3>Private holdings</h3>
                 <p>
-                  We detect eligible stock tokens automatically. Balances never
-                  appear on your profile.
+                  Holdings are detected automatically. Balances stay private.
                 </p>
               </div>
             </div>
@@ -389,48 +368,21 @@ export function Community() {
             <div>
               <ScanLine size={24} />
               <span>01 / CONNECT</span>
-              <h3>Bring your wallet.</h3>
-              <p>
-                Choose Backpack, Phantom, or Solflare. We find supported
-                holdings for you.
-              </p>
+              <h3>Connect</h3>
+              <p>Choose your Solana wallet.</p>
             </div>
             <div>
               <ShieldCheck size={24} />
               <span>02 / VERIFY</span>
-              <h3>A signature opens the door.</h3>
-              <p>
-                Sign a membership message. No transaction, token approval, or
-                transfer.
-              </p>
+              <h3>Verify</h3>
+              <p>Sign a message. No transaction or transfer.</p>
             </div>
             <div>
               <MessagesSquare size={24} />
               <span>03 / JOIN IN</span>
-              <h3>Follow your curiosity.</h3>
-              <p>
-                Join every topic. Save a good discussion. Ask a better question.
-              </p>
+              <h3>Join</h3>
+              <p>One supported holding gives access to every room.</p>
             </div>
-          </section>
-          <section className="public-closing">
-            <span className="eyebrow">FOUNDING COMMUNITY</span>
-            <h2>
-              Small to start.
-              <br />
-              <em>Worth coming back to.</em>
-            </h2>
-            <p>
-              Holding a token doesn’t make someone right.
-              <br />
-              It gives us a place to start the conversation.
-            </p>
-            <Button onClick={openJoin}>
-              Connect wallet & join <ArrowUpRight size={18} />
-            </Button>
-            <Link href="/tokens">
-              Explore {TOKENS.length} supported stock & ETF tokens →
-            </Link>
           </section>
         </div>
       )}
@@ -446,11 +398,11 @@ export function Community() {
               <ShieldCheck size={22} />
             </div>
             <DialogTitle>
-              {pending ? 'One signature to join.' : 'Connect your wallet'}
+              {pending ? 'Verify membership' : 'Connect your wallet'}
             </DialogTitle>
             <DialogDescription>
-              We’ll find your supported stock tokens automatically. One holding
-              unlocks the whole community.
+              We detect your holdings. Any supported token gives access to all
+              rooms.
             </DialogDescription>
           </div>
           {pending ? (
@@ -520,8 +472,8 @@ export function Community() {
           <p className="join-note">
             Message signature only. No transaction or transfer.
             <br />
-            Membership lasts 24 hours. Your wallet address is kept for this
-            session to update holdings automatically.
+            Your wallet address is stored during the 24-hour session for
+            automatic holdings checks.
           </p>
           <output aria-live="polite">{stage}</output>
           {joinError && (
@@ -530,7 +482,7 @@ export function Community() {
             </p>
           )}
           <Link className="join-help" href="/tokens">
-            Check supported stocks →
+            Supported stocks →
           </Link>
         </DialogContent>
       </Dialog>

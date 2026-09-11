@@ -15,7 +15,7 @@ body:has(.operations-page) > footer {
 .brief-scope [data-slot='tabs-list'] {
   height: 44px;
   padding: 4px;
-  background: #e9edf3;
+  background: #ededed;
   border-radius: 9px;
 }
 .brief-scope [data-slot='tabs-trigger'] {
@@ -35,7 +35,7 @@ body:has(.operations-page) > footer {
 .holder-brief .brief-scope-note {
   font-size: 14px;
   line-height: 1.6;
-  color: #657083;
+  color: #6f6f6f;
   margin: 14px 0 26px;
 }
 .brief-scope-note span {
@@ -54,20 +54,20 @@ body:has(.operations-page) > footer {
   min-width: 0;
 }
 .brief-story.is-featured {
-  border-top: 3px solid #324e78;
+  border-top: 3px solid #4b4b4b;
 }
 .brief-meta {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
-  color: #657083;
+  color: #6f6f6f;
   font-size: 13px;
   line-height: 1.5;
 }
 .brief-featured {
   margin-left: auto;
-  color: #324e78;
+  color: #4b4b4b;
 }
 .brief-story-tags {
   display: flex;
@@ -80,8 +80,8 @@ body:has(.operations-page) > footer {
   line-height: 1.5;
   font-weight: 600;
   letter-spacing: 0.02em;
-  background: #edf1f7;
-  color: #324e78;
+  background: #f1f1f1;
+  color: #4b4b4b;
   border-radius: 4px;
   padding: 3px 7px;
 }
@@ -94,7 +94,7 @@ body:has(.operations-page) > footer {
   line-height: 1.25;
 }
 .brief-story h2 a {
-  color: #202c3b;
+  color: #2b2b2b;
   text-decoration: none;
 }
 .brief-story h2 svg {
@@ -104,7 +104,7 @@ body:has(.operations-page) > footer {
 }
 .brief-story > .brief-summary {
   margin: 0;
-  color: #536072;
+  color: #5f5f5f;
   font-size: 16px;
   line-height: 1.5;
   overflow-wrap: anywhere;
@@ -127,7 +127,7 @@ body:has(.operations-page) > footer {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  color: #324e78;
+  color: #4b4b4b;
   font-size: 14px;
   font-weight: 500;
   min-height: 32px;
@@ -138,8 +138,8 @@ body:has(.operations-page) > footer {
   text-decoration: underline;
 }
 .up-next-strip {
-  border: 1px solid #dbe2ec;
-  background: #edf1f7;
+  border: 1px solid #e1e1e1;
+  background: #f1f1f1;
   border-radius: 12px;
   padding: 18px 20px;
   margin-bottom: 24px;
@@ -148,7 +148,7 @@ body:has(.operations-page) > footer {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #324e78;
+  color: #4b4b4b;
   font-size: 14px;
 }
 .up-next-strip button {
@@ -163,12 +163,12 @@ body:has(.operations-page) > footer {
   flex-direction: column;
   gap: 6px;
   margin-top: 15px;
-  color: #202c3b;
+  color: #2b2b2b;
   font-size: 15px;
   font-weight: 500;
 }
 .up-next-strip small {
-  color: #657083;
+  color: #6f6f6f;
   font-size: 13px;
   font-weight: 400;
 }
@@ -191,14 +191,14 @@ body:has(.operations-page) > footer {
   display: flex;
   align-items: center;
   flex-direction: column;
-  border: 1px solid #dae1eb;
+  border: 1px solid #e0e0e0;
   border-radius: 8px;
   overflow: hidden;
-  color: #324e78;
+  color: #4b4b4b;
 }
 .event-date span {
   text-transform: uppercase;
-  background: #edf1f7;
+  background: #f1f1f1;
   width: 100%;
   text-align: center;
   font-size: 12px;
@@ -223,7 +223,7 @@ body:has(.operations-page) > footer {
 }
 .event-detail p {
   font-size: 15px;
-  color: #657083;
+  color: #6f6f6f;
   line-height: 1.65;
   margin: 9px 0;
 }
@@ -232,43 +232,43 @@ body:has(.operations-page) > footer {
   align-items: center;
   gap: 7px;
   flex-wrap: wrap;
-  color: #324e78;
+  color: #4b4b4b;
   font-size: 14px;
 }
 .event-detail a {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  color: #324e78;
+  color: #4b4b4b;
   font-size: 14px;
   margin-top: 8px;
 }
 .brief-story-tags .certainty {
   font-weight: 400;
-  background: #edf4ef;
+  background: #f2f2f2;
   color: #376451;
 }
 .brief-story-tags .estimated {
-  background: #fff4df;
+  background: #f5f5f5;
   color: #875e1e;
 }
 .holder-brief .brief-empty,
 .operations-page .brief-empty {
   text-align: center;
   padding: 48px 24px;
-  border: 1px dashed #d6dde7;
+  border: 1px dashed #dcdcdc;
   border-radius: 12px;
   background: #ffffff70;
-  color: #657083;
+  color: #6f6f6f;
 }
 .brief-empty > svg {
   margin: 0 auto 15px;
-  color: #7c8ca2;
+  color: #8a8a8a;
 }
 .brief-empty h2,
 .brief-empty h3 {
   font-size: 20px;
-  color: #273449;
+  color: #333333;
   margin: 10px 0;
 }
 .brief-empty p {
@@ -280,7 +280,7 @@ body:has(.operations-page) > footer {
 .brief-disclosure {
   font-size: 13px;
   line-height: 1.7;
-  color: #6a7482;
+  color: #737373;
   margin: 26px 2px;
 }
 .brief-loading {
@@ -291,7 +291,7 @@ body:has(.operations-page) > footer {
 .brief-loading > span {
   height: 180px;
   border-radius: 12px;
-  border: 1px solid #e2e6ed;
+  border: 1px solid #e6e6e6;
   background: linear-gradient(100deg, #f0f2f5, #fafbfd, #f0f2f5);
 }
 .brief-load-more {
@@ -302,7 +302,7 @@ body:has(.operations-page) > footer {
   max-width: 1300px;
   margin: 0 auto;
   padding: 0 40px 40px;
-  color: #202c3b;
+  color: #2b2b2b;
 }
 .operations-header {
   display: flex;
@@ -310,13 +310,13 @@ body:has(.operations-page) > footer {
   justify-content: space-between;
   gap: 16px;
   padding: 26px 0;
-  border-bottom: 1px solid #dce1e8;
+  border-bottom: 1px solid #e0e0e0;
 }
 .operations-brand {
   display: flex;
   align-items: center;
   gap: 14px;
-  color: #324e78;
+  color: #4b4b4b;
   font-size: 36px;
   line-height: 1;
   font-family: var(--font-geist-sans);
@@ -330,7 +330,7 @@ body:has(.operations-page) > footer {
 }
 .operations-brand small {
   display: block;
-  color: #768293;
+  color: #818181;
   font:
     500 11px/1.5 Arial,
     sans-serif;
@@ -343,7 +343,7 @@ body:has(.operations-page) > footer {
   align-items: center;
   gap: 7px;
   font-size: 14px;
-  color: #324e78;
+  color: #4b4b4b;
 }
 .operations-title {
   display: flex;
@@ -356,18 +356,18 @@ body:has(.operations-page) > footer {
   font: 400 38px/1.2 var(--font-geist-sans);
   letter-spacing: -1px;
   margin: 12px 0;
-  color: #263952;
+  color: #373737;
 }
 .operations-title p:not(.eyebrow) {
   font-size: 16px;
   line-height: 1.5;
-  color: #687487;
+  color: #737373;
 }
 .operations-tabs > [data-slot='tabs-list'] {
   height: 52px;
   width: 100%;
   justify-content: flex-start;
-  border-bottom: 1px solid #dce1e8;
+  border-bottom: 1px solid #e0e0e0;
   margin-bottom: 28px;
   gap: 24px;
   overflow-x: auto;
@@ -385,7 +385,7 @@ body:has(.operations-page) > footer {
 .operations-metrics {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  border: 1px solid #dce1e8;
+  border: 1px solid #e0e0e0;
   border-radius: 12px;
   background: white;
   overflow: hidden;
@@ -400,7 +400,7 @@ body:has(.operations-page) > footer {
 }
 .operations-metrics span {
   font-size: 14px;
-  color: #687487;
+  color: #737373;
 }
 .operations-metrics strong {
   display: block;
@@ -417,7 +417,7 @@ body:has(.operations-page) > footer {
 .operations-panel {
   min-width: 0;
   background: white;
-  border: 1px solid #dce1e8;
+  border: 1px solid #e0e0e0;
   border-radius: 12px;
   padding: 26px;
   margin-bottom: 24px;
@@ -430,7 +430,7 @@ body:has(.operations-page) > footer {
 }
 .operations-panel > p,
 .operations-section-heading p {
-  color: #687487;
+  color: #737373;
   font-size: 15px;
   line-height: 1.6;
   margin: 0 0 16px;
@@ -456,18 +456,18 @@ body:has(.operations-page) > footer {
   text-align: left;
   gap: 10px;
   padding: 18px;
-  border: 1px solid #dce1e8;
+  border: 1px solid #e0e0e0;
   border-radius: 8px;
   cursor: pointer;
   background: #fafbfd;
 }
 .operations-quick-actions button:hover {
-  background: #edf1f7;
-  border-color: #a4b3c9;
+  background: #f1f1f1;
+  border-color: #b1b1b1;
 }
 .operations-quick-actions svg {
   width: 20px;
-  color: #324e78;
+  color: #4b4b4b;
 }
 .operations-quick-actions button > svg:last-child {
   position: absolute;
@@ -480,14 +480,14 @@ body:has(.operations-page) > footer {
 .operations-quick-actions span {
   font-size: 14px;
   line-height: 1.5;
-  color: #687487;
+  color: #737373;
 }
 .editorial-freshness {
   display: flex;
   gap: 10px;
   padding: 16px;
   border-radius: 8px;
-  background: #edf4ef;
+  background: #f2f2f2;
 }
 .editorial-freshness strong {
   font-size: 14px;
@@ -497,14 +497,14 @@ body:has(.operations-page) > footer {
   margin: 5px 0 0;
   font-size: 13px;
   line-height: 1.5;
-  color: #687487;
+  color: #737373;
 }
 .editorial-freshness .small-dot {
   margin-top: 6px;
   flex-shrink: 0;
 }
 .editorial-freshness.needs-review {
-  background: #fff4df;
+  background: #f5f5f5;
 }
 .editorial-freshness.needs-review strong {
   color: #875e1e;
@@ -524,18 +524,18 @@ body:has(.operations-page) > footer {
 }
 .operation-signal span {
   font-size: 13px;
-  color: #687487;
+  color: #737373;
 }
 .operation-signal b {
   display: block;
   font-size: 24px;
   font-weight: 500;
-  color: #273449;
+  color: #333333;
   margin-bottom: 3px;
 }
 .operation-signal p {
   font-size: 14px;
-  color: #768293;
+  color: #818181;
   margin-top: 10px;
 }
 .operation-signal .signal-error b {
@@ -545,7 +545,7 @@ body:has(.operations-page) > footer {
 .editorial-dialog .editorial-help {
   font-size: 13px;
   line-height: 1.6;
-  color: #687487;
+  color: #737373;
   margin: 12px 0 0;
 }
 .operations-audit > div {
@@ -557,7 +557,7 @@ body:has(.operations-page) > footer {
   font-size: 14px;
 }
 .operations-audit time {
-  color: #687487;
+  color: #737373;
   text-align: right;
 }
 .operations-filters {
@@ -571,7 +571,7 @@ body:has(.operations-page) > footer {
   flex: 1;
   min-width: 220px;
   padding: 12px;
-  border: 1px solid #dce1e8;
+  border: 1px solid #e0e0e0;
   border-radius: 8px;
   background: white;
   font-size: 15px;
@@ -588,7 +588,7 @@ body:has(.operations-page) > footer {
   gap: 10px;
 }
 .editorial-library {
-  border: 1px solid #dce1e8;
+  border: 1px solid #e0e0e0;
   border-radius: 12px;
   background: #fff;
   overflow: hidden;
@@ -611,11 +611,11 @@ body:has(.operations-page) > footer {
   font-size: 17px;
   line-height: 1.45;
   margin: 8px 0;
-  color: #273449;
+  color: #333333;
 }
 .editorial-library p {
   font-size: 14px;
-  color: #768293;
+  color: #818181;
   margin: 0;
 }
 .editorial-kind {
@@ -623,24 +623,24 @@ body:has(.operations-page) > footer {
   height: 42px;
   flex-shrink: 0;
   border-radius: 8px;
-  background: #edf1f7;
-  color: #324e78;
+  background: #f1f1f1;
+  color: #4b4b4b;
   display: grid;
   place-items: center;
 }
 .publication-status {
   text-transform: capitalize;
   border-radius: 4px;
-  background: #edf1f7;
+  background: #f1f1f1;
   padding: 3px 7px;
-  color: #566980;
+  color: #676767;
 }
 .publication-status.published {
   color: #376451;
-  background: #edf4ef;
+  background: #f2f2f2;
 }
 .publication-status.archived {
-  color: #6c6c74;
+  color: #6d6d6d;
   background: #f0f0f3;
 }
 .reference-library {
@@ -648,7 +648,7 @@ body:has(.operations-page) > footer {
 }
 .reference-library summary {
   cursor: pointer;
-  color: #324e78;
+  color: #4b4b4b;
   font-size: 14px;
   padding: 14px 0;
 }
@@ -657,29 +657,29 @@ body:has(.operations-page) > footer {
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  border-top: 1px solid #dce1e8;
+  border-top: 1px solid #e0e0e0;
   margin-top: 40px;
   padding: 24px 0;
-  color: #768293;
+  color: #818181;
   font-size: 13px;
 }
 .operations-notice {
   padding: 12px 16px;
   border-radius: 8px;
-  background: #edf4ef;
+  background: #f2f2f2;
   color: #376451;
   font-size: 14px;
   margin: 16px 0;
 }
 .operations-page .operations-panel .panel {
   box-shadow: none;
-  border: 1px solid #e0e5ed;
+  border: 1px solid #e5e5e5;
   padding: 18px;
   margin: 14px 0;
   border-radius: 8px;
 }
 .operations-page .operations-panel blockquote {
-  border-left: 2px solid #d1dbea;
+  border-left: 2px solid #dadada;
   padding-left: 15px;
   margin: 15px 0;
   overflow-wrap: anywhere;
@@ -714,7 +714,7 @@ body:has(.operations-page) > footer {
   font-size: 14px;
   line-height: 1.4;
   font-weight: 500;
-  color: #273449;
+  color: #333333;
   min-width: 0;
 }
 .editorial-form input:not([type='checkbox']),
@@ -723,11 +723,11 @@ body:has(.operations-page) > footer {
   width: 100%;
   min-height: 44px;
   padding: 11px;
-  border: 1px solid #dce1e8;
+  border: 1px solid #e0e0e0;
   border-radius: 7px;
   font-size: 16px;
   line-height: 1.5;
-  color: #273449;
+  color: #333333;
   background: #fff;
 }
 .editorial-form textarea {
@@ -751,7 +751,7 @@ body:has(.operations-page) > footer {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  border: 1px solid #dce1e8;
+  border: 1px solid #e0e0e0;
   border-radius: 8px;
   padding: 16px;
   background: #fafbfd;
@@ -774,7 +774,7 @@ body:has(.operations-page) > footer {
   grid-template-columns: 1fr 1fr;
   max-height: 155px;
   overflow-y: auto;
-  border: 1px solid #dce1e8;
+  border: 1px solid #e0e0e0;
   border-radius: 8px;
   padding: 6px;
 }
@@ -791,7 +791,7 @@ body:has(.operations-page) > footer {
 }
 .editorial-stock-options span {
   font-size: 13px;
-  color: #687487;
+  color: #737373;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -803,7 +803,7 @@ body:has(.operations-page) > footer {
   gap: 10px;
   flex-wrap: wrap;
   background: white;
-  border-top: 1px solid #e0e5ed;
+  border-top: 1px solid #e5e5e5;
   margin-top: 24px;
   padding: 17px 0 3px;
   z-index: 2;
@@ -826,7 +826,7 @@ body:has(.operations-page) > footer {
   margin-bottom: 15px;
 }
 .editorial-preview-heading button {
-  color: #324e78;
+  color: #4b4b4b;
   cursor: pointer;
 }
 @media (max-width: 900px) {
@@ -980,7 +980,7 @@ body:has(.operations-page) > footer {
   text-align: left;
 }
 .room-directory article p {
-  color: #657083;
+  color: #6f6f6f;
   font-size: 14px;
   line-height: 1.6;
   margin: 8px 0;
@@ -988,7 +988,7 @@ body:has(.operations-page) > footer {
 }
 .room-help,
 .coverage-context {
-  color: #657083;
+  color: #6f6f6f;
   font-size: 13px;
   line-height: 1.6;
 }
@@ -1013,8 +1013,8 @@ body:has(.operations-page) > footer {
   line-height: 1.5;
   padding: 2px 5px;
   border-radius: 4px;
-  color: #324e78;
-  background: #edf1f7;
+  color: #4b4b4b;
+  background: #f1f1f1;
 }
 .brief-story .coverage-context {
   margin: 8px 0 0;
@@ -1029,7 +1029,7 @@ body:has(.operations-page) > footer {
 /* Compact reading rows: a single panel, with actions beside the story. */
 .holder-brief .brief-stories {
   gap: 0;
-  border: 1px solid #dce1e8;
+  border: 1px solid #e0e0e0;
   border-radius: 10px;
   background: #fff;
   overflow: hidden;
@@ -1063,7 +1063,7 @@ body:has(.operations-page) > footer {
 }
 .news-row .brief-summary {
   margin: 0;
-  color: #5a6677;
+  color: #656565;
   font-size: 15px;
   line-height: 1.5;
   display: -webkit-box;

@@ -164,7 +164,7 @@ export function Thread({
             <textarea
               name="body"
               aria-label="Your reply"
-              placeholder="Add a thoughtful reply…"
+              placeholder="Write a reply…"
               required
               maxLength={2000}
             />
@@ -218,7 +218,7 @@ export function Thread({
         }}
       >
         <DialogContent>
-          <DialogTitle>Remove your contribution?</DialogTitle>
+          <DialogTitle>Delete?</DialogTitle>
           <DialogDescription>
             It will be hidden from members. Moderators retain access for review.
           </DialogDescription>

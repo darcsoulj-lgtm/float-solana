@@ -183,7 +183,7 @@ export function MarketOverviewPanel({ holdings }: { holdings: string[] }) {
               setPage(0);
             }}
           >
-            Backpack overview
+            All stocks
           </button>
         </fieldset>
         <Button
@@ -195,11 +195,11 @@ export function MarketOverviewPanel({ holdings }: { holdings: string[] }) {
           {busy ? 'Updating…' : 'Refresh'}
         </Button>
       </div>
-      <p className="market-refresh-note">
-        Updates automatically · no page refresh needed. Pool prices and Solana
-        supply update every 2 minutes; CoinMarketCap every 5 minutes. Order
-        books update every 30 seconds.
-      </p>
+      <details className="market-refresh-note">
+        <summary>Auto-updating</summary>
+        Prices and supply: 2 min · CoinMarketCap: 5 min · Order books: 30 sec.
+      </details>
+
       {error && (
         <div className="error" role="alert">
           {error}{' '}
@@ -227,11 +227,11 @@ export function MarketOverviewPanel({ holdings }: { holdings: string[] }) {
       )}
       <div className="market-search-row">
         <label htmlFor="market-search">
-          Find a stock
+          Stock
           <input
             id="market-search"
             type="search"
-            placeholder="Search name or ticker"
+            placeholder="Search stocks"
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
@@ -239,16 +239,11 @@ export function MarketOverviewPanel({ holdings }: { holdings: string[] }) {
             }}
           />
         </label>
-        <span>
-          {matches.length} stocks · {TOKENS.length} supported tokens
-        </span>
+        <span>{matches.length} stocks</span>
       </div>
       <div className="market-table-scroll">
         <table className="market-table">
-          <caption>
-            Backpack stock tokens · select a stock for supply, performance and
-            liquidity
-          </caption>
+          <caption>Backpack stock tokens</caption>
           <thead>
             <tr>
               <th>Stock</th>
@@ -351,7 +346,6 @@ export function MarketOverviewPanel({ holdings }: { holdings: string[] }) {
       >
         <header>
           <div>
-            <span className="market-kicker">SELECTED STOCK</span>
             <h2>
               {token.symbol} <span>{token.shortName}</span>
             </h2>
@@ -409,8 +403,8 @@ export function MarketOverviewPanel({ holdings }: { holdings: string[] }) {
           </div>
         </div>
         <p className="market-footnote market-source-line">
-          Issued value includes reserve-held tokens; it is not circulating
-          market cap or company value.
+          Issued value includes reserves. It is not circulating market cap or
+          company value.
           {observation.priceSource === 'DEX pool' &&
             ' Pool prices may move sharply when liquidity is thin.'}
           {observation.price === null &&
@@ -449,7 +443,7 @@ export function MarketOverviewPanel({ holdings }: { holdings: string[] }) {
         )}
         <div className="market-detail-grid">
           <section>
-            <h3>Backpack availability</h3>
+            <h3>Trading availability</h3>
             <dl className="market-facts">
               <div>
                 <dt>Deposits</dt>
@@ -533,7 +527,7 @@ export function MarketOverviewPanel({ holdings }: { holdings: string[] }) {
           </section>
         </div>
         <section className="market-pools">
-          <h3>Liquidity & price checks</h3>
+          <h3>DEX pools</h3>
           <div className="market-checks">
             <span>
               Top pool: <b>{money(top?.price)}</b> · {top?.dex || 'Not indexed'}
@@ -641,7 +635,7 @@ export function MarketOverviewPanel({ holdings }: { holdings: string[] }) {
         .
       </p>
       <details className="market-methodology">
-        <summary>Sources, coverage and token rights</summary>
+        <summary>Data sources & methodology</summary>
         <p>
           CoinMarketCap listings and Backpack’s registry are matched by exact
           Solana mint, not ticker name. CoinMarketCap supplies aggregate token
