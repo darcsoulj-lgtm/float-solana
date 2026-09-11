@@ -30,10 +30,14 @@ export default function Page() {
           notification preferences and in-app notifications, posts, replies,
           reports, and moderation records. Raw wallet addresses are temporarily
           stored in five-minute challenges and deleted after successful
-          verification or cleanup on later verification requests. Exact balances
-          are checked but not saved in the community data model. Unrelated token
-          holdings are discarded. Detected holdings are replaced on each
-          successful verification.
+          verification or cleanup on later verification requests. The signed-in
+          session also keeps the verified public wallet address to recheck
+          holdings. This address is not exposed on profiles or returned by the
+          member API. It is removed on sign-out, replacement verification, or
+          expired-session cleanup on subsequent verification/refresh requests.
+          Exact balances are checked but not saved in the community data model.
+          Unrelated token holdings are discarded. Detected holdings are replaced
+          on each successful holdings check.
         </p>
         <p>
           Wallet troubleshooting logs record the wallet app name, the completed

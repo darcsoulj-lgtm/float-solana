@@ -520,7 +520,8 @@ export function Community() {
           <p className="join-note">
             Message signature only. No transaction or transfer.
             <br />
-            Membership lasts 24 hours, then needs a fresh check.
+            Membership lasts 24 hours. Your wallet address is kept for this
+            session to update holdings automatically.
           </p>
           <output aria-live="polite">{stage}</output>
           {joinError && (

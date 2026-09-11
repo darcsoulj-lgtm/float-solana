@@ -204,9 +204,15 @@ export async function editorialFlow(base, cookie) {
     certainty: 'confirmed',
   };
   const eventResult = await call('items', event, { admin: true, status: 201 });
-  assert.ok(
-    (await call('brief?kind=event')).items.some((i) => i.id === eventResult.id),
-  );
+  // Repeated local runs can leave more than one page of events. Do not assume page one.
+  async function findEvent(id) {
+    for (let offset = 0; offset <= 5000; offset += 20) {
+      const page = await call('brief?kind=event&offset=' + offset);
+      const item = page.items.find((i) => i.id === id);
+      if (item || !page.hasMore) return item;
+    }
+  }
+  assert.ok(await findEvent(eventResult.id));
   const dateOnly = {
     ...event,
     url: 'https://example.com/day-' + stamp,
@@ -214,11 +220,7 @@ export async function editorialFlow(base, cookie) {
     certainty: 'estimated',
   };
   const day = await call('items', dateOnly, { admin: true, status: 201 });
-  assert.equal(
-    (await call('brief?kind=event')).items.find((i) => i.id === day.id)
-      .event_at,
-    null,
-  );
+  assert.equal((await findEvent(day.id)).event_at, null);
   const tomorrow = new Date(Date.now() + 6 * 86400000)
     .toISOString()
     .slice(0, 10);

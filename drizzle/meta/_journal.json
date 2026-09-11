@@ -43,6 +43,13 @@
       "when": 1789105753440,
       "tag": "0005_shocking_sinister_six",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1789109017305,
+      "tag": "0006_opposite_killer_shrike",
+      "breakpoints": true
     }
   ]
 }

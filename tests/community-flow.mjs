@@ -33,6 +33,8 @@ for (const byte of secondPair.publicKey) {
   if (byte !== 0) break;
   secondWallet = '1' + secondWallet;
 }
+let spcxHeld = false,
+  rpcFailure = false;
 let balance = '25000000',
   rpcCalls = 0;
 const server = http.createServer(async (req, res) => {
@@ -40,6 +42,11 @@ const server = http.createServer(async (req, res) => {
   for await (const c of req) raw += c;
   const b = JSON.parse(raw);
   rpcCalls++;
+  if (rpcFailure) {
+    res.writeHead(503);
+    res.end('unavailable');
+    return;
+  }
   let result;
   if (b.method === 'getAccountInfo' || b.method === 'getMultipleAccounts')
     result = {
@@ -86,6 +93,12 @@ const server = http.createServer(async (req, res) => {
     extra.account.data.parsed.info.mint =
       'SKHYhSjuRWHgikq8eRKbtBbpABgJSkd7ytQV14i9EQ3';
     result.value.push(extra);
+    if (spcxHeld) {
+      const spcx = structuredClone(extra);
+      spcx.account.data.parsed.info.mint =
+        'SPCXxcqXj6e5dJDVNovHN8744zkbhM2bYudU45BimGb';
+      result.value.push(spcx);
+    }
   }
   res.setHeader('Content-Type', 'application/json');
   res.end(JSON.stringify({ jsonrpc: '2.0', id: b.id, result }));
@@ -165,6 +178,7 @@ try {
   );
   await call('moderation', undefined, { status: 401 });
   await call('home', undefined, { status: 401 });
+  await call('holdings-refresh', {}, { status: 401 });
   await call('save', { type: 'thread', id: 'x', save: true }, { status: 401 });
   await call('challenge', { wallet, authMethod: 'unknown' }, { status: 400 });
   const c = (await call('challenge', { wallet, authMethod: 'signIn' })).d;
@@ -516,7 +530,45 @@ try {
     consent: true,
   });
   cookie = login.r.headers.get('set-cookie').split(';')[0];
+  // Buy SPCX after signing in: a holdings check must add it without another signature.
+  const oldExpiry = (await call('status')).d.member.verified_until;
+  assert.ok(!(await call('home')).d.holdings.some((h) => h.symbol === 'SPCX'));
+  spcxHeld = true;
+  const sync = (await call('holdings-refresh', { force: true })).d;
+  assert.equal(sync.checked, true);
+  const purchased = (await call('home')).d;
+  assert.ok(purchased.holdings.some((h) => h.symbol === 'SPCX'));
+  assert.equal(purchased.holdingsRefreshAvailable, true);
+  assert.ok(!JSON.stringify(purchased).includes(wallet));
+  assert.equal((await call('status')).d.member.verified_until, oldExpiry);
+  const callsBefore = rpcCalls;
+  await call('holdings-refresh', { force: true });
+  assert.equal(
+    rpcCalls,
+    callsBefore,
+    'Immediate repeated checks must be throttled',
+  );
+  await new Promise((r) => setTimeout(r, 11000));
+  rpcFailure = true;
+  await call('holdings-refresh', { force: true }, { status: 503 });
+  assert.ok(
+    (await call('home')).d.holdings.some((h) => h.symbol === 'SPCX'),
+    'Outage must preserve last good holdings',
+  );
+  rpcFailure = false;
+  await new Promise((r) => setTimeout(r, 11000));
+  spcxHeld = false;
+  await call('holdings-refresh', { force: true });
+  assert.ok(
+    !(await call('home')).d.holdings.some((h) => h.symbol === 'SPCX'),
+    'Sold token must disappear',
+  );
+  checks += 9;
   await call('threads/' + t.id + '/remove', {});
+  await new Promise((r) => setTimeout(r, 11000));
+  balance = '0';
+  await call('holdings-refresh', { force: true }, { status: 401 });
+  await call('home', undefined, { status: 401 });
   await call('logout', {});
   await call('threads', undefined, { status: 401 });
   console.log(

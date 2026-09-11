@@ -96,6 +96,7 @@ export type CommunityRoom = {
   thread_count: number;
 };
 export type MemberHome = {
+  holdingsRefreshAvailable: boolean;
   rooms: CommunityRoom[];
   holdings: Holding[];
   follows: string[];

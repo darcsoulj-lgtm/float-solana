@@ -1,3 +1,4 @@
+import { refreshHoldings } from '@/lib/holdings-refresh';
 import { getChatGPTUser } from '@/app/chatgpt-auth';
 import {
   actor,
@@ -177,7 +178,7 @@ async function handler(req: Request) {
           : undefined;
       const message = signInInput
         ? communitySignInMessage(signInInput)
-        : `HolderPulse community membership\nOrigin: ${url.origin}\nWallet: ${wallet}\nAccess: All community topics\nNonce: ${id}\nExpires: ${new Date(expires).toISOString()}\nSign to prove control of this wallet and verify supported tokenized-equity holdings for 24-hour community access. Only supported holdings are retained for your private feed; balances are not saved. No transaction or asset transfer is authorized.`;
+        : `HolderPulse community membership\nOrigin: ${url.origin}\nWallet: ${wallet}\nAccess: All community topics\nNonce: ${id}\nExpires: ${new Date(expires).toISOString()}\nSign to prove control of this wallet and verify supported tokenized-equity holdings for 24-hour community access. Your wallet address is kept for this session to refresh supported holdings; balances are not saved. No transaction or asset transfer is authorized.`;
       await db()
         .prepare(
           'INSERT INTO community_challenges (id,wallet,symbol,message,expires_at,consumed) VALUES (?,?,?,?,?,0)',
@@ -283,9 +284,14 @@ async function handler(req: Request) {
           .bind(member.id),
         db()
           .prepare(
-            'INSERT INTO community_sessions (hash,member_id,expires_at) VALUES (?,?,?)',
+            'INSERT INTO community_sessions (hash,member_id,expires_at,wallet) VALUES (?,?,?,?)',
           )
-          .bind(await digest(session), member.id, now + MEMBERSHIP_MS),
+          .bind(
+            await digest(session),
+            member.id,
+            now + MEMBERSHIP_MS,
+            c.wallet,
+          ),
         db().prepare('DELETE FROM community_challenges WHERE id=?').bind(c.id),
       ]);
       return json({ ok: true }, 200, sessionCookie(session, req));
@@ -410,6 +416,19 @@ async function handler(req: Request) {
       return json({ ok: true });
     }
     const member = await communityMember(req);
+    if (path[0] === 'holdings-refresh' && post) {
+      await rateLimit('holdings-refresh:' + member!.id, 10);
+      await communityCleanup();
+      return json(
+        await refreshHoldings(
+          db(),
+          await digest(communityCookie(req)!),
+          member!.id,
+          runtime().SOLANA_RPC_URL,
+          b.force === true,
+        ),
+      );
+    }
     if (!member) throw new AppError('Membership required.', 401);
     if (path[0] === 'rooms' && post) {
       const name = textValue(b.name, 3, 60, 'Room name')
@@ -524,6 +543,12 @@ async function handler(req: Request) {
           .bind(member.id),
       ]);
       return json({
+        holdingsRefreshAvailable: !!(await db()
+          .prepare(
+            'SELECT 1 FROM community_sessions WHERE hash=? AND wallet IS NOT NULL',
+          )
+          .bind(await digest(communityCookie(req)!))
+          .first()),
         rooms: await listRooms(),
         holdings: result[0].results,
         follows: (result[1].results as { symbol: string }[]).map(

@@ -130,6 +130,8 @@ export const communitySessions = sqliteTable(
       .notNull()
       .references(() => communityMembers.id),
     expiresAt: integer('expires_at').notNull(),
+    wallet: text('wallet'),
+    holdingsRefreshAt: integer('holdings_refresh_at').notNull().default(0),
   },
   (t) => [index('idx_community_sessions_member').on(t.memberId)],
 );

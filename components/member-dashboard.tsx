@@ -87,6 +87,35 @@ export function MemberDashboard({
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
+  const [holdingsChecking, setHoldingsChecking] = useState(false);
+  const [holdingsError, setHoldingsError] = useState('');
+  const holdingsRequest = useRef<Promise<void> | null>(null);
+  const lastHoldingsAttempt = useRef(0);
+  const syncHoldings = useCallback((force = false): Promise<void> => {
+    if (holdingsRequest.current) return holdingsRequest.current;
+    if (!force && Date.now() - lastHoldingsAttempt.current < 60000)
+      return Promise.resolve();
+    const first = lastHoldingsAttempt.current === 0;
+    lastHoldingsAttempt.current = Date.now();
+    setHoldingsChecking(true);
+    const request = api<{ checked: boolean }>('community/holdings-refresh', {
+      force: force || first,
+    })
+      .then((result) => {
+        if (result.checked) setHoldingsError('');
+      })
+      .catch((e) => {
+        setHoldingsError(
+          e.message + ' The last successful holdings check is shown below.',
+        );
+      })
+      .finally(() => {
+        holdingsRequest.current = null;
+        setHoldingsChecking(false);
+      });
+    holdingsRequest.current = request;
+    return request;
+  }, []);
   const [loadedQuery, setLoadedQuery] = useState('');
   const requestSequence = useRef(0);
   const [signOut, setSignOut] = useState(false);
@@ -117,6 +146,7 @@ export function MemberDashboard({
   const loading = loadedQuery !== query;
   const refresh = useCallback(async () => {
     const sequence = ++requestSequence.current;
+    await syncHoldings(true);
     const [home, page] = await Promise.all([
       api<MemberHome>('community/home'),
       api<ThreadPage>(query),
@@ -127,11 +157,17 @@ export function MemberDashboard({
     setThreads(page.threads);
     setCursor(page.nextCursor);
     setError('');
-  }, [query]);
+  }, [query, syncHoldings]);
   useEffect(() => {
     let active = true;
     const sequence = ++requestSequence.current;
-    Promise.all([api<MemberHome>('community/home'), api<ThreadPage>(query)])
+    syncHoldings()
+      .then(() =>
+        Promise.all([
+          api<MemberHome>('community/home'),
+          api<ThreadPage>(query),
+        ]),
+      )
       .then(([home, page]) => {
         if (active && sequence === requestSequence.current) {
           setError('');
@@ -150,7 +186,26 @@ export function MemberDashboard({
     return () => {
       active = false;
     };
-  }, [query]);
+  }, [query, syncHoldings]);
+  const refreshWalletHoldings = useCallback(
+    async (force = false) => {
+      await syncHoldings(force);
+      setData(await api<MemberHome>('community/home'));
+    },
+    [syncHoldings],
+  );
+  useEffect(() => {
+    const update = () => {
+      if (document.visibilityState === 'visible')
+        void refreshWalletHoldings().catch((e) => setHoldingsError(e.message));
+    };
+    const timer = setInterval(update, 60000);
+    document.addEventListener('visibilitychange', update);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', update);
+    };
+  }, [refreshWalletHoldings]);
   async function run(action: () => Promise<void>) {
     setBusy(true);
     setError('');
@@ -364,6 +419,19 @@ export function MemberDashboard({
                   Retry
                 </Button>
               </div>
+            )}
+            {data && !data.holdingsRefreshAvailable && (
+              <div className="member-notice" role="status">
+                Your holdings are from an earlier verification.{' '}
+                <Button variant="ghost" onClick={renew}>
+                  Verify wallet to update holdings
+                </Button>
+              </div>
+            )}
+            {holdingsError && view === 'markets' && (
+              <p className="member-error" role="status">
+                {holdingsError}
+              </p>
             )}
             {notice && <output className="member-notice">{notice}</output>}
             {view === 'markets' ? (
@@ -788,7 +856,35 @@ export function MemberDashboard({
                 <LockKeyhole size={14} />
               </div>
               <h2>Your holdings</h2>
-              <p className="context-caption">Your detected stock tokens</p>
+              <p className="context-caption">
+                {holdingsChecking
+                  ? 'Checking Solana…'
+                  : 'Stock tokens in your verified wallet'}
+              </p>
+              {holdingsError && (
+                <p role="status" className="context-caption">
+                  {holdingsError}
+                </p>
+              )}
+              {!holdingsChecking && holdings.length > 0 && (
+                <p className="context-caption">
+                  Last checked{' '}
+                  {new Date(
+                    Math.max(...holdings.map((h) => h.verified_at)),
+                  ).toLocaleString(undefined, {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                  })}
+                </p>
+              )}
+              {data && !data.holdingsRefreshAvailable && (
+                <p className="context-caption">
+                  Verify your wallet once more to enable automatic holdings
+                  updates for this session.
+                </p>
+              )}
               <div className="holding-tags">
                 {holdings.map((h) => (
                   <button key={h.symbol} onClick={() => openTopic(h.symbol)}>
@@ -818,8 +914,22 @@ export function MemberDashboard({
                   </strong>
                 </div>
               </div>
+              <button
+                className="text-action"
+                disabled={holdingsChecking}
+                onClick={() =>
+                  data?.holdingsRefreshAvailable
+                    ? void refreshWalletHoldings(true).catch((e) =>
+                        setHoldingsError(e.message),
+                      )
+                    : renew()
+                }
+              >
+                {holdingsChecking ? 'Checking holdings…' : 'Refresh holdings'}{' '}
+                <RefreshCw size={13} />
+              </button>
               <button className="text-action" onClick={renew}>
-                Refresh or switch wallet <RefreshCw size={13} />
+                Switch or verify wallet
               </button>
             </section>
             <section className="context-following">
