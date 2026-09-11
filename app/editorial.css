@@ -44,12 +44,12 @@ body:has(.operations-page) > footer {
 .brief-stories {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 12px;
 }
 .brief-story {
   border: 1px solid #e0e3e8;
-  border-radius: 14px;
-  padding: 28px;
+  border-radius: 10px;
+  padding: 18px 20px;
   background: #fff;
   min-width: 0;
 }
@@ -86,11 +86,11 @@ body:has(.operations-page) > footer {
   padding: 3px 7px;
 }
 .brief-story h2 {
-  margin: 0 0 14px;
+  margin: 10px 0 7px;
   font-family: Georgia, serif;
   font-weight: 400;
-  font-size: 27px;
-  letter-spacing: -0.5px;
+  font-size: 21px;
+  letter-spacing: -0.3px;
   line-height: 1.25;
 }
 .brief-story h2 a {
@@ -102,12 +102,16 @@ body:has(.operations-page) > footer {
   vertical-align: baseline;
   margin-left: 6px;
 }
-.brief-story > p {
+.brief-story > .brief-summary {
   margin: 0;
   color: #536072;
   font-size: 16px;
-  line-height: 1.75;
+  line-height: 1.5;
   overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 .brief-story-footer {
   display: flex;
@@ -115,9 +119,8 @@ body:has(.operations-page) > footer {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 12px;
-  border-top: 1px solid #edf0f3;
-  margin-top: 22px;
-  padding-top: 14px;
+  margin-top: 10px;
+  padding-top: 0;
 }
 .brief-story-footer a,
 .brief-story-footer button {
@@ -862,10 +865,10 @@ body:has(.operations-page) > footer {
     min-width: 160px;
   }
   .brief-story {
-    padding: 21px;
+    padding: 16px;
   }
   .brief-story h2 {
-    font-size: 24px;
+    font-size: 20px;
   }
   .brief-story-footer {
     gap: 8px;
@@ -998,4 +1001,29 @@ body:has(.operations-page) > footer {
   .room-directory article > div {
     flex-basis: calc(100% - 75px);
   }
+}
+
+.brief-inline-tags {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-left: 4px;
+}
+.brief-inline-tags > span {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.5;
+  padding: 2px 5px;
+  border-radius: 4px;
+  color: #324e78;
+  background: #edf1f7;
+}
+.brief-story .coverage-context {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.brief-story-footer a,
+.brief-story-footer button {
+  min-height: 36px;
 }

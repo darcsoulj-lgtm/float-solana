@@ -39,6 +39,11 @@ export function SourceCard({
             timeZone: 'UTC',
           })}
         </time>
+        <span className="brief-inline-tags">
+          {item.symbols.map((s) => (
+            <span key={s}>{s}</span>
+          ))}
+        </span>
         {!!item.featured && <span className="brief-featured">Featured</span>}
       </div>
       {item.coverage === 'context' && (
@@ -46,18 +51,13 @@ export function SourceCard({
           Industry context · not a detected holding
         </p>
       )}
-      <div className="brief-story-tags">
-        {item.symbols.map((s) => (
-          <span key={s}>{s}</span>
-        ))}
-      </div>
       <h2>
         <a href={item.url} target="_blank" rel="noopener noreferrer">
           {item.title}
-          <ArrowUpRight size={20} />
+          <ArrowUpRight size={16} />
         </a>
       </h2>
-      <p>{item.summary}</p>
+      <p className="brief-summary">{item.summary}</p>
       <div className="brief-story-footer">
         <a href={item.url} target="_blank" rel="noopener noreferrer">
           Read original <ArrowUpRight size={15} />
@@ -209,7 +209,7 @@ export function MemberBrief({
         <span>
           {kind === 'event'
             ? 'Times are shown in your timezone.'
-            : 'Company sources. Short summaries. Original links.'}
+            : 'Company sources · Manually updated when an editor publishes.'}
         </span>
       </p>
       {!loading && error ? (
