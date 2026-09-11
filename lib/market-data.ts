@@ -31,7 +31,9 @@ export type TokenPrice = {
   timestamp: number;
   confidence: number | null;
 };
+export type TokenVolume = { usd24h: number; mint: string };
 export type MarketOverview = {
+  volumes?: SourceResult<Record<string, TokenVolume>>;
   supplies: SourceResult<Record<string, MintSupply>>;
   markets: SourceResult<Record<string, TokenMarket>>;
   catalog: SourceResult<Listing[]>;
@@ -227,6 +229,7 @@ export async function publicJson(
     ![
       'api.backpack.exchange',
       'api.dexscreener.com',
+      'api.geckoterminal.com',
       'coins.llama.fi',
     ].includes(u.hostname) ||
     u.username ||
@@ -273,4 +276,44 @@ export async function fetchPrices(fetcher: typeof fetch = fetch) {
       fetcher,
     ),
   );
+}
+
+// Token-level DEX volume from a single provider; never sum it with pool or CEX figures.
+export function parseTokenVolumes(raw: unknown): Record<string, TokenVolume> {
+  const data = record(raw).data;
+  if (!Array.isArray(data)) throw new Error('Invalid token-volume response');
+  const out: Record<string, TokenVolume> = {};
+  const seen = new Set<string>();
+  for (const item of data) {
+    const row = record(item),
+      attr = record(row.attributes);
+    const token = TOKENS.find((t) => t.mint === attr.address);
+    if (!token || row.type !== 'token' || row.id !== 'solana_' + token.mint)
+      continue;
+    if (seen.has(token.symbol))
+      throw new Error('Duplicate token-volume record');
+    seen.add(token.symbol);
+    const volume = nonnegative(record(attr.volume_usd).h24);
+    if (volume !== null)
+      out[token.symbol] = { usd24h: volume, mint: token.mint };
+  }
+  return out;
+}
+export async function fetchTokenVolumes(fetcher: typeof fetch = fetch) {
+  const batches = [];
+  for (let i = 0; i < TOKENS.length; i += 30)
+    batches.push(TOKENS.slice(i, i + 30));
+  const result: Record<string, TokenVolume> = {};
+  // Bounded sequential batches respect the public provider's request allowance.
+  for (const batch of batches) {
+    const data = await publicJson(
+      'https://api.geckoterminal.com/api/v2/networks/solana/tokens/multi/' +
+        batch.map((t) => t.mint).join(','),
+      fetcher,
+    );
+    Object.assign(result, parseTokenVolumes(data));
+  }
+  if (!Object.keys(result).length)
+    throw new Error('No verified token volumes returned');
+  return result;
 }

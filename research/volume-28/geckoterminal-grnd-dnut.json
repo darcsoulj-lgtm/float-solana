@@ -1,0 +1,72 @@
+{
+  "retrievedAt": "2026-09-11T10:48:33.013Z",
+  "source": "https://api.geckoterminal.com/api/v2/networks/solana/tokens/multi/GRNDYDpqwpCm6jVxpbh4xT5AM4r3p391qYsKTHqgaET2,DNUTsCvKbKwu2RM72cUuW3TD9YpzArzACcqYQssjPLSk",
+  "response": {
+    "data": [
+      {
+        "id": "solana_GRNDYDpqwpCm6jVxpbh4xT5AM4r3p391qYsKTHqgaET2",
+        "type": "token",
+        "attributes": {
+          "address": "GRNDYDpqwpCm6jVxpbh4xT5AM4r3p391qYsKTHqgaET2",
+          "name": "Grindr - Backpack Securities",
+          "symbol": "GRND",
+          "decimals": 6,
+          "image_url": null,
+          "banner_image_url": null,
+          "coingecko_coin_id": null,
+          "total_supply": "29398995982.0",
+          "normalized_total_supply": "29398.995982",
+          "price_usd": "15.3450183046",
+          "fdv_usd": "451128.131481544",
+          "total_reserve_in_usd": "245980.2416874886428259566",
+          "volume_usd": {
+            "h24": "28145191.9633053"
+          },
+          "market_cap_usd": null
+        },
+        "relationships": {
+          "top_pools": {
+            "data": [
+              {
+                "id": "solana_4biQrAVeb65DeoANENdcqvRDMp8QZ8qhHoazLj4t6Uxb",
+                "type": "pool"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "solana_DNUTsCvKbKwu2RM72cUuW3TD9YpzArzACcqYQssjPLSk",
+        "type": "token",
+        "attributes": {
+          "address": "DNUTsCvKbKwu2RM72cUuW3TD9YpzArzACcqYQssjPLSk",
+          "name": "Krispy Kreme, Inc. Common Stock - Backpack Securities",
+          "symbol": "DNUT",
+          "decimals": 6,
+          "image_url": null,
+          "banner_image_url": null,
+          "coingecko_coin_id": null,
+          "total_supply": "0.0",
+          "normalized_total_supply": "0.0",
+          "price_usd": "3.1810255794",
+          "fdv_usd": "0.0",
+          "total_reserve_in_usd": "137100.78809956265768140702",
+          "volume_usd": {
+            "h24": "6235127.50526656"
+          },
+          "market_cap_usd": null
+        },
+        "relationships": {
+          "top_pools": {
+            "data": [
+              {
+                "id": "solana_5Ejo18ASfVPDSZCawxC1euc6Grw7KXStqE1Ea4fYNanm",
+                "type": "pool"
+              }
+            ]
+          }
+        }
+      }
+    ]
+  }
+}

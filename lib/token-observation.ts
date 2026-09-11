@@ -46,6 +46,10 @@ export function tokenObservation(
   const liquidityRows = pools.filter((p) => p.liquidity !== null);
   return {
     symbol,
+    onchainVolume24h: recent(data?.volumes, now)
+      ? (data?.volumes?.data?.[symbol]?.usd24h ?? null)
+      : null,
+    onchainVolumeTime: data?.volumes?.fetchedAt ?? null,
     cmc,
     top,
     supply,

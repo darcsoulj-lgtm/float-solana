@@ -42,6 +42,8 @@ const {
   fetchPools,
   fetchPrices,
   numeric,
+  parseTokenVolumes,
+  fetchTokenVolumes,
 } = await import(pathToFileURL(dir + '/market-data.mjs'));
 const { cachedMarket } = await import(pathToFileURL(dir + '/market-cache.mjs'));
 const mint = TOKENS[0].mint;
@@ -578,4 +580,89 @@ test('CMC circulating market cap never replaces total issued value or leaks into
   assert.equal(row.issuedValue, 12345 * markets.MU.price);
   assert.equal(row.cmc.marketCap, markets.MU.marketCap);
   assert.notEqual(row.supply.supply, markets.MU.supply);
+});
+
+test('Token-level volume covers all 41 captured Backpack mints and includes GRND and BABA', async () => {
+  const captured = JSON.parse(
+    await readFile(
+      new URL('../research/volume-28/all-token-volumes.json', import.meta.url),
+      'utf8',
+    ),
+  );
+  const volumes = Object.assign(
+    {},
+    ...captured.responses.map(parseTokenVolumes),
+  );
+  assert.equal(Object.keys(volumes).length, TOKENS.length);
+  assert.ok(volumes.GRND.usd24h > 20_000_000);
+  assert.ok(volumes.BABA.usd24h > 0);
+  for (const token of TOKENS)
+    assert.equal(volumes[token.symbol].mint, token.mint);
+});
+test('Volume parsing rejects wrong chain, fake mint, negative data and duplicates while preserving zero', () => {
+  const row = {
+    id: 'solana_' + mint,
+    type: 'token',
+    attributes: { address: mint, volume_usd: { h24: '0' } },
+  };
+  assert.equal(parseTokenVolumes({ data: [row] }).MU.usd24h, 0);
+  assert.deepEqual(
+    parseTokenVolumes({ data: [{ ...row, id: 'ethereum_' + mint }] }),
+    {},
+  );
+  assert.deepEqual(
+    parseTokenVolumes({
+      data: [{ ...row, attributes: { ...row.attributes, address: 'fake' } }],
+    }),
+    {},
+  );
+  for (const value of [-1, null, 'NaN', 'Infinity', false, '']) {
+    assert.deepEqual(
+      parseTokenVolumes({
+        data: [
+          {
+            ...row,
+            attributes: { ...row.attributes, volume_usd: { h24: value } },
+          },
+        ],
+      }),
+      {},
+    );
+  }
+  assert.throws(() => parseTokenVolumes({ data: [row, row] }), /Duplicate/);
+  assert.throws(() => parseTokenVolumes({ data: null }), /Invalid/);
+});
+test('Live adapter uses exact mint batches of at most 30 and never requests a key', async () => {
+  const captured = JSON.parse(
+    await readFile(
+      new URL('../research/volume-28/all-token-volumes.json', import.meta.url),
+      'utf8',
+    ),
+  );
+  const calls = [];
+  const result = await fetchTokenVolumes(async (url, options) => {
+    const u = new URL(url);
+    calls.push(u);
+    assert.equal(u.hostname, 'api.geckoterminal.com');
+    assert.ok(u.pathname.split('/').at(-1).split(',').length <= 30);
+    assert.equal(options.headers['x-api-key'], undefined);
+    return Response.json(captured.responses[calls.length - 1]);
+  });
+  assert.equal(calls.length, 2);
+  assert.equal(Object.keys(result).length, TOKENS.length);
+});
+test('Onchain volume stays separate from CMC/pool scope and never uses stale values', () => {
+  const now = Date.now();
+  const data = {
+    markets: source({}, now),
+    pools: source({ MU: [{ volume24h: 123 }] }, now),
+    volumes: source({ MU: { usd24h: 456, mint } }, now),
+  };
+  assert.equal(tokenObservation(data, 'MU', now).onchainVolume24h, 456);
+  assert.equal(tokenObservation(data, 'MU', now).volume24h, 123);
+  data.volumes.stale = true;
+  assert.equal(tokenObservation(data, 'MU', now).onchainVolume24h, null);
+  data.volumes.stale = false;
+  data.volumes.fetchedAt = now - 300001;
+  assert.equal(tokenObservation(data, 'MU', now).onchainVolume24h, null);
 });

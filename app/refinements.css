@@ -844,3 +844,19 @@ fieldset.holding-filter-chips {
     min-height: 40px;
   }
 }
+.volume-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  white-space: nowrap;
+}
+.volume-sort:hover {
+  color: var(--foreground);
+}
+.volume-sort:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 4px;
+}

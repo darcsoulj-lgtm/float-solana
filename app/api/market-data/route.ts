@@ -8,6 +8,7 @@ import {
   fetchCatalog,
   fetchPools,
   fetchPrices,
+  fetchTokenVolumes,
   parseBook,
   publicJson,
 } from '@/lib/market-data';
@@ -57,7 +58,7 @@ export async function GET(req: Request) {
       );
       return json({ book, reason: null });
     }
-    const [pools, prices, markets, supplies] = await Promise.all([
+    const [pools, prices, markets, supplies, volumes] = await Promise.all([
       cachedMarket(
         db(),
         'dex-pools-v1:' + TOKEN_REVIEW_DATE,
@@ -79,8 +80,14 @@ export async function GET(req: Request) {
         MARKET_REFRESH_MS,
         () => fetchSupplies(runtime().SOLANA_RPC_URL),
       ),
+      cachedMarket(
+        db(),
+        'gecko-volume-v1:' + TOKEN_REVIEW_DATE,
+        MARKET_REFRESH_MS,
+        () => fetchTokenVolumes(),
+      ),
     ]);
-    return json({ catalog, pools, prices, markets, supplies });
+    return json({ catalog, pools, prices, markets, supplies, volumes });
   } catch (e) {
     if (e instanceof AppError) return json({ error: e.message }, e.status);
     console.error(
