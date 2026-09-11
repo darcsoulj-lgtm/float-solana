@@ -241,7 +241,9 @@ export async function publicJson(
     signal: AbortSignal.timeout(10000),
     redirect: 'manual',
   });
-  if (!r.ok) throw new Error('Source unavailable');
+  // Keep status and host for production diagnosis; never log URLs, keys or bodies.
+  if (!r.ok)
+    throw new Error(`Source unavailable: ${u.hostname} HTTP ${r.status}`);
   return r.json();
 }
 export async function fetchCatalog(fetcher: typeof fetch = fetch) {

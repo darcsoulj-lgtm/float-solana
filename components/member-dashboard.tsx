@@ -58,7 +58,6 @@ const destinations = [
   { id: 'markets', label: 'Markets', icon: ChartNoAxesCombined },
   { id: 'home', label: 'Discussions', icon: Home },
   { id: 'calendar', label: 'Calendar', icon: CalendarDays },
-  { id: 'topics', label: 'Rooms', icon: Compass },
   { id: 'saved', label: 'Saved', icon: Bookmark },
   { id: 'profile', label: 'Profile', icon: UserRound },
 ] as const;
@@ -77,7 +76,9 @@ export function MemberDashboard({
       typeof window !== 'undefined'
         ? new URLSearchParams(window.location.search).get('view')
         : null;
-    return destinations.some((d) => d.id === value) ? (value as View) : 'brief';
+    return value === 'topics' || destinations.some((d) => d.id === value)
+      ? (value as View)
+      : 'brief';
   });
   const [feed, setFeed] = useState('personal');
   const [topic, setTopic] = useState('all');
@@ -303,12 +304,16 @@ export function MemberDashboard({
           {destinations.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
-              aria-current={view === id ? 'page' : undefined}
+              aria-current={
+                (view === 'topics' ? 'home' : view) === id ? 'page' : undefined
+              }
               onClick={() => navigate(id)}
             >
               <Icon size={19} />
               {label}
-              {view === id && <span className="nav-indicator" />}
+              {(view === 'topics' ? 'home' : view) === id && (
+                <span className="nav-indicator" />
+              )}
             </button>
           ))}
         </nav>
@@ -347,7 +352,12 @@ export function MemberDashboard({
           <span>
             HolderPulse{' '}
             <span className="breadcrumb">
-              / {destinations.find((d) => d.id === view)?.label}
+              /{' '}
+              {
+                destinations.find(
+                  (d) => d.id === (view === 'topics' ? 'home' : view),
+                )?.label
+              }
             </span>
           </span>
           <div>
@@ -379,7 +389,7 @@ export function MemberDashboard({
                         : view === 'home'
                           ? 'Discussions'
                           : view === 'topics'
-                            ? 'Rooms'
+                            ? 'Discussions'
                             : view === 'saved'
                               ? 'Saved'
                               : 'Profile'}
@@ -391,6 +401,26 @@ export function MemberDashboard({
                 </Button>
               )}
             </div>
+            {(view === 'home' || view === 'topics') && (
+              <div
+                className="feed-tabs discussion-views"
+                role="group"
+                aria-label="Discussions view"
+              >
+                <button
+                  aria-pressed={view === 'home'}
+                  onClick={() => navigate('home')}
+                >
+                  Threads
+                </button>
+                <button
+                  aria-pressed={view === 'topics'}
+                  onClick={() => navigate('topics')}
+                >
+                  Rooms
+                </button>
+              </div>
+            )}
             {error && (
               <div className="member-error" role="alert">
                 {error}{' '}

@@ -47,6 +47,15 @@ const {
 } = await import(pathToFileURL(dir + '/market-data.mjs'));
 const { cachedMarket } = await import(pathToFileURL(dir + '/market-cache.mjs'));
 const mint = TOKENS[0].mint;
+test('Upstream failures retain safe production diagnostics without leaking query values', async () => {
+  await assert.rejects(
+    publicJson(
+      'https://api.geckoterminal.com/api/v2/test?key=private-value',
+      async () => new Response('', { status: 429 }),
+    ),
+    { message: 'Source unavailable: api.geckoterminal.com HTTP 429' },
+  );
+});
 const fixture = async (name) =>
   JSON.parse(
     await readFile(

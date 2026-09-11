@@ -2032,6 +2032,11 @@ body:has(.member-shell) > footer {
   gap: 6px;
   font-size: 13px;
 }
+.discussion-views {
+  margin-bottom: 24px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--hp-edge-e1e1e1, #e1e1e1);
+}
 .feed-tabs > button {
   padding: 6px 12px;
   color: var(--hp-ink-808080, #808080);
@@ -3995,15 +4000,29 @@ body:has(.member-shell) > footer {
   }
 }
 
-.market-secondary-metrics { border-top: 1px solid var(--hp-edge-e9e9e9, #e9e9e9); background: var(--hp-bg-fafbfd, #fafbfd); }
-.market-secondary-metrics strong { font-size: clamp(19px, 2vw, 27px); }
-.market-cmc-detail { margin: 0 24px 24px; }
+.market-secondary-metrics {
+  border-top: 1px solid var(--hp-edge-e9e9e9, #e9e9e9);
+  background: var(--hp-bg-fafbfd, #fafbfd);
+}
+.market-secondary-metrics strong {
+  font-size: clamp(19px, 2vw, 27px);
+}
+.market-cmc-detail {
+  margin: 0 24px 24px;
+}
 
 .market-overview .market-metrics span,
 .market-overview .market-metrics small,
 .ecosystem-stats span,
-.ecosystem-stats small { font-size: 14px; }
+.ecosystem-stats small {
+  font-size: 14px;
+}
 
 /* All market cells select the stock; the native button retains keyboard access. */
-.market-table tbody tr { cursor: pointer; }
-.market-table tbody tr:focus-within { outline: 2px solid var(--ring); outline-offset: -2px; }
+.market-table tbody tr {
+  cursor: pointer;
+}
+.market-table tbody tr:focus-within {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
