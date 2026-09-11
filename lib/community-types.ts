@@ -10,6 +10,8 @@ export const TOPICS = [
 export type CommunityMember = {
   id: string;
   alias: string;
+  avatar_key?: string | null;
+  bio?: string;
   qualifying_symbol: string;
   show_badge: number;
   notify_replies: number;
@@ -20,6 +22,8 @@ export type CommunityMember = {
 export type CommunityAuthor = {
   member_id: string;
   alias: string;
+  avatar_key?: string | null;
+  bio?: string;
   badge: string | null;
 };
 export type CommunityThread = CommunityAuthor & {
@@ -72,7 +76,14 @@ export type ModerationData = {
   hiddenReplies: CommunityReply[];
 };
 
-export type Holding = { symbol: string; verified_at: number; slot: number };
+export type Holding = {
+  symbol: string;
+  verified_at: number;
+  slot: number;
+  raw_amount?: string | null;
+  decimals?: number | null;
+  ui_amount?: string | null;
+};
 export type CommunitySource = {
   id: string;
   symbol: string;
@@ -86,6 +97,8 @@ export type CommunityNotification = {
   thread_id: string;
   title: string;
   alias: string;
+  avatar_key?: string | null;
+  bio?: string;
   read: number;
   created_at: number;
 };

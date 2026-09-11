@@ -105,6 +105,8 @@ export const communityMembers = sqliteTable(
     id: text('id').primaryKey(),
     walletHash: text('wallet_hash').notNull(),
     alias: text('alias').notNull(),
+    bio: text('bio').notNull().default(''),
+    avatarKey: text('avatar_key'),
     qualifyingSymbol: text('qualifying_symbol').notNull(),
     showBadge: integer('show_badge').notNull().default(0),
     notifyReplies: integer('notify_replies').notNull().default(1),
@@ -201,6 +203,9 @@ export const communityHoldings = sqliteTable(
     symbol: text('symbol').notNull(),
     verifiedAt: integer('verified_at').notNull(),
     slot: integer('slot').notNull(),
+    rawAmount: text('raw_amount'),
+    decimals: integer('decimals'),
+    uiAmount: text('ui_amount'),
   },
   (t) => [
     uniqueIndex('idx_community_holdings_member_symbol').on(

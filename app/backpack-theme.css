@@ -1,6 +1,5 @@
 /* Backpack-inspired accent palette; HolderPulse remains an independent product. */
-:root,
-.dark {
+:root {
   --brand-red: #e33e3f;
   --brand-accent: #c92d35;
   --brand-accent-ink: #b3222b;
@@ -27,7 +26,7 @@ body,
 }
 .member-sidebar,
 .preview-nav {
-  background: #f0f0f2;
+  background: var(--hp-bg-f0f0f2, #f0f0f2);
   border-color: var(--border);
 }
 .brand,
@@ -67,7 +66,7 @@ body,
 }
 .preview-main,
 .preview-note {
-  background: #fff;
+  background: var(--hp-bg-ffffff, #fff);
   color: var(--foreground);
 }
 .preview-note {
@@ -86,27 +85,27 @@ body,
 .member-nav button,
 .sidebar-bottom,
 .sidebar-note a {
-  color: #62636b;
+  color: var(--hp-ink-62636b, #62636b);
 }
 .member-nav button:hover {
-  background: #e7e7eb;
+  background: var(--hp-bg-e7e7eb, #e7e7eb);
 }
 .member-nav button[aria-current],
 .market-switch button[aria-pressed='true'] {
   color: var(--brand-accent-ink);
-  background: #fff0f0;
+  background: var(--hp-bg-fff0f0, #fff0f0);
 }
 .holdings-card,
 .context-following {
-  background: #fff;
+  background: var(--hp-bg-ffffff, #fff);
   border-color: var(--border);
 }
 .member-avatar,
 .holding-tags button,
 .following-tags button,
 .preview-tags span {
-  background: #f0f0f2;
-  color: #3b3c44;
+  background: var(--hp-bg-f0f0f2, #f0f0f2);
+  color: var(--hp-ink-3b3c44, #3b3c44);
 }
 .text-action,
 .sidebar-note a:hover,
@@ -115,13 +114,13 @@ body,
   color: var(--brand-accent-ink);
 }
 .market-table tr.is-selected {
-  background: #fff0f0;
+  background: var(--hp-bg-fff0f0, #fff0f0);
 }
 .market-table tr:hover {
-  background: #f6f6f8;
+  background: var(--hp-bg-f6f6f8, #f6f6f8);
 }
 .market-table tr.is-selected:hover {
-  background: #ffe8e9;
+  background: var(--hp-bg-ffe8e9, #ffe8e9);
 }
 .ecosystem-stats {
   background: #0e0f14;
@@ -130,15 +129,15 @@ body,
   background: var(--brand-red);
 }
 .ecosystem-rank:hover {
-  background: #fff5f5;
+  background: var(--hp-bg-fff5f5, #fff5f5);
 }
 .eyebrow,
 .market-kicker {
-  color: #62636b;
+  color: var(--hp-ink-62636b, #62636b);
 }
 [data-slot='dialog-content'].wallet-connect-dialog {
   background: #0e0f14;
-  border-color: #35363e;
+  border-color: var(--hp-edge-35363e, #35363e);
 }
 .wallet-list .wallet-option,
 .verified-wallet-summary,
@@ -147,7 +146,7 @@ body,
 }
 .wallet-list .wallet-option:hover:not(:disabled) {
   background: #2b2c34;
-  border-color: #656772;
+  border-color: var(--hp-edge-656772, #656772);
 }
 .wallet-list .wallet-option:focus-visible {
   outline-color: #ff8588;
@@ -174,7 +173,7 @@ body,
 .wallet-connect-dialog .join-note,
 .wallet-detected,
 .verified-wallet-summary span {
-  color: #b8bac4;
+  color: var(--hp-ink-b8bac4, #b8bac4);
 }
 .wallet-connect-dialog .error {
   color: #ffdad9;

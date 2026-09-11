@@ -44,6 +44,8 @@ The reviewed registry contains 41 Backpack Solana tokens, including MU, SKHY, SP
 
 ## Tests
 
+See [the current member experience](docs/release-26-holder-experience.md) for dark mode, private portfolio values, photos, automatic news and verification limits.
+
 - `pnpm audit:tokens`: read-only live Backpack registry check before a release. Exits unsuccessfully if entries are missing, removed or mismatched. Review exact Solana mints before changing the allowlist; update the review date and evidence together. This is not a scheduled monitor.
 - `pnpm test:markets`: source parsing, coverage, supply validation and market-row selection regressions.
 - `pnpm test`: validation, strict signatures, small-order rejection, mint/program checks, account filtering, integer balances, RPC failure behavior.

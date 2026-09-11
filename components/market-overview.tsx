@@ -12,6 +12,8 @@ import { api } from '@/lib/client';
 import { TOKENS } from '@/lib/tokens';
 import type { MarketOverview, Book, SourceResult } from '@/lib/market-data';
 import { Button } from './ui/button';
+import { PortfolioSummary } from './portfolio-summary';
+import type { Holding } from '@/lib/community-types';
 import { MarketStockRow } from './market-stock-row';
 import { BackpackEcosystem } from './backpack-ecosystem';
 import { tokenObservation } from '@/lib/token-observation';
@@ -35,7 +37,13 @@ const time = (n: number | null | undefined) =>
     : 'Not available';
 const pct = (n: number | null | undefined) =>
   n === null || n === undefined ? '—' : `${n > 0 ? '+' : ''}${n.toFixed(2)}%`;
-export function MarketOverviewPanel({ holdings }: { holdings: string[] }) {
+export function MarketOverviewPanel({
+  holdings,
+  positions = [],
+}: {
+  holdings: string[];
+  positions?: Holding[];
+}) {
   const [scope, setScope] = useState<'holdings' | 'all'>('holdings'),
     [query, setQuery] = useState(''),
     [page, setPage] = useState(0);
@@ -164,6 +172,7 @@ export function MarketOverviewPanel({ holdings }: { holdings: string[] }) {
     : '';
   return (
     <div className="market-overview">
+      <PortfolioSummary positions={positions} data={data} now={now} />
       <div className="market-toolbar">
         <fieldset className="market-switch" aria-label="Stock coverage">
           <button
@@ -273,12 +282,7 @@ export function MarketOverviewPanel({ holdings }: { holdings: string[] }) {
                       ?.scrollIntoView({ block: 'start' });
                   }}
                 >
-                  <td>
-                    {money(row.price)}
-                    <small className="market-cell-source">
-                      {row.priceSource}
-                    </small>
-                  </td>
+                  <td>{money(row.price)}</td>
                   <td
                     className={
                       (change || 0) < 0 ? 'market-negative' : 'market-positive'
@@ -287,12 +291,7 @@ export function MarketOverviewPanel({ holdings }: { holdings: string[] }) {
                     {pct(change)}
                   </td>
                   <td>{money(row.issuedValue, true)}</td>
-                  <td>
-                    {money(row.volume24h, true)}
-                    <small className="market-cell-source">
-                      {row.volumeSource}
-                    </small>
-                  </td>
+                  <td>{money(row.volume24h, true)}</td>
                 </MarketStockRow>
               );
             })}
@@ -306,10 +305,13 @@ export function MarketOverviewPanel({ holdings }: { holdings: string[] }) {
         <output className="market-empty">Loading market observations…</output>
       )}
       <div className="market-pagination">
-        <span>
-          CoinMarketCap: {time(data?.markets.fetchedAt)} · Pools:{' '}
-          {time(data?.pools.fetchedAt)}
-        </span>
+        <details className="market-methodology">
+          <summary>Table sources</summary>
+          <p>
+            Prices: CoinMarketCap, then DEX pool or DefiLlama. Volume: covered
+            venues where available, otherwise the largest observed pool.
+          </p>
+        </details>
         <div>
           <Button
             variant="ghost"
@@ -349,9 +351,6 @@ export function MarketOverviewPanel({ holdings }: { holdings: string[] }) {
           <div>
             <span>Token price</span>
             <strong>{money(observation.price)}</strong>
-            <small>
-              {observation.priceSource} · {time(observation.priceTime)}
-            </small>
           </div>
           <div>
             <span>24h change</span>
@@ -364,14 +363,35 @@ export function MarketOverviewPanel({ holdings }: { holdings: string[] }) {
             >
               {pct(observation.change24h)}
             </strong>
-            <small>{observation.priceSource}</small>
           </div>
           <div>
             <span>Volume · 24h</span>
             <strong>{money(observation.volume24h, true)}</strong>
-            <small>{observation.volumeSource}</small>
           </div>
         </div>
+        <details className="market-methodology compact-sources">
+          <summary>Sources &amp; timestamps</summary>
+          <dl className="market-facts">
+            <div>
+              <dt>Price / change</dt>
+              <dd>
+                {observation.priceSource} · {time(observation.priceTime)}
+              </dd>
+            </div>
+            <div>
+              <dt>24h volume</dt>
+              <dd>{observation.volumeSource}</dd>
+            </div>
+            <div>
+              <dt>Supply</dt>
+              <dd>Solana · {time(observation.supply?.timestamp)}</dd>
+            </div>
+          </dl>
+          <p>
+            Aggregate venue volume and individual pool volume have different
+            coverage.
+          </p>
+        </details>
         <div className="market-metrics token-metrics market-secondary-metrics">
           <div>
             <span>Total minted supply</span>

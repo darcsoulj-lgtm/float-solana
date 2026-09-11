@@ -16,6 +16,8 @@ for (const file of [
   'editorial',
   'editorial-starter',
   'news-provider',
+  'holder-news',
+  'avatar-image',
 ]) {
   const source = await readFile(
     new URL('../lib/' + file + '.ts', import.meta.url),
@@ -50,6 +52,7 @@ const {
   verifySignature,
   verifyHolding,
   detectHoldings,
+  displayTokenAmount,
 } = await import(pathToFileURL(dir + '/solana.mjs'));
 const { TOKENS, TOKEN_PROGRAMS } = await import(
   pathToFileURL(dir + '/tokens.mjs')
@@ -60,7 +63,7 @@ const { communityPostErrors } = await import(
 test('Discussion validation identifies every invalid field before submission', () => {
   assert.deepEqual(
     Object.keys(communityPostErrors({ title: '', body: '', topic: 'all' })),
-    ['topic', 'title', 'body'],
+    ['topic', 'title'],
   );
   assert.deepEqual(
     communityPostErrors({
@@ -77,12 +80,12 @@ test('Discussion validation uses trimmed lengths and accepts every available roo
       communityPostErrors({ title: ' 12345 ', body: ' 1234567890 ', topic }),
       {},
     );
-  for (const title of ['    a    ', null, 12345, 'x'.repeat(141)])
+  for (const title of ['     ', null, 12345, 'x'.repeat(141)])
     assert.ok(
       communityPostErrors({ title, body: 'A valid perspective', topic: 'MU' })
         .title,
     );
-  for (const body of ['         a         ', undefined, {}, 'x'.repeat(4001)])
+  for (const body of [undefined, {}, 'x'.repeat(4001)])
     assert.ok(
       communityPostErrors({ title: 'Valid title', body, topic: 'MU' }).body,
     );
@@ -707,4 +710,133 @@ test('Imported drafts persist idempotently and preserve reviewed or archived rec
     1,
   );
   database.close();
+});
+
+test('One-character discussions and title-only discussions are allowed', () => {
+  assert.deepEqual(
+    communityPostErrors({ title: '?', body: '', topic: 'general' }),
+    {},
+  );
+  assert.deepEqual(
+    communityPostErrors({ title: 'a', body: 'b', topic: 'MU' }),
+    {},
+  );
+});
+test('Exact token formatting handles issuer multipliers and future changes', () => {
+  assert.equal(displayTokenAmount('25000000', 6, []), '25');
+  assert.equal(
+    displayTokenAmount('18446744073709551615', 6, []),
+    '18446744073709.551615',
+  );
+  const extensions = [
+    {
+      extension: 'scaledUiAmountConfig',
+      state: {
+        multiplier: '1.25',
+        newMultiplier: '2',
+        newMultiplierEffectiveTimestamp: 200,
+      },
+    },
+  ];
+  assert.equal(displayTokenAmount('25000000', 6, extensions, 100000), '31.25');
+  assert.equal(displayTokenAmount('25000000', 6, extensions, 200000), '50');
+  assert.equal(displayTokenAmount('1', 6, extensions, 200000), '0.000002');
+  assert.equal(
+    displayTokenAmount('1', 6, [
+      { extension: 'scaledUiAmountConfig', state: { multiplier: 'garbage' } },
+    ]),
+    null,
+  );
+});
+const { parseHeadlines, fetchHeadlines, companyAliases, NEWS_WINDOW_MS } =
+  await import(pathToFileURL(dir + '/holder-news.mjs'));
+test('Headline parsing rejects stale, future, unrelated and unsafe stories and deduplicates links', () => {
+  const now = Date.parse('2026-09-11T12:00:00Z');
+  const item = (
+    title,
+    date,
+    url = 'https://reuters.com/business/micron-update',
+  ) =>
+    `<item><title>${title}</title><pubDate>${new Date(date).toUTCString()}</pubDate><link>${url}</link></item>`;
+  const xml =
+    '<rss><channel>' +
+    [
+      item('Micron results', now - 1000),
+      item('Micron results', now - 1000),
+      item('NVIDIA results', now - 1000),
+      item('Micron old', now - NEWS_WINDOW_MS - 1000),
+      item('Micron future', now + 1000),
+      item('Micron fake', now - 1000, 'javascript:alert(1)'),
+      item('Micron private', now - 1000, 'https://127.0.0.1/a'),
+    ].join('') +
+    '</channel></rss>';
+  const rows = parseHeadlines(xml, 'MU', now);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].publisher, 'Reuters');
+  assert.throws(() => parseHeadlines('<!DOCTYPE rss><rss/>', 'MU', now));
+  assert.equal(
+    parseHeadlines(
+      '<rss><item><title>SPCX ETF news</title><pubDate>Fri, 11 Sep 2026 10:00:00 GMT</pubDate><link>https://finance.yahoo.com/news/etf-story</link></item></rss>',
+      'SPCX',
+      now,
+    ).length,
+    0,
+  );
+});
+test('Every supported token receives an automatic company-matched feed candidate', async () => {
+  for (const t of TOKENS) {
+    let called = false;
+    const now = Date.now();
+    const rows = await fetchHeadlines(
+      t.symbol,
+      async (url) => {
+        called = true;
+        assert.equal(new URL(url).hostname, 'feeds.finance.yahoo.com');
+        return new Response(
+          `<rss><item><title>${companyAliases(t.symbol)[0]} update</title><pubDate>${new Date(now - 1000).toUTCString()}</pubDate><link>https://finance.yahoo.com/news/company-update</link></item></rss>`,
+        );
+      },
+      now,
+    );
+    assert.ok(called);
+    assert.equal(rows.length, 1, t.symbol);
+  }
+});
+test('Captured live feeds contain directly matched news for MU, SPCX and newly added stocks', async () => {
+  for (const [symbol, file] of [
+    ['MU', 'mu'],
+    ['SPCX', 'SPCX'],
+    ['DNUT', 'DNUT'],
+    ['GRND', 'GRND'],
+    ['SKHY', '000660.KS'],
+  ]) {
+    const xml = await readFile(
+      new URL('../research/news-26/yahoo-' + file + '.xml', import.meta.url),
+      'utf8',
+    );
+    const items = parseHeadlines(
+      xml,
+      symbol,
+      Date.parse('2026-09-11T12:00:00Z'),
+    );
+    assert.ok(items.length > 0, symbol);
+    assert.ok(items.every((n) => n.symbols[0] === symbol));
+  }
+});
+
+test('Profile JPEG validation accepts a real small image and rejects fake or oversized content', async () => {
+  const { validAvatarJpeg } = await import(
+    pathToFileURL(dir + '/avatar-image.mjs')
+  );
+  const bytes = new Uint8Array(
+    await readFile(new URL('./fixtures/avatar.jpg', import.meta.url)),
+  );
+  assert.equal(validAvatarJpeg(bytes), true);
+  assert.equal(validAvatarJpeg(new TextEncoder().encode('<svg/>')), false);
+  assert.equal(validAvatarJpeg(new Uint8Array(100001)), false);
+  const fake = new Uint8Array(100);
+  fake.set([255, 216, 255]);
+  fake[98] = 255;
+  fake[99] = 217;
+  assert.equal(validAvatarJpeg(fake), false);
 });

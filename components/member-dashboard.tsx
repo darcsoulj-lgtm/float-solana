@@ -33,6 +33,8 @@ import { SearchPicker } from './search-picker';
 import { Thread } from './community-thread';
 import { RoomCreator } from './room-creator';
 import { MarketOverviewPanel } from './market-overview';
+import { ThemeToggle } from './theme-toggle';
+import { MemberAvatar, prepareAvatar } from './member-avatar';
 import { MemberBrief } from './member-brief';
 import { api } from '@/lib/client';
 import { communityPostErrors, POST_LIMITS } from '@/lib/community-post';
@@ -139,6 +141,7 @@ export function MemberDashboard({
     : {};
   const [notifications, setNotifications] = useState(false);
   const [alias, setAlias] = useState(member.alias);
+  const [bio, setBio] = useState(member.bio || '');
   const [badge, setBadge] = useState(!!member.show_badge);
   const [badgeSymbol, setBadgeSymbol] = useState(member.qualifying_symbol);
   const [notifyReplies, setNotifyReplies] = useState(!!member.notify_replies);
@@ -284,9 +287,11 @@ export function MemberDashboard({
           <strong>HolderPulse</strong>
         </Link>
         <div className="member-identity">
-          <span className="member-avatar">
-            {member.alias.slice(0, 1).toUpperCase()}
-          </span>
+          <MemberAvatar
+            alias={member.alias}
+            memberId={member.id}
+            version={member.avatar_key}
+          />
           <div>
             <strong>{member.alias}</strong>
             <span>
@@ -343,6 +348,7 @@ export function MemberDashboard({
             </span>
           </span>
           <div>
+            <ThemeToggle />
             <span className="private-label">
               <LockKeyhole size={13} /> Members only
             </span>
@@ -413,6 +419,7 @@ export function MemberDashboard({
                 {data ? (
                   <MarketOverviewPanel
                     holdings={holdings.map((h) => h.symbol)}
+                    positions={holdings}
                   />
                 ) : (
                   <p>Loading your holdings…</p>
@@ -526,6 +533,7 @@ export function MemberDashboard({
                   void run(async () => {
                     await api('community/profile', {
                       alias,
+                      bio,
                       showBadge: badge,
                       badgeSymbol,
                       notifyReplies,
@@ -536,9 +544,11 @@ export function MemberDashboard({
                 }}
               >
                 <div className="profile-preview">
-                  <span className="member-avatar">
-                    {alias.slice(0, 1).toUpperCase()}
-                  </span>
+                  <MemberAvatar
+                    alias={alias}
+                    memberId={member.id}
+                    version={member.avatar_key}
+                  />
                   <div>
                     <strong>{alias || 'Your display name'}</strong>
                     <span>
@@ -547,8 +557,55 @@ export function MemberDashboard({
                   </div>
                   <span className="eyebrow">PROFILE PREVIEW</span>
                 </div>
+                <div className="profile-photo-actions">
+                  <label className="photo-upload">
+                    Change photo
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      disabled={busy}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        e.target.value = '';
+                        if (!file) return;
+                        void run(async () => {
+                          const blob = await prepareAvatar(file);
+                          const response = await fetch('/api/avatar', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'image/jpeg' },
+                            body: blob,
+                          });
+                          const result = (await response.json()) as {
+                            error?: string;
+                          };
+                          if (!response.ok) throw Error(result.error);
+                          await refreshStatus();
+                          setNotice('Photo updated.');
+                        });
+                      }}
+                    />
+                  </label>
+                  {member.avatar_key && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      disabled={busy}
+                      onClick={() =>
+                        void run(async () => {
+                          const r = await fetch('/api/avatar', {
+                            method: 'DELETE',
+                          });
+                          if (!r.ok) throw Error('Could not remove photo.');
+                          await refreshStatus();
+                        })
+                      }
+                    >
+                      Remove photo
+                    </Button>
+                  )}
+                </div>
                 <label className="profile-field">
-                  Display name
+                  Nickname
                   <input
                     value={alias}
                     onChange={(e) => setAlias(e.target.value)}
@@ -560,6 +617,15 @@ export function MemberDashboard({
                     Use a personal alias. Your wallet address is never your
                     display name.
                   </small>
+                </label>
+                <label className="profile-field">
+                  Bio
+                  <textarea
+                    value={bio}
+                    maxLength={160}
+                    onChange={(e) => setBio(e.target.value)}
+                    placeholder="A little about you"
+                  />
                 </label>
                 <div className="profile-setting">
                   <div>
@@ -1054,7 +1120,6 @@ export function MemberDashboard({
                 disabled={draftPosting}
                 name="title"
                 placeholder="Discussion title"
-                minLength={POST_LIMITS.title.min}
                 maxLength={POST_LIMITS.title.max}
                 required
               />
@@ -1063,7 +1128,7 @@ export function MemberDashboard({
                 className={draftErrors.title ? 'field-error' : 'field-help'}
                 role={draftErrors.title ? 'alert' : undefined}
               >
-                {draftErrors.title || '5–140 characters'}
+                {draftErrors.title || ''}
               </p>
             </div>
             <div className="discussion-field">
@@ -1078,16 +1143,14 @@ export function MemberDashboard({
                 onChange={(e) => setDraftBody(e.target.value)}
                 disabled={draftPosting}
                 placeholder="Write your message…"
-                minLength={POST_LIMITS.body.min}
                 maxLength={POST_LIMITS.body.max}
-                required
               />
               <p
                 id={`${draftId}-body-help`}
                 className={draftErrors.body ? 'field-error' : 'field-help'}
                 role={draftErrors.body ? 'alert' : undefined}
               >
-                {draftErrors.body || '10–4,000 characters'}
+                {draftErrors.body || ''}
               </p>
             </div>
             {draftError && (

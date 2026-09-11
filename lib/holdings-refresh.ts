@@ -27,7 +27,7 @@ export async function refreshHoldings(
     .first<{ wallet: string }>();
   if (!lease) return { needsVerification: false, checked: false };
   // An RPC failure leaves the previous list intact and propagates a visible error.
-  const holdings = await detectHoldings(lease.wallet, rpcUrl);
+  const holdings = await detectHoldings(lease.wallet, rpcUrl, fetch, true);
   const guard =
     'EXISTS(SELECT 1 FROM community_sessions WHERE hash=? AND member_id=? AND holdings_refresh_at=? AND expires_at>?)';
   const args = [hash, memberId, now, Date.now()];
@@ -38,10 +38,19 @@ export async function refreshHoldings(
     ...holdings.map((h) =>
       db
         .prepare(
-          'INSERT INTO community_holdings (member_id,symbol,verified_at,slot) SELECT ?,?,?,? WHERE ' +
+          'INSERT INTO community_holdings (member_id,symbol,verified_at,slot,raw_amount,decimals,ui_amount) SELECT ?,?,?,?,?,?,? WHERE ' +
             guard,
         )
-        .bind(memberId, h.symbol, h.verifiedAt, h.slot, ...args),
+        .bind(
+          memberId,
+          h.symbol,
+          h.verifiedAt,
+          h.slot,
+          h.rawAmount ?? null,
+          h.decimals ?? null,
+          h.uiAmount ?? null,
+          ...args,
+        ),
     ),
     db
       .prepare(

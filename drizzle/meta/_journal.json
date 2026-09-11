@@ -50,6 +50,13 @@
       "when": 1789109017305,
       "tag": "0006_opposite_killer_shrike",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1789119095170,
+      "tag": "0007_many_the_executioner",
+      "breakpoints": true
     }
   ]
 }

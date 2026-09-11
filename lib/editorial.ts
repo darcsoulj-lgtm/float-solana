@@ -20,6 +20,8 @@ export type EditorialItem = {
   symbols: string[];
 };
 export type BriefData = {
+  notice?: string;
+  pending?: number;
   items: EditorialItem[];
   hasMore: boolean;
   lastReviewed: number | null;

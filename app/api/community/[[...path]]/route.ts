@@ -223,7 +223,12 @@ async function handler(req: Request) {
         .first();
       if (!consumed)
         throw new AppError('This signature has already been used.', 409);
-      const holdings = await detectHoldings(c.wallet, runtime().SOLANA_RPC_URL);
+      const holdings = await detectHoldings(
+        c.wallet,
+        runtime().SOLANA_RPC_URL,
+        fetch,
+        true,
+      );
       if (!holdings.length)
         throw new AppError(
           'This wallet no longer holds a supported stock token. Please reconnect after checking your holdings.',
@@ -264,9 +269,17 @@ async function handler(req: Request) {
         ...holdings.map((h) =>
           db()
             .prepare(
-              'INSERT INTO community_holdings (member_id,symbol,verified_at,slot) VALUES (?,?,?,?)',
+              'INSERT INTO community_holdings (member_id,symbol,verified_at,slot,raw_amount,decimals,ui_amount) VALUES (?,?,?,?,?,?,?)',
             )
-            .bind(member.id, h.symbol, h.verifiedAt, h.slot),
+            .bind(
+              member.id,
+              h.symbol,
+              h.verifiedAt,
+              h.slot,
+              h.rawAmount ?? null,
+              h.decimals ?? null,
+              h.uiAmount ?? null,
+            ),
         ),
         db()
           .prepare(
@@ -523,7 +536,7 @@ async function handler(req: Request) {
       const result = await db().batch([
         db()
           .prepare(
-            'SELECT symbol,verified_at,slot FROM community_holdings WHERE member_id=? ORDER BY symbol',
+            'SELECT symbol,verified_at,slot,raw_amount,decimals,ui_amount FROM community_holdings WHERE member_id=? ORDER BY symbol',
           )
           .bind(member.id),
         db()
@@ -624,6 +637,10 @@ async function handler(req: Request) {
     }
     if (path[0] === 'profile' && post) {
       const alias = validateAlias(b.alias);
+      const bio =
+        b.bio === undefined
+          ? member.bio || ''
+          : textValue(b.bio, 0, 160, 'Bio');
       if (typeof b.showBadge !== 'boolean')
         throw new AppError('Choose a badge preference.');
       const symbol =
@@ -644,10 +661,11 @@ async function handler(req: Request) {
         throw new AppError('Invalid notification preference.');
       await db()
         .prepare(
-          'UPDATE community_members SET alias=?,show_badge=?,qualifying_symbol=?,notify_replies=? WHERE id=?',
+          'UPDATE community_members SET alias=?,bio=?,show_badge=?,qualifying_symbol=?,notify_replies=? WHERE id=?',
         )
         .bind(
           alias,
+          bio,
           b.showBadge ? 1 : 0,
           symbol,
           b.notifyReplies === undefined

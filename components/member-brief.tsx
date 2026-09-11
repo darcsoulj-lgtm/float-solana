@@ -7,6 +7,8 @@ import {
   Newspaper,
   RefreshCw,
   Clock3,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { SearchPicker } from './search-picker';
@@ -59,12 +61,8 @@ export function SourceCard({
             <ArrowUpRight size={16} />
           </a>
         </h2>
-        <p className="brief-summary">{item.summary}</p>
       </div>
       <div className="brief-story-footer">
-        <a href={item.url} target="_blank" rel="noopener noreferrer">
-          Source <ArrowUpRight size={15} />
-        </a>
         {onDiscuss && (
           <button onClick={() => onDiscuss(item)}>
             <MessageSquare size={16} /> Discuss
@@ -105,7 +103,6 @@ export function EventCard({ item }: { item: EditorialItem }) {
         <a href={item.url} target="_blank" rel="noopener noreferrer">
           View announcement <ArrowUpRight size={14} />
         </a>
-        <small className="event-source-name">Source: {item.publisher}</small>
       </div>
     </article>
   );
@@ -128,25 +125,53 @@ export function MemberBrief({
   const [data, setData] = useState<BriefData | null>(null),
     [events, setEvents] = useState<EditorialItem[]>([]);
   const [error, setError] = useState(''),
-    [retry, setRetry] = useState(0),
-    [moreBusy, setMoreBusy] = useState(false);
-  const [moreError, setMoreError] = useState('');
+    [retry, setRetry] = useState(0);
   const [loadedKey, setLoadedKey] = useState('');
+  const holdingsKey = holdings.join(',');
+  const selectionKey = kind + ':' + symbol + ':' + holdingsKey;
+  const [pagination, setPagination] = useState({ key: selectionKey, page: 0 });
+  const page = pagination.key === selectionKey ? pagination.page : 0;
+  const setPage = (update: (previous: number) => number) =>
+    setPagination((previous) => ({
+      key: selectionKey,
+      page: update(previous.key === selectionKey ? previous.page : 0),
+    }));
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (document.visibilityState === 'visible') setRetry((v) => v + 1);
+    }, 900000);
+    const focus = () => setRetry((v) => v + 1);
+    window.addEventListener('focus', focus);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('focus', focus);
+    };
+  }, []);
   const currentKey = useRef('');
+  useEffect(() => {
+    if (!data?.pending) return;
+    const timer = setTimeout(() => setRetry((v) => v + 1), 10000);
+    return () => clearTimeout(timer);
+  }, [data]);
   const [today] = useState(() => {
     const d = new Date();
     return new Date(d.getTime() - d.getTimezoneOffset() * 60000)
       .toISOString()
       .slice(0, 10);
   });
-  const query = `editorial/brief?kind=${kind}&scope=personal&symbol=${encodeURIComponent(symbol)}&today=${today}`;
-  const requestKey = query + '&retry=' + retry;
+  const query =
+    kind === 'news'
+      ? `holder-news?symbol=${encodeURIComponent(symbol)}&offset=${page * 20}`
+      : `editorial/brief?kind=${kind}&scope=personal&symbol=${encodeURIComponent(symbol)}&today=${today}&offset=${page * 20}`;
+  const requestKey = query + '&retry=' + retry + '&holdings=' + holdingsKey;
   const loading = loadedKey !== requestKey;
   useEffect(() => {
     let active = true;
     currentKey.current = requestKey;
     (async () => {
       await api('editorial/initialize', {});
+      if (kind === 'news')
+        await api('holder-news', { symbol }).catch(() => null);
       const [feed, calendar] = await Promise.all([
         api<BriefData>(query),
         kind === 'news'
@@ -157,7 +182,6 @@ export function MemberBrief({
       ]);
       if (active) {
         setError('');
-        setMoreError('');
         setLoadedKey(requestKey);
         setData(feed);
         setEvents(calendar?.items.slice(0, 2) || []);
@@ -176,20 +200,43 @@ export function MemberBrief({
   return (
     <div className="holder-brief">
       <div className="brief-toolbar">
-        <div className="brief-filter">
-          <SearchPicker
-            label="Filter coverage by stock"
-            value={symbol}
-            onChange={onSymbolChange}
-            items={[
-              { value: 'all', label: 'All my holdings' },
-              ...TOKENS.filter((t) => holdings.includes(t.symbol)).map((t) => ({
-                value: t.symbol,
-                label: `${t.symbol} · ${t.shortName}`,
-              })),
-            ]}
-          />
-        </div>
+        {holdings.length <= 6 ? (
+          <fieldset
+            className="holding-filter-chips"
+            aria-label="Filter by holding"
+          >
+            {['all', ...holdings].map((s) => (
+              <button
+                key={s}
+                type="button"
+                aria-pressed={symbol === s}
+                onClick={() => onSymbolChange(s)}
+              >
+                {s === 'all' ? 'All holdings' : s}
+              </button>
+            ))}
+          </fieldset>
+        ) : (
+          <div className="brief-filter">
+            <SearchPicker
+              label="Filter by holding"
+              value={symbol}
+              onChange={onSymbolChange}
+              items={[
+                { value: 'all', label: 'All holdings' },
+                ...TOKENS.filter((t) => holdings.includes(t.symbol)).map(
+                  (t) => ({
+                    value: t.symbol,
+                    label: t.symbol + ' · ' + t.shortName,
+                  }),
+                ),
+              ]}
+            />
+          </div>
+        )}
+        {kind === 'news' && (
+          <small className="brief-disclosure">Last 7 days</small>
+        )}
         <Button
           variant="ghost"
           aria-label="Refresh coverage"
@@ -264,7 +311,7 @@ export function MemberBrief({
               </h2>
               <p>
                 {kind === 'news'
-                  ? 'No company news has been published for these holdings yet.'
+                  ? 'No matching headlines from the last seven days.'
                   : 'Events appear once a source is confirmed.'}
               </p>
               {symbol !== 'all' && (
@@ -279,43 +326,35 @@ export function MemberBrief({
               )}
             </div>
           )}
-          {data.hasMore && (
-            <Button
-              className="brief-load-more"
-              variant="outline"
-              disabled={moreBusy}
-              onClick={async () => {
-                setMoreBusy(true);
-                setMoreError('');
-                try {
-                  const next = await api<BriefData>(
-                    query + '&offset=' + data.items.length,
-                  );
-                  if (currentKey.current !== requestKey) return;
-                  setData((d) =>
-                    d ? { ...next, items: [...d.items, ...next.items] } : next,
-                  );
-                } catch (e) {
-                  if (currentKey.current === requestKey)
-                    setMoreError((e as Error).message);
-                } finally {
-                  setMoreBusy(false);
-                }
-              }}
-            >
-              {moreBusy ? 'Loading…' : 'Load more'}
-            </Button>
-          )}
-          {moreError && (
-            <p role="alert" className="error">
-              {moreError}
-            </p>
+          {(data.hasMore || page > 0) && (
+            <div className="brief-pager">
+              <Button
+                variant="ghost"
+                disabled={page === 0}
+                aria-label="Newer news"
+                onClick={() => setPage((p) => p - 1)}
+              >
+                <ChevronLeft size={16} />
+              </Button>
+              <span>{page + 1}</span>
+              <Button
+                variant="ghost"
+                disabled={!data.hasMore}
+                aria-label="Older news"
+                onClick={() => setPage((p) => p + 1)}
+              >
+                <ChevronRight size={16} />
+              </Button>
+            </div>
           )}
           <p className="brief-disclosure">
-            Editor-curated · Not real-time.{' '}
+            {kind === 'news'
+              ? 'Checks every 15 min while open. '
+              : 'Source-confirmed events. '}
             {data.lastReviewed
-              ? `Updated ${new Date(data.lastReviewed).toLocaleDateString()}.`
-              : ''}{' '}
+              ? `Checked ${new Date(data.lastReviewed).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}.`
+              : ''}
+            {data.notice && <output> {data.notice}</output>}
           </p>
         </>
       )}

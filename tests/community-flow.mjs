@@ -1,5 +1,6 @@
 // Local integration fixture only: never configure this RPC in a hosted environment.
 import http from 'node:http';
+import { profileNewsFlow } from './profile-news-flow.mjs';
 import { marketFlow } from './market-flow.mjs';
 import { editorialFlow } from './editorial-flow.mjs';
 import assert from 'node:assert/strict';
@@ -112,7 +113,8 @@ const original = await readFile('.dev.vars', 'utf8'),
   originalEnv = await readFile('.env', 'utf8');
 let checks = 0,
   cookie = '';
-let postWindow = Math.floor(Date.now() / 60000), postCount = 0;
+let postWindow = Math.floor(Date.now() / 60000),
+  postCount = 0;
 async function call(
   path,
   body,
@@ -122,10 +124,15 @@ async function call(
   // Do not weaken production limits or silently retry a failed assertion.
   if (body) {
     const currentWindow = Math.floor(Date.now() / 60000);
-    if (currentWindow !== postWindow) { postWindow = currentWindow; postCount = 0; }
+    if (currentWindow !== postWindow) {
+      postWindow = currentWindow;
+      postCount = 0;
+    }
     if (postCount >= 45) {
       console.log('Pacing local requests into the next rate-limit window.');
-      await new Promise(resolve => setTimeout(resolve, 60000 - Date.now() % 60000 + 20));
+      await new Promise((resolve) =>
+        setTimeout(resolve, 60000 - (Date.now() % 60000) + 20),
+      );
       postWindow = Math.floor(Date.now() / 60000);
       postCount = 0;
     }
@@ -263,7 +270,12 @@ try {
     home.holdings.map((h) => h.symbol),
     ['MU', 'SKHY'],
   );
-  assert.ok(!JSON.stringify(home).includes('25000000'));
+  assert.equal(
+    home.holdings.find((h) => h.symbol === 'MU').raw_amount,
+    '25000000',
+  );
+  assert.equal(home.holdings.find((h) => h.symbol === 'MU').ui_amount, '25');
+  assert.ok(!JSON.stringify((await call('status')).d).includes('25000000'));
   checks += 2;
   await call('follow', { symbol: 'SPCX', follow: true });
   assert.ok((await call('home')).d.follows.includes('SPCX'));
@@ -275,10 +287,12 @@ try {
   );
   await call('profile', {
     alias: 'Curious Holder',
+    bio: 'I follow semiconductors.',
     showBadge: true,
     notifyReplies: false,
   });
   assert.equal((await call('status')).d.member.notify_replies, 0);
+  assert.equal((await call('status')).d.member.bio, 'I follow semiconductors.');
   await call('save', { type: 'source', id: home.sources[0].id, save: true });
   assert.equal(
     (await call('home')).d.sources.find((s) => s.id === home.sources[0].id)
@@ -294,7 +308,7 @@ try {
 
   // Invalid drafts must return useful validation errors without spending the
   // three-post allowance. The next valid submission must still be accepted.
-  for (const title of ['', 'a', '  a  ', 'xxxx']) {
+  for (const title of ['', '   ', null, 'x'.repeat(141)]) {
     const invalid = await call(
       'threads',
       {
@@ -304,14 +318,14 @@ try {
       },
       { status: 400 },
     );
-    assert.match(invalid.d.error, /Title must contain/);
+    assert.match(invalid.d.error, /title|Title/);
   }
   const t = (
     await call(
       'threads',
       {
-        title: 'Cross ticker test',
-        body: 'An MU holder can discuss SK Hynix here.',
+        title: '?',
+        body: '',
         topic: 'SPCX',
       },
       { status: 201 },
@@ -321,9 +335,12 @@ try {
     .threads;
   assert.equal(posted.length, 1);
   assert.equal(posted[0].id, t.id);
-  assert.equal(posted[0].title, 'Cross ticker test');
-  assert.equal(posted[0].body, 'An MU holder can discuss SK Hynix here.');
+  assert.equal(posted[0].title, '?');
+  assert.equal(posted[0].body, '');
+  assert.ok(!JSON.stringify(posted).includes('raw_amount'));
+  assert.ok(!JSON.stringify(posted).includes('ui_amount'));
   await editorialFlow(base, cookie);
+  await profileNewsFlow(base, cookie, m.id);
   if (process.env.TEST_LIVE_MARKETS === '1') await marketFlow(base, cookie);
   const roomName = 'Memory club ' + crypto.randomUUID();
   await call(

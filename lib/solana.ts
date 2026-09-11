@@ -1,6 +1,7 @@
 type ParsedInfo = {
   decimals: number;
   isInitialized?: boolean;
+  extensions?: { extension: string; state?: Record<string, unknown> }[];
   owner?: string;
   mint?: string;
   state?: string;
@@ -193,6 +194,7 @@ export async function detectHoldings(
   wallet: string,
   rpcUrl = 'https://api.mainnet-beta.solana.com',
   fetcher: typeof fetch = fetch,
+  includeAmounts = false,
 ) {
   validWallet(wallet);
   const rpc = rpcClient(rpcUrl, fetcher);
@@ -314,7 +316,59 @@ export async function detectHoldings(
         'A supported mint did not pass onchain validation.',
         503,
       );
-    return { symbol: candidate.symbol, verifiedAt, slot: candidate.slot };
+    return {
+      symbol: candidate.symbol,
+      verifiedAt,
+      slot: candidate.slot,
+      ...(includeAmounts
+        ? {
+            rawAmount: candidate.amount.toString(),
+            decimals: candidate.decimals,
+            uiAmount: displayTokenAmount(
+              candidate.amount.toString(),
+              candidate.decimals,
+              parsed.info.extensions,
+              verifiedAt,
+            ),
+          }
+        : {}),
+    };
   });
   return holdings.sort((a, b) => a.symbol.localeCompare(b.symbol));
+}
+
+// Exact integer arithmetic, including the issuer's active Scaled UI Amount multiplier.
+export function displayTokenAmount(
+  amount: string,
+  decimals: number,
+  extensions: ParsedInfo['extensions'],
+  now = Date.now(),
+) {
+  const config = extensions?.find(
+    (e) => e.extension === 'scaledUiAmountConfig',
+  )?.state;
+  if (extensions?.some((e) => e.extension === 'interestBearingConfig'))
+    return null;
+  let multiplier = '1';
+  if (config) {
+    const effective = Number(config.newMultiplierEffectiveTimestamp);
+    const active =
+      Number.isFinite(effective) && effective <= now / 1000
+        ? config.newMultiplier
+        : config.multiplier;
+    if (typeof active !== 'string' || !/^\d{1,18}(\.\d{1,24})?$/.test(active))
+      return null;
+    multiplier = active;
+  }
+  const [whole, fraction = ''] = multiplier.split('.');
+  const scaled =
+    (BigInt(amount) * BigInt(whole + fraction)) /
+    10n ** BigInt(fraction.length);
+  const digits = scaled.toString().padStart(decimals + 1, '0');
+  return decimals
+    ? (digits.slice(0, -decimals) + '.' + digits.slice(-decimals)).replace(
+        /\.?0+$/,
+        '',
+      ) || '0'
+    : digits;
 }

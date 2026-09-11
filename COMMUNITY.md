@@ -10,7 +10,7 @@ The sections below document earlier community behavior where not superseded by t
 
 # HolderPulse community
 
-Current product (updated September 11, 2026): a private member home with one shared discussion feed, personalized by automatically detected holdings and followed topics. A positive balance of any token in the reviewed registry unlocks all topics. The registry currently has 39 enabled Backpack stock/ETF tokens, including SPCX. No simulated community posts or fabricated membership. Legacy surveys and records remain accessible through their original routes but are outside the main community navigation.
+Current product (updated September 11, 2026): a private member home with one shared discussion feed, personalized by automatically detected holdings and followed topics. A positive balance of any token in the reviewed registry unlocks all topics. The registry currently has 41 enabled Backpack stock/ETF tokens, including SPCX. No simulated community posts or fabricated membership. Legacy surveys and records remain accessible through their original routes but are outside the main community navigation.
 
 ## Runtime
 
@@ -24,7 +24,7 @@ Before requesting a signature, the server scans both SPL Token programs with get
 
 Membership and HttpOnly, SameSite=Lax session expire after 24 hours. HTTPS adds Secure. Selling after verification does not immediately revoke membership. New login invalidates previous sessions. Suspension invalidates all sessions immediately. A badge is optional and means a holding was checked within the membership window, not continuous holding or investor expertise.
 
-The community stores a deterministic private wallet hash, alias, supported token symbols with verification slots/times, an optional selected badge, verification expiry, followed topics, private saved references, notification preferences and content. Known public addresses can be matched to hashes: this is pseudonymity, not anonymity. Exact balances are not stored. Temporary challenge wallet addresses are deleted on successful verification or after expiry by cleanup on later challenges. The RPC provider sees queried wallet addresses. No wallet address or wallet hash appears in member feed responses. Cookies, signatures and balances are never exposed in logs.
+The community stores a deterministic private wallet hash, alias, supported token symbols with verification slots/times, an optional selected badge, verification expiry, followed topics, private saved references, notification preferences and content. Known public addresses can be matched to hashes: this is pseudonymity, not anonymity. Verified quantities are stored privately for the member’s portfolio view; they are not included in public profiles or discussion feeds. Temporary challenge wallet addresses are deleted on successful verification or after expiry by cleanup on later challenges. The RPC provider sees queried wallet addresses. No wallet address or wallet hash appears in member feed responses. Cookies, signatures and balances are never exposed in logs.
 
 ## Operations
 
@@ -51,4 +51,6 @@ Warm ivory surfaces, dark ink, deep blue accents, and serif display headlines. B
 
 ## Token registry expansion — 2026-09-10
 
-39 enabled Solana security mints selected from the official Backpack /api/v1/assets endpoint (US securities with deposits or withdrawals enabled). All passed finalized getMultipleAccounts mint/program/initialized checks; evidence and exact addresses are in docs/token-registry-review.json. Disabled catalogue entries and crypto assets were excluded. Registry is a reviewed snapshot, not automatically refreshed or expanded from untrusted token symbols. The public /tokens page shows sources and review date.
+41 enabled Solana security mints selected from the official Backpack /api/v1/assets endpoint (US securities with deposits or withdrawals enabled). All passed finalized getMultipleAccounts mint/program/initialized checks; evidence and exact addresses are in docs/token-registry-review.json. Disabled catalogue entries and crypto assets were excluded. Registry is a reviewed snapshot, not automatically refreshed or expanded from untrusted token symbols. The public /tokens page shows sources and review date.
+
+September 11 portfolio update: latest quantities are stored in community_holdings for the authenticated member only. Public author responses never include these fields. Profiles support nickname, bio and a member-visible JPEG photo in R2. News uses company-matched Yahoo Finance RSS headlines with 15-minute shared caching and seven-day filtering; no article bodies are retained.

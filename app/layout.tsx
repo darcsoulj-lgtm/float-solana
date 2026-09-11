@@ -2,6 +2,8 @@ import Link from '@/components/site-link';
 import type { Metadata } from 'next';
 import './globals.css';
 import './backpack-theme.css';
+import './refinements.css';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { AgentTools } from '@/components/agent-tools';
 export const metadata: Metadata = {
   title: {
@@ -17,7 +19,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('hp-theme')||'system';if(!['light','dark','system'].includes(t))t='system';document.documentElement.dataset.theme=t;document.documentElement.classList.toggle('dark',t==='dark'||(t==='system'&&matchMedia('(prefers-color-scheme: dark)').matches))}catch(e){}})()`,
+          }}
+        />
+      </head>
       <body>
         <AgentTools />
         <a className="skip" href="#main">
@@ -33,6 +42,7 @@ export default function RootLayout({
             <Link href="/methodology">Membership</Link>
             <Link href="/rules">Guidelines</Link>
           </nav>
+          <ThemeToggle />
           <Link className="nav-cta" href="/#join">
             How to join
           </Link>

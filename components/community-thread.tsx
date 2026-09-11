@@ -1,4 +1,5 @@
 'use client';
+import { MemberAvatar } from './member-avatar';
 import { useState } from 'react';
 import { Bookmark } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -43,7 +44,11 @@ export function Thread({
   return (
     <article className="thread-post" id={'thread-' + t.id}>
       <div className="thread-meta">
-        <span className="avatar-letter">{t.alias.slice(0, 1)}</span>
+        <MemberAvatar
+          alias={t.alias}
+          memberId={t.member_id}
+          version={t.avatar_key}
+        />
         <strong>{t.alias}</strong>
         {t.badge && <span className="pill">{t.badge} holder</span>}
         <span>
@@ -105,8 +110,15 @@ export function Thread({
         <>
           {page.replies.map((r) => (
             <div className="reply" key={r.id}>
-              <strong>{r.alias}</strong>{' '}
-              {r.badge && <span className="pill">{r.badge} holder</span>}
+              <div className="reply-author">
+                <MemberAvatar
+                  alias={r.alias}
+                  memberId={r.member_id}
+                  version={r.avatar_key}
+                />
+                <strong>{r.alias}</strong>
+                {r.badge && <span className="pill">{r.badge} holder</span>}
+              </div>
               <p style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
                 {r.body}
               </p>

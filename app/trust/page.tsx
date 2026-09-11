@@ -35,9 +35,12 @@ export default function Page() {
           holdings. This address is not exposed on profiles or returned by the
           member API. It is removed on sign-out, replacement verification, or
           expired-session cleanup on subsequent verification/refresh requests.
-          Exact balances are checked but not saved in the community data model.
-          Unrelated token holdings are discarded. Detected holdings are replaced
-          on each successful holdings check.
+          Your latest token quantities are saved privately to show your
+          portfolio value. They are returned only to your signed-in account,
+          never in public profiles, discussions or exports. Photos and bios are
+          visible to members; uploaded photos are resized and stripped of
+          metadata. Unrelated token holdings are discarded. Detected holdings
+          are replaced on each successful holdings check.
         </p>
         <p>
           Wallet troubleshooting logs record the wallet app name, the completed
