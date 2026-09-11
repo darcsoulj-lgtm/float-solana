@@ -87,7 +87,7 @@ body:has(.operations-page) > footer {
 }
 .brief-story h2 {
   margin: 10px 0 7px;
-  font-family: Georgia, serif;
+  font-family: var(--font-geist-sans);
   font-weight: 400;
   font-size: 21px;
   letter-spacing: -0.3px;
@@ -319,7 +319,7 @@ body:has(.operations-page) > footer {
   color: #324e78;
   font-size: 36px;
   line-height: 1;
-  font-family: Georgia, serif;
+  font-family: var(--font-geist-sans);
   font-style: italic;
 }
 .operations-brand > span {
@@ -353,9 +353,7 @@ body:has(.operations-page) > footer {
   margin: 38px 0 32px;
 }
 .operations-title h1 {
-  font:
-    400 38px/1.2 Georgia,
-    serif;
+  font: 400 38px/1.2 var(--font-geist-sans);
   letter-spacing: -1px;
   margin: 12px 0;
   color: #263952;

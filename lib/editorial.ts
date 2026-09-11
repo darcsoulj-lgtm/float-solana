@@ -36,6 +36,7 @@ export type OperationsData = {
   audit: { action: string; target: string; created_at: number }[];
   lastReviewed: number | null;
   sampledAt: number;
+  newsProvider: { configured: boolean; symbols: string[] };
 };
 export function canonicalSource(value: unknown) {
   const raw = textValue(value, 10, 1000, 'Source link');
@@ -56,6 +57,15 @@ export function canonicalSource(value: unknown) {
     url.hostname.includes(':')
   )
     throw new AppError('Use a public HTTPS source link.');
+  if (
+    /^\/(?:index\.html?|default\.aspx)?\/?$/i.test(url.pathname) ||
+    /^\/(?:overview|investor-relations|news|latest-news|events-and-presentations)\/?(?:default\.aspx)?$/i.test(
+      url.pathname,
+    )
+  )
+    throw new AppError(
+      'Link to the specific article or event announcement, not a company home or news index page.',
+    );
   url.hash = '';
   const trackingKeys = Array.from(url.searchParams.keys()).filter((key) =>
     /^(utm_|fbclid$|gclid$)/i.test(key),
@@ -95,7 +105,8 @@ export function validateEditorial(
     throw new AppError('Invalid featured setting.');
   if (
     b.coverage !== undefined &&
-    !['direct', 'context'].includes(String(b.coverage))
+    b.coverage !== 'direct' &&
+    b.coverage !== 'context'
   )
     throw new AppError('Choose direct company news or industry context.');
   const published = dateValue(b.published_date);

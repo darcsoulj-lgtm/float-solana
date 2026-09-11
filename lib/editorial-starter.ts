@@ -21,8 +21,8 @@ export const STARTER_CONTENT = [
     title: 'Micron confirms September 30 earnings call',
     summary:
       'Micron has scheduled its fiscal fourth-quarter earnings call for September 30 at 2:30 p.m. Mountain time. A webcast and subsequent replay will be available through investor relations.',
-    publisher: 'Micron Investor Relations',
-    url: 'https://investors.micron.com/news/press-release/2026/Micron-Technology-to-Report-Fiscal-Fourth-Quarter-Results-on-September-30-2026/default.aspx',
+    publisher: 'Micron · GlobeNewswire',
+    url: 'https://www.globenewswire.com/news-release/2026/08/26/3351673/14450/en/micron-technology-to-report-fiscal-fourth-quarter-results-on-september-30-2026.html',
     published_date: '2026-08-26',
     symbols: ['MU'],
     featured: false,
@@ -46,8 +46,8 @@ export const STARTER_CONTENT = [
     title: 'Micron · Q4 FY2026 earnings call',
     summary:
       'Quarterly results and management commentary. The company has confirmed the date and webcast time; use the source link for access details.',
-    publisher: 'Micron Investor Relations',
-    url: 'https://investors.micron.com/news/press-release/2026/Micron-Technology-to-Report-Fiscal-Fourth-Quarter-Results-on-September-30-2026/default.aspx',
+    publisher: 'Micron · GlobeNewswire',
+    url: 'https://www.globenewswire.com/news-release/2026/08/26/3351673/14450/en/micron-technology-to-report-fiscal-fourth-quarter-results-on-september-30-2026.html',
     published_date: '2026-08-26',
     event_date: '2026-09-30',
     event_at: '2026-09-30T20:30:00Z',

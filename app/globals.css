@@ -245,7 +245,7 @@ h1 {
   margin: 28px 0;
 }
 h1 em {
-  font-family: Georgia, serif;
+  font-family: var(--font-geist-sans);
   font-weight: 400;
   color: #535862;
 }
@@ -1404,7 +1404,7 @@ body {
   font-family: var(--font-geist-sans);
 }
 .club h1 {
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: var(--font-geist-sans);
   font-size: 48px;
   font-weight: 400;
   line-height: 1.12;
@@ -1661,7 +1661,7 @@ body:has(.member-shell) > footer {
   line-height: 1;
 }
 .preview-nav strong {
-  font-family: Georgia, serif;
+  font-family: var(--font-geist-sans);
   font-size: 22px;
   font-weight: 400;
   line-height: 1.15;
@@ -1676,9 +1676,7 @@ body:has(.member-shell) > footer {
   padding: 45px 38px;
 }
 .preview-main h2 {
-  font:
-    36px/1.13 Georgia,
-    serif;
+  font: 36px/1.13 var(--font-geist-sans);
   letter-spacing: -1px;
   margin: 14px 0;
 }
@@ -1707,9 +1705,7 @@ body:has(.member-shell) > footer {
   color: #687f6c;
 }
 .preview-note h3 {
-  font:
-    24px/1.2 Georgia,
-    serif;
+  font: 24px/1.2 var(--font-geist-sans);
   margin: 16px 0;
 }
 .preview-note p {
@@ -1738,9 +1734,7 @@ body:has(.member-shell) > footer {
   color: #6d7367;
 }
 .join-steps h3 {
-  font:
-    24px/1.2 Georgia,
-    serif;
+  font: 24px/1.2 var(--font-geist-sans);
   margin: 10px 0;
 }
 .join-steps p {
@@ -1753,9 +1747,7 @@ body:has(.member-shell) > footer {
   padding: 70px 0 85px;
 }
 .public-closing h2 {
-  font:
-    44px/1.1 Georgia,
-    serif;
+  font: 44px/1.1 var(--font-geist-sans);
   margin: 17px 0;
   letter-spacing: -1px;
 }
@@ -1831,9 +1823,7 @@ body:has(.member-shell) > footer {
   border-radius: 50%;
   color: #324e78;
   background: #dfe5df;
-  font:
-    22px Georgia,
-    serif;
+  font: 22px var(--font-geist-sans);
 }
 .member-identity > div {
   min-width: 0;
@@ -1890,9 +1880,7 @@ body:has(.member-shell) > footer {
   font-size: 9px;
 }
 .sidebar-note p {
-  font:
-    23px/1.25 Georgia,
-    serif;
+  font: 23px/1.25 var(--font-geist-sans);
   color: #4f5c48;
   margin: 15px 0 18px;
 }
@@ -1978,9 +1966,7 @@ body:has(.member-shell) > footer {
   font-size: 9px;
 }
 .member-page-heading h1 {
-  font:
-    39px/1.12 Georgia,
-    serif;
+  font: 39px/1.12 var(--font-geist-sans);
   letter-spacing: -1.1px;
   margin: 10px 0 12px;
 }
@@ -2004,9 +1990,7 @@ body:has(.member-shell) > footer {
   color: #63715a;
 }
 .conversation-prompt h2 {
-  font:
-    29px/1.15 Georgia,
-    serif;
+  font: 29px/1.15 var(--font-geist-sans);
   letter-spacing: -0.5px;
   margin: 11px 0 17px;
   color: #374832;
@@ -2080,9 +2064,7 @@ body:has(.member-shell) > footer {
   color: #819079;
 }
 .member-empty h3 {
-  font:
-    24px/1.25 Georgia,
-    serif;
+  font: 24px/1.25 var(--font-geist-sans);
   color: #46533d;
   margin: 12px 0;
 }
@@ -2173,9 +2155,7 @@ body:has(.member-shell) > footer {
   margin-left: auto;
 }
 .holdings-card h2 {
-  font:
-    29px/1.1 Georgia,
-    serif;
+  font: 29px/1.1 var(--font-geist-sans);
   color: #46583b;
   margin: 23px 0;
   letter-spacing: -0.6px;
@@ -2264,9 +2244,7 @@ body:has(.member-shell) > footer {
   color: #949989;
 }
 .context-principle p {
-  font:
-    22px/1.3 Georgia,
-    serif;
+  font: 22px/1.3 var(--font-geist-sans);
   color: #6e7b5e;
   margin: 17px 0 25px;
 }
@@ -2290,9 +2268,7 @@ body:has(.member-shell) > footer {
   font-size: 9px;
 }
 .source-heading h2 {
-  font:
-    25px/1.2 Georgia,
-    serif;
+  font: 25px/1.2 var(--font-geist-sans);
   margin: 7px 0 0;
   letter-spacing: -0.4px;
 }
@@ -3289,5 +3265,100 @@ body:has(.member-shell) > footer {
   }
   .wallet-option > svg {
     display: none;
+  }
+}
+
+/* Member workspace: clear sans-serif type and task-focused headings. */
+.member-shell .member-page-heading h1 {
+  font: 650 28px/1.2 var(--font-geist-sans);
+  letter-spacing: -0.7px;
+  margin: 0 0 8px;
+}
+.member-shell .member-page-heading .eyebrow {
+  display: none;
+}
+.member-shell .member-page-heading {
+  margin-bottom: 22px;
+}
+.member-shell .holdings-card h2 {
+  font: 600 18px/1.35 var(--font-geist-sans);
+  letter-spacing: -0.2px;
+  margin: 14px 0 10px;
+  color: #273449;
+}
+.member-shell .holdings-card {
+  background: #f0f3f7;
+  border-color: #dde3ec;
+  padding: 20px;
+}
+.member-shell .sidebar-note {
+  margin-top: 24px;
+  padding-top: 18px;
+}
+.member-shell .context-principle {
+  margin-top: 22px;
+}
+.member-shell em {
+  font-style: normal;
+}
+.member-shell .context-heading {
+  font-size: 11px;
+  color: #5c6b80;
+  letter-spacing: 0.7px;
+}
+.member-shell .member-avatar {
+  font-family: var(--font-geist-sans);
+  font-size: 20px;
+  font-weight: 600;
+}
+.member-shell .brief-story h2 {
+  font-family: var(--font-geist-sans);
+  font-weight: 600;
+  font-size: 18px;
+  line-height: 1.4;
+}
+.event-source-name {
+  display: block;
+  font-size: 12px;
+  color: #657083;
+  margin-top: 6px;
+}
+@media (max-width: 700px) {
+  .member-shell .member-page-heading h1 {
+    font-size: 25px;
+  }
+  .member-shell .brief-story h2 {
+    font-size: 17px;
+  }
+}
+
+.news-provider-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+.news-provider-panel p {
+  max-width: 700px;
+  line-height: 1.5;
+  font-size: 14px;
+  margin: 10px 0;
+  color: #5c6b80;
+}
+.news-provider-panel h2 small {
+  font: 500 12px var(--font-geist-sans);
+  color: #5c6b80;
+  margin-left: 8px;
+}
+.news-provider-panel a {
+  font-size: 14px;
+  color: #34547c;
+  text-decoration: underline;
+}
+@media (max-width: 700px) {
+  .news-provider-panel {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }

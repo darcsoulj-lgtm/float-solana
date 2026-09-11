@@ -33,6 +33,8 @@ export async function editorialFlow(base, cookie) {
   await call('initialize', { title: 'Injected content' }, { status: 400 });
   await call('initialize', {}, { origin: 'https://evil.invalid', status: 403 });
   await call('initialize', {});
+  await call('import-news', { symbol: 'MU' }, { status: 401 });
+  await call('import-news', { symbol: 'MU' }, { admin: true, status: 503 });
   assert.ok(
     !(await call('brief?scope=personal')).items.some(
       (i) => i.id === 'nvda-2026-q2-memory-context',
@@ -51,6 +53,12 @@ export async function editorialFlow(base, cookie) {
     'Legacy all-scope requests cannot broaden holdings coverage',
   );
   const initial = await call('operations', undefined, { admin: true });
+  assert.equal(initial.newsProvider.configured, false);
+  assert.ok(
+    initial.items
+      .filter((i) => i.id.startsWith('mu-earnings-date-2026'))
+      .every((i) => i.url.includes('globenewswire.com/news-release/')),
+  );
   const seed = initial.items.find((i) => i.id === 'skhy-future-forum-2026');
   assert.ok(seed);
   assert.ok(

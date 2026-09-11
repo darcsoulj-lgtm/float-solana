@@ -30,7 +30,8 @@ async function fetchOperations() {
 export function OperationsWorkspace() {
   const [data, setData] = useState<OperationsData | null>(null),
     [error, setError] = useState(''),
-    [notice, setNotice] = useState('');
+    [notice, setNotice] = useState(''),
+    [importing, setImporting] = useState(false);
   const [tab, setTab] = useState('overview'),
     [filter, setFilter] = useState('all'),
     [search, setSearch] = useState('');
@@ -259,6 +260,61 @@ export function OperationsWorkspace() {
           )}
         </TabsContent>
         <TabsContent value="editorial">
+          <section className="operations-panel news-provider-panel">
+            <div>
+              <h2>
+                Benzinga news{' '}
+                <small>
+                  {data?.newsProvider?.configured
+                    ? 'Key configured'
+                    : 'Not connected'}
+                </small>
+              </h2>
+              <p>
+                Import recent Micron headlines with original article links.
+                Review relevance and attribution before publishing. Other stocks
+                need a reviewed provider mapping.
+              </p>
+              <a
+                href="https://www.benzinga.com/apis/"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Licensed news API access ↗
+              </a>
+              {!data?.newsProvider?.configured && (
+                <p className="editorial-help">
+                  A licensed Benzinga API key is required. Your published feed
+                  remains manually curated.
+                </p>
+              )}
+            </div>
+            <Button
+              disabled={importing || !data?.newsProvider?.configured}
+              onClick={async () => {
+                setImporting(true);
+                setError('');
+                setNotice('');
+                try {
+                  const result = await api<{
+                    imported: number;
+                    skipped: number;
+                  }>('editorial/import-news', { symbol: 'MU' });
+                  setNotice(
+                    `${result.imported} new drafts imported. ${result.skipped} existing stories left unchanged.`,
+                  );
+                  setData(await fetchOperations());
+                  setFilter('draft');
+                } catch (e) {
+                  setError((e as Error).message);
+                } finally {
+                  setImporting(false);
+                }
+              }}
+            >
+              {importing ? 'Importing…' : 'Import MU drafts'}
+            </Button>
+          </section>
           <div className="operations-section-heading">
             <div>
               <h2>Content library</h2>

@@ -14,6 +14,36 @@ export function editorialRow(row: Record<string, unknown>): EditorialItem {
   } as EditorialItem;
 }
 export async function initializeEditorial() {
+  if (
+    !(await db()
+      .prepare('SELECT id FROM content_releases WHERE id=?')
+      .bind('micron-source-link-v2')
+      .first())
+  ) {
+    await db().batch([
+      db()
+        .prepare(
+          "UPDATE editorial_items SET url=?,publisher=? WHERE id IN ('mu-earnings-date-2026-q4-news','mu-earnings-date-2026-q4-event') AND url=? AND NOT EXISTS (SELECT 1 FROM content_releases WHERE id=?)",
+        )
+        .bind(
+          'https://www.globenewswire.com/news-release/2026/08/26/3351673/14450/en/micron-technology-to-report-fiscal-fourth-quarter-results-on-september-30-2026.html',
+          'Micron · GlobeNewswire',
+          'https://investors.micron.com/news/press-release/2026/Micron-Technology-to-Report-Fiscal-Fourth-Quarter-Results-on-September-30-2026/default.aspx',
+          'micron-source-link-v2',
+        ),
+      db()
+        .prepare(
+          'INSERT OR IGNORE INTO content_releases (id,applied_at) VALUES (?,?)',
+        )
+        .bind('micron-source-link-v2', Date.now()),
+      auditStatement(
+        'release',
+        'editorial:repair-source',
+        'micron-source-link-v2',
+      ),
+    ]);
+  }
+
   // Correct only the untouched reviewed NVIDIA record; never reset later admin edits.
   if (
     !(await db()

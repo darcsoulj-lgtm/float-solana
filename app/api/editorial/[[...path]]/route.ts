@@ -1,4 +1,9 @@
-import { db, actor, rateLimit } from '@/lib/server';
+import {
+  fetchNewsDrafts,
+  persistNewsDrafts,
+  NEWS_TICKERS,
+} from '@/lib/news-provider';
+import { db, actor, rateLimit, runtime, auditStatement } from '@/lib/server';
 import { communityMember } from '@/lib/community-server';
 import { AppError } from '@/lib/validation';
 import { validateEditorial, dateValue } from '@/lib/editorial';
@@ -97,6 +102,22 @@ async function handler(req: Request) {
     const user = await actor();
     if (!user.admin)
       throw new AppError('Administrator access is required.', 403);
+    if (path === 'import-news' && post) {
+      if (typeof b.symbol !== 'string')
+        throw new AppError('Choose a supported stock.');
+      await rateLimit('news-import:' + user.userId, 3);
+      const drafts = await fetchNewsDrafts(
+        runtime().BENZINGA_API_KEY,
+        b.symbol,
+      );
+      const imported = await persistNewsDrafts(db(), drafts);
+      await auditStatement(
+        user.userId,
+        'editorial:import-news',
+        'benzinga:' + b.symbol + ':' + imported,
+      ).run();
+      return json({ imported, skipped: drafts.length - imported });
+    }
     if (path === 'operations' && !post) {
       const now = Date.now();
       const results = await db().batch<Record<string, unknown>>([
@@ -125,6 +146,10 @@ async function handler(req: Request) {
         audit: results[3].results,
         lastReviewed: results[4].results[0]?.updated || null,
         sampledAt: now,
+        newsProvider: {
+          configured: !!runtime().BENZINGA_API_KEY?.trim(),
+          symbols: Object.keys(NEWS_TICKERS),
+        },
       });
     }
     if (path === 'items' && post) {

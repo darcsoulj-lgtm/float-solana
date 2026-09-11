@@ -103,8 +103,9 @@ export function EventCard({ item }: { item: EditorialItem }) {
         </p>
         <p>{item.summary}</p>
         <a href={item.url} target="_blank" rel="noopener noreferrer">
-          {item.publisher} <ArrowUpRight size={14} />
+          View announcement <ArrowUpRight size={14} />
         </a>
+        <small className="event-source-name">Source: {item.publisher}</small>
       </div>
     </article>
   );

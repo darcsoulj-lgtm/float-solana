@@ -241,12 +241,6 @@ export function MemberDashboard({
           ))}
         </nav>
         <div className="sidebar-note">
-          <span className="eyebrow">A LITTLE REMINDER</span>
-          <p>
-            Strong opinions.
-            <br />
-            <em>Open minds.</em>
-          </p>
           <Link href="/rules">
             Our shared guidelines <ArrowUpRight size={14} />
           </Link>
@@ -314,16 +308,16 @@ export function MemberDashboard({
                 </p>
                 <h1>
                   {view === 'brief'
-                    ? 'A little context. A clearer view.'
+                    ? 'Your news'
                     : view === 'calendar'
-                      ? 'Know what’s coming.'
+                      ? 'Calendar'
                       : view === 'home'
-                        ? 'Your common ground.'
+                        ? 'Discussions'
                         : view === 'topics'
-                          ? 'Find your room. Or start one.'
+                          ? 'Rooms'
                           : view === 'saved'
-                            ? 'Worth another look.'
-                            : 'A name. A little personality.'}
+                            ? 'Saved'
+                            : 'Your profile'}
                 </h1>
                 <p>
                   {view === 'brief'
@@ -769,11 +763,7 @@ export function MemberDashboard({
                 <span>YOUR WAY IN</span>
                 <LockKeyhole size={14} />
               </div>
-              <h2>
-                A holder.
-                <br />
-                <em>And a member.</em>
-              </h2>
+              <h2>Your holdings</h2>
               <p className="context-caption">Your detected stock tokens</p>
               <div className="holding-tags">
                 {holdings.map((h) => (
@@ -834,12 +824,6 @@ export function MemberDashboard({
               </button>
             </section>
             <div className="context-principle">
-              <span>01 / THE COMMON GROUND</span>
-              <p>
-                Hold a position.
-                <br />
-                <em>Leave room for another.</em>
-              </p>
               <small>
                 Independent of Backpack and underlying issuers. Discussions are
                 not investment advice.

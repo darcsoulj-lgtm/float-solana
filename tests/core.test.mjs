@@ -15,6 +15,7 @@ for (const file of [
   'community-post',
   'editorial',
   'editorial-starter',
+  'news-provider',
 ]) {
   const source = await readFile(
     new URL('../lib/' + file + '.ts', import.meta.url),
@@ -496,8 +497,10 @@ test('Reviewed starter stories and events satisfy the real publishing contract',
 });
 test('Source normalization removes tracking and rejects unsafe links', () => {
   assert.equal(
-    canonicalSource('https://example.com/news?utm_a=1&utm_b=2&gclid=3#part'),
-    'https://example.com/news',
+    canonicalSource(
+      'https://example.com/news/story?utm_a=1&utm_b=2&gclid=3#part',
+    ),
+    'https://example.com/news/story',
   );
   for (const url of [
     'javascript:alert(1)',
@@ -537,4 +540,171 @@ test('Calendar times convert across days; date-only events do not shift', () => 
     eventLabel(dateOnly, 'America/Los_Angeles'),
   );
   assert.match(eventLabel(dateOnly), /Time not announced/);
+});
+
+const { fetchNewsDrafts, persistNewsDrafts } = await import(
+  pathToFileURL(dir + '/news-provider.mjs')
+);
+test('News adapter requires credentials and a reviewed stock mapping without making requests', async () => {
+  const unreachable = () => {
+    throw new Error('Must not fetch');
+  };
+  await assert.rejects(
+    fetchNewsDrafts(undefined, 'MU', unreachable),
+    /not connected/,
+  );
+  await assert.rejects(
+    fetchNewsDrafts('fixture', 'SKHY', unreachable),
+    /reviewed/,
+  );
+});
+test('News adapter keeps exact ticker matches, original links and publication dates', async () => {
+  const now = Date.parse('2026-09-11T00:00:00Z');
+  const story = {
+    id: 123,
+    title: 'Micron announces company update',
+    url: 'https://www.benzinga.com/news/26/09/123/micron-update?utm_source=test',
+    created: '2026-09-10T12:00:00Z',
+    stocks: [{ name: 'MU' }],
+  };
+  const fetcher = async (url, options) => {
+    assert.equal(url.searchParams.get('tickers'), 'MU');
+    assert.equal(url.searchParams.get('displayOutput'), 'headline');
+    assert.equal(options.redirect, 'error');
+    return Response.json([
+      story,
+      story,
+      { ...story, id: 124, stocks: [{ name: 'NVDA' }] },
+      { ...story, id: 125, url: 'https://benzinga.com/' },
+      { ...story, id: 126, url: 'https://benzinga.com.evil.invalid/story' },
+      { ...story, id: 127, created: '2026-09-12' },
+      { ...story, id: 128, created: '2026-01-01' },
+      { ...story, id: 129, created: 'invalid' },
+    ]);
+  };
+  assert.deepEqual(await fetchNewsDrafts('fixture', 'MU', fetcher, now), [
+    {
+      id: 'benzinga-123',
+      title: story.title,
+      url: 'https://www.benzinga.com/news/26/09/123/micron-update',
+      publishedAt: Date.parse(story.created),
+      symbol: 'MU',
+    },
+  ]);
+});
+test('Provider failures are actionable and never expose the API key', async () => {
+  await assert.rejects(
+    fetchNewsDrafts('secret-fixture', 'MU', async () => {
+      throw new Error('secret-fixture');
+    }),
+    (e) => !e.message.includes('secret-fixture') && /reached/.test(e.message),
+  );
+  await assert.rejects(
+    fetchNewsDrafts(
+      'fixture',
+      'MU',
+      async () => new Response('', { status: 403 }),
+    ),
+    /permissions/,
+  );
+  await assert.rejects(
+    fetchNewsDrafts('fixture', 'MU', async () =>
+      Response.json({ error: 'bad' }),
+    ),
+    /unexpected/,
+  );
+});
+test('Editorial sources reject homepages and generic company news indexes', () => {
+  for (const path of [
+    '/',
+    '/default.aspx',
+    '/news',
+    '/investor-relations',
+    '/events-and-presentations/default.aspx',
+  ])
+    assert.throws(
+      () => canonicalSource('https://investors.example.com' + path),
+      /specific article/,
+    );
+});
+
+test('Imported drafts persist idempotently and preserve reviewed or archived records', async () => {
+  const { DatabaseSync } = await import('node:sqlite');
+  const database = new DatabaseSync(':memory:');
+  database.exec(
+    await readFile(
+      new URL('../drizzle/0003_lumpy_emma_frost.sql', import.meta.url),
+      'utf8',
+    ),
+  );
+  database.exec(
+    "ALTER TABLE editorial_items ADD coverage TEXT NOT NULL DEFAULT 'direct'",
+  );
+  const d1 = {
+    prepare: (sql) => ({ bind: (...values) => ({ sql, values }) }),
+    batch: async (statements) => {
+      database.exec('BEGIN');
+      try {
+        const results = statements.map((s) => ({
+          meta: database.prepare(s.sql).run(...s.values),
+        }));
+        database.exec('COMMIT');
+        return results;
+      } catch (e) {
+        database.exec('ROLLBACK');
+        throw e;
+      }
+    },
+  };
+  const draft = {
+    id: 'benzinga-123',
+    title: 'Micron company announcement',
+    url: 'https://www.benzinga.com/news/123/micron',
+    publishedAt: 123456,
+    symbol: 'MU',
+  };
+  assert.equal(await persistNewsDrafts(d1, [draft]), 1);
+  assert.equal(
+    database.prepare('SELECT status FROM editorial_items').get().status,
+    'draft',
+  );
+  assert.equal(
+    database.prepare('SELECT published_at FROM editorial_items').get()
+      .published_at,
+    123456,
+  );
+  assert.equal(
+    database.prepare('SELECT symbol FROM editorial_tags').get().symbol,
+    'MU',
+  );
+  database.exec(
+    "UPDATE editorial_items SET title='Reviewed headline',status='archived'",
+  );
+  assert.equal(
+    await persistNewsDrafts(d1, [
+      { ...draft, title: 'Changed provider title', symbol: 'SKHY' },
+    ]),
+    0,
+  );
+  assert.equal(
+    database.prepare('SELECT title FROM editorial_items').get().title,
+    'Reviewed headline',
+  );
+  assert.equal(
+    database.prepare('SELECT status FROM editorial_items').get().status,
+    'archived',
+  );
+  assert.equal(
+    database.prepare('SELECT count(*) n FROM editorial_tags').get().n,
+    1,
+  );
+  assert.equal(
+    await persistNewsDrafts(d1, [{ ...draft, id: 'benzinga-456' }]),
+    0,
+  );
+  assert.equal(
+    database.prepare('SELECT count(*) n FROM editorial_items').get().n,
+    1,
+  );
+  database.close();
 });
