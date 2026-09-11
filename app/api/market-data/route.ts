@@ -12,6 +12,7 @@ import {
   publicJson,
 } from '@/lib/market-data';
 import { cachedMarket } from '@/lib/market-cache';
+import { fetchSupplies } from '@/lib/token-supply';
 export const dynamic = 'force-dynamic';
 const json = (data: unknown, status = 200) =>
   Response.json(data, {
@@ -56,7 +57,7 @@ export async function GET(req: Request) {
       );
       return json({ book, reason: null });
     }
-    const [pools, prices, markets] = await Promise.all([
+    const [pools, prices, markets, supplies] = await Promise.all([
       cachedMarket(db(), 'dex-pools-v1', MARKET_REFRESH_MS, () => fetchPools()),
       cachedMarket(db(), 'llama-prices-v1', MARKET_REFRESH_MS, () =>
         fetchPrices(),
@@ -64,8 +65,11 @@ export async function GET(req: Request) {
       cachedMarket(db(), 'cmc-tokens-v1', CMC_REFRESH_MS, () =>
         fetchTokenMarkets(runtime().CMC_API_KEY),
       ),
+      cachedMarket(db(), 'solana-supplies-v1', MARKET_REFRESH_MS, () =>
+        fetchSupplies(runtime().SOLANA_RPC_URL),
+      ),
     ]);
-    return json({ catalog, pools, prices, markets });
+    return json({ catalog, pools, prices, markets, supplies });
   } catch (e) {
     if (e instanceof AppError) return json({ error: e.message }, e.status);
     console.error(

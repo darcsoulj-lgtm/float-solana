@@ -53,8 +53,12 @@ const server = http.createServer(async (req, res) => {
       context: { slot: 100 },
       value: {
         owner: program,
+        executable: false,
         data: {
-          parsed: { type: 'mint', info: { decimals: 6, isInitialized: true } },
+          parsed: {
+            type: 'mint',
+            info: { decimals: 6, isInitialized: true, supply: '12345000000' },
+          },
         },
       },
     };

@@ -1,6 +1,6 @@
 import { ArrowUpRight } from 'lucide-react';
 import { TOKENS } from '@/lib/tokens';
-import { marketCoverage } from '@/lib/cmc-data';
+import { issuedCoverage } from '@/lib/token-observation';
 import type { MarketOverview } from '@/lib/market-data';
 const usd = (n: number | null) =>
   n === null
@@ -20,13 +20,10 @@ export function BackpackEcosystem({
   now: number;
   select: (symbol: string) => void;
 }) {
-  const coverage = marketCoverage(
-    data?.markets.stale ? null : data?.markets.data,
-    now,
-  );
-  const leaders = [...coverage.fresh]
-    .filter((t) => t.marketCap !== null)
-    .sort((a, b) => b.marketCap! - a.marketCap!);
+  const coverage = issuedCoverage(data, now);
+  const leaders = [...coverage.valued]
+    .sort((a, b) => b.issuedValue! - a.issuedValue!)
+    .slice(0, 5);
   return (
     <section
       className="ecosystem-overview"
@@ -38,19 +35,24 @@ export function BackpackEcosystem({
           <h2>Backpack, at a glance.</h2>
         </div>
         <span className="market-chain">
-          {coverage.fresh.length} / {TOKENS.length} priced by CMC
+          {coverage.pricedCount} / {TOKENS.length} with recent prices
         </span>
       </div>
       <div className="ecosystem-stats">
         <div>
-          <span>Tracked token market cap</span>
-          <strong>{usd(coverage.marketCap)}</strong>
-          <small>{coverage.capCount} tokens with recent market-cap data</small>
+          <span>Issued token value · estimate</span>
+          <strong>{usd(coverage.total)}</strong>
+          <small>
+            {coverage.valued.length} / {TOKENS.length} tokens · supply ×
+            observed price
+          </small>
         </div>
         <div>
-          <span>Tracked volume · 24h</span>
-          <strong>{usd(coverage.volume24h)}</strong>
-          <small>{coverage.volumeCount} tokens · CMC-covered venues</small>
+          <span>Supply coverage</span>
+          <strong>
+            {coverage.supplyCount} / {TOKENS.length}
+          </strong>
+          <small>Validated directly on Solana</small>
         </div>
         <div>
           <span>Supported stock tokens</span>
@@ -59,14 +61,15 @@ export function BackpackEcosystem({
         </div>
       </div>
       <p className="market-footnote">
-        Partial coverage, not the value of all Backpack stock tokens. Token
-        market cap is not the underlying company’s valuation, assets in custody,
-        or proof of backing.
+        Total minted supply × recent token price, including tokens held in
+        reserves. This estimate is not circulating market cap, company value or
+        proof of backing. Coverage is shown explicitly; tokens missing supply or
+        a recent price are excluded.
       </p>
       <div className="ecosystem-columns">
         <section className="ecosystem-panel">
-          <h3>Largest tracked tokens</h3>
-          <p>By token market cap · select to inspect</p>
+          <h3>Largest issued token values</h3>
+          <p>Top five estimates · all supported tokens in the table below</p>
           {leaders.map((row) => (
             <button
               key={row.symbol}
@@ -82,78 +85,21 @@ export function BackpackEcosystem({
               <span className="ecosystem-bar" aria-hidden="true">
                 <i
                   style={{
-                    width: `${Math.max(1, (row.marketCap! / (leaders[0]?.marketCap || 1)) * 100)}%`,
+                    width: `${Math.max(1, (row.issuedValue! / (leaders[0]?.issuedValue || 1)) * 100)}%`,
                   }}
                 />
               </span>
-              <strong>{usd(row.marketCap)}</strong>
+              <strong>{usd(row.issuedValue)}</strong>
               <ArrowUpRight size={15} />
             </button>
           ))}
           {!leaders.length && (
             <p className="market-empty">
               {data
-                ? 'No recent market-cap observations available. The token table below still shows available pool data.'
+                ? 'No recent supply-and-price pairs available. The token table below still shows available pool data.'
                 : 'Loading market coverage…'}
             </p>
           )}
-        </section>
-        <section className="ecosystem-panel">
-          <h3>Explore the wider market</h3>
-          <p>External research · opens on the source website</p>
-          <a
-            className="ecosystem-resource"
-            href="https://www.coingecko.com/en/categories/backpack-securities-ecosystem"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <span>
-              <b>Backpack on CoinGecko</b>
-              <small>Category value, volume and token listings</small>
-            </span>
-            <ArrowUpRight size={18} />
-          </a>
-          <a
-            className="ecosystem-resource"
-            href="https://www.coingecko.com/en/categories/xstocks-ecosystem"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <span>
-              <b>xStocks on CoinGecko</b>
-              <small>Explore another tokenized-equity ecosystem</small>
-            </span>
-            <ArrowUpRight size={18} />
-          </a>
-          <a
-            className="ecosystem-resource"
-            href="https://www.coingecko.com/en/categories/robinhood-chain-stocks-ecosystem"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <span>
-              <b>Robinhood stock tokens</b>
-              <small>CoinGecko’s Robinhood stock-token category</small>
-            </span>
-            <ArrowUpRight size={18} />
-          </a>
-          <a
-            className="ecosystem-resource"
-            href="https://tokenterminal.com/explorer/tokenized-assets/stocks?chains=solana&tab=stocks"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <span>
-              <b>Token Terminal</b>
-              <small>Explore tokenized stocks on Solana</small>
-            </span>
-            <ArrowUpRight size={18} />
-          </a>
-          <p className="market-footnote">
-            These are research links, not imported feeds. Coverage and legal
-            structures differ; category totals are not an apples-to-apples
-            market-share ranking.
-          </p>
         </section>
       </div>
       <details className="market-methodology ecosystem-rights">

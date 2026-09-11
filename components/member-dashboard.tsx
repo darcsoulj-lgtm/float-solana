@@ -201,9 +201,13 @@ export function MemberDashboard({
     };
     const timer = setInterval(update, 60000);
     document.addEventListener('visibilitychange', update);
+    window.addEventListener('focus', update);
+    window.addEventListener('online', update);
     return () => {
       clearInterval(timer);
       document.removeEventListener('visibilitychange', update);
+      window.removeEventListener('focus', update);
+      window.removeEventListener('online', update);
     };
   }, [refreshWalletHoldings]);
   async function run(action: () => Promise<void>) {

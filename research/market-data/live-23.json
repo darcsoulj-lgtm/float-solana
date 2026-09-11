@@ -1,0 +1,1311 @@
+{
+  "checkedAt": "2026-09-11T07:32:07.092Z",
+  "data": {
+    "supplies": {
+      "data": {
+        "MU": {
+          "supply": 5567.526282,
+          "amount": "5567526282",
+          "decimals": 6,
+          "slot": 446100885,
+          "timestamp": 1789111926803
+        },
+        "SKHY": {
+          "supply": 10204.144782,
+          "amount": "10204144782",
+          "decimals": 6,
+          "slot": 446100885,
+          "timestamp": 1789111926803
+        },
+        "SPCX": {
+          "supply": 43701.552603,
+          "amount": "43701552603",
+          "decimals": 6,
+          "slot": 446100885,
+          "timestamp": 1789111926803
+        },
+        "AMC": {
+          "supply": 45910.380285,
+          "amount": "45910380285",
+          "decimals": 6,
+          "slot": 446100885,
+          "timestamp": 1789111926803
+        },
+        "BA": {
+          "supply": 514.433863,
+          "amount": "514433863",
+          "decimals": 6,
+          "slot": 446100885,
+          "timestamp": 1789111926803
+        },
+        "BABA": {
+          "supply": 938.908565,
+          "amount": "938908565",
+          "decimals": 6,
+          "slot": 446100885,
+          "timestamp": 1789111926803
+        },
+        "BOT": {
+          "supply": 54872.726895,
+          "amount": "54872726895",
+          "decimals": 6,
+          "slot": 446100885,
+          "timestamp": 1789111926803
+        },
+        "BULL": {
+          "supply": 9017.109653,
+          "amount": "9017109653",
+          "decimals": 6,
+          "slot": 446100885,
+          "timestamp": 1789111926803
+        },
+        "COST": {
+          "supply": 101.41226,
+          "amount": "101412260",
+          "decimals": 6,
+          "slot": 446100885,
+          "timestamp": 1789111926803
+        },
+        "DELL": {
+          "supply": 168.423365,
+          "amount": "168423365",
+          "decimals": 6,
+          "slot": 446100885,
+          "timestamp": 1789111926803
+        },
+        "DJT": {
+          "supply": 16918.10607,
+          "amount": "16918106070",
+          "decimals": 6,
+          "slot": 446100885,
+          "timestamp": 1789111926803
+        },
+        "DRAM": {
+          "supply": 15865.767942,
+          "amount": "15865767942",
+          "decimals": 6,
+          "slot": 446100885,
+          "timestamp": 1789111926803
+        },
+        "GPRO": {
+          "supply": 214058.531161,
+          "amount": "214058531161",
+          "decimals": 6,
+          "slot": 446100885,
+          "timestamp": 1789111926803
+        },
+        "HIMS": {
+          "supply": 4681.49174,
+          "amount": "4681491740",
+          "decimals": 6,
+          "slot": 446100885,
+          "timestamp": 1789111926803
+        },
+        "HOOD": {
+          "supply": 6157.311378,
+          "amount": "6157311378",
+          "decimals": 6,
+          "slot": 446100885,
+          "timestamp": 1789111926803
+        },
+        "HTZ": {
+          "supply": 31448.030939,
+          "amount": "31448030939",
+          "decimals": 6,
+          "slot": 446100885,
+          "timestamp": 1789111926803
+        },
+        "IBM": {
+          "supply": 269.070036,
+          "amount": "269070036",
+          "decimals": 6,
+          "slot": 446100885,
+          "timestamp": 1789111926803
+        },
+        "INTC": {
+          "supply": 4554.837005,
+          "amount": "4554837005",
+          "decimals": 6,
+          "slot": 446100885,
+          "timestamp": 1789111926803
+        },
+        "JNJ": {
+          "supply": 328.705231,
+          "amount": "328705231",
+          "decimals": 6,
+          "slot": 446100885,
+          "timestamp": 1789111926803
+        },
+        "LLY": {
+          "supply": 297.151478,
+          "amount": "297151478",
+          "decimals": 6,
+          "slot": 446100885,
+          "timestamp": 1789111926803
+        },
+        "LMT": {
+          "supply": 157.866238,
+          "amount": "157866238",
+          "decimals": 6,
+          "slot": 446100885,
+          "timestamp": 1789111926803
+        },
+        "LULU": {
+          "supply": 1416.377924,
+          "amount": "1416377924",
+          "decimals": 6,
+          "slot": 446100885,
+          "timestamp": 1789111926803
+        },
+        "MGM": {
+          "supply": 3365.466732,
+          "amount": "3365466732",
+          "decimals": 6,
+          "slot": 446100885,
+          "timestamp": 1789111926803
+        },
+        "MRNA": {
+          "supply": 1002.057296,
+          "amount": "1002057296",
+          "decimals": 6,
+          "slot": 446100885,
+          "timestamp": 1789111926803
+        },
+        "MRVL": {
+          "supply": 665.606201,
+          "amount": "665606201",
+          "decimals": 6,
+          "slot": 446100885,
+          "timestamp": 1789111926803
+        },
+        "MSTR": {
+          "supply": 4625.572348,
+          "amount": "4625572348",
+          "decimals": 6,
+          "slot": 446100885,
+          "timestamp": 1789111926803
+        },
+        "NBIS": {
+          "supply": 2437.414386,
+          "amount": "2437414386",
+          "decimals": 6,
+          "slot": 446100885,
+          "timestamp": 1789111926803
+        },
+        "NKE": {
+          "supply": 8933.45984,
+          "amount": "8933459840",
+          "decimals": 6,
+          "slot": 446100885,
+          "timestamp": 1789111926803
+        },
+        "PFE": {
+          "supply": 2595.354307,
+          "amount": "2595354307",
+          "decimals": 6,
+          "slot": 446100885,
+          "timestamp": 1789111926803
+        },
+        "QUBT": {
+          "supply": 12092.988202,
+          "amount": "12092988202",
+          "decimals": 6,
+          "slot": 446100885,
+          "timestamp": 1789111926803
+        },
+        "RBLX": {
+          "supply": 2111.922418,
+          "amount": "2111922418",
+          "decimals": 6,
+          "slot": 446100885,
+          "timestamp": 1789111926803
+        },
+        "RDDT": {
+          "supply": 1056.30517,
+          "amount": "1056305170",
+          "decimals": 6,
+          "slot": 446100885,
+          "timestamp": 1789111926803
+        },
+        "RIVN": {
+          "supply": 5627.859525,
+          "amount": "5627859525",
+          "decimals": 6,
+          "slot": 446100885,
+          "timestamp": 1789111926803
+        },
+        "SHOP": {
+          "supply": 649.360918,
+          "amount": "649360918",
+          "decimals": 6,
+          "slot": 446100885,
+          "timestamp": 1789111926803
+        },
+        "SNAP": {
+          "supply": 15267.224738,
+          "amount": "15267224738",
+          "decimals": 6,
+          "slot": 446100885,
+          "timestamp": 1789111926803
+        },
+        "SNDK": {
+          "supply": 1163.385164,
+          "amount": "1163385164",
+          "decimals": 6,
+          "slot": 446100885,
+          "timestamp": 1789111926803
+        },
+        "SPHR": {
+          "supply": 859.38309,
+          "amount": "859383090",
+          "decimals": 6,
+          "slot": 446100885,
+          "timestamp": 1789111926803
+        },
+        "TTWO": {
+          "supply": 2222.335275,
+          "amount": "2222335275",
+          "decimals": 6,
+          "slot": 446100885,
+          "timestamp": 1789111926803
+        },
+        "UPS": {
+          "supply": 862.795125,
+          "amount": "862795125",
+          "decimals": 6,
+          "slot": 446100885,
+          "timestamp": 1789111926803
+        }
+      },
+      "stale": false,
+      "fetchedAt": 1789111927092,
+      "error": null
+    },
+    "pools": {
+      "data": {
+        "MU": [
+          {
+            "address": "13MEx6gjRadJNUdmToaGSzgeWHLH7FzScUQS9Mc5nYF5",
+            "dex": "meteora",
+            "quote": "USDC",
+            "price": 983.7,
+            "change24h": -3.51,
+            "liquidity": 4122841.56,
+            "volume24h": 3045114.95,
+            "url": "https://dexscreener.com/solana/13MEx6gjRadJNUdmToaGSzgeWHLH7FzScUQS9Mc5nYF5"
+          }
+        ],
+        "SKHY": [
+          {
+            "address": "DPAU7wDyMXDgNAfzQYMfyNqmTjzcoRsSPA2LeGH71hgi",
+            "dex": "meteora",
+            "quote": "USDC",
+            "price": 190.57,
+            "change24h": -1,
+            "liquidity": 2484633.67,
+            "volume24h": 2984986.48,
+            "url": "https://dexscreener.com/solana/DPAU7wDyMXDgNAfzQYMfyNqmTjzcoRsSPA2LeGH71hgi"
+          }
+        ],
+        "SPCX": [
+          {
+            "address": "FjuBy7jjf9DXj9d3R7cHpvcnoFW2iQxf7F7P3vqx4Jza",
+            "dex": "raydium",
+            "quote": "USDC",
+            "price": 149.055,
+            "change24h": 1.28,
+            "liquidity": 350213.49,
+            "volume24h": 219360.24,
+            "url": "https://dexscreener.com/solana/FjuBy7jjf9DXj9d3R7cHpvcnoFW2iQxf7F7P3vqx4Jza"
+          }
+        ],
+        "AMC": [
+          {
+            "address": "Crq38vJWRE7tB4iABufAATTh6QUKaidQtMDueiJkGoX4",
+            "dex": "raydium",
+            "quote": "USDC",
+            "price": 2.36,
+            "change24h": -2.07,
+            "liquidity": 48131.2,
+            "volume24h": 275475.51,
+            "url": "https://dexscreener.com/solana/Crq38vJWRE7tB4iABufAATTh6QUKaidQtMDueiJkGoX4"
+          }
+        ],
+        "BA": [
+          {
+            "address": "5yHJXWBkZvDuZqDedZ3adeDfvF8NGCPbKbSRooGVtC14",
+            "dex": "raydium",
+            "quote": "SOL",
+            "price": 204.79,
+            "change24h": 0.41,
+            "liquidity": 12622.5,
+            "volume24h": 249188.19,
+            "url": "https://dexscreener.com/solana/5yHJXWBkZvDuZqDedZ3adeDfvF8NGCPbKbSRooGVtC14"
+          }
+        ],
+        "BABA": [
+          {
+            "address": "6EVgUURuvprazVdpd717E9uqruHcqRPbhRKDm5Czdidu",
+            "dex": "orca",
+            "quote": "USDC",
+            "price": 108.6,
+            "change24h": 0.6,
+            "liquidity": 79966.64,
+            "volume24h": 669145.35,
+            "url": "https://dexscreener.com/solana/6EVgUURuvprazVdpd717E9uqruHcqRPbhRKDm5Czdidu"
+          }
+        ],
+        "BOT": [
+          {
+            "address": "6fTztHYyqE7HYLrdrJtGd7N44FAS6yLv7jMcuWyB8uen",
+            "dex": "meteora",
+            "quote": "SOL",
+            "price": 27.27,
+            "change24h": 0.53,
+            "liquidity": 64513.8,
+            "volume24h": 85402.96,
+            "url": "https://dexscreener.com/solana/6fTztHYyqE7HYLrdrJtGd7N44FAS6yLv7jMcuWyB8uen"
+          }
+        ],
+        "BULL": [
+          {
+            "address": "C6rgWM5ptjGuXHJn13ebXduv67EKge8enziFnT9VviWH",
+            "dex": "orca",
+            "quote": "USDC",
+            "price": 9.29,
+            "change24h": -1.2,
+            "liquidity": 65476.53,
+            "volume24h": 475554.26,
+            "url": "https://dexscreener.com/solana/C6rgWM5ptjGuXHJn13ebXduv67EKge8enziFnT9VviWH"
+          }
+        ],
+        "COST": [
+          {
+            "address": "CjJSMnCGgnssK5ZTRCJjTH9MY9cRKCfoF44Ju5dveXzo",
+            "dex": "raydium",
+            "quote": "SOL",
+            "price": 900.11,
+            "change24h": -0.05,
+            "liquidity": 24381.7,
+            "volume24h": 133287.41,
+            "url": "https://dexscreener.com/solana/CjJSMnCGgnssK5ZTRCJjTH9MY9cRKCfoF44Ju5dveXzo"
+          }
+        ],
+        "DELL": [
+          {
+            "address": "7UGpqL8dtrWaEPHw8GNeL3JHisia4zFeRVb18FmdCioB",
+            "dex": "orca",
+            "quote": "USDC",
+            "price": 518.29,
+            "change24h": -2.22,
+            "liquidity": 57428.1,
+            "volume24h": 150220.47,
+            "url": "https://dexscreener.com/solana/7UGpqL8dtrWaEPHw8GNeL3JHisia4zFeRVb18FmdCioB"
+          }
+        ],
+        "DJT": [
+          {
+            "address": "7gkB2D1SqhUYgKrSpDU5cma4tK9efijHouYituABdJcG",
+            "dex": "orca",
+            "quote": "USDC",
+            "price": 8.86,
+            "change24h": 1.76,
+            "liquidity": 144017.39,
+            "volume24h": 952634.87,
+            "url": "https://dexscreener.com/solana/7gkB2D1SqhUYgKrSpDU5cma4tK9efijHouYituABdJcG"
+          }
+        ],
+        "DRAM": [
+          {
+            "address": "ECkcSDJvKiyoVU5f1L6CgpSmMVd1S4KGRkXW56f1bEWN",
+            "dex": "raydium",
+            "quote": "USDC",
+            "price": 59.27,
+            "change24h": -2.84,
+            "liquidity": 369430.41,
+            "volume24h": 150460.65,
+            "url": "https://dexscreener.com/solana/ECkcSDJvKiyoVU5f1L6CgpSmMVd1S4KGRkXW56f1bEWN"
+          }
+        ],
+        "GPRO": [
+          {
+            "address": "8aRfdGqA8FWrNrCG3CodWrMwTb1f94psGvSE3Ld7WpuF",
+            "dex": "raydium",
+            "quote": "USDC",
+            "price": 1.44,
+            "change24h": 4.13,
+            "liquidity": 41542.08,
+            "volume24h": 418029.85,
+            "url": "https://dexscreener.com/solana/8aRfdGqA8FWrNrCG3CodWrMwTb1f94psGvSE3Ld7WpuF"
+          }
+        ],
+        "HIMS": [
+          {
+            "address": "7iqWWNjubSTjmWXk9eYJViDLZjBN2KjrYt5Z9j8n8exQ",
+            "dex": "orca",
+            "quote": "USDC",
+            "price": 27.31,
+            "change24h": -1.78,
+            "liquidity": 68788.96,
+            "volume24h": 579724.65,
+            "url": "https://dexscreener.com/solana/7iqWWNjubSTjmWXk9eYJViDLZjBN2KjrYt5Z9j8n8exQ"
+          }
+        ],
+        "HOOD": [
+          {
+            "address": "97r9NLqYoyGFbQesPduwuTHq4fJjbk8pHVUGawEqfnva",
+            "dex": "raydium",
+            "quote": "USDC",
+            "price": 112.49,
+            "change24h": -1.88,
+            "liquidity": 271095.52,
+            "volume24h": 93048.31,
+            "url": "https://dexscreener.com/solana/97r9NLqYoyGFbQesPduwuTHq4fJjbk8pHVUGawEqfnva"
+          }
+        ],
+        "HTZ": [
+          {
+            "address": "6EL5ziMs2btpNQCKTbYt8ARNcQVuyiCRvNH9vs7eidqg",
+            "dex": "raydium",
+            "quote": "USDC",
+            "price": 2.073,
+            "change24h": 0.05,
+            "liquidity": 9046.51,
+            "volume24h": 200862.61,
+            "url": "https://dexscreener.com/solana/6EL5ziMs2btpNQCKTbYt8ARNcQVuyiCRvNH9vs7eidqg"
+          }
+        ],
+        "IBM": [
+          {
+            "address": "ABrbDSKbDZRvn4oByMksSTQLmc5JZZ7c7U2zx1Lkmq1w",
+            "dex": "orca",
+            "quote": "USDC",
+            "price": 234.74,
+            "change24h": -2.04,
+            "liquidity": 52804.77,
+            "volume24h": 157599.83,
+            "url": "https://dexscreener.com/solana/ABrbDSKbDZRvn4oByMksSTQLmc5JZZ7c7U2zx1Lkmq1w"
+          }
+        ],
+        "INTC": [
+          {
+            "address": "HHNPd8DpneXbaYBiGC7SU28mYxocbkMznPABPN3sGTyU",
+            "dex": "raydium",
+            "quote": "USDC",
+            "price": 101.019,
+            "change24h": -4.11,
+            "liquidity": 116377.93,
+            "volume24h": 58137.97,
+            "url": "https://dexscreener.com/solana/HHNPd8DpneXbaYBiGC7SU28mYxocbkMznPABPN3sGTyU"
+          }
+        ],
+        "JNJ": [
+          {
+            "address": "H8HVddZ48HGyPAns7pvcFDJCs9JLosGfNnPbh8mNchBj",
+            "dex": "raydium",
+            "quote": "USDC",
+            "price": 266.24,
+            "change24h": -0.35,
+            "liquidity": 46717.12,
+            "volume24h": 369587.27,
+            "url": "https://dexscreener.com/solana/H8HVddZ48HGyPAns7pvcFDJCs9JLosGfNnPbh8mNchBj"
+          }
+        ],
+        "LLY": [
+          {
+            "address": "EP18MPndfg2JJLxTseV29J78DPkeE1NcU5CshYRVkHLX",
+            "dex": "meteora",
+            "quote": "SOL",
+            "price": 1062.95,
+            "change24h": -7.41,
+            "liquidity": 55614.37,
+            "volume24h": 37779.39,
+            "url": "https://dexscreener.com/solana/EP18MPndfg2JJLxTseV29J78DPkeE1NcU5CshYRVkHLX"
+          }
+        ],
+        "LMT": [
+          {
+            "address": "75BnBtLdHm1h24rv9ti1VSauJYunTxPcoydX3vRfBmdL",
+            "dex": "raydium",
+            "quote": "USDC",
+            "price": 530.9,
+            "change24h": 0.23,
+            "liquidity": 58008.62,
+            "volume24h": 124563.4,
+            "url": "https://dexscreener.com/solana/75BnBtLdHm1h24rv9ti1VSauJYunTxPcoydX3vRfBmdL"
+          }
+        ],
+        "LULU": [
+          {
+            "address": "CSHcjToe7v7Z3fZeReoG2zdRSzSvqGNVufvLBXEtTSX5",
+            "dex": "orca",
+            "quote": "USDC",
+            "price": 97.36,
+            "change24h": -3.35,
+            "liquidity": 77538.57,
+            "volume24h": 959303.29,
+            "url": "https://dexscreener.com/solana/CSHcjToe7v7Z3fZeReoG2zdRSzSvqGNVufvLBXEtTSX5"
+          }
+        ],
+        "MGM": [
+          {
+            "address": "CvM3CXvufGkwTptZd8SpFVpaGPyZ6RTVYJUoXzYgKz1k",
+            "dex": "raydium",
+            "quote": "USDC",
+            "price": 40.45,
+            "change24h": -0.53,
+            "liquidity": 92648.25,
+            "volume24h": 3121215.77,
+            "url": "https://dexscreener.com/solana/CvM3CXvufGkwTptZd8SpFVpaGPyZ6RTVYJUoXzYgKz1k"
+          }
+        ],
+        "MRNA": [
+          {
+            "address": "DQcg3DtWrGRhdBmQh9MpgjuFQYdjN47xB7Do99kPzZRC",
+            "dex": "raydium",
+            "quote": "USDC",
+            "price": 137.72,
+            "change24h": 4.14,
+            "liquidity": 5698.71,
+            "volume24h": 11557.03,
+            "url": "https://dexscreener.com/solana/DQcg3DtWrGRhdBmQh9MpgjuFQYdjN47xB7Do99kPzZRC"
+          }
+        ],
+        "MRVL": [
+          {
+            "address": "FLh2eh5FYqnhWZjMYkH3pcX4wHTjn7R1dtTN7xVf8v3T",
+            "dex": "raydium",
+            "quote": "USDC",
+            "price": 228.99,
+            "change24h": -2.34,
+            "liquidity": 2092.8,
+            "volume24h": 1882,
+            "url": "https://dexscreener.com/solana/FLh2eh5FYqnhWZjMYkH3pcX4wHTjn7R1dtTN7xVf8v3T"
+          }
+        ],
+        "MSTR": [
+          {
+            "address": "3Hro9bWkxiyV7ZfH2ZBdqyuNEVZt69ixNyQbAmcvyvys",
+            "dex": "raydium",
+            "quote": "USDC",
+            "price": 129.55,
+            "change24h": -2.47,
+            "liquidity": 278693.83,
+            "volume24h": 131154.34,
+            "url": "https://dexscreener.com/solana/3Hro9bWkxiyV7ZfH2ZBdqyuNEVZt69ixNyQbAmcvyvys"
+          }
+        ],
+        "NBIS": [
+          {
+            "address": "FE8jVZHEytGkEv2wmFS8faFWnGXqJLUbrw1qJMrk7RTv",
+            "dex": "raydium",
+            "quote": "USDC",
+            "price": 233.057,
+            "change24h": -1.31,
+            "liquidity": 12542.45,
+            "volume24h": 74448.77,
+            "url": "https://dexscreener.com/solana/FE8jVZHEytGkEv2wmFS8faFWnGXqJLUbrw1qJMrk7RTv"
+          }
+        ],
+        "NKE": [
+          {
+            "address": "6kRoMyYBuz4ReLmLyuqiTtSpVB61hAGRrD6xYBrotsBC",
+            "dex": "raydium",
+            "quote": "USDC",
+            "price": 36.49,
+            "change24h": -1.99,
+            "liquidity": 118728.96,
+            "volume24h": 320760.8,
+            "url": "https://dexscreener.com/solana/6kRoMyYBuz4ReLmLyuqiTtSpVB61hAGRrD6xYBrotsBC"
+          }
+        ],
+        "PFE": [
+          {
+            "address": "7VVCRx8UmgmwjLmnyC7jg7Y8moY2XgtEdYDs1iDxYDHX",
+            "dex": "raydium",
+            "quote": "USDC",
+            "price": 27.71,
+            "change24h": -0.48,
+            "liquidity": 57318.76,
+            "volume24h": 265224.74,
+            "url": "https://dexscreener.com/solana/7VVCRx8UmgmwjLmnyC7jg7Y8moY2XgtEdYDs1iDxYDHX"
+          }
+        ],
+        "QUBT": [
+          {
+            "address": "2CosJRDhFJjv2vsjBdPG4dDdDKQWG6LLetmvmivoePHu",
+            "dex": "raydium",
+            "quote": "USDC",
+            "price": 7.87,
+            "change24h": -2.27,
+            "liquidity": 41944.25,
+            "volume24h": 411428.91,
+            "url": "https://dexscreener.com/solana/2CosJRDhFJjv2vsjBdPG4dDdDKQWG6LLetmvmivoePHu"
+          }
+        ],
+        "RBLX": [
+          {
+            "address": "9uSc8XrFbKJBcFpcsNXaWJ4vu6YYDUVf8cQTsJJ8u5Wd",
+            "dex": "orca",
+            "quote": "USDC",
+            "price": 44.96,
+            "change24h": 0.52,
+            "liquidity": 66370.92,
+            "volume24h": 236995.36,
+            "url": "https://dexscreener.com/solana/9uSc8XrFbKJBcFpcsNXaWJ4vu6YYDUVf8cQTsJJ8u5Wd"
+          }
+        ],
+        "RDDT": [
+          {
+            "address": "7r3igmqpnJwLS372AFDtAAAvPadCCmb5NRDPwBGaPGPu",
+            "dex": "raydium",
+            "quote": "USDC",
+            "price": 154.97,
+            "change24h": 4.57,
+            "liquidity": 109879.02,
+            "volume24h": 467544.87,
+            "url": "https://dexscreener.com/solana/7r3igmqpnJwLS372AFDtAAAvPadCCmb5NRDPwBGaPGPu"
+          }
+        ],
+        "RIVN": [
+          {
+            "address": "5e4QRJ4Q7rqhbfVzKnGCqeoWD5EzRcg8w8zKtAu1jhHW",
+            "dex": "raydium",
+            "quote": "USDC",
+            "price": 16.17,
+            "change24h": 1.16,
+            "liquidity": 76109.57,
+            "volume24h": 335986.08,
+            "url": "https://dexscreener.com/solana/5e4QRJ4Q7rqhbfVzKnGCqeoWD5EzRcg8w8zKtAu1jhHW"
+          }
+        ],
+        "SHOP": [
+          {
+            "address": "GmUC1FtNFatTSWTmM1UQ4Rg4eirGoQG2a5tXi3BLNWos",
+            "dex": "raydium",
+            "quote": "USDC",
+            "price": 127.0024,
+            "change24h": -0.51,
+            "liquidity": 68909.81,
+            "volume24h": 121662.49,
+            "url": "https://dexscreener.com/solana/GmUC1FtNFatTSWTmM1UQ4Rg4eirGoQG2a5tXi3BLNWos"
+          }
+        ],
+        "SNAP": [
+          {
+            "address": "GosZTcF5CG6BcRwiLC1StaBaUXhggvgqEeSRcSD5dzXi",
+            "dex": "raydium",
+            "quote": "USDC",
+            "price": 5.53,
+            "change24h": 4.21,
+            "liquidity": 59407.36,
+            "volume24h": 136291,
+            "url": "https://dexscreener.com/solana/GosZTcF5CG6BcRwiLC1StaBaUXhggvgqEeSRcSD5dzXi"
+          }
+        ],
+        "SNDK": [
+          {
+            "address": "4vRC6Qne8HPUN98mJr88vRkRD9N4cadyrGtPwVU3CV86",
+            "dex": "raydium",
+            "quote": "USDC",
+            "price": 1696.35,
+            "change24h": -3.45,
+            "liquidity": 82623.7,
+            "volume24h": 1099217.94,
+            "url": "https://dexscreener.com/solana/4vRC6Qne8HPUN98mJr88vRkRD9N4cadyrGtPwVU3CV86"
+          }
+        ],
+        "SPHR": [
+          {
+            "address": "4uT6SutcizxFtbzDgQyP2P3cQekmPTZvoek82RrGFbD",
+            "dex": "raydium",
+            "quote": "USDC",
+            "price": 141.24,
+            "change24h": 1.79,
+            "liquidity": 43342.19,
+            "volume24h": 326072.12,
+            "url": "https://dexscreener.com/solana/4uT6SutcizxFtbzDgQyP2P3cQekmPTZvoek82RrGFbD"
+          }
+        ],
+        "TTWO": [
+          {
+            "address": "GTsmLFJx3kkvWgsnwqE2Q1HtxW4tP4YDp6jWHZmVzZzS",
+            "dex": "meteora",
+            "quote": "USDC",
+            "price": 218.088,
+            "change24h": 2.67,
+            "liquidity": 11292.9,
+            "volume24h": 58170.3,
+            "url": "https://dexscreener.com/solana/GTsmLFJx3kkvWgsnwqE2Q1HtxW4tP4YDp6jWHZmVzZzS"
+          }
+        ],
+        "UPS": [
+          {
+            "address": "FYdQbwGYnQf7mp22dvd7LxRkUAxZPNNniHN462WvUbXu",
+            "dex": "raydium",
+            "quote": "USDC",
+            "price": 99.66,
+            "change24h": -1.48,
+            "liquidity": 57935.61,
+            "volume24h": 317216.35,
+            "url": "https://dexscreener.com/solana/FYdQbwGYnQf7mp22dvd7LxRkUAxZPNNniHN462WvUbXu"
+          }
+        ]
+      },
+      "stale": false,
+      "fetchedAt": 1789111927092,
+      "error": null
+    },
+    "prices": {
+      "data": {
+        "MU": {
+          "price": 986.9172950715208,
+          "timestamp": 1789111320000,
+          "confidence": 0.99
+        },
+        "SKHY": {
+          "price": 190.5554477827079,
+          "timestamp": 1789111310000,
+          "confidence": 0.99
+        },
+        "SPCX": {
+          "price": 149.10218350129585,
+          "timestamp": 1789111310000,
+          "confidence": 0.99
+        },
+        "AMC": {
+          "price": 2.378095794164169,
+          "timestamp": 1789111320000,
+          "confidence": 0.99
+        },
+        "BA": {
+          "price": 204.48837837313562,
+          "timestamp": 1789111310000,
+          "confidence": 0.99
+        },
+        "BOT": {
+          "price": 27.468204734391023,
+          "timestamp": 1789111310000,
+          "confidence": 0.99
+        },
+        "DRAM": {
+          "price": 59.28837026084063,
+          "timestamp": 1789111310000,
+          "confidence": 0.99
+        },
+        "GPRO": {
+          "price": 1.4444023239563732,
+          "timestamp": 1789111310000,
+          "confidence": 0.99
+        },
+        "HIMS": {
+          "price": 27.334548238343665,
+          "timestamp": 1789111320000,
+          "confidence": 0.99
+        },
+        "HOOD": {
+          "price": 112.43302213931504,
+          "timestamp": 1789111310000,
+          "confidence": 0.99
+        },
+        "INTC": {
+          "price": 101.13941406958686,
+          "timestamp": 1789111310000,
+          "confidence": 0.99
+        },
+        "LLY": {
+          "price": 1127.8922805447714,
+          "timestamp": 1789111320000,
+          "confidence": 0.99
+        },
+        "LULU": {
+          "price": 97.09376162938213,
+          "timestamp": 1789111310000,
+          "confidence": 0.99
+        },
+        "MRNA": {
+          "price": 137.45612538728184,
+          "timestamp": 1789111320000,
+          "confidence": 0.99
+        },
+        "MRVL": {
+          "price": 228.8610764752108,
+          "timestamp": 1789111310000,
+          "confidence": 0.99
+        },
+        "MSTR": {
+          "price": 129.826949527647,
+          "timestamp": 1789111310000,
+          "confidence": 0.99
+        },
+        "NBIS": {
+          "price": 232.6903137540404,
+          "timestamp": 1789111310000,
+          "confidence": 0.99
+        },
+        "NKE": {
+          "price": 36.533925834165544,
+          "timestamp": 1789111310000,
+          "confidence": 0.99
+        },
+        "PFE": {
+          "price": 27.6183672786111,
+          "timestamp": 1789111320000,
+          "confidence": 0.99
+        },
+        "QUBT": {
+          "price": 7.856303331608758,
+          "timestamp": 1789111310000,
+          "confidence": 0.99
+        },
+        "RBLX": {
+          "price": 44.94738665697844,
+          "timestamp": 1789111310000,
+          "confidence": 0.99
+        },
+        "RDDT": {
+          "price": 154.58522811166864,
+          "timestamp": 1789111310000,
+          "confidence": 0.99
+        },
+        "RIVN": {
+          "price": 16.20491533288626,
+          "timestamp": 1789111310000,
+          "confidence": 0.99
+        },
+        "SHOP": {
+          "price": 127.29611642954498,
+          "timestamp": 1789111310000,
+          "confidence": 0.99
+        },
+        "SNAP": {
+          "price": 5.512132080833113,
+          "timestamp": 1789111310000,
+          "confidence": 0.99
+        },
+        "SNDK": {
+          "price": 1699.6906396185143,
+          "timestamp": 1789111310000,
+          "confidence": 0.99
+        },
+        "SPHR": {
+          "price": 141.36607641059777,
+          "timestamp": 1789111310000,
+          "confidence": 0.99
+        },
+        "TTWO": {
+          "price": 218.3807462919809,
+          "timestamp": 1789111310000,
+          "confidence": 0.99
+        }
+      },
+      "stale": false,
+      "fetchedAt": 1789111927092,
+      "error": null
+    },
+    "catalog": {
+      "data": [
+        {
+          "symbol": "MU",
+          "asset": "MU.US",
+          "deposit": true,
+          "withdraw": true,
+          "spot": "MU.US_USDC",
+          "bookState": "Open"
+        },
+        {
+          "symbol": "SKHY",
+          "asset": "SKHY.US",
+          "deposit": true,
+          "withdraw": true,
+          "spot": "SKHY.US_USDC",
+          "bookState": "Open"
+        },
+        {
+          "symbol": "SPCX",
+          "asset": "SPCX.US",
+          "deposit": true,
+          "withdraw": true,
+          "spot": "SPCX.US_USDC",
+          "bookState": "Open"
+        },
+        {
+          "symbol": "AMC",
+          "asset": "AMC.US",
+          "deposit": true,
+          "withdraw": true,
+          "spot": null,
+          "bookState": null
+        },
+        {
+          "symbol": "BA",
+          "asset": "BA.US",
+          "deposit": true,
+          "withdraw": true,
+          "spot": null,
+          "bookState": null
+        },
+        {
+          "symbol": "BABA",
+          "asset": "BABA.US",
+          "deposit": true,
+          "withdraw": true,
+          "spot": null,
+          "bookState": null
+        },
+        {
+          "symbol": "BOT",
+          "asset": "BOT.US",
+          "deposit": true,
+          "withdraw": true,
+          "spot": null,
+          "bookState": null
+        },
+        {
+          "symbol": "BULL",
+          "asset": "BULL.US",
+          "deposit": true,
+          "withdraw": true,
+          "spot": null,
+          "bookState": null
+        },
+        {
+          "symbol": "COST",
+          "asset": "COST.US",
+          "deposit": true,
+          "withdraw": true,
+          "spot": null,
+          "bookState": null
+        },
+        {
+          "symbol": "DELL",
+          "asset": "DELL.US",
+          "deposit": true,
+          "withdraw": true,
+          "spot": null,
+          "bookState": null
+        },
+        {
+          "symbol": "DJT",
+          "asset": "DJT.US",
+          "deposit": true,
+          "withdraw": true,
+          "spot": null,
+          "bookState": null
+        },
+        {
+          "symbol": "DRAM",
+          "asset": "DRAM.US",
+          "deposit": true,
+          "withdraw": true,
+          "spot": null,
+          "bookState": null
+        },
+        {
+          "symbol": "GPRO",
+          "asset": "GPRO.US",
+          "deposit": true,
+          "withdraw": true,
+          "spot": null,
+          "bookState": null
+        },
+        {
+          "symbol": "HIMS",
+          "asset": "HIMS.US",
+          "deposit": true,
+          "withdraw": true,
+          "spot": null,
+          "bookState": null
+        },
+        {
+          "symbol": "HOOD",
+          "asset": "HOOD.US",
+          "deposit": true,
+          "withdraw": true,
+          "spot": null,
+          "bookState": null
+        },
+        {
+          "symbol": "HTZ",
+          "asset": "HTZ.US",
+          "deposit": true,
+          "withdraw": true,
+          "spot": null,
+          "bookState": null
+        },
+        {
+          "symbol": "IBM",
+          "asset": "IBM.US",
+          "deposit": true,
+          "withdraw": true,
+          "spot": null,
+          "bookState": null
+        },
+        {
+          "symbol": "INTC",
+          "asset": "INTC.US",
+          "deposit": true,
+          "withdraw": true,
+          "spot": null,
+          "bookState": null
+        },
+        {
+          "symbol": "JNJ",
+          "asset": "JNJ.US",
+          "deposit": true,
+          "withdraw": true,
+          "spot": null,
+          "bookState": null
+        },
+        {
+          "symbol": "LLY",
+          "asset": "LLY.US",
+          "deposit": true,
+          "withdraw": true,
+          "spot": null,
+          "bookState": null
+        },
+        {
+          "symbol": "LMT",
+          "asset": "LMT.US",
+          "deposit": true,
+          "withdraw": true,
+          "spot": null,
+          "bookState": null
+        },
+        {
+          "symbol": "LULU",
+          "asset": "LULU.US",
+          "deposit": true,
+          "withdraw": true,
+          "spot": null,
+          "bookState": null
+        },
+        {
+          "symbol": "MGM",
+          "asset": "MGM.US",
+          "deposit": true,
+          "withdraw": true,
+          "spot": null,
+          "bookState": null
+        },
+        {
+          "symbol": "MRNA",
+          "asset": "MRNA.US",
+          "deposit": true,
+          "withdraw": true,
+          "spot": null,
+          "bookState": null
+        },
+        {
+          "symbol": "MRVL",
+          "asset": "MRVL.US",
+          "deposit": true,
+          "withdraw": true,
+          "spot": null,
+          "bookState": null
+        },
+        {
+          "symbol": "MSTR",
+          "asset": "MSTR.US",
+          "deposit": true,
+          "withdraw": true,
+          "spot": null,
+          "bookState": null
+        },
+        {
+          "symbol": "NBIS",
+          "asset": "NBIS.US",
+          "deposit": true,
+          "withdraw": true,
+          "spot": null,
+          "bookState": null
+        },
+        {
+          "symbol": "NKE",
+          "asset": "NKE.US",
+          "deposit": true,
+          "withdraw": true,
+          "spot": null,
+          "bookState": null
+        },
+        {
+          "symbol": "PFE",
+          "asset": "PFE.US",
+          "deposit": true,
+          "withdraw": true,
+          "spot": null,
+          "bookState": null
+        },
+        {
+          "symbol": "QUBT",
+          "asset": "QUBT.US",
+          "deposit": true,
+          "withdraw": true,
+          "spot": null,
+          "bookState": null
+        },
+        {
+          "symbol": "RBLX",
+          "asset": "RBLX.US",
+          "deposit": true,
+          "withdraw": true,
+          "spot": null,
+          "bookState": null
+        },
+        {
+          "symbol": "RDDT",
+          "asset": "RDDT.US",
+          "deposit": true,
+          "withdraw": true,
+          "spot": null,
+          "bookState": null
+        },
+        {
+          "symbol": "RIVN",
+          "asset": "RIVN.US",
+          "deposit": true,
+          "withdraw": true,
+          "spot": null,
+          "bookState": null
+        },
+        {
+          "symbol": "SHOP",
+          "asset": "SHOP.US",
+          "deposit": true,
+          "withdraw": true,
+          "spot": null,
+          "bookState": null
+        },
+        {
+          "symbol": "SNAP",
+          "asset": "SNAP.US",
+          "deposit": true,
+          "withdraw": true,
+          "spot": null,
+          "bookState": null
+        },
+        {
+          "symbol": "SNDK",
+          "asset": "SNDK.US",
+          "deposit": true,
+          "withdraw": true,
+          "spot": "SNDK.US_USDC",
+          "bookState": "Open"
+        },
+        {
+          "symbol": "SPHR",
+          "asset": "SPHR.US",
+          "deposit": true,
+          "withdraw": true,
+          "spot": null,
+          "bookState": null
+        },
+        {
+          "symbol": "TTWO",
+          "asset": "TTWO.US",
+          "deposit": true,
+          "withdraw": true,
+          "spot": null,
+          "bookState": null
+        },
+        {
+          "symbol": "UPS",
+          "asset": "UPS.US",
+          "deposit": true,
+          "withdraw": true,
+          "spot": null,
+          "bookState": null
+        }
+      ],
+      "stale": false,
+      "fetchedAt": 1789111927092,
+      "error": null
+    },
+    "markets": {
+      "data": {
+        "SPCX": {
+          "symbol": "SPCX",
+          "id": 40238,
+          "url": "https://coinmarketcap.com/currencies/spacex-tokenized-stock-backpack/",
+          "price": 149.22713110642675,
+          "marketCap": 6521457.319842286,
+          "supply": 43701.552603,
+          "volume24h": 1596939.61680307,
+          "change24h": 1.18424678,
+          "change7d": -0.72971145,
+          "change30d": 11.38369774,
+          "timestamp": 1789111800000
+        },
+        "SNDK": {
+          "symbol": "SNDK",
+          "id": 40815,
+          "url": "https://coinmarketcap.com/currencies/sandisk-corp-tokenized-stock-backpack/",
+          "price": 1695.043051831926,
+          "marketCap": 1971988.4575257197,
+          "supply": 1163.38547,
+          "volume24h": 1137701.30523719,
+          "change24h": -3.52527832,
+          "change7d": 7.23760196,
+          "change30d": 29.81002818,
+          "timestamp": 1789111800000
+        },
+        "BOT": {
+          "symbol": "BOT",
+          "id": 40816,
+          "url": "https://coinmarketcap.com/currencies/robostrategy-inc-tokenized-stock-backpack/",
+          "price": 27.369968032007947,
+          "marketCap": 1501864.7809452526,
+          "supply": 54872.726895,
+          "volume24h": 258223.30407352,
+          "change24h": 0.48297174,
+          "change7d": 1.46946629,
+          "change30d": -10.67251091,
+          "timestamp": 1789111800000
+        },
+        "MU": {
+          "symbol": "MU",
+          "id": 40817,
+          "url": "https://coinmarketcap.com/currencies/micron-technology-inc-tokenized-stock-backpack/",
+          "price": 983.7564075787708,
+          "marketCap": 5477089.65428071,
+          "supply": 5567.526282,
+          "volume24h": 3430097.57472374,
+          "change24h": -3.69266737,
+          "change7d": 1.44944702,
+          "change30d": 11.42991033,
+          "timestamp": 1789111860000
+        },
+        "SKHY": {
+          "symbol": "SKHY",
+          "id": 40833,
+          "url": "https://coinmarketcap.com/currencies/sk-hynix-tokenized-stock-backpack/",
+          "price": 190.5820283747202,
+          "marketCap": 1944726.610382877,
+          "supply": 10204.144782,
+          "volume24h": 3934302.1796853,
+          "change24h": -1.51211982,
+          "change7d": 15.43623647,
+          "change30d": 31.33498283,
+          "timestamp": 1789111800000
+        },
+        "AMC": {
+          "symbol": "AMC",
+          "id": 42024,
+          "url": "https://coinmarketcap.com/currencies/amc-entertainment-holdings-tokenized-stock-backpack-securities/",
+          "price": 2.3688670117307775,
+          "marketCap": null,
+          "supply": null,
+          "volume24h": 383244.1050672,
+          "change24h": -2.26533363,
+          "change7d": -13.91353953,
+          "change30d": -13.91353953,
+          "timestamp": 1789111860000
+        }
+      },
+      "stale": false,
+      "fetchedAt": 1789111927092,
+      "error": null
+    }
+  }
+}

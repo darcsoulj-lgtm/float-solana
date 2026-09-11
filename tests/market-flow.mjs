@@ -15,7 +15,7 @@ export async function marketFlow(base, cookie) {
   console.log(
     'Market source status',
     Object.fromEntries(
-      ['catalog', 'pools', 'prices', 'markets'].map((k) => [
+      ['catalog', 'pools', 'prices', 'markets', 'supplies'].map((k) => [
         k,
         {
           available: !!data[k].data,
@@ -25,7 +25,7 @@ export async function marketFlow(base, cookie) {
       ]),
     ),
   );
-  for (const key of ['catalog', 'pools', 'prices', 'markets']) {
+  for (const key of ['catalog', 'pools', 'prices', 'markets', 'supplies']) {
     assert.equal(typeof data[key].stale, 'boolean');
     assert.ok('fetchedAt' in data[key]);
   }
@@ -49,6 +49,15 @@ export async function marketFlow(base, cookie) {
   );
   assert.equal(data.markets.data.MU.id, 40817);
   assert.ok(data.markets.data.MU.timestamp <= Date.now());
+  assert.equal(Object.keys(data.supplies.data).length, 39);
+  assert.ok(
+    data.supplies.data.TTWO.supply > 0,
+    'Mint supply available even without CMC',
+  );
+  assert.ok(
+    data.pools.data.TTWO?.[0]?.price > 0,
+    'TTWO live pool price available',
+  );
   const book = await fetch(base + '/api/market-data?symbol=MU', {
     headers: { Cookie: cookie },
   });

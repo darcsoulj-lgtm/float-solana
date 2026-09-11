@@ -6,7 +6,14 @@ import { pathToFileURL } from 'node:url';
 import ts from 'typescript';
 import { DatabaseSync } from 'node:sqlite';
 const dir = await mkdtemp(tmpdir() + '/hp-markets-');
-for (const file of ['tokens', 'market-data', 'market-cache', 'cmc-data']) {
+for (const file of [
+  'tokens',
+  'market-data',
+  'market-cache',
+  'cmc-data',
+  'token-supply',
+  'token-observation',
+]) {
   const raw = await readFile(
     new URL('../lib/' + file + '.ts', import.meta.url),
     'utf8',
@@ -19,7 +26,7 @@ for (const file of ['tokens', 'market-data', 'market-cache', 'cmc-data']) {
       },
     })
     .outputText.replace(
-      /from '\.\/(tokens|market-data|cmc-data)'/g,
+      /from '\.\/(tokens|market-data|cmc-data|token-supply|token-observation)'/g,
       "from './$1.mjs'",
     );
   await writeFile(dir + '/' + file + '.mjs', out);
@@ -394,4 +401,128 @@ test('Unreported zero capitalization and supply are not presented as established
   const coverage = marketCoverage(rows, fixtureNow);
   assert.equal(coverage.fresh.length, 6);
   assert.equal(coverage.capCount, 5);
+});
+
+const { parseSupplies, fetchSupplies } = await import(
+  pathToFileURL(dir + '/token-supply.mjs')
+);
+const { tokenObservation, issuedCoverage } = await import(
+  pathToFileURL(dir + '/token-observation.mjs')
+);
+const { TOKEN_PROGRAMS } = await import(pathToFileURL(dir + '/tokens.mjs'));
+const supplyFixture = () => ({
+  result: {
+    context: { slot: 123456 },
+    value: TOKENS.map(() => ({
+      owner: TOKEN_PROGRAMS[1],
+      executable: false,
+      data: {
+        parsed: {
+          type: 'mint',
+          info: { isInitialized: true, decimals: 6, supply: '12345000000' },
+        },
+      },
+    })),
+  },
+});
+test('Supply checks every allowlisted mint in one batch, validating program, precision and complete response', async () => {
+  const raw = supplyFixture();
+  const rows = parseSupplies(raw);
+  assert.equal(Object.keys(rows).length, TOKENS.length);
+  assert.equal(rows.TTWO.supply, 12345);
+  assert.equal(rows.TTWO.slot, 123456);
+  raw.result.value[0].owner = 'fake';
+  assert.equal(parseSupplies(raw).MU, undefined);
+  assert.throws(() =>
+    parseSupplies({ result: { context: { slot: 1 }, value: [] } }),
+  );
+  assert.throws(() =>
+    parseSupplies({ ...supplyFixture(), error: { code: 429 } }),
+  );
+  for (const supply of ['-1', '18446744073709551616', 'abc', null]) {
+    const invalid = supplyFixture();
+    invalid.result.value[0].data.parsed.info.supply = supply;
+    assert.equal(parseSupplies(invalid).MU, undefined);
+  }
+  const zero = supplyFixture();
+  zero.result.value[0].data.parsed.info.supply = '0';
+  assert.equal(parseSupplies(zero).MU.supply, 0);
+  await fetchSupplies('https://rpc.example', async (url, opts) => {
+    const body = JSON.parse(opts.body);
+    assert.equal(body.method, 'getMultipleAccounts');
+    assert.deepEqual(
+      body.params[0],
+      TOKENS.map((t) => t.mint),
+    );
+    assert.equal(body.params[1].commitment, 'finalized');
+    assert.equal(opts.redirect, 'manual');
+    return Response.json(supplyFixture());
+  });
+});
+const source = (data, now) => ({
+  data,
+  fetchedAt: now,
+  stale: false,
+  error: null,
+});
+test('TTWO without CMC gets pool price, change, volume and chain supply; value is separately calculated', () => {
+  const now = Date.now();
+  const data = {
+    supplies: source(parseSupplies(supplyFixture(), now), now),
+    markets: source({}, now),
+    pools: source(
+      {
+        TTWO: [{ price: 218, change24h: -1, volume24h: 0, liquidity: 100000 }],
+      },
+      now,
+    ),
+    prices: source({}, now),
+  };
+  const row = tokenObservation(data, 'TTWO', now);
+  assert.equal(row.price, 218);
+  assert.equal(row.priceSource, 'DEX pool');
+  assert.equal(row.change24h, -1);
+  assert.equal(row.volume24h, 0);
+  assert.equal(row.issuedValue, 218 * 12345);
+  assert.equal(row.cmc, undefined);
+  const coverage = issuedCoverage(data, now);
+  assert.equal(coverage.supplyCount, TOKENS.length);
+  assert.equal(coverage.valued.length, 1);
+  assert.equal(coverage.total, 218 * 12345);
+  data.pools.stale = true;
+  assert.equal(tokenObservation(data, 'TTWO', now).price, null);
+  assert.equal(issuedCoverage(data, now).total, null);
+});
+test('Stale supply or prices never produce a current valuation; timestamped DefiLlama fallback is bounded', () => {
+  const now = Date.now();
+  const data = {
+    supplies: source(parseSupplies(supplyFixture(), now), now),
+    markets: source({}, now),
+    pools: source({}, now),
+    prices: source(
+      { TTWO: { price: 210, timestamp: now, confidence: 0.99 } },
+      now,
+    ),
+  };
+  assert.equal(tokenObservation(data, 'TTWO', now).priceSource, 'DefiLlama');
+  data.supplies.fetchedAt = now - 300001;
+  assert.equal(tokenObservation(data, 'TTWO', now).issuedValue, null);
+  data.prices.data.TTWO.timestamp = now - 900001;
+  assert.equal(tokenObservation(data, 'TTWO', now).price, null);
+  assert.equal(issuedCoverage(null, now).total, null);
+});
+test('CMC circulating market cap never replaces total issued value or leaks into supply', () => {
+  const now = fixtureNow,
+    markets = parseTokenMarkets(cmc, now);
+  const data = {
+    markets: source(markets, now),
+    supplies: source(parseSupplies(supplyFixture(), now), now),
+    pools: source({}, now),
+    prices: source({}, now),
+  };
+  const row = tokenObservation(data, 'MU', now);
+  assert.equal(row.price, markets.MU.price);
+  assert.equal(row.issuedValue, 12345 * markets.MU.price);
+  assert.equal(row.cmc.marketCap, markets.MU.marketCap);
+  assert.notEqual(row.supply.supply, markets.MU.supply);
 });
