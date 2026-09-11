@@ -1,7 +1,10 @@
-import { db, rateLimit } from '@/lib/server';
+import { db, rateLimit, runtime } from '@/lib/server';
 import { cachedMarket } from '@/lib/market-cache';
-import { fetchTokenVolumes, MARKET_REFRESH_MS } from '@/lib/market-data';
-import { TOKEN_REVIEW_DATE } from '@/lib/tokens';
+import {
+  fetchTokenVolumes,
+  MARKET_REFRESH_MS,
+  volumeCacheKey,
+} from '@/lib/market-data';
 import { AppError } from '@/lib/validation';
 
 export const dynamic = 'force-dynamic';
@@ -20,9 +23,9 @@ export async function GET(req: Request) {
     );
     const volume = await cachedMarket(
       db(),
-      'gecko-volume-v1:' + TOKEN_REVIEW_DATE,
+      volumeCacheKey(runtime().COINGECKO_PRO_API_KEY),
       MARKET_REFRESH_MS,
-      () => fetchTokenVolumes(),
+      () => fetchTokenVolumes(fetch, runtime().COINGECKO_PRO_API_KEY),
     );
     return Response.json(
       {

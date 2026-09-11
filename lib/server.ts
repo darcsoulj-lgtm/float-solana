@@ -10,6 +10,7 @@ export const runtime = () =>
     ADMIN_EMAILS?: string;
     BENZINGA_API_KEY?: string;
     CMC_API_KEY?: string;
+    COINGECKO_PRO_API_KEY?: string;
   };
 export function db() {
   const d = runtime().DB;

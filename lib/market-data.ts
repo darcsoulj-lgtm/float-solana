@@ -1,6 +1,6 @@
 import type { TokenMarket } from './cmc-data';
 import type { MintSupply } from './token-supply';
-import { TOKENS } from './tokens';
+import { TOKENS, TOKEN_REVIEW_DATE } from './tokens';
 export const MARKET_REFRESH_MS = 120000;
 export type SourceResult<T> = {
   data: T | null;
@@ -219,6 +219,23 @@ export function parseBook(
     timestamp: timestamp / 1000,
   };
 }
+export class SourceHttpError extends Error {
+  retryAfterMs: number;
+  constructor(host: string, response: Response) {
+    super(`Source unavailable: ${host} HTTP ${response.status}`);
+    const value = response.headers.get('retry-after');
+    const delay =
+      value && /^\d+$/.test(value)
+        ? Number(value) * 1000
+        : value
+          ? Date.parse(value) - Date.now()
+          : 0;
+    this.retryAfterMs = Math.max(
+      response.status === 429 ? 300000 : 30000,
+      Number.isFinite(delay) ? delay : 0,
+    );
+  }
+}
 export async function publicJson(
   url: string,
   fetcher: typeof fetch = fetch,
@@ -242,8 +259,7 @@ export async function publicJson(
     redirect: 'manual',
   });
   // Keep status and host for production diagnosis; never log URLs, keys or bodies.
-  if (!r.ok)
-    throw new Error(`Source unavailable: ${u.hostname} HTTP ${r.status}`);
+  if (!r.ok) throw new SourceHttpError(u.hostname, r);
   return r.json();
 }
 export async function fetchCatalog(fetcher: typeof fetch = fetch) {
@@ -301,18 +317,46 @@ export function parseTokenVolumes(raw: unknown): Record<string, TokenVolume> {
   }
   return out;
 }
-export async function fetchTokenVolumes(fetcher: typeof fetch = fetch) {
+export function volumeCacheKey(apiKey?: string) {
+  return (
+    (apiKey?.trim() ? 'cg-volume-v1:' : 'gecko-volume-v1:') + TOKEN_REVIEW_DATE
+  );
+}
+export async function fetchTokenVolumes(
+  fetcher: typeof fetch = fetch,
+  apiKey?: string,
+) {
   const batches = [];
   for (let i = 0; i < TOKENS.length; i += 30)
     batches.push(TOKENS.slice(i, i + 30));
   const result: Record<string, TokenVolume> = {};
   // Bounded sequential batches respect the public provider's request allowance.
   for (const batch of batches) {
-    const data = await publicJson(
-      'https://api.geckoterminal.com/api/v2/networks/solana/tokens/multi/' +
-        batch.map((t) => t.mint).join(','),
-      fetcher,
-    );
+    const addresses = batch.map((t) => t.mint).join(',');
+    let data: unknown;
+    if (apiKey?.trim()) {
+      const response = await fetcher(
+        'https://pro-api.coingecko.com/api/v3/onchain/networks/solana/tokens/multi/' +
+          addresses,
+        {
+          headers: {
+            Accept: 'application/json',
+            'x-cg-pro-api-key': apiKey.trim(),
+          },
+          signal: AbortSignal.timeout(10000),
+          redirect: 'manual',
+        },
+      );
+      if (!response.ok)
+        throw new SourceHttpError('pro-api.coingecko.com', response);
+      data = await response.json();
+    } else {
+      data = await publicJson(
+        'https://api.geckoterminal.com/api/v2/networks/solana/tokens/multi/' +
+          addresses,
+        fetcher,
+      );
+    }
     Object.assign(result, parseTokenVolumes(data));
   }
   if (!Object.keys(result).length)

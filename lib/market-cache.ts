@@ -1,4 +1,5 @@
 import type { SourceResult } from './market-data';
+import { SourceHttpError } from './market-data';
 type CacheRow = {
   payload: string | null;
   fetched_at: number;
@@ -60,7 +61,12 @@ export async function cachedMarket<T>(
       .prepare(
         'UPDATE market_cache SET retry_after=? WHERE key=? AND retry_after=?',
       )
-      .bind(Date.now() + 30000, key, now + 20000)
+      .bind(
+        Date.now() +
+          (error instanceof SourceHttpError ? error.retryAfterMs : 30000),
+        key,
+        now + 20000,
+      )
       .run();
     return previous();
   }

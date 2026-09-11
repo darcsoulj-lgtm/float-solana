@@ -174,7 +174,6 @@ export function MarketOverviewPanel({
   const sourceErrors = data
     ? [
         { name: 'CoinMarketCap', source: data.markets },
-        { name: 'GeckoTerminal volume', source: data.volumes },
         { name: 'Backpack', source: data.catalog },
         { name: 'DEX Screener', source: data.pools },
         { name: 'DefiLlama', source: data.prices },
@@ -234,6 +233,11 @@ export function MarketOverviewPanel({
         <output className="market-warning">
           Delayed sources: {sourceErrors}. Last saved observations are marked
           below.
+        </output>
+      )}
+      {data?.volumes?.stale && (
+        <output className="market-warning">
+          Onchain volume is temporarily unavailable. Retrying automatically.
         </output>
       )}
       {scope === 'all' && (

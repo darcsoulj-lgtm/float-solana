@@ -44,9 +44,43 @@ const {
   numeric,
   parseTokenVolumes,
   fetchTokenVolumes,
+  SourceHttpError,
 } = await import(pathToFileURL(dir + '/market-data.mjs'));
 const { cachedMarket } = await import(pathToFileURL(dir + '/market-cache.mjs'));
 const mint = TOKENS[0].mint;
+test('429 backoff honors Retry-After and defaults to five minutes', () => {
+  assert.equal(
+    new SourceHttpError(
+      'api.geckoterminal.com',
+      new Response('', { status: 429 }),
+    ).retryAfterMs,
+    300000,
+  );
+  assert.equal(
+    new SourceHttpError(
+      'api.geckoterminal.com',
+      new Response('', { status: 429, headers: { 'Retry-After': '900' } }),
+    ).retryAfterMs,
+    900000,
+  );
+});
+test('Dedicated onchain credentials stay in the approved server header and never fall back on rejection', async () => {
+  let count = 0;
+  await assert.rejects(
+    fetchTokenVolumes(async (url, options) => {
+      count++;
+      assert.ok(
+        String(url).startsWith('https://pro-api.coingecko.com/api/v3/onchain/'),
+      );
+      assert.ok(!String(url).includes('test-private'));
+      assert.equal(options.headers['x-cg-pro-api-key'], 'test-private');
+      assert.equal(options.redirect, 'manual');
+      return new Response('', { status: 429 });
+    }, 'test-private'),
+    { message: 'Source unavailable: pro-api.coingecko.com HTTP 429' },
+  );
+  assert.equal(count, 1);
+});
 test('Upstream failures retain safe production diagnostics without leaking query values', async () => {
   await assert.rejects(
     publicJson(
@@ -329,6 +363,30 @@ test('Cache failure preserves old data and original time, backs off and marks it
   assert.equal(a.stale, true);
   assert.equal(a.fetchedAt, old);
   assert.deepEqual(b.data, { price: 42 });
+  raw.close();
+});
+test('Provider backoff persists across requests and prevents early retries', async () => {
+  const { raw, d1 } = cacheDb();
+  const started = Date.now();
+  await cachedMarket(d1, 'limited', 120000, async () => {
+    throw new SourceHttpError(
+      'api.geckoterminal.com',
+      new Response('', { status: 429, headers: { 'Retry-After': '900' } }),
+    );
+  });
+  const row = raw
+    .prepare('SELECT retry_after FROM market_cache WHERE key=?')
+    .get('limited');
+  assert.ok(row.retry_after >= started + 900000);
+  const result = await cachedMarket(
+    d1,
+    'limited',
+    120000,
+    () => assert.fail('must wait for provider'),
+    started + 60000,
+  );
+  assert.equal(result.data, null);
+  assert.equal(result.stale, true);
   raw.close();
 });
 test('Concurrent refresh lease prevents duplicate loads; empty cache is unavailable rather than fake data', async () => {
@@ -641,24 +699,30 @@ test('Volume parsing rejects wrong chain, fake mint, negative data and duplicate
   assert.throws(() => parseTokenVolumes({ data: [row, row] }), /Duplicate/);
   assert.throws(() => parseTokenVolumes({ data: null }), /Invalid/);
 });
-test('Live adapter uses exact mint batches of at most 30 and never requests a key', async () => {
+test('Both onchain transports parse all 41 mints in bounded batches', async () => {
   const captured = JSON.parse(
     await readFile(
       new URL('../research/volume-28/all-token-volumes.json', import.meta.url),
       'utf8',
     ),
   );
-  const calls = [];
-  const result = await fetchTokenVolumes(async (url, options) => {
-    const u = new URL(url);
-    calls.push(u);
-    assert.equal(u.hostname, 'api.geckoterminal.com');
-    assert.ok(u.pathname.split('/').at(-1).split(',').length <= 30);
-    assert.equal(options.headers['x-api-key'], undefined);
-    return Response.json(captured.responses[calls.length - 1]);
-  });
-  assert.equal(calls.length, 2);
-  assert.equal(Object.keys(result).length, TOKENS.length);
+  for (const key of [undefined, 'test-private']) {
+    const calls = [];
+    const result = await fetchTokenVolumes(async (url, options) => {
+      const u = new URL(url);
+      calls.push(u);
+      assert.equal(
+        u.hostname,
+        key ? 'pro-api.coingecko.com' : 'api.geckoterminal.com',
+      );
+      assert.ok(u.pathname.split('/').at(-1).split(',').length <= 30);
+      assert.equal(options.headers['x-api-key'], undefined);
+      assert.equal(options.headers['x-cg-pro-api-key'], key);
+      return Response.json(captured.responses[calls.length - 1]);
+    }, key);
+    assert.equal(calls.length, 2);
+    assert.equal(Object.keys(result).length, TOKENS.length);
+  }
 });
 test('Onchain volume stays separate from CMC/pool scope and never uses stale values', () => {
   const now = Date.now();

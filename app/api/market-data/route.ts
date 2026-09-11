@@ -9,6 +9,7 @@ import {
   fetchPools,
   fetchPrices,
   fetchTokenVolumes,
+  volumeCacheKey,
   parseBook,
   publicJson,
 } from '@/lib/market-data';
@@ -82,9 +83,9 @@ export async function GET(req: Request) {
       ),
       cachedMarket(
         db(),
-        'gecko-volume-v1:' + TOKEN_REVIEW_DATE,
+        volumeCacheKey(runtime().COINGECKO_PRO_API_KEY),
         MARKET_REFRESH_MS,
-        () => fetchTokenVolumes(),
+        () => fetchTokenVolumes(fetch, runtime().COINGECKO_PRO_API_KEY),
       ),
     ]);
     return json({ catalog, pools, prices, markets, supplies, volumes });
