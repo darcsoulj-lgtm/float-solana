@@ -6,6 +6,16 @@ import type { MarketOverview } from '@/lib/market-data';
 import { TOKENS } from '@/lib/tokens';
 import { tokenObservation } from '@/lib/token-observation';
 const colors = ['#e94b56', '#6495ed', '#b092ed', '#d9a44b', '#42a8a1'];
+const quantityFormat = new Intl.NumberFormat('en-US', {
+  maximumFractionDigits: 5,
+});
+function displayQuantity(value: string | null | undefined) {
+  if (value == null || value.trim() === '') return '—';
+  const amount = Number(value);
+  if (!Number.isFinite(amount) || amount < 0) return '—';
+  if (amount > 0 && amount < 0.00001) return '<0.00001';
+  return quantityFormat.format(amount);
+}
 export function PortfolioSummary({
   positions,
   data,
@@ -179,7 +189,9 @@ export function PortfolioSummary({
                 />
                 <div className="position-asset">
                   <strong>{r.symbol}</strong>
-                  <span>{hidden ? '••••' : (r.ui_amount ?? '—')} tokens</span>
+                  <span>
+                    {hidden ? '••••' : displayQuantity(r.ui_amount)} tokens
+                  </span>
                 </div>
                 <div className="position-value">
                   <strong>{money(r.value)}</strong>
