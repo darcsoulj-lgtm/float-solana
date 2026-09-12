@@ -337,7 +337,9 @@ export function Community() {
             </div>
             <div className="preview-layout">
               <div className="preview-nav">
-                <span className="preview-monogram">hp</span>
+                <span className="preview-monogram" aria-hidden="true">
+                  F
+                </span>
                 <strong>Your dashboard</strong>
                 <span className="selected">⌂ &nbsp; Home</span>
                 <span>◎ &nbsp; Topics</span>

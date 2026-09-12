@@ -30,7 +30,7 @@ const {
   selectedWallet: routeWallet,
   walletAvailability,
 } = await import(pathToFileURL(dir + '/wallet.mjs'));
-const message = new TextEncoder().encode('HolderPulse test challenge');
+const message = new TextEncoder().encode('Float test challenge');
 const signInSource = await readFile(
   new URL('../lib/community-sign-in.ts', import.meta.url),
   'utf8',

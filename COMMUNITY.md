@@ -8,7 +8,7 @@ Your brief now defaults to **My holdings**: direct company coverage for verified
 
 The sections below document earlier community behavior where not superseded by this update.
 
-# HolderPulse community
+# Float community
 
 Current product (updated September 11, 2026): a private member home with one shared discussion feed, personalized by automatically detected holdings and followed topics. A positive balance of any token in the reviewed registry unlocks all topics. The registry currently has 41 enabled Backpack stock/ETF tokens, including SPCX. No simulated community posts or fabricated membership. Legacy surveys and records remain accessible through their original routes but are outside the main community navigation.
 

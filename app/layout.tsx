@@ -7,8 +7,15 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { AgentTools } from '@/components/agent-tools';
 export const metadata: Metadata = {
   title: {
-    default: 'HolderPulse — For Solana tokenized stock holders',
-    template: '%s | HolderPulse',
+    default: 'Float — For Solana tokenized stock holders',
+    template: '%s | Float',
+  },
+  icons: { icon: '/favicon.svg?v=float' },
+  openGraph: {
+    title: 'Float — For Solana tokenized stock holders',
+    siteName: 'Float',
+    description:
+      'A shared community for holders of tokenized equities on Solana.',
   },
   description:
     'A shared community for holders of tokenized equities on Solana.',
@@ -34,8 +41,10 @@ export default function RootLayout({
         </a>
         <header>
           <Link className="brand" href="/">
-            h<span className="brandmark">p</span>
-            <strong>HolderPulse</strong>
+            <span className="brandmark" aria-hidden="true">
+              F
+            </span>
+            <strong>Float</strong>
           </Link>
           <nav aria-label="Main navigation">
             <Link href="/">Community</Link>
@@ -51,7 +60,7 @@ export default function RootLayout({
         <footer>
           <div>
             <Link className="footer-brand" href="/">
-              HolderPulse
+              Float
             </Link>
             <p>An independent community for Solana tokenized stock holders.</p>
           </div>
@@ -67,7 +76,7 @@ export default function RootLayout({
             Community discussions are not investment advice. Independent of
             Backpack and underlying issuers. Token ownership does not by itself
             establish registered shareholder status. ©{' '}
-            {new Date().getFullYear()} HolderPulse
+            {new Date().getFullYear()} Float
           </p>
         </footer>
       </body>

@@ -10,8 +10,8 @@ export default function Page() {
           balances through Helius. It does not request transaction signing,
           spending approvals, token transfers, or your recovery phrase. Check
           that the signing domain is holderpulse.glossy-kid-6048.chatgpt.site
-          and that the message says HolderPulse community membership. Cancel any
-          unexpected transaction request.
+          and that the message names Float and describes community access.
+          Cancel any unexpected transaction request.
         </p>
         <p>
           This is a limited code review and testing, not an independent security
@@ -95,7 +95,7 @@ export default function Page() {
         <p>
           Discussion and market research are not investment advice. Token
           ownership does not establish expertise, direct equity ownership, or an
-          affiliation with an issuer. HolderPulse is independent of Backpack and
+          affiliation with an issuer. Float is independent of Backpack and
           underlying companies. There are no funded rewards or guaranteed
           benefits. Legacy research tools retain their separate consent and
           simulated-data labels.
@@ -104,8 +104,8 @@ export default function Page() {
       <section className="panel">
         <h2>Holder tiers</h2>
         <p>
-          Tiers use the estimated USD value of supported tokenized stocks in your
-          verified wallet: Bronze under $100; Silver $100–$999; Gold
+          Tiers use the estimated USD value of supported tokenized stocks in
+          your verified wallet: Bronze under $100; Silver $100–$999; Gold
           $1,000–$9,999; Platinum $10,000–$99,999; Diamond $100,000 or more.
         </p>
         <p>

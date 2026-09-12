@@ -370,7 +370,7 @@ export function Analytics({ id }: { id: string }) {
       url = URL.createObjectURL(blob),
       a = document.createElement('a');
     a.href = url;
-    a.download = `holderpulse-${id}.json`;
+    a.download = `float-${id}.json`;
     a.click();
     URL.revokeObjectURL(url);
   }

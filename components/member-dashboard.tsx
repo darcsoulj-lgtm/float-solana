@@ -339,8 +339,8 @@ export function MemberDashboard({
     >
       <aside className="member-sidebar">
         <Link className="member-brand" href="/">
-          h<span>p</span>
-          <strong>HolderPulse</strong>
+          <span aria-hidden="true">F</span>
+          <strong>Float</strong>
         </Link>
         <div className="member-identity">
           <MemberAvatar
@@ -405,7 +405,7 @@ export function MemberDashboard({
       <div className="member-workspace">
         <div className="member-topbar">
           <span>
-            HolderPulse{' '}
+            Float{' '}
             <span className="breadcrumb">
               /{' '}
               {

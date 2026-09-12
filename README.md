@@ -1,10 +1,10 @@
-# HolderPulse community launch
+# Float community launch
 
 The primary product is now a wallet-gated community. Read [COMMUNITY.md](COMMUNITY.md) for current behavior, operations, privacy and test coverage. The research documentation below describes retained legacy survey tools.
 
 The member home now includes **Your brief** and **Calendar**. Administrators publish sourced stories and events, manage reports and members, and inspect request counters at `/admin`. See [editorial operations](docs/EDITORIAL.md) for publishing instructions and coverage limitations. Legacy survey administration has moved to `/admin/research`.
 
-# HolderPulse
+# Float
 
 A persistent research application for verified tokenized-equity holder surveys. Built with React 19, Vinext, Cloudflare Workers, D1 SQLite, and platform-managed Sign in with ChatGPT. This is working application code, with explicit integration boundaries below.
 

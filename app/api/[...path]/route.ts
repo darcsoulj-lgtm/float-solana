@@ -324,7 +324,7 @@ async function handler(req: Request) {
         await cleanup();
         const challengeId = crypto.randomUUID(),
           expiry = Date.now() + 300000;
-        const message = `HolderPulse ownership verification\nOrigin: ${u.origin}\nWallet: ${wallet}\nSurvey: ${id}\nNonce: ${challengeId}\nExpires: ${new Date(expiry).toISOString()}\nThis is a sign-in message only. No transaction or asset transfer is authorized.`;
+        const message = `Float ownership verification\nOrigin: ${u.origin}\nWallet: ${wallet}\nSurvey: ${id}\nNonce: ${challengeId}\nExpires: ${new Date(expiry).toISOString()}\nThis is a sign-in message only. No transaction or asset transfer is authorized.`;
         await db()
           .prepare(
             'INSERT INTO challenges (id,survey_id,wallet,message,expires_at,consumed) VALUES (?,?,?,?,?,0)',
@@ -469,7 +469,7 @@ async function handler(req: Request) {
     if (error instanceof AppError)
       return json({ error: error.message }, error.status);
     console.error(
-      'HolderPulse request failed',
+      'Float request failed',
       error instanceof Error ? error.name : 'unknown',
     );
     return json(

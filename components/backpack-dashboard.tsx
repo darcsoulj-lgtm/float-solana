@@ -243,7 +243,7 @@ export function BackpackDashboardPage() {
     <div className="backpack-dashboard">
       <div className="bp-heading">
         <div>
-          <span className="bp-eyebrow">HOLDERPULSE / SOLANA</span>
+          <span className="bp-eyebrow">FLOAT / SOLANA</span>
           <h1>
             Backpack onchain<span>.</span>
           </h1>

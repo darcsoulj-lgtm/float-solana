@@ -46,7 +46,7 @@ export function validateAlias(value: unknown) {
   const alias = textValue(value, 3, 24, 'Display name');
   if (
     !/^[\p{L}\p{N} _.-]+$/u.test(alias) ||
-    /admin|moderator|holderpulse|backpack|support|staff|official/i.test(alias)
+    /admin|moderator|holderpulse|float|backpack|support|staff|official/i.test(alias)
   )
     throw new AppError(
       'Use a personal display name without official or moderator titles.',

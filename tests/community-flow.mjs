@@ -433,7 +433,7 @@ try {
   const secondChallenge = (await call('challenge', { wallet: secondWallet })).d;
   assert.equal(secondChallenge.signInInput, undefined);
   assert.ok(
-    secondChallenge.message.startsWith('HolderPulse community membership\n'),
+    secondChallenge.message.startsWith('Float community membership\n'),
   );
   checks += 2;
   const secondLogin = await call('verify', {

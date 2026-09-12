@@ -1,13 +1,17 @@
 export default function Page() {
   return (
     <div className="page info-page">
-      <h1>About HolderPulse</h1>
+      <h1>About Float</h1>
       <section className="panel">
         <h2>For Solana tokenized stock holders</h2>
         <p>
-          HolderPulse brings together company news, token market data and member
+          Float brings together company news, token market data and member
           discussions. One verified holding gives access to every room.
         </p>
+      </section>
+      <section className="panel">
+        <h2>The name</h2>
+        <p>From public float. A place for holders to exchange perspectives.</p>
       </section>
       <section className="panel">
         <h2>Independent</h2>

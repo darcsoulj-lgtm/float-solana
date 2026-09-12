@@ -75,9 +75,9 @@ export function OperationsWorkspace() {
     <div className="operations-page">
       <header className="operations-header">
         <Link href="/" className="operations-brand">
-          hp
+          <b aria-hidden="true">F</b>
           <span>
-            HolderPulse <small>ADMIN</small>
+            Float <small>ADMIN</small>
           </span>
         </Link>
         <Link className="operations-return" href="/">
@@ -406,7 +406,7 @@ export function OperationsWorkspace() {
         </TabsContent>
       </Tabs>
       <footer className="operations-footer">
-        <span>HolderPulse · Community operations</span>
+        <span>Float · Community operations</span>
         <Link href="/admin/research">
           Research administration <ArrowUpRight size={14} />
         </Link>

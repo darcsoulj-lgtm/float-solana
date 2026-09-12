@@ -159,7 +159,7 @@ async function handler(req: Request) {
           : undefined;
       const message = signInInput
         ? communitySignInMessage(signInInput)
-        : `HolderPulse community membership\nOrigin: ${url.origin}\nWallet: ${wallet}\nAccess: All community topics\nNonce: ${id}\nExpires: ${new Date(expires).toISOString()}\nSign to prove control of this wallet and verify supported tokenized-equity holdings for 24-hour community access. Your wallet address is kept for this session to refresh supported holdings; balances are not saved. No transaction or asset transfer is authorized.`;
+        : `Float community membership\nOrigin: ${url.origin}\nWallet: ${wallet}\nAccess: All community topics\nNonce: ${id}\nExpires: ${new Date(expires).toISOString()}\nSign to prove control of this wallet and verify supported tokenized-equity holdings for 24-hour community access. Your wallet address is kept for this session to refresh supported holdings; balances are not saved. No transaction or asset transfer is authorized.`;
       await db()
         .prepare(
           'INSERT INTO community_challenges (id,wallet,symbol,message,expires_at,consumed) VALUES (?,?,?,?,?,0)',
