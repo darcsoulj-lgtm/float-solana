@@ -1,4 +1,5 @@
 import Link from '@/components/site-link';
+import { FloatLogo } from '@/components/float-logo';
 import type { Metadata } from 'next';
 import './globals.css';
 import './backpack-theme.css';
@@ -10,7 +11,10 @@ export const metadata: Metadata = {
     default: 'Float — For Solana tokenized stock holders',
     template: '%s | Float',
   },
-  icons: { icon: '/favicon.svg?v=float' },
+  icons: {
+    icon: { url: '/brand/float-mark.png', type: 'image/png' },
+    apple: '/brand/float-mark.png',
+  },
   openGraph: {
     title: 'Float — For Solana tokenized stock holders',
     siteName: 'Float',
@@ -41,10 +45,7 @@ export default function RootLayout({
         </a>
         <header>
           <Link className="brand" href="/">
-            <span className="brandmark" aria-hidden="true">
-              F
-            </span>
-            <strong>Float</strong>
+            <FloatLogo />
           </Link>
           <nav aria-label="Main navigation">
             <Link href="/">Community</Link>

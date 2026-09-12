@@ -1,4 +1,5 @@
 'use client';
+import { FloatLogo } from './float-logo';
 import { HoldingsUpdateInfo } from './holdings-update-info';
 import { HolderTierBadge } from './holder-tier-badge';
 import { HOLDER_TIERS, type HolderTierResult } from '@/lib/holder-tier';
@@ -340,8 +341,7 @@ export function MemberDashboard({
     >
       <aside className="member-sidebar">
         <Link className="member-brand" href="/">
-          <span aria-hidden="true">F</span>
-          <strong>Float</strong>
+          <FloatLogo />
         </Link>
         <div className="member-identity">
           <MemberAvatar
@@ -1055,9 +1055,6 @@ export function MemberDashboard({
               {!loading && !holdings.length && (
                 <p>Refresh verification to detect all your holdings.</p>
               )}
-              <p className="private-footnote">
-                <LockKeyhole size={12} /> Private
-              </p>
               <div className="verification-note">
                 <span className="small-dot" />
                 <div>

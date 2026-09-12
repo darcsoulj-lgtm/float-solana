@@ -984,3 +984,61 @@ fieldset.holding-filter-chips {
 .holdings-card > .holding-tags {
   margin-top: 12px;
 }
+
+/* Float's shared mark and wordmark keep the same proportions on every surface. */
+.float-mark {
+  --float-mark-size: 36px;
+  display: inline-block;
+  position: relative;
+  flex: 0 0 auto;
+  width: calc(var(--float-mark-size) * 0.82);
+  height: var(--float-mark-size);
+  overflow: hidden;
+  line-height: 0;
+}
+.float-mark img {
+  position: absolute;
+  width: calc(var(--float-mark-size) * 1.18);
+  height: calc(var(--float-mark-size) * 1.18);
+  max-width: none;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+.float-mark-small {
+  --float-mark-size: 26px;
+}
+.brand,
+.member-brand,
+.operations-brand {
+  gap: 10px;
+  letter-spacing: normal;
+  font-style: normal;
+}
+.brand .float-wordmark,
+.member-brand .float-wordmark,
+.operations-brand .float-wordmark {
+  margin: 0;
+  padding: 0;
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), Arial, sans-serif;
+  font-size: 28px;
+  font-weight: 650;
+  line-height: 1;
+  letter-spacing: -1.2px;
+}
+.operations-brand .float-wordmark small {
+  font-size: 9px;
+  letter-spacing: 1.4px;
+  margin-top: 6px;
+}
+@media (max-width: 700px) {
+  body > header .brand .float-mark,
+  .member-brand .float-mark {
+    --float-mark-size: 30px;
+  }
+  body > header .brand .float-wordmark,
+  .member-brand .float-wordmark {
+    font-size: 24px;
+  }
+}

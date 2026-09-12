@@ -1,4 +1,5 @@
 'use client';
+import { FloatLogo } from './float-logo';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ArrowUpRight,
@@ -75,10 +76,7 @@ export function OperationsWorkspace() {
     <div className="operations-page">
       <header className="operations-header">
         <Link href="/" className="operations-brand">
-          <b aria-hidden="true">F</b>
-          <span>
-            Float <small>ADMIN</small>
-          </span>
+          <FloatLogo admin />
         </Link>
         <Link className="operations-return" href="/">
           View community <ArrowUpRight size={16} />
