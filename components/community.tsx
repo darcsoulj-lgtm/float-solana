@@ -10,7 +10,6 @@ import {
   MessagesSquare,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -35,7 +34,6 @@ export function Community() {
       setJoin(true);
   }, []);
   const [provider, setProvider] = useState('backpack');
-  const [consent, setConsent] = useState(false);
   const [stage, setStage] = useState('');
   const [pending, setPending] = useState<{
     id: string;
@@ -191,7 +189,7 @@ export function Community() {
     }
   }
   async function signPrepared() {
-    if (inFlight.current || !pending || !consent) return;
+    if (inFlight.current || !pending) return;
     if (Date.now() >= pending.expiresAt) {
       setPending(null);
       setJoinError('This check expired. Choose your wallet to check again.');
@@ -226,7 +224,6 @@ export function Community() {
       await api('community/verify', {
         challengeId: pending.id,
         signature,
-        consent,
       });
       if (!pending.connection.accountUnchanged()) {
         await api('community/logout', {});
@@ -297,7 +294,8 @@ export function Community() {
         <div className="club public-club">
           <section className="public-hero">
             <div className="eyebrow">
-              <span className="small-dot" /> FOR BACKPACK TOKENIZED STOCK HOLDERS
+              <span className="small-dot" /> FOR BACKPACK TOKENIZED STOCK
+              HOLDERS
             </div>
             <h1>
               A community for
@@ -432,20 +430,9 @@ export function Community() {
                 </div>
                 <ShieldCheck size={22} />
               </div>
-              <label className="choice">
-                <Checkbox
-                  disabled={busy}
-                  checked={consent}
-                  onCheckedChange={(v) => setConsent(v === true)}
-                />
-                <span>
-                  I accept the <Link href="/rules">guidelines</Link> and{' '}
-                  <Link href="/trust">privacy notice</Link>.
-                </span>
-              </label>
               <Button
                 className="wallet-sign-button"
-                disabled={busy || !consent}
+                disabled={busy}
                 onClick={signPrepared}
               >
                 {busy
@@ -453,6 +440,11 @@ export function Community() {
                   : `Sign in ${walletLabel(pending.provider)}`}
                 <ArrowUpRight size={18} />
               </Button>
+              <p className="wallet-policy-links">
+                <Link href="/rules">Guidelines</Link>
+                <span aria-hidden="true"> · </span>
+                <Link href="/trust">Privacy</Link>
+              </p>
               <Button
                 className="wallet-back-button"
                 variant="ghost"

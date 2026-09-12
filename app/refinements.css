@@ -932,3 +932,10 @@ fieldset.holding-filter-chips {
   outline: 2px solid var(--ring);
   outline-offset: 4px;
 }
+
+.wallet-policy-links {
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted-foreground);
+  margin: 12px 0 0;
+}

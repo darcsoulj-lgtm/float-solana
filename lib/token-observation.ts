@@ -122,6 +122,13 @@ export function tokenObservation(
       : null;
   const circulationTime =
     data?.circulation?.asOf?.[symbol] ?? data?.circulation?.fetchedAt;
+  const lastCirculation =
+    circulationTime &&
+    circulationTime > 0 &&
+    circulationTime <= now + 60000 &&
+    now - circulationTime < 86400000
+      ? data?.circulation?.data?.[symbol]
+      : undefined;
   const circulation =
     circulationTime &&
     !data?.circulation?.stale &&
@@ -133,6 +140,8 @@ export function tokenObservation(
   const liquidityRows = pools.filter((p) => p.liquidity !== null);
   return {
     symbol,
+    lastCirculation,
+    lastCirculationTime: lastCirculation ? circulationTime : null,
     circulation,
     circulationTime: circulation ? circulationTime : null,
     circulatingValue,
@@ -223,9 +232,22 @@ export function circulatingCoverage(
   data: MarketOverview | null,
   now = Date.now(),
   issuer?: IssuerId,
+  allowLastKnown = false,
 ) {
   const tokens = TOKENS.filter((t) => !issuer || t.issuer === issuer);
-  const rows = tokens.map((t) => tokenObservation(data, t.symbol, now));
+  const rows = tokens.map((t) => {
+    const row = tokenObservation(data, t.symbol, now);
+    const delayed = allowLastKnown && !row.circulation && !!row.lastCirculation;
+    return delayed
+      ? {
+          ...row,
+          circulation: row.lastCirculation,
+          circulationTime: row.lastCirculationTime,
+          circulatingValue: row.lastCirculation!.valueUsd,
+          delayed: true,
+        }
+      : { ...row, delayed: false };
+  });
   const valued = rows.filter((r) => r.circulatingValue !== null);
   const valuedSymbols = new Set(valued.map((r) => r.symbol));
   return {
@@ -233,6 +255,10 @@ export function circulatingCoverage(
     valued,
     total: valued.length
       ? valued.reduce((s, r) => s + r.circulatingValue!, 0)
+      : null,
+    delayed: valued.some((r) => r.delayed),
+    observedAt: valued.length
+      ? Math.min(...valued.map((r) => r.circulationTime!))
       : null,
     issuerCount: new Set(
       tokens.filter((t) => valuedSymbols.has(t.symbol)).map((t) => t.issuer),
@@ -255,10 +281,12 @@ export function issuerValuation(
 ) {
   const circulating = issuer === 'xstocks';
   const coverage = circulating
-    ? circulatingCoverage(data, now, issuer)
+    ? circulatingCoverage(data, now, issuer, true)
     : issuedCoverage(data, now, issuer);
   return {
     ...coverage,
+    delayed: 'delayed' in coverage ? coverage.delayed : false,
+    observedAt: 'observedAt' in coverage ? coverage.observedAt : null,
     label: circulating ? 'Circulating value' : 'Minted value',
     basis: circulating ? 'circulating' : 'minted',
   };
@@ -270,9 +298,15 @@ export function tokenValuation(
 ) {
   return issuer === 'xstocks'
     ? {
-        value: observation.circulatingValue,
+        value:
+          observation.circulatingValue ??
+          observation.lastCirculation?.valueUsd ??
+          null,
         label: 'Circulating value',
-        basis: 'Circulating',
+        basis:
+          !observation.circulation && observation.lastCirculation
+            ? 'Circulating · last verified'
+            : 'Circulating',
       }
     : {
         value: observation.issuedValue,

@@ -22,7 +22,7 @@ export function SolanaEcosystem({
   onIssuer: (id: IssuerId | 'all') => void;
   select: (symbol: string) => void;
 }) {
-  const coverage = circulatingCoverage(data, now);
+  const coverage = circulatingCoverage(data, now, undefined, true);
   const leaders = [...coverage.valued]
     .sort((a, b) => b.circulatingValue! - a.circulatingValue!)
     .slice(0, 5);
@@ -41,6 +41,25 @@ export function SolanaEcosystem({
         <div>
           <span>Tracked circulating value</span>
           <strong>{usd(coverage.total)}</strong>
+          {coverage.delayed && (
+            <small>
+              Last verified{' '}
+              {new Date(coverage.observedAt!).toLocaleString(undefined, {
+                month: 'short',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+              })}{' '}
+              · update delayed
+            </small>
+          )}
+          {coverage.total === null && (
+            <small>
+              {data?.circulation?.refreshing
+                ? 'Updating issuer data…'
+                : 'Issuer data temporarily unavailable'}
+            </small>
+          )}
           <small>
             {coverage.issuerCount} / {ISSUERS.length} issuers · partial coverage
           </small>
@@ -84,7 +103,7 @@ export function SolanaEcosystem({
             </thead>
             <tbody>
               {ISSUERS.map((i) => {
-                const c = circulatingCoverage(data, now, i.id);
+                const c = circulatingCoverage(data, now, i.id, true);
                 return (
                   <tr key={i.id}>
                     <th scope="row">{i.name}</th>
@@ -103,10 +122,12 @@ export function SolanaEcosystem({
           xStocks: issuer-adjusted circulating quantities and collateral
           reference prices, using the same units as its dashboard. HKD quotes
           are converted with dated ECB reference rates. Updated every 10
-          minutes; reference prices may be up to 72 hours old. No multiplier is
-          applied twice. Other issuers show separately labeled minted-value
-          estimates in the issuer filters and token table. Those estimates can
-          include inventory and are never added to this circulating total.
+          minutes; reference prices may be up to 72 hours old. During an outage,
+          the last verified circulation snapshot is shown with its original date
+          for up to 24 hours. No multiplier is applied twice. Other issuers show
+          separately labeled minted-value estimates in the issuer filters and
+          token table. Those estimates can include inventory and are never added
+          to this circulating total.
         </p>
         <h3>Largest circulating values</h3>
         {leaders.map((r) => (

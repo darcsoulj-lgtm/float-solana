@@ -131,7 +131,7 @@ test('Transport fetches bounded complete pages without credentials and honors fa
   const out = await api.fetchXstocksCirculation(async (url, options) => {
     assert.equal(options.redirect, 'manual');
     if (String(url).includes('ecb.europa.eu')) return new Response(xml);
-    assert.equal(url, 'https://api.backed.fi/graphql');
+    assert.equal(url, 'https://api.xstocks.fi/graphql');
     assert.equal(options.headers.Authorization, undefined);
     const body = JSON.parse(options.body);
     assert.equal(body.variables.where.businessLine.equals, 'xStocks');
@@ -192,11 +192,12 @@ test('Other issuer estimates remain available with minted labels and never enter
     api.tokenObservation(mixed, 'AAOIx', now).issuedValue,
     100000000,
   );
-  assert.equal(api.issuerValuation(mixed, now, 'xstocks').total, null);
+  assert.ok(api.issuerValuation(mixed, now, 'xstocks').total > 0);
+  assert.equal(api.issuerValuation(mixed, now, 'xstocks').delayed, true);
   assert.equal(
     api.tokenValuation(api.tokenObservation(mixed, 'AAOIx', now), 'xstocks')
       .value,
-    null,
+    mixed.circulation.data.AAOIx.valueUsd,
   );
   // A feed error is not zero issuance, and stale snapshots cannot resurrect the estimate.
   mixed.supplies.stale = true;

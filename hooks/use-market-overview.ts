@@ -11,6 +11,46 @@ export function useMarketOverview(holdings: string[], refresh: number) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const pages = useRef<MarketOverview[]>([]);
+  const [circulation, setCirculation] =
+    useState<MarketOverview['circulation']>();
+  useEffect(() => {
+    let active = true,
+      attempts = 0;
+    let timer: ReturnType<typeof setTimeout>;
+    let loading = false;
+    async function load() {
+      if (!active || loading || document.hidden) return;
+      loading = true;
+      let pending = false;
+      try {
+        const result = await api<{
+          circulation: NonNullable<MarketOverview['circulation']>;
+        }>('circulation');
+        if (!active) return;
+        setCirculation(result.circulation);
+        pending = !!result.circulation.refreshing;
+      } catch {
+        /* Retain dated observations on transient transport failures. */
+      } finally {
+        loading = false;
+      }
+      if (active)
+        timer = setTimeout(load, pending && attempts++ < 20 ? 3000 : 30000);
+    }
+    const visible = () => {
+      if (!document.hidden) {
+        clearTimeout(timer);
+        void load();
+      }
+    };
+    void load();
+    document.addEventListener('visibilitychange', visible);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+      document.removeEventListener('visibilitychange', visible);
+    };
+  }, [refresh]);
   const holdingsKey = holdings.join('|');
   useEffect(() => {
     let active = true,
@@ -127,5 +167,14 @@ export function useMarketOverview(holdings: string[], refresh: number) {
       window.removeEventListener('online', visible);
     };
   }, [refresh, holdingsKey]);
-  return { data, busy, error };
+  const latestCirculation =
+    circulation &&
+    (circulation.fetchedAt ?? 0) >= (data?.circulation?.fetchedAt ?? 0)
+      ? circulation
+      : data?.circulation;
+  return {
+    data: data ? { ...data, circulation: latestCirculation } : data,
+    busy,
+    error,
+  };
 }

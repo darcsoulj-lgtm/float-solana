@@ -17,11 +17,8 @@ import {
 } from '@/lib/market-data';
 import { marketSnapshot } from '@/lib/market-cache';
 import { waitUntil } from 'cloudflare:workers';
-import {
-  fetchXstocksCirculation,
-  CIRCULATION_REFRESH_MS,
-  CIRCULATION_MAX_AGE_MS,
-} from '@/lib/xstocks-circulation';
+import { CIRCULATION_MAX_AGE_MS } from '@/lib/xstocks-circulation';
+import { circulationSnapshot } from '@/lib/circulation-cache';
 import { fetchSupplies } from '@/lib/token-supply';
 export const dynamic = 'force-dynamic';
 const json = (data: unknown, status = 200) =>
@@ -147,9 +144,7 @@ export async function GET(req: Request) {
           () => fetchHistoricalPrices(fetch, tokens),
         ),
         batch === 0
-          ? snapshot('xstocks-circulation:v1', CIRCULATION_REFRESH_MS, () =>
-              fetchXstocksCirculation(),
-            )
+          ? circulationSnapshot(database, waitUntil)
           : Promise.resolve(undefined),
       ]);
     const response = json({

@@ -269,12 +269,20 @@ export function MarketOverviewPanel({
               <strong id={`issuer-value-${item.id}`}>
                 {money(c.total, true)}
                 {c.total === null ? (
-                  <small> Unavailable</small>
+                  <small>
+                    {item.id === 'xstocks' && data?.circulation?.refreshing
+                      ? ' Updating…'
+                      : ' Unavailable'}
+                  </small>
                 ) : (
                   partial && <small> partial</small>
                 )}
               </strong>
-              <small id={`issuer-basis-${item.id}`}>{c.label} · est.</small>
+              <small id={`issuer-basis-${item.id}`}>
+                {c.delayed
+                  ? `${c.label} · last verified ${time(c.observedAt)}`
+                  : `${c.label} · est.`}
+              </small>
             </button>
           );
         })}

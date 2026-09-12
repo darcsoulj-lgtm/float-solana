@@ -481,6 +481,13 @@ export function mergeMarketPages(pages: MarketOverview[]): MarketOverview {
         : null,
     };
   }
+  // Circulation keeps its dated last-good payload for an explicitly labeled
+  // fallback. Other sources continue to exclude stale data from current values.
+  const lastCirculation = pages
+    .flatMap((p) =>
+      p.circulation?.data && p.circulation.fetchedAt ? [p.circulation] : [],
+    )
+    .sort((a, b) => b.fetchedAt! - a.fetchedAt!)[0];
   return {
     catalog: pages.find((p) => p.catalog.fetchedAt)?.catalog || {
       data: null,
@@ -492,9 +499,17 @@ export function mergeMarketPages(pages: MarketOverview[]): MarketOverview {
     prices: combine(pages.map((p) => p.prices)),
     pools: combine(pages.map((p) => p.pools)),
     supplies: combine(pages.map((p) => p.supplies)),
-    circulation: combine(
-      pages.flatMap((p) => (p.circulation ? [p.circulation] : [])),
-    ),
+    circulation: lastCirculation
+      ? {
+          ...lastCirculation,
+          asOf: Object.fromEntries(
+            Object.keys(lastCirculation.data!).map((key) => [
+              key,
+              lastCirculation.asOf?.[key] ?? lastCirculation.fetchedAt!,
+            ]),
+          ),
+        }
+      : pages.find((p) => p.circulation)?.circulation,
     history: combine(pages.flatMap((p) => (p.history ? [p.history] : []))),
   };
 }

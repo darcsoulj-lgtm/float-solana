@@ -40,7 +40,6 @@ export const XSTOCKS_CIRCULATION_QUERY = `  query Tokens(
   ) {
     tokens(page: $page, pageSize: $pageSize, where: $where, orderBy: $orderBy) {
       nodes {
-        name
         symbol
         tokenCollaterals {
           collateral {
@@ -58,7 +57,6 @@ export const XSTOCKS_CIRCULATION_QUERY = `  query Tokens(
           decimals
           totalSupply
           circulatingSupply
-          stableBalanceWrapperTokenAddressV2
         }
       }
       page {
@@ -171,32 +169,38 @@ export function parseCirculationPages(
     throw new Error('Incomplete issuer asset coverage');
   return out;
 }
+export async function fetchXstocksCirculationPage(
+  page: number,
+  fetcher: typeof fetch = fetch,
+) {
+  const r = await fetcher('https://api.xstocks.fi/graphql', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    redirect: 'manual',
+    signal: AbortSignal.timeout(18000),
+    body: JSON.stringify({
+      query: XSTOCKS_CIRCULATION_QUERY,
+      variables: {
+        page,
+        pageSize: 100,
+        where: { businessLine: { equals: 'xStocks' } },
+        orderBy: { field: 'symbol', direction: 'asc' },
+        maxAge: 259200,
+        maxDivergencePercent: 25,
+        ignoreCurrentSession: true,
+      },
+    }),
+  });
+  if (!r.ok) throw new SourceHttpError('api.xstocks.fi', r);
+  return r.json();
+}
+
 export async function fetchXstocksCirculation(
   fetcher: typeof fetch = fetch,
   now = Date.now(),
 ) {
-  const requestPage = async (page: number) => {
-    const r = await fetcher('https://api.backed.fi/graphql', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      redirect: 'manual',
-      signal: AbortSignal.timeout(10000),
-      body: JSON.stringify({
-        query: XSTOCKS_CIRCULATION_QUERY,
-        variables: {
-          page,
-          pageSize: 100,
-          where: { businessLine: { equals: 'xStocks' } },
-          orderBy: { field: 'aum', direction: 'desc' },
-          maxAge: 259200,
-          maxDivergencePercent: 25,
-          ignoreCurrentSession: true,
-        },
-      }),
-    });
-    if (!r.ok) throw new SourceHttpError('api.backed.fi', r);
-    return r.json();
-  };
+  const requestPage = (page: number) =>
+    fetchXstocksCirculationPage(page, fetcher);
   const [first, fx] = await Promise.all([
     requestPage(0),
     (async () => {

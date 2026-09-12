@@ -175,10 +175,6 @@ async function handler(req: Request) {
       });
     }
     if (path[0] === 'verify' && post) {
-      if (b.consent !== true)
-        throw new AppError(
-          'Accept the community guidelines and privacy notice to join.',
-        );
       const c = await db()
         .prepare(
           'SELECT * FROM community_challenges WHERE id=? AND consumed=0 AND expires_at>?',
