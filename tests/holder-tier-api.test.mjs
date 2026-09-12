@@ -34,6 +34,7 @@ async function fixture() {
   let signedIn = true;
   const calls = [];
   const dependencies = {
+    '@/lib/community-home': {},
     '@/lib/holder-tier-server': {
       updateHolderTier: async (db, id) => {
         assert.equal(db, database);

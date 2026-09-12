@@ -1,7 +1,15 @@
 'use client';
 import { HolderTierBadge } from './holder-tier-badge';
 import { HOLDER_TIERS, type HolderTierResult } from '@/lib/holder-tier';
-import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+} from 'react';
 import Link from './site-link';
 import {
   Home,
@@ -33,11 +41,16 @@ import {
 import { SearchPicker } from './search-picker';
 import { Thread } from './community-thread';
 import { RoomCreator } from './room-creator';
-import { MarketOverviewPanel } from './market-overview';
+const MarketOverviewPanel = lazy(() =>
+  import('./market-overview').then((module) => ({
+    default: module.MarketOverviewPanel,
+  })),
+);
 import { ThemeToggle } from './theme-toggle';
 import { MemberAvatar, prepareAvatar } from './member-avatar';
 import { MemberBrief } from './member-brief';
 import { api } from '@/lib/client';
+import { readThenRefresh } from '@/lib/client-loading';
 import { communityPostErrors, POST_LIMITS } from '@/lib/community-post';
 import {
   type CommunityStatus,
@@ -181,21 +194,23 @@ export function MemberDashboard({
   useEffect(() => {
     let active = true;
     const sequence = ++requestSequence.current;
-    syncHoldings()
-      .then(() =>
+    void readThenRefresh({
+      read: () =>
         Promise.all([
           api<MemberHome>('community/home'),
           api<ThreadPage>(query),
         ]),
-      )
-      .then(([home, page]) => {
+      refresh: () => syncHoldings(),
+      publish: ([home, page]) => {
         if (active && sequence === requestSequence.current) {
           setError('');
           setData(home);
           setThreads(page.threads);
           setCursor(page.nextCursor);
+          setLoadedQuery(query);
         }
-      })
+      },
+    })
       .catch((e) => {
         if (active && sequence === requestSequence.current) setError(e.message);
       })
@@ -486,10 +501,12 @@ export function MemberDashboard({
             {view === 'markets' ? (
               <>
                 {data ? (
-                  <MarketOverviewPanel
-                    holdings={holdings.map((h) => h.symbol)}
-                    positions={holdings}
-                  />
+                  <Suspense fallback={<p role="status">Loading markets…</p>}>
+                    <MarketOverviewPanel
+                      holdings={holdings.map((h) => h.symbol)}
+                      positions={holdings}
+                    />
+                  </Suspense>
                 ) : (
                   <p>Loading your holdings…</p>
                 )}

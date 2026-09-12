@@ -1424,3 +1424,86 @@ test('holder news route returns cached MU and SPCX stories with pagination and h
   assert.equal((await get('')).status, 401);
   f.sql.close();
 });
+
+test('market snapshots return before a blocked provider and concurrent readers share one refresh', async () => {
+  const { marketSnapshot } = await import(
+    pathToFileURL(dir + '/market-cache.mjs')
+  );
+  const f = newsDatabase(),
+    jobs = [];
+  let release,
+    calls = 0;
+  const pending = new Promise((resolve) => {
+    release = resolve;
+  });
+  const loader = async () => {
+    calls++;
+    await pending;
+    return { MU: 100 };
+  };
+  try {
+    const results = await Promise.race([
+      Promise.all(
+        Array.from({ length: 20 }, () =>
+          marketSnapshot(f.db, 'test:fast', 60000, loader, (work) =>
+            jobs.push(work),
+          ),
+        ),
+      ),
+      new Promise((_, reject) =>
+        setTimeout(
+          () => reject(Error('Snapshot waited for its provider')),
+          500,
+        ),
+      ),
+    ]);
+    assert.ok(results.every((r) => r.data === null && r.refreshing));
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(calls, 1);
+    release();
+    await Promise.all(jobs);
+    const warm = await marketSnapshot(
+      f.db,
+      'test:fast',
+      60000,
+      loader,
+      (work) => jobs.push(work),
+    );
+    assert.deepEqual(warm.data, { MU: 100 });
+    assert.equal(warm.stale, false);
+    assert.equal(warm.refreshing, false);
+    assert.equal(calls, 1);
+  } finally {
+    release();
+    await Promise.allSettled(jobs);
+    f.sql.close();
+  }
+});
+test('snapshot failure preserves stale data and respects the provider cooldown', async () => {
+  const { marketSnapshot } = await import(
+    pathToFileURL(dir + '/market-cache.mjs')
+  );
+  const f = newsDatabase(),
+    jobs = [],
+    now = Date.now();
+  f.sql
+    .prepare('INSERT INTO market_cache VALUES(?,?,?,?)')
+    .run('test:cooldown', '{"MU":99}', now - 70000, now + 300000);
+  let calls = 0;
+  const result = await marketSnapshot(
+    f.db,
+    'test:cooldown',
+    60000,
+    async () => {
+      calls++;
+      return {};
+    },
+    (work) => jobs.push(work),
+  );
+  assert.equal(result.stale, true);
+  assert.equal(result.refreshing, false);
+  assert.deepEqual(result.data, { MU: 99 });
+  assert.equal(calls, 0);
+  assert.equal(jobs.length, 0);
+  f.sql.close();
+});

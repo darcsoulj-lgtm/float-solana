@@ -14,6 +14,7 @@ import { Button } from './ui/button';
 import { SearchPicker } from './search-picker';
 import { UpcomingAgenda } from './upcoming-agenda';
 import { api } from '@/lib/client';
+import { readThenRefresh } from '@/lib/client-loading';
 import { TOKENS } from '@/lib/tokens';
 import {
   eventLabel,
@@ -162,43 +163,45 @@ export function MemberBrief({
       ? `holder-news?symbol=${encodeURIComponent(symbol)}&offset=${page * 20}`
       : `editorial/brief?kind=${kind}&scope=personal&symbol=${encodeURIComponent(symbol)}&today=${today}&offset=${page * 20}`;
   const requestKey = query + '&retry=' + retry + '&holdings=' + holdingsKey;
-  const loading = loadedKey !== requestKey;
+  const displayKey = query + '&holdings=' + holdingsKey;
+  const loading = loadedKey !== displayKey;
   useEffect(() => {
     let active = true;
     currentKey.current = requestKey;
-    (async () => {
-      if (kind === 'event') await api('editorial/initialize', {});
-      let refreshFailed = false;
-      if (kind === 'news')
-        await api('holder-news', { symbol }).catch(() => {
-          refreshFailed = true;
-        });
-      const feed = await api<BriefData>(query);
-      if (active) {
-        setError('');
-        setLoadedKey(requestKey);
-        setData(
-          refreshFailed
-            ? {
-                ...feed,
-                unavailable: feed.unavailable || 1,
-                notice:
-                  'News could not refresh. Showing saved headlines where available.',
-              }
-            : feed,
-        );
-      }
-    })().catch((e) => {
+    void readThenRefresh({
+      read: () => api<BriefData>(query),
+      refresh: () =>
+        kind === 'news'
+          ? api('holder-news', { symbol })
+          : api('editorial/initialize', {}),
+      publish: (feed) => {
+        if (active) {
+          setError('');
+          setLoadedKey(displayKey);
+          setData(feed);
+        }
+      },
+      refreshError: () => {
+        if (active)
+          setData((feed) =>
+            feed
+              ? {
+                  ...feed,
+                  notice: 'Could not update. Showing saved headlines.',
+                }
+              : feed,
+          );
+      },
+    }).catch((e) => {
       if (active) {
         setError(e.message);
-        setData(null);
-        setLoadedKey(requestKey);
+        setLoadedKey(displayKey);
       }
     });
     return () => {
       active = false;
     };
-  }, [query, kind, symbol, requestKey, today]);
+  }, [query, kind, symbol, requestKey, displayKey]);
   return (
     <div className="holder-brief">
       <div className="brief-toolbar">

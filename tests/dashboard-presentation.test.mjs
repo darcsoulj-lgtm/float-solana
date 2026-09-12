@@ -20,7 +20,15 @@ async function component(file, overrides) {
   });
   const module = { exports: {} };
   new Function('require', 'module', 'exports', outputText)(
-    (id) => overrides[id] ?? require(id),
+    (id) =>
+      overrides[id] ??
+      (id === '@/lib/client-loading'
+        ? {
+            readThenRefresh: () => {
+              throw Error('Unexpected effect in static render test');
+            },
+          }
+        : require(id)),
     module,
     module.exports,
   );
@@ -454,6 +462,9 @@ async function marketFixture() {
       issuerName: (id) => id,
     },
     '@/lib/market-data': {},
+    '@/hooks/use-market-overview': {
+      useMarketOverview: () => ({ data: null, busy: false, error: '' }),
+    },
     './ui/button': { Button: Wrap },
     './portfolio-summary': {
       PortfolioSummary: () =>
@@ -520,7 +531,7 @@ test('one market table filters to owned tokens without removing market-wide metr
 
 test('News keeps its agenda visible when the headline request fails', async () => {
   let index = 0;
-  const key = 'holder-news?symbol=MU&offset=0&retry=0&holdings=MU';
+  const key = 'holder-news?symbol=MU&offset=0&holdings=MU';
   const states = [
     null,
     'Headline request failed',

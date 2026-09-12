@@ -13,6 +13,7 @@ export type SourceResult<T> = {
   stale: boolean;
   error: string | null;
   asOf?: Record<string, number>;
+  refreshing?: boolean;
 };
 export type Listing = {
   symbol: string;

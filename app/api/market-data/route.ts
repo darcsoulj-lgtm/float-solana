@@ -13,7 +13,8 @@ import {
   parseBook,
   publicJson,
 } from '@/lib/market-data';
-import { cachedMarket } from '@/lib/market-cache';
+import { marketSnapshot } from '@/lib/market-cache';
+import { waitUntil } from 'cloudflare:workers';
 import { fetchSupplies } from '@/lib/token-supply';
 export const dynamic = 'force-dynamic';
 const json = (data: unknown, status = 200) =>
@@ -26,9 +27,13 @@ const json = (data: unknown, status = 200) =>
     },
   });
 export async function GET(req: Request) {
+  const started = performance.now();
   try {
     const member = await communityMember(req);
     await rateLimit('market-data:' + member!.id, 120);
+    const database = db();
+    const snapshot = <T>(key: string, ttl: number, loader: () => Promise<T>) =>
+      marketSnapshot(database, key, ttl, loader, waitUntil);
     const symbol = new URL(req.url).searchParams.get('symbol');
     if (symbol && !TOKENS.some((t) => t.symbol === symbol))
       throw new AppError('Unsupported stock.');
@@ -49,8 +54,7 @@ export async function GET(req: Request) {
     if (poolSymbol) {
       const token = TOKENS.find((t) => t.symbol === poolSymbol);
       if (!token) throw new AppError('Unsupported stock.');
-      const pools = await cachedMarket(
-        db(),
+      const pools = await snapshot(
         'token-pairs-v1:' + token.mint,
         MARKET_REFRESH_MS,
         () => fetchTokenPools(token),
@@ -65,8 +69,7 @@ export async function GET(req: Request) {
     const catalog =
       batch > 0 && !symbol
         ? { data: [], fetchedAt: null, stale: false, error: null }
-        : await cachedMarket(
-            db(),
+        : await snapshot(
             'backpack-catalog-v1:' + TOKEN_REVIEW_DATE,
             300000,
             () => fetchCatalog(),
@@ -81,7 +84,7 @@ export async function GET(req: Request) {
             : 'No Backpack spot order book is listed for this token. RFQ trading may still be available.',
         });
       const market = listing.spot;
-      const book = await cachedMarket(db(), 'book:' + market, 30000, async () =>
+      const book = await snapshot('book:' + market, 30000, async () =>
         parseBook(
           await publicJson(
             'https://api.backpack.exchange/api/v1/depth?symbol=' +
@@ -93,14 +96,12 @@ export async function GET(req: Request) {
       return json({ book, reason: null });
     }
     const [pools, prices, markets, supplies, history] = await Promise.all([
-      cachedMarket(
-        db(),
+      snapshot(
         'dex-pools-v4:' + TOKEN_REVIEW_DATE + ':' + batch,
         MARKET_REFRESH_MS,
         () => fetchPools(fetch, tokens),
       ),
-      cachedMarket(
-        db(),
+      snapshot(
         'llama-prices-v3:' + TOKEN_REVIEW_DATE + ':' + batch,
         MARKET_REFRESH_MS,
         () => fetchPrices(fetch, tokens),
@@ -112,23 +113,21 @@ export async function GET(req: Request) {
             stale: false,
             error: null,
           })
-        : cachedMarket(db(), 'cmc-tokens-v2', CMC_REFRESH_MS, () =>
+        : snapshot('cmc-tokens-v2', CMC_REFRESH_MS, () =>
             fetchTokenMarkets(runtime().CMC_API_KEY),
           ),
-      cachedMarket(
-        db(),
+      snapshot(
         'solana-supplies-v4:' + TOKEN_REVIEW_DATE + ':' + batch,
         MARKET_REFRESH_MS,
         () => fetchSupplies(runtime().SOLANA_RPC_URL, fetch, tokens),
       ),
-      cachedMarket(
-        db(),
+      snapshot(
         'llama-history-v1:' + TOKEN_REVIEW_DATE + ':' + batch,
         MARKET_REFRESH_MS,
         () => fetchHistoricalPrices(fetch, tokens),
       ),
     ]);
-    return json({
+    const response = json({
       catalog,
       pools,
       prices,
@@ -138,6 +137,11 @@ export async function GET(req: Request) {
       batch,
       totalBatches: Math.ceil(TOKENS.length / MARKET_BATCH_SIZE),
     });
+    response.headers.set(
+      'Server-Timing',
+      `market_snapshot;dur=${(performance.now() - started).toFixed(1)}`,
+    );
+    return response;
   } catch (e) {
     if (e instanceof AppError) return json({ error: e.message }, e.status);
     console.error(

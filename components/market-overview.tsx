@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ArrowUpRight,
   RefreshCw,
@@ -9,19 +9,9 @@ import {
   Check,
 } from 'lucide-react';
 import { api } from '@/lib/client';
-import {
-  TOKENS,
-  issuerName,
-  MARKET_BATCH_SIZE,
-  type IssuerId,
-} from '@/lib/tokens';
-import {
-  mergeMarketPages,
-  type MarketOverview,
-  type Book,
-  type Pool,
-  type SourceResult,
-} from '@/lib/market-data';
+import { useMarketOverview } from '@/hooks/use-market-overview';
+import { TOKENS, issuerName, type IssuerId } from '@/lib/tokens';
+import { type Book, type Pool, type SourceResult } from '@/lib/market-data';
 import { Button } from './ui/button';
 import { PortfolioSummary } from './portfolio-summary';
 import type { Holding } from '@/lib/community-types';
@@ -60,11 +50,9 @@ export function MarketOverviewPanel({
     [issuer, setIssuer] = useState<IssuerId | 'all'>('all'),
     [page, setPage] = useState(0);
   const [selection, setSelected] = useState(holdings[0] || 'MU'),
-    [data, setData] = useState<MarketOverview | null>(null),
-    [error, setError] = useState(''),
-    [busy, setBusy] = useState(false),
     [refresh, setRefresh] = useState(0),
     [copied, setCopied] = useState(false);
+  const { data, error, busy } = useMarketOverview(holdings, refresh);
   const [bookData, setBook] = useState<SourceResult<Book> | null>(null),
     [bookMessage, setBookReason] = useState('Loading order book…'),
     [bookSymbol, setBookSymbol] = useState(''),
@@ -92,86 +80,6 @@ export function MarketOverviewPanel({
     const timer = setInterval(() => setNow(Date.now()), 10000);
     return () => clearInterval(timer);
   }, []);
-  const sequence = useRef(0);
-  const holdingsKey = holdings.join('|');
-  useEffect(() => {
-    let active = true;
-    let loading = false;
-    async function load() {
-      if (loading) return;
-      const n = ++sequence.current;
-      loading = true;
-      setBusy(true);
-      try {
-        const pages: MarketOverview[] = [];
-        // Load wallet-relevant chunks first; table filters never narrow aggregate coverage.
-        const ownedBatches = new Set(
-          holdingsKey
-            .split('|')
-            .map((symbol) =>
-              Math.floor(
-                TOKENS.findIndex((t) => t.symbol === symbol) /
-                  MARKET_BATCH_SIZE,
-              ),
-            ),
-        );
-        const batches = Array.from(
-          { length: Math.ceil(TOKENS.length / MARKET_BATCH_SIZE) },
-          (_, i) => i,
-        ).sort(
-          (a, b) =>
-            Number(ownedBatches.has(b)) - Number(ownedBatches.has(a)) || a - b,
-        );
-        const count = batches.length;
-        let cursor = 0,
-          failures = 0;
-        async function worker() {
-          while (active && cursor < count) {
-            const batch = batches[cursor++];
-            try {
-              const next = await api<MarketOverview>(
-                'market-data?batch=' + batch,
-              );
-              pages[batch] = next;
-              if (active && n === sequence.current)
-                setData(mergeMarketPages(pages.filter(Boolean)));
-            } catch {
-              failures++;
-            }
-          }
-        }
-        await Promise.all([worker(), worker()]);
-        if (active && n === sequence.current)
-          setError(
-            failures
-              ? 'Some market data is unavailable. Coverage will update automatically.'
-              : '',
-          );
-      } catch (e) {
-        if (active && n === sequence.current) setError((e as Error).message);
-      } finally {
-        loading = false;
-        if (active && n === sequence.current) setBusy(false);
-      }
-    }
-    void load();
-    const interval = setInterval(() => {
-      if (document.visibilityState === 'visible') void load();
-    }, 30000);
-    const visible = () => {
-      if (document.visibilityState === 'visible') void load();
-    };
-    document.addEventListener('visibilitychange', visible);
-    window.addEventListener('focus', visible);
-    window.addEventListener('online', visible);
-    return () => {
-      active = false;
-      clearInterval(interval);
-      document.removeEventListener('visibilitychange', visible);
-      window.removeEventListener('focus', visible);
-      window.removeEventListener('online', visible);
-    };
-  }, [refresh, holdingsKey]);
   useEffect(() => {
     let active = true;
     const load = async () => {

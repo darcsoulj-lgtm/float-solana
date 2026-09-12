@@ -78,7 +78,7 @@ async function handle(req: Request) {
               (other) => headlineKeys(other)[0] === headlineKeys(s)[0],
             ) === i,
         )
-        .slice(0, 6);
+        .slice(0, 3);
       for (let i = 0; i < due.length; i += 3)
         await Promise.all(
           due.slice(i, i + 3).map((s) => refreshHeadlineSources(database, s)),

@@ -1,3 +1,4 @@
+import { communityHome } from '@/lib/community-home';
 import { updateHolderTier } from '@/lib/holder-tier-server';
 import { refreshHoldings } from '@/lib/holdings-refresh';
 import { getChatGPTUser } from '@/app/chatgpt-auth';
@@ -22,7 +23,6 @@ import {
   type CommunityThread,
   type CommunityReply,
   type CommunityReport,
-  type CommunityRoom,
 } from '@/lib/community-types';
 import {
   authorColumns,
@@ -45,32 +45,6 @@ function json(data: unknown, status = 200, cookie?: string) {
       ...(cookie ? { 'Set-Cookie': cookie } : {}),
     },
   });
-}
-
-async function listRooms(): Promise<CommunityRoom[]> {
-  const custom = (
-    await db()
-      .prepare(
-        'SELECT r.id,r.name,r.description,(SELECT count(*) FROM community_threads WHERE topic=r.id AND hidden=0) thread_count FROM community_rooms r ORDER BY r.created_at DESC',
-      )
-      .all<CommunityRoom>()
-  ).results;
-  const legacy = (
-    await db()
-      .prepare(
-        'SELECT topic,count(*) thread_count FROM community_threads WHERE hidden=0 AND topic NOT IN (SELECT id FROM community_rooms) GROUP BY topic',
-      )
-      .all<{ topic: string; thread_count: number }>()
-  ).results;
-  return [
-    ...custom,
-    ...legacy.map((r) => ({
-      id: r.topic,
-      name: TOPICS.find((t) => t.id === r.topic)?.label || r.topic,
-      description: 'Community discussions',
-      thread_count: r.thread_count,
-    })),
-  ];
 }
 
 async function handler(req: Request) {
@@ -139,18 +113,24 @@ async function handler(req: Request) {
       return json({ ok: true });
     }
     if (path[0] === 'status' && !post) {
-      const member = await communityMember(req, false),
-        user = await getChatGPTUser();
-      let admin = false;
-      if (user) admin = (await actor()).admin;
-      const counts = await db().batch<{ count: number }>([
-        db().prepare(
-          'SELECT count(*) count FROM community_members WHERE suspended=0',
-        ),
-        db().prepare(
-          'SELECT count(*) count FROM community_threads WHERE hidden=0',
-        ),
+      const [member, user, counts] = await Promise.all([
+        communityMember(req, false),
+        getChatGPTUser(),
+        db().batch<{ count: number }>([
+          db().prepare(
+            'SELECT count(*) count FROM community_members WHERE suspended=0',
+          ),
+          db().prepare(
+            'SELECT count(*) count FROM community_threads WHERE hidden=0',
+          ),
+        ]),
       ]);
+      const admins = (runtime().ADMIN_EMAILS || '')
+        .toLowerCase()
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const admin = !!user && admins.includes(user.email.toLowerCase());
       return json({
         member,
         admin,
@@ -515,76 +495,13 @@ async function handler(req: Request) {
       return json({ id }, 201);
     }
     if (path[0] === 'home' && !post) {
-      // Reviewed source directories, not generated headlines or member activity.
-      const sources = [
-        [
-          'micron-ir',
-          'MU',
-          'Earnings, filings & investor updates',
-          'Micron',
-          'https://investors.micron.com/overview/default.aspx',
-        ],
-        [
-          'skhynix-news',
-          'SKHY',
-          'Inside the memory industry',
-          'SK hynix Newsroom',
-          'https://news.skhynix.com/en/',
-        ],
-        [
-          'nvidia-ir',
-          'NVDA',
-          'Results & company announcements',
-          'NVIDIA',
-          'https://investor.nvidia.com/home/default.aspx',
-        ],
-      ];
-      await db().batch(
-        sources.map((source) =>
-          db()
-            .prepare(
-              'INSERT OR IGNORE INTO community_sources (id,symbol,title,publisher,url,created_at) VALUES (?,?,?,?,?,?)',
-            )
-            .bind(...source, 1788994800000),
+      return json(
+        await communityHome(
+          db(),
+          member.id,
+          await digest(communityCookie(req)!),
         ),
       );
-      const result = await db().batch([
-        db()
-          .prepare(
-            'SELECT symbol,verified_at,slot,raw_amount,decimals,ui_amount FROM community_holdings WHERE member_id=? ORDER BY symbol',
-          )
-          .bind(member.id),
-        db()
-          .prepare(
-            'SELECT symbol FROM community_follows WHERE member_id=? ORDER BY symbol',
-          )
-          .bind(member.id),
-        db()
-          .prepare(
-            "SELECT s.*,EXISTS(SELECT 1 FROM community_bookmarks b WHERE b.member_id=? AND b.target_type='source' AND b.target_id=s.id) saved FROM community_sources s WHERE s.active=1 ORDER BY s.created_at DESC,s.id LIMIT 100",
-          )
-          .bind(member.id),
-        db()
-          .prepare(
-            'SELECT n.id,n.thread_id,n.read,n.created_at,t.title,m.alias FROM community_notifications n JOIN community_threads t ON t.id=n.thread_id JOIN community_replies r ON r.id=n.reply_id JOIN community_members m ON m.id=r.member_id WHERE n.member_id=? AND t.hidden=0 AND r.hidden=0 ORDER BY n.created_at DESC LIMIT 30',
-          )
-          .bind(member.id),
-      ]);
-      return json({
-        holdingsRefreshAvailable: !!(await db()
-          .prepare(
-            'SELECT 1 FROM community_sessions WHERE hash=? AND wallet IS NOT NULL',
-          )
-          .bind(await digest(communityCookie(req)!))
-          .first()),
-        rooms: await listRooms(),
-        holdings: result[0].results,
-        follows: (result[1].results as { symbol: string }[]).map(
-          (r) => r.symbol,
-        ),
-        sources: result[2].results,
-        notifications: result[3].results,
-      });
     }
     if (path[0] === 'follow' && post) {
       if (

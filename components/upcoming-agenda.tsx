@@ -7,6 +7,7 @@ import {
   ChevronUp,
 } from 'lucide-react';
 import { api } from '@/lib/client';
+import { readThenRefresh } from '@/lib/client-loading';
 import {
   eventLabel,
   type BriefData,
@@ -76,13 +77,16 @@ export function UpcomingAgenda({
   const current = result?.key === key ? result : null;
   useEffect(() => {
     let active = true;
-    (async () => {
-      await api('editorial/initialize', {}).catch(() => null);
-      const data = await api<BriefData>(
-        `editorial/brief?kind=event&scope=personal&symbol=${encodeURIComponent(symbol)}&today=${today}&offset=${page * 20}`,
-      );
-      if (active) setResult({ key, data, error: '' });
-    })().catch(() => {
+    void readThenRefresh({
+      refresh: () => api('editorial/initialize', {}),
+      read: () =>
+        api<BriefData>(
+          `editorial/brief?kind=event&scope=personal&symbol=${encodeURIComponent(symbol)}&today=${today}&offset=${page * 20}`,
+        ),
+      publish: (data) => {
+        if (active) setResult({ key, data, error: '' });
+      },
+    }).catch(() => {
       if (active) setResult({ key, data: null, error: 'Events unavailable.' });
     });
     return () => {
