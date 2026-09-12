@@ -11,12 +11,15 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 const live = process.argv.includes('--live');
 const { outputFiles } = await build({
   stdin: {
-    contents: `import { fetchHeadlines } from './lib/holder-news';
-      export default { async fetch(request) {
+    contents: `import { refreshHeadlineSources, headlineKeys, cachedHeadlines } from './lib/headline-cache';
+      export default { async fetch(request, env) {
         const symbol = new URL(request.url).searchParams.get('symbol');
         try {
-          const items = await fetchHeadlines(symbol);
-          return Response.json({ symbol, count: items.length, newest: items[0]?.published_at });
+          await env.DB.exec('CREATE TABLE IF NOT EXISTS market_cache (key TEXT PRIMARY KEY,payload TEXT,fetched_at INTEGER NOT NULL DEFAULT 0,retry_after INTEGER NOT NULL DEFAULT 0)');
+          await refreshHeadlineSources(env.DB, symbol);
+          const rows = await env.DB.prepare('SELECT * FROM market_cache WHERE key=?').bind(headlineKeys(symbol)[0]).first();
+          const items = cachedHeadlines(rows) || [];
+          return Response.json({ symbol, count: items.length, newest: items[0]?.published_at, title:items[0]?.title, publisher:items[0]?.publisher, url:items[0]?.url });
         } catch (error) {
           return Response.json({ error: error.message }, { status: 502 });
         }
@@ -31,6 +34,7 @@ const { outputFiles } = await build({
 });
 const worker = new Miniflare({
   modules: true,
+  d1Databases: { DB: 'news-runtime-test' },
   script: outputFiles[0].text,
   compatibilityDate: '2026-05-15',
   ...(live
@@ -38,13 +42,13 @@ const worker = new Miniflare({
     : {
         outboundService: async (request) => {
           const u = new URL(request.url);
-          assert.equal(u.hostname, 'feeds.finance.yahoo.com');
-          const company = { MU: 'Micron', SKHY: 'SK Hynix', SPCX: 'SpaceX' }[
-            u.searchParams.get('s')
-          ];
+          assert.equal(u.hostname, 'news.google.com');
+          const company = ['Micron', 'SK Hynix', 'SpaceX'].find((name) =>
+            u.searchParams.get('q')?.includes(name),
+          );
           assert.ok(company);
           return new Response(
-            `<rss><item><title>${company} runtime test fixture</title><pubDate>${new Date(Date.now() - 1000).toUTCString()}</pubDate><link>https://example.com/test-headline</link></item></rss>`,
+            `<rss><item><title>${company} runtime test fixture</title><pubDate>${new Date(Date.now() - 1000).toUTCString()}</pubDate><link>https://news.google.com/rss/articles/test-headline</link><source url="https://example.com">Test publisher</source></item></rss>`,
           );
         },
       }),

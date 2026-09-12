@@ -1,16 +1,17 @@
 import { communityMember } from '@/lib/community-server';
 import { db, rateLimit } from '@/lib/server';
-import { cachedMarket } from '@/lib/market-cache';
 import {
-  NEWS_WINDOW_MS,
-  HEADLINE_REFRESH_MS,
-  fetchHeadlines,
-  type Headline,
-} from '@/lib/holder-news';
+  headlineIdentity,
+  headlineKeys,
+  cachedHeadlines,
+  headlineStatus,
+  headlinesDue,
+  refreshHeadlineSources,
+} from '@/lib/headline-cache';
+import { NEWS_WINDOW_MS } from '@/lib/holder-news';
 import { editorialColumns, editorialRow } from '@/lib/editorial-server';
 import { AppError } from '@/lib/validation';
 const headers = { 'Cache-Control': 'private, no-store', Vary: 'Cookie' };
-const prefix = 'headlines-v2:';
 async function handle(req: Request) {
   try {
     const member = await communityMember(req);
@@ -45,7 +46,7 @@ async function handle(req: Request) {
         { items: [], hasMore: false, lastReviewed: null },
         { headers },
       );
-    const keys = symbols.map((s) => prefix + s);
+    const keys = [...new Set(symbols.flatMap(headlineKeys))];
     const cached = await database
       .prepare(
         `SELECT key,payload,fetched_at,retry_after FROM market_cache WHERE key IN (SELECT value FROM json_each(?))`,
@@ -60,35 +61,34 @@ async function handle(req: Request) {
     const byKey = new Map(cached.results.map((r) => [r.key, r]));
     if (req.method === 'POST') {
       const due = symbols
-        .filter((s) => {
-          const c = byKey.get(prefix + s);
-          return (
-            (!c || now - c.fetched_at >= HEADLINE_REFRESH_MS) &&
-            (!c || c.retry_after <= now)
-          );
-        })
+        .filter((s) =>
+          headlinesDue(
+            headlineKeys(s).map((k) => byKey.get(k)),
+            now,
+          ),
+        )
         .sort(
           (a, b) =>
-            (byKey.get(prefix + a)?.fetched_at || 0) -
-            (byKey.get(prefix + b)?.fetched_at || 0),
+            (byKey.get(headlineKeys(a)[0])?.fetched_at || 0) -
+            (byKey.get(headlineKeys(b)[0])?.fetched_at || 0),
+        )
+        .filter(
+          (s, i, all) =>
+            all.findIndex(
+              (other) => headlineKeys(other)[0] === headlineKeys(s)[0],
+            ) === i,
         )
         .slice(0, 6);
       for (let i = 0; i < due.length; i += 3)
         await Promise.all(
-          due
-            .slice(i, i + 3)
-            .map((s) =>
-              cachedMarket(database, prefix + s, HEADLINE_REFRESH_MS, () =>
-                fetchHeadlines(s),
-              ),
-            ),
+          due.slice(i, i + 3).map((s) => refreshHeadlineSources(database, s)),
         );
-      // Rolling public headline cache only. Curated stories and discussion links are retained.
+      // Never delete recent cached headlines because an upstream request failed.
       await database
         .prepare(
-          'DELETE FROM market_cache WHERE key LIKE ? AND fetched_at<? AND retry_after<?',
+          "DELETE FROM market_cache WHERE (key LIKE 'headlines-v2:%' OR key LIKE 'headlines-google-v1:%') AND fetched_at<? AND retry_after<?",
         )
-        .bind(prefix + '%', now - NEWS_WINDOW_MS, now)
+        .bind(now - NEWS_WINDOW_MS, now)
         .run();
       return Response.json({ ok: true }, { headers });
     }
@@ -100,20 +100,21 @@ async function handle(req: Request) {
       unavailable = 0,
       pending = 0;
     for (const s of symbols) {
-      const c = byKey.get(prefix + s);
-      if (!c || !c.payload) {
-        unavailable++;
-        if (!c) pending++;
-        continue;
-      }
-      if (now - c.fetched_at >= HEADLINE_REFRESH_MS) unavailable++;
-      last = Math.max(last, c.fetched_at);
-      try {
-        for (const n of JSON.parse(c.payload) as Headline[]) {
+      const rows = headlineKeys(s).map((k) => byKey.get(k));
+      const status = headlineStatus(rows, now);
+      unavailable += Number(status.unavailable);
+      pending += Number(status.pending);
+      for (const c of rows) {
+        const headlines = cachedHeadlines(c);
+        if (!headlines) continue;
+        last = Math.max(last, c!.fetched_at);
+        for (const n of headlines) {
           if (n.published_at < now - NEWS_WINDOW_MS || n.published_at > now)
             continue;
-          const old = map.get(n.url);
-          map.set(n.url, {
+          // The same publisher/title may arrive via a Google redirect and Yahoo URL.
+          const identity = headlineIdentity(n);
+          const old = map.get(identity);
+          map.set(identity, {
             ...n,
             summary: '',
             kind: 'news',
@@ -125,8 +126,6 @@ async function handle(req: Request) {
             symbols: [...new Set([...((old?.symbols as string[]) || []), s])],
           });
         }
-      } catch {
-        unavailable++;
       }
     }
     const curated = await database
@@ -137,7 +136,7 @@ async function handle(req: Request) {
       .all<Record<string, unknown>>();
     for (const row of curated.results) {
       const n = editorialRow(row);
-      map.set(n.url, n as unknown as Record<string, unknown>);
+      map.set(headlineIdentity(n), n as unknown as Record<string, unknown>);
     }
     const items = [...map.values()].sort(
       (a, b) =>
@@ -153,7 +152,7 @@ async function handle(req: Request) {
         unavailable,
         notice: unavailable
           ? `Coverage is updating or unavailable for ${unavailable} holding${unavailable === 1 ? '' : 's'}.`
-          : 'Company-matched headlines via Yahoo Finance RSS. Publisher updates may be delayed.',
+          : 'Headlines via Google News and Yahoo Finance. Updated every 15 minutes while in use.',
       },
       { headers },
     );

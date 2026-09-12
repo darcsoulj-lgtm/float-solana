@@ -15,6 +15,8 @@ for (const file of [
   'token-observation',
   'holder-tier',
   'holder-tier-server',
+  'holder-news',
+  'headline-cache',
 ]) {
   const raw = await readFile(
     new URL('../lib/' + file + '.ts', import.meta.url),
@@ -28,7 +30,7 @@ for (const file of [
       },
     })
     .outputText.replace(
-      /from '\.\/(tokens|market-data|market-cache|cmc-data|token-supply|token-observation|holder-tier)'/g,
+      /from '\.\/(tokens|market-data|market-cache|cmc-data|token-supply|token-observation|holder-tier|holder-news)'/g,
       "from './$1.mjs'",
     );
   await writeFile(dir + '/' + file + '.mjs', out);
@@ -1184,4 +1186,241 @@ test('public author queries reveal tiers only with opt-in, fresh verification an
   );
   assert.equal(get().value_tier, null);
   db.close();
+});
+
+const headlines = await import(pathToFileURL(dir + '/headline-cache.mjs'));
+function newsDatabase() {
+  const sql = new DatabaseSync(':memory:');
+  sql.exec(
+    'CREATE TABLE market_cache (key TEXT PRIMARY KEY,payload TEXT,fetched_at INTEGER NOT NULL DEFAULT 0,retry_after INTEGER NOT NULL DEFAULT 0)',
+  );
+  const db = {
+    prepare(query) {
+      return {
+        bind(...args) {
+          return {
+            async first() {
+              return sql.prepare(query).get(...args) || null;
+            },
+            async all() {
+              return { results: sql.prepare(query).all(...args) };
+            },
+            async run() {
+              return sql.prepare(query).run(...args);
+            },
+          };
+        },
+      };
+    },
+  };
+  return {
+    sql,
+    db,
+    row: (key) =>
+      sql.prepare('SELECT * FROM market_cache WHERE key=?').get(key),
+  };
+}
+function newsXml(provider, title = 'Micron latest headline') {
+  const link =
+    provider === 'google'
+      ? 'https://news.google.com/rss/articles/test-story'
+      : 'https://finance.yahoo.com/news/micron-story';
+  return `<rss><item><title>${title}${provider === 'google' ? ' - Reuters' : ''}</title><pubDate>${new Date(Date.now() - 10000).toUTCString()}</pubDate><link>${link}</link>${provider === 'google' ? '<source url="https://reuters.com">Reuters</source>' : ''}</item></rss>`;
+}
+test('Google recovers headlines despite Yahoo cooldown, then shares the successful cache', async () => {
+  const f = newsDatabase(),
+    keys = headlines.headlineKeys('MU');
+  let calls = [];
+  f.sql
+    .prepare('INSERT INTO market_cache VALUES (?,NULL,0,?)')
+    .run(keys[1], Date.now() + 600000);
+  const fetcher = async (url) => {
+    calls.push(new URL(url).hostname);
+    return new Response(newsXml('google'));
+  };
+  await headlines.refreshHeadlineSources(f.db, 'MU', fetcher);
+  assert.deepEqual(calls, ['news.google.com']);
+  assert.equal(
+    headlines.cachedHeadlines(f.row(keys[0]))[0].publisher,
+    'Reuters',
+  );
+  assert.equal(headlines.headlineStatus(keys.map(f.row)).unavailable, false);
+  await headlines.refreshHeadlineSources(f.db, 'MU', fetcher);
+  assert.equal(calls.length, 1);
+  assert.equal(headlines.headlinesDue(keys.map(f.row)), false);
+  f.sql.close();
+});
+test('Yahoo fallback works when Google fails and both provider Retry-After windows are honored', async () => {
+  const f = newsDatabase(),
+    keys = headlines.headlineKeys('MU');
+  let calls = [];
+  await headlines.refreshHeadlineSources(f.db, 'MU', async (url) => {
+    const host = new URL(url).hostname;
+    calls.push(host);
+    return host === 'news.google.com'
+      ? new Response(null, { status: 429, headers: { 'Retry-After': '600' } })
+      : new Response(newsXml('yahoo'));
+  });
+  assert.deepEqual(calls, ['news.google.com', 'feeds.finance.yahoo.com']);
+  assert.equal(headlines.cachedHeadlines(f.row(keys[1])).length, 1);
+  assert.equal(headlines.headlineStatus(keys.map(f.row)).unavailable, false);
+  assert.ok(f.row(keys[0]).retry_after >= Date.now() + 590000);
+  await headlines.refreshHeadlineSources(f.db, 'MU', async () => {
+    throw Error('Must respect cooldown and fresh cache');
+  });
+  assert.equal(headlines.cachedHeadlines(f.row(keys[1])).length, 1);
+  f.sql.close();
+});
+test('both-provider failure retains cached headlines and reports unavailable rather than empty success', async () => {
+  const f = newsDatabase(),
+    keys = headlines.headlineKeys('MU');
+  const old = [
+    {
+      id: 'old',
+      title: 'Micron saved headline',
+      publisher: 'Reuters',
+      url: 'https://reuters.com/saved',
+      published_at: Date.now() - 3600000,
+      symbols: ['MU'],
+    },
+  ];
+  f.sql
+    .prepare('INSERT INTO market_cache VALUES (?,?,?,0)')
+    .run(keys[0], JSON.stringify(old), Date.now() - 3600000);
+  let calls = 0;
+  await headlines.refreshHeadlineSources(f.db, 'MU', async () => {
+    calls++;
+    return new Response(null, {
+      status: 429,
+      headers: { 'Retry-After': '600' },
+    });
+  });
+  assert.equal(calls, 2);
+  assert.deepEqual(headlines.cachedHeadlines(f.row(keys[0])), old);
+  assert.equal(headlines.headlineStatus(keys.map(f.row)).unavailable, true);
+  assert.equal(headlines.headlinesDue(keys.map(f.row)), false);
+  f.sql.close();
+});
+test('shorter successful feeds retain seven-day history, and invalid caches never report healthy', async () => {
+  const f = newsDatabase(),
+    keys = headlines.headlineKeys('MU');
+  const old = [
+    {
+      id: 'old',
+      title: 'Micron saved headline',
+      publisher: 'Reuters',
+      url: 'https://reuters.com/saved',
+      published_at: Date.now() - 3600000,
+      symbols: ['MU'],
+    },
+  ];
+  f.sql
+    .prepare('INSERT INTO market_cache VALUES (?,?,?,0)')
+    .run(keys[0], JSON.stringify(old), Date.now() - 3600000);
+  await headlines.refreshHeadlineSources(
+    f.db,
+    'MU',
+    async () => new Response(newsXml('google')),
+  );
+  assert.equal(headlines.cachedHeadlines(f.row(keys[0])).length, 2);
+  assert.equal(
+    headlines.headlineStatus([{ payload: '{}', fetched_at: Date.now() }])
+      .unavailable,
+    true,
+  );
+  assert.notEqual(
+    headlines.headlineIdentity({ publisher: 'Source', title: '삼성 발표' }),
+    headlines.headlineIdentity({ publisher: 'Source', title: '미국 발표' }),
+  );
+  f.sql.close();
+});
+
+test('holder news route returns cached MU and SPCX stories with pagination and holdings isolation', async () => {
+  const f = newsDatabase();
+  f.sql.exec(
+    "CREATE TABLE community_holdings(member_id TEXT,symbol TEXT); INSERT INTO community_holdings VALUES('owner','MU'),('owner','SPCX'),('other','SKHY')",
+  );
+  const now = Date.now();
+  for (const symbol of ['MU', 'SPCX', 'SKHY']) {
+    const items = Array.from({ length: 25 }, (_, i) => ({
+      id: symbol + i,
+      title: symbol + ' headline ' + i,
+      publisher: 'Reuters',
+      url: 'https://news.google.com/rss/articles/' + symbol + i,
+      published_at: now - 1000 - i,
+      symbols: [symbol],
+    }));
+    f.sql
+      .prepare('INSERT INTO market_cache VALUES(?,?,?,?)')
+      .run(headlines.headlineKeys(symbol)[0], JSON.stringify(items), now, 0);
+    f.sql
+      .prepare('INSERT INTO market_cache VALUES(?,?,?,?)')
+      .run(headlines.headlineKeys(symbol)[1], null, 0, now + 600000);
+  }
+  class AppError extends Error {
+    constructor(message, status = 400) {
+      super(message);
+      this.status = status;
+    }
+  }
+  let signedIn = true;
+  const deps = {
+    '@/lib/community-server': {
+      communityMember: async () => {
+        if (!signedIn) throw new AppError('Sign in', 401);
+        return { id: 'owner' };
+      },
+    },
+    '@/lib/server': {
+      db: () => ({
+        prepare: (query) =>
+          query.includes('FROM editorial_items')
+            ? { bind: () => ({ all: async () => ({ results: [] }) }) }
+            : f.db.prepare(query),
+      }),
+      rateLimit: async () => {},
+    },
+    '@/lib/headline-cache': headlines,
+    '@/lib/holder-news': { NEWS_WINDOW_MS: 7 * 86400000 },
+    '@/lib/editorial-server': { editorialColumns: '*', editorialRow: (x) => x },
+    '@/lib/validation': { AppError },
+  };
+  const raw = await readFile(
+    new URL('../app/api/holder-news/route.ts', import.meta.url),
+    'utf8',
+  );
+  const output = ts.transpileModule(raw, {
+    compilerOptions: {
+      target: ts.ScriptTarget.ES2022,
+      module: ts.ModuleKind.CommonJS,
+    },
+  }).outputText;
+  const module = { exports: {} };
+  new Function('require', 'module', 'exports', output)(
+    (id) => {
+      assert.ok(id in deps, id);
+      return deps[id];
+    },
+    module,
+    module.exports,
+  );
+  const get = (query) =>
+    module.exports.GET(
+      new Request('https://test.local/api/holder-news' + query),
+    );
+  const first = await (await get('')).json();
+  assert.equal(first.items.length, 20);
+  assert.equal(first.hasMore, true);
+  assert.equal(first.unavailable, 0);
+  assert.ok(first.items.every((n) => !n.symbols.includes('SKHY')));
+  const spcx = await (await get('?symbol=SPCX')).json();
+  assert.ok(spcx.items.every((n) => n.symbols.join() === 'SPCX'));
+  const page2 = await (await get('?symbol=SPCX&offset=20')).json();
+  assert.equal(page2.items.length, 5);
+  assert.equal(page2.hasMore, false);
+  assert.equal((await get('?symbol=SKHY')).status, 403);
+  assert.equal((await get('?offset=-1')).status, 400);
+  signedIn = false;
+  assert.equal((await get('')).status, 401);
+  f.sql.close();
 });

@@ -85,6 +85,7 @@ export function parseHeadlines(
   xml: string,
   symbol: string,
   now = Date.now(),
+  provider: 'yahoo' | 'google' = 'yahoo',
 ): Headline[] {
   if (
     xml.length > 1000000 ||
@@ -102,8 +103,14 @@ export function parseHeadlines(
           ),
         )?.[1] || '',
       );
-    const title = field('title'),
-      published_at = Date.parse(field('pubDate'));
+    const sourceName =
+      provider === 'google' ? field('source').slice(0, 100) : '';
+    const rawTitle = field('title');
+    const title =
+      sourceName && rawTitle.endsWith(' - ' + sourceName)
+        ? rawTitle.slice(0, -(sourceName.length + 3))
+        : rawTitle;
+    const published_at = Date.parse(field('pubDate'));
     if (
       !title ||
       title.length > 300 ||
@@ -134,7 +141,15 @@ export function parseHeadlines(
       u.hash = '';
       const url = u.href;
       const host = u.hostname.replace(/^www\./, '');
+      if (
+        provider === 'google' &&
+        (u.hostname !== 'news.google.com' ||
+          !/^\/rss\/articles\//.test(u.pathname) ||
+          !sourceName)
+      )
+        continue;
       const publisher =
+        sourceName ||
         (
           {
             'finance.yahoo.com': 'Yahoo Finance',
@@ -146,7 +161,8 @@ export function parseHeadlines(
             'barrons.com': "Barron's",
             'investors.com': "Investor's Business Daily",
           } as Record<string, string>
-        )[host] || host;
+        )[host] ||
+        host;
       result.set(url, {
         id: 'headline:' + url,
         title,
@@ -180,6 +196,33 @@ export async function fetchHeadlines(
     region: 'US',
     lang: 'en-US',
   }).toString();
+  return fetchHeadlineFeed(url, symbol, fetcher, now, 'yahoo');
+}
+export async function fetchGoogleHeadlines(
+  symbol: string,
+  fetcher: typeof fetch = fetch,
+  now = Date.now(),
+) {
+  const names = [...new Set(companyAliases(symbol))];
+  const url = new URL('https://news.google.com/rss/search');
+  url.search = new URLSearchParams({
+    q:
+      '(' +
+      names.map((n) => '"' + n.replace(/["\\]/g, '') + '"').join(' OR ') +
+      ') when:7d',
+    hl: 'en-US',
+    gl: 'US',
+    ceid: 'US:en',
+  }).toString();
+  return fetchHeadlineFeed(url, symbol, fetcher, now, 'google');
+}
+async function fetchHeadlineFeed(
+  url: URL,
+  symbol: string,
+  fetcher: typeof fetch,
+  now: number,
+  provider: 'yahoo' | 'google',
+) {
   const r = await fetcher(url, {
     signal: AbortSignal.timeout(10000),
     // Cloudflare Workers rejects redirect:'error' before issuing a request.
@@ -204,5 +247,5 @@ export async function fetchHeadlines(
     text += decoder.decode(part.value, { stream: true });
   }
   text += decoder.decode();
-  return parseHeadlines(text, symbol, now);
+  return parseHeadlines(text, symbol, now, provider);
 }

@@ -936,3 +936,27 @@ test('Mixed-issuer wallet with over 100 holdings validates every mint in bounded
   );
   assert.ok(result.every((h) => !('rawAmount' in h)));
 });
+
+const { fetchGoogleHeadlines } = await import(
+  pathToFileURL(dir + '/holder-news.mjs')
+);
+test('Google headlines use actual publisher, retain specific links, and exclude ticker collisions', async () => {
+  const now = Date.now();
+  let query = '';
+  const items = await fetchGoogleHeadlines(
+    'SPCX',
+    async (url) => {
+      query = new URL(url).searchParams.get('q');
+      return new Response(
+        `<rss><item><title>SpaceX new launch - Reuters</title><pubDate>${new Date(now - 1000).toUTCString()}</pubDate><link>https://news.google.com/rss/articles/story</link><source url="https://reuters.com">Reuters</source></item><item><title>SPCX ETF update - Reuters</title><pubDate>${new Date(now - 1000).toUTCString()}</pubDate><link>https://news.google.com/rss/articles/wrong</link><source>Reuters</source></item></rss>`,
+      );
+    },
+    now,
+  );
+  assert.match(query, /SpaceX/);
+  assert.match(query, /when:7d/);
+  assert.equal(items.length, 1);
+  assert.equal(items[0].title, 'SpaceX new launch');
+  assert.equal(items[0].publisher, 'Reuters');
+  assert.match(items[0].url, /articles\/story/);
+});

@@ -293,7 +293,7 @@ export function MemberBrief({
                   ? data.pending
                     ? 'Loading news…'
                     : data.unavailable
-                      ? 'News unavailable'
+                      ? 'News temporarily unavailable'
                       : 'No recent headlines'
                   : 'No upcoming events.'}
               </h2>
