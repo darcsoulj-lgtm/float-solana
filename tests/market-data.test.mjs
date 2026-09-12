@@ -680,6 +680,9 @@ test('Stale supply or prices never produce a current valuation; timestamped Defi
   data.supplies.fetchedAt = now - 300001;
   assert.equal(tokenObservation(data, 'TTWO', now).issuedValue, null);
   data.prices.data.TTWO.timestamp = now - 900001;
+  assert.equal(tokenObservation(data, 'TTWO', now).priceDelayed, true);
+  assert.equal(tokenObservation(data, 'TTWO', now).issuedValue, null);
+  data.prices.data.TTWO.timestamp = now - 96 * 3600000 - 1;
   assert.equal(tokenObservation(data, 'TTWO', now).price, null);
   assert.equal(issuedCoverage(null, now).total, null);
 });
@@ -1616,4 +1619,63 @@ test('coverage explains every excluded listing without overlap or zero filling',
     c.rows.length,
     c.valued.length + Object.values(c.missing).reduce((a, b) => a + b, 0),
   );
+});
+
+test('Dated references recover estimates with original timestamps, without pretending to be live', () => {
+  const now = Date.now(),
+    at = now - 3 * 3600000;
+  const data = {
+    markets: source({}, now),
+    pools: source({}, now),
+    supplies: source({ MUx: { supply: 10, valuationSafe: true } }, now),
+    prices: source(
+      { MUx: { price: 100, confidence: 0.9, timestamp: at } },
+      now,
+    ),
+    history: source(
+      { MUx: { price: 90, confidence: 1, timestamp: at - 86400000 } },
+      now,
+    ),
+  };
+  const o = tokenObservation(data, 'MUx', now);
+  assert.equal(o.issuedValue, 1000);
+  assert.equal(o.priceTime, at);
+  assert.equal(o.priceDelayed, true);
+  assert.equal(o.change24h, null);
+  data.pools.data.MUx = [{ price: 105, change24h: 2, liquidity: 10000 }];
+  const fresh = tokenObservation(data, 'MUx', now);
+  assert.equal(fresh.price, 105);
+  assert.equal(fresh.priceSource, 'DEX pool');
+  assert.equal(fresh.priceDelayed, false);
+  assert.equal(fresh.priceConflict, false);
+  delete data.pools.data.MUx;
+  data.prices.data.MUx.timestamp = now - 96 * 3600000 - 1;
+  assert.equal(tokenObservation(data, 'MUx', now).price, null);
+  data.prices.data.MUx.timestamp = now + 60001;
+  assert.equal(tokenObservation(data, 'MUx', now).price, null);
+  data.prices.data.MUx.timestamp = at;
+  data.supplies.data.MUx.adjustmentAt = at + 1000;
+  assert.equal(tokenObservation(data, 'MUx', now).issuedValue, null);
+  delete data.supplies.data.MUx.adjustmentAt;
+  data.supplies.data.MUx.valuationSafe = false;
+  assert.equal(tokenObservation(data, 'MUx', now).issuedValue, null);
+  data.prices.stale = true;
+  assert.equal(tokenObservation(data, 'MUx', now).price, null);
+});
+
+test('Dated prices cannot qualify a holder ranking even with fresh holdings and supply', () => {
+  const now = Date.now();
+  const data = {
+    markets: source({}, now),
+    pools: source({}, now),
+    supplies: source({ MU: { supply: 100, valuationSafe: true } }, now),
+    prices: source(
+      { MU: { price: 100, confidence: 1, timestamp: now - 3600000 } },
+      now,
+    ),
+  };
+  const holdings = [
+    { symbol: 'MU', raw_amount: '10000000', decimals: 6, verified_at: now },
+  ];
+  assert.equal(calculateHolderTier(holdings, data, now).tier, null);
 });

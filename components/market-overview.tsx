@@ -17,7 +17,7 @@ import { PortfolioSummary } from './portfolio-summary';
 import type { Holding } from '@/lib/community-types';
 import { MarketStockRow } from './market-stock-row';
 import { SolanaEcosystem } from './solana-ecosystem';
-import { tokenObservation } from '@/lib/token-observation';
+import { tokenObservation, issuedCoverage } from '@/lib/token-observation';
 const money = (n: number | null | undefined, compact = false) =>
   n === null || n === undefined
     ? '—'
@@ -219,7 +219,6 @@ export function MarketOverviewPanel({
       <SolanaEcosystem
         data={data}
         now={now}
-        issuer={issuer}
         onIssuer={chooseIssuer}
         select={(symbol) => {
           setOnlyHoldings(false);
@@ -235,21 +234,34 @@ export function MarketOverviewPanel({
       <fieldset className="issuer-filters" aria-label="Filter by issuer">
         <button
           type="button"
+          aria-label="All issuers"
           aria-pressed={issuer === 'all'}
           onClick={() => chooseIssuer('all')}
         >
-          All issuers
+          <span>All issuers</span>
+          <strong>{TOKENS.length.toLocaleString()} tokens</strong>
         </button>
-        {ISSUERS.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            aria-pressed={issuer === item.id}
-            onClick={() => chooseIssuer(item.id)}
-          >
-            {item.name}
-          </button>
-        ))}
+        {ISSUERS.map((item) => {
+          const c = issuedCoverage(data, now, item.id);
+          const partial = c.valued.length < c.rows.length;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              aria-label={item.name}
+              aria-describedby={`issuer-value-${item.id}`}
+              aria-pressed={issuer === item.id}
+              title={`${c.valued.length} / ${c.rows.length} tokens valued${c.datedCount ? `; ${c.datedCount} dated quotes` : ''}. Click to filter.`}
+              onClick={() => chooseIssuer(item.id)}
+            >
+              <span>{item.name}</span>
+              <strong id={`issuer-value-${item.id}`}>
+                {money(c.total, true)}
+                {partial && <small> partial</small>}
+              </strong>
+            </button>
+          );
+        })}
       </fieldset>
       <div className="market-search-row">
         <label htmlFor="market-search">
@@ -314,7 +326,14 @@ export function MarketOverviewPanel({
                       ?.scrollIntoView({ block: 'start' });
                   }}
                 >
-                  <td>{money(row.price)}</td>
+                  <td>
+                    {money(row.price)}
+                    {row.priceDelayed && (
+                      <small className="quote-age" title={time(row.priceTime)}>
+                        Last quote · {time(row.priceTime)}
+                      </small>
+                    )}
+                  </td>
                   <td
                     className={
                       (change || 0) < 0 ? 'market-negative' : 'market-positive'
@@ -339,8 +358,9 @@ export function MarketOverviewPanel({
         <details className="market-methodology">
           <summary>Table sources</summary>
           <p>
-            Prices: CoinMarketCap, then DEX pool or DefiLlama. Issued value:
-            Solana mint supply × token price.
+            Prices: CoinMarketCap, fresh DefiLlama, then DEX pool. Older
+            DefiLlama references are labeled Last quote (up to 96 hours). Issued
+            value: Solana mint supply × token price.
           </p>
         </details>
         <div>
@@ -387,6 +407,11 @@ export function MarketOverviewPanel({
             <div>
               <span>Token price</span>
               <strong>{money(observation.price)}</strong>
+              {observation.priceDelayed && (
+                <small className="quote-age">
+                  Last quote · {time(observation.priceTime)}
+                </small>
+              )}
             </div>
             <div>
               <span
@@ -536,7 +561,7 @@ export function MarketOverviewPanel({
             company value.
             {observation.priceSource === 'DEX pool' &&
               ' Pool prices may move sharply when liquidity is thin.'}
-            {observation.supply?.valuationSafe === false &&
+            {observation.valuationUnavailableReason === 'units' &&
               ' Issued value is unavailable while adjusted quote units are unconfirmed.'}
             {observation.price === null &&
               ' No recent price is available from the connected sources.'}

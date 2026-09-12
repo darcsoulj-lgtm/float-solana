@@ -46,6 +46,8 @@ export function calculateHolderTier(
     const o = tokenObservation(data, h.symbol, now);
     if (
       !o.price ||
+      o.priceDelayed ||
+      o.valuationUnavailableReason === 'units' ||
       o.priceConflict ||
       o.supply?.valuationSafe !== true ||
       o.priceSource === 'DEX pool' ||

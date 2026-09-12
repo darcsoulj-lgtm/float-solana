@@ -458,7 +458,10 @@ async function marketFixture() {
     '@/lib/client': { api: () => {} },
     '@/lib/tokens': {
       TOKENS: tokens,
-      ISSUERS: [{ id: 'backpack', name: 'Backpack' }, { id: 'ondo', name: 'Ondo' }],
+      ISSUERS: [
+        { id: 'backpack', name: 'Backpack' },
+        { id: 'ondo', name: 'Ondo' },
+      ],
       MARKET_BATCH_SIZE: 90,
       issuerName: (id) => id,
     },
@@ -485,6 +488,12 @@ async function marketFixture() {
         React.createElement('div', null, 'Market-wide totals'),
     },
     '@/lib/token-observation': {
+      issuedCoverage: () => ({
+        total: 12000,
+        valued: [{}],
+        rows: [{}, {}],
+        datedCount: 1,
+      }),
       tokenObservation: () => ({
         price: null,
         change24h: null,
@@ -572,12 +581,16 @@ test('News keeps its agenda visible when the headline request fails', async () =
   assert.match(html, /Agenda for MU/);
 });
 
-
-test('explicit issuer filters select, reset and synchronize with issuer cards', async () => {
+test('compact issuer value filters select and reset without duplicate cards', async () => {
   const f = await marketFixture();
   let tree = f.render();
-  const filters = () => findElement(tree, (e) => e.props?.['aria-label'] === 'Filter by issuer');
-  const button = (name) => findElement(filters(), (e) => e.type === 'button' && e.props.children === name);
+  const filters = () =>
+    findElement(tree, (e) => e.props?.['aria-label'] === 'Filter by issuer');
+  const button = (name) =>
+    findElement(
+      filters(),
+      (e) => e.type === 'button' && e.props['aria-label'] === name,
+    );
   assert.equal(button('All issuers').props['aria-pressed'], true);
   button('Ondo').props.onClick();
   tree = f.render();
@@ -587,8 +600,13 @@ test('explicit issuer filters select, reset and synchronize with issuer cards', 
   assert.doesNotMatch(html, /MU Held/);
   assert.match(html, /Market-wide totals/);
   assert.match(html, /Portfolio summary/);
-  const cards = findElement(tree, (e) => typeof e.props?.onIssuer === 'function');
-  assert.equal(cards.props.issuer, 'ondo');
+  const cards = findElement(
+    tree,
+    (e) => typeof e.props?.onIssuer === 'function',
+  );
+  assert.match(html, /\$12K/);
+  assert.match(html, /partial/);
+  assert.doesNotMatch(html, /issuer-card/);
   cards.props.onIssuer('backpack');
   tree = f.render();
   assert.equal(button('Backpack').props['aria-pressed'], true);
@@ -601,4 +619,35 @@ test('explicit issuer filters select, reset and synchronize with issuer cards', 
   assert.match(html, /MU Held/);
   assert.match(html, /GOOGLon/);
   assert.equal(button('All issuers').props['aria-pressed'], true);
+});
+
+test('Ecosystem overview keeps numbers and one disclosure without duplicate issuer cards', async () => {
+  const { SolanaEcosystem } = await component('solana-ecosystem.tsx', {
+    '@/lib/tokens': {
+      TOKENS: [{ symbol: 'MUx', underlyingSymbol: 'MU' }],
+      ISSUERS: [{ id: 'xstocks', name: 'xStocks', url: 'https://xstocks.fi' }],
+    },
+    '@/lib/token-observation': {
+      issuedCoverage: () => ({
+        total: 1000,
+        rows: [{}],
+        valued: [{ symbol: 'MUx', issuedValue: 1000 }],
+        datedCount: 1,
+        missing: { supply: 0, price: 0, units: 0, conflict: 0 },
+      }),
+    },
+  });
+  const html = renderToStaticMarkup(
+    React.createElement(SolanaEcosystem, {
+      data: null,
+      now: 1,
+      onIssuer: () => {},
+      select: () => {},
+    }),
+  );
+  assert.equal((html.match(/<details/g) || []).length, 1);
+  assert.match(html, /Coverage &amp; methodology/);
+  assert.match(html, /1 values use dated quotes/);
+  assert.match(html, /\$1K/);
+  assert.doesNotMatch(html, /issuer-comparison|issuer-card/);
 });

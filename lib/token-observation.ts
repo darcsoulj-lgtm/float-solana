@@ -15,6 +15,10 @@ function recent(
     timestamp <= now + 60000
   );
 }
+// A dated reference may inform an estimate through a long market weekend.
+// This is not a live quote and must never qualify a holder tier.
+export const LAST_PRICE_MAX_AGE_MS = 96 * 60 * 60 * 1000;
+
 // Keep metrics from different scopes distinct: total minted value is never circulating market cap.
 export function tokenObservation(
   data: MarketOverview | null,
@@ -36,18 +40,28 @@ export function tokenObservation(
     ref.price > 0 &&
     Number.isFinite(ref.price) &&
     (ref.confidence ?? 0) >= 0.8 &&
-    now - ref.timestamp <= 900000 &&
+    now - ref.timestamp <= LAST_PRICE_MAX_AGE_MS &&
     ref.timestamp <= now + 60000
       ? ref
       : undefined;
   const supply = recent(data?.supplies, now, symbol)
     ? data?.supplies.data?.[symbol]
     : undefined;
-  const price = cmc?.price ?? reference?.price ?? top?.price ?? null;
+  const freshReference =
+    reference && now - reference.timestamp <= 900000 ? reference : undefined;
+  // Prefer current pool observations over an older reference. Preserve the
+  // original reference timestamp; fetching it again does not make it fresh.
+  const selectedReference =
+    freshReference ?? (top?.price == null ? reference : undefined);
+  const priceDelayed =
+    cmc?.price == null &&
+    !!selectedReference &&
+    now - selectedReference.timestamp > 900000;
+  const price = cmc?.price ?? selectedReference?.price ?? top?.price ?? null;
   const priceSource =
     cmc?.price != null
       ? 'CoinMarketCap'
-      : reference
+      : selectedReference
         ? 'DefiLlama'
         : top?.price != null
           ? 'DEX pool'
@@ -63,41 +77,47 @@ export function tokenObservation(
     supply.adjustmentAt <= reference.timestamp
   );
   const referenceChange =
-    reference &&
+    freshReference &&
     history &&
     history.price > 0 &&
     Number.isFinite(history.price) &&
     (history.confidence ?? 0) >= 0.8 &&
     !adjustmentInWindow &&
-    Math.abs(reference.timestamp - history.timestamp - 86400000) <= 900000 &&
+    Math.abs(freshReference.timestamp - history.timestamp - 86400000) <=
+      900000 &&
     Math.abs(now - history.timestamp - 86400000) <= 1200000
-      ? (reference.price / history.price - 1) * 100
+      ? (freshReference.price / history.price - 1) * 100
       : null;
   const change24h =
     cmc?.price != null
       ? cmc.change24h
-      : reference
+      : selectedReference
         ? referenceChange
         : (top?.change24h ?? null);
   // Do not average incompatible prices. Five percent is a review threshold,
   // not a guarantee that smaller differences are accurate.
-  const comparedPrices = [cmc?.price, reference?.price, top?.price].filter(
+  const comparedPrices = [cmc?.price, freshReference?.price, top?.price].filter(
     (p): p is number => typeof p === 'number' && Number.isFinite(p) && p > 0,
   );
   const priceConflict =
     comparedPrices.length > 1 &&
     Math.max(...comparedPrices) / Math.min(...comparedPrices) - 1 > 0.05;
+  const quoteBeforeAdjustment = !!(
+    selectedReference &&
+    supply?.adjustmentAt &&
+    selectedReference.timestamp < supply.adjustmentAt
+  );
   const valuationUnavailableReason = !supply
     ? 'supply'
     : price === null
       ? 'price'
-      : supply.valuationSafe === false
+      : supply.valuationSafe === false || quoteBeforeAdjustment
         ? 'units'
         : priceConflict
           ? 'conflict'
           : null;
   const issuedValue =
-    supply && supply.valuationSafe !== false && price !== null && !priceConflict
+    supply && valuationUnavailableReason === null && price !== null
       ? supply.supply * price
       : null;
   const liquidityRows = pools.filter((p) => p.liquidity !== null);
@@ -114,28 +134,31 @@ export function tokenObservation(
     supply,
     price,
     priceSource,
+    priceDelayed,
     priceConflict,
     priceTime:
       cmc?.price != null
         ? cmc.timestamp
-        : reference
-          ? reference.timestamp
+        : selectedReference
+          ? selectedReference.timestamp
           : (data?.pools?.asOf?.[symbol] ?? data?.pools?.fetchedAt),
     change24h:
       change24h !== null && Number.isFinite(change24h) ? change24h : null,
     changeSource:
       cmc?.price != null
         ? 'CoinMarketCap'
-        : reference
+        : selectedReference
           ? 'DefiLlama · calculated'
           : top
             ? 'Single DEX pool'
             : 'Unavailable',
     historyTime:
-      reference && referenceChange !== null ? history?.timestamp : null,
-    changeUnavailableReason: adjustmentInWindow
-      ? 'A display-unit adjustment falls within this period; comparable history is unconfirmed.'
-      : 'No comparable 24-hour history from the selected price source.',
+      selectedReference && referenceChange !== null ? history?.timestamp : null,
+    changeUnavailableReason: priceDelayed
+      ? 'The last available price is older than 15 minutes; a current 24-hour change is unavailable.'
+      : adjustmentInWindow
+        ? 'A display-unit adjustment falls within this period; comparable history is unconfirmed.'
+        : 'No comparable 24-hour history from the selected price source.',
     volume24h: cmc?.volume24h ?? pools[0]?.volume24h ?? null,
     volumeSource:
       cmc?.volume24h != null
@@ -165,6 +188,7 @@ export function issuedCoverage(
     total: valued.length
       ? valued.reduce((sum, r) => sum + r.issuedValue!, 0)
       : null,
+    datedCount: valued.filter((r) => r.priceDelayed).length,
     pricedCount: rows.filter((r) => r.price !== null).length,
     supplyCount: rows.filter((r) => r.supply !== undefined).length,
     missing: {

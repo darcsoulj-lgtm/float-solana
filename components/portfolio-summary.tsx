@@ -44,6 +44,7 @@ export function PortfolioSummary({
         raw >= 0 &&
         o.price !== null &&
         !o.priceConflict &&
+        o.valuationUnavailableReason !== 'units' &&
         comparable
           ? raw * o.price
           : null;
@@ -51,7 +52,13 @@ export function PortfolioSummary({
         estimate !== null && Number.isFinite(estimate) && estimate >= 0
           ? estimate
           : null;
-      return { ...p, value, source: o.priceSource, priceTime: o.priceTime };
+      return {
+        ...p,
+        value,
+        source: o.priceSource,
+        priceTime: o.priceTime,
+        priceDelayed: o.priceDelayed,
+      };
     })
     .sort(
       (a, b) =>
@@ -108,6 +115,7 @@ export function PortfolioSummary({
             <strong>{money(valued.length ? total : null)}</strong>
             <small>
               {complete ? 'Estimated value' : 'Priced holdings · subtotal'}
+              {valued.some((r) => r.priceDelayed) && ' · includes dated quotes'}
             </small>
           </div>
           <div className="allocation-ring">

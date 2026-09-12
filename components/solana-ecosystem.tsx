@@ -14,13 +14,11 @@ const usd = (n: number | null) =>
 export function SolanaEcosystem({
   data,
   now,
-  issuer,
   onIssuer,
   select,
 }: {
   data: MarketOverview | null;
   now: number;
-  issuer: IssuerId | 'all';
   onIssuer: (id: IssuerId | 'all') => void;
   select: (symbol: string) => void;
 }) {
@@ -69,36 +67,13 @@ export function SolanaEcosystem({
       <p className="market-footnote">
         Solana minted supply × observed token price. Includes reserves. Partial
         coverage; not company market cap.
+        {coverage.datedCount > 0 &&
+          ` ${coverage.datedCount} values use dated quotes.`}
       </p>
-      <div className="issuer-comparison" aria-label="Issuer comparison">
-        {ISSUERS.map((i) => {
-          const c = issuedCoverage(data, now, i.id);
-          const count = TOKENS.filter((t) => t.issuer === i.id).length;
-          return (
-            <button
-              key={i.id}
-              type="button"
-              className="issuer-card"
-              aria-pressed={issuer === i.id}
-              onClick={() => onIssuer(issuer === i.id ? 'all' : i.id)}
-            >
-              <span>
-                {i.name}
-                <ArrowUpRight size={15} />
-              </span>
-              <strong>{usd(c.total)}</strong>
-              {c.valued.length < count && <small>Partial value</small>}
-              <small>
-                {c.valued.length} / {count} tokens valued
-              </small>
-            </button>
-          );
-        })}
-      </div>
       <details className="market-methodology coverage-diagnostics">
-        <summary>Valuation coverage</summary>
+        <summary>Coverage &amp; methodology</summary>
         <p>
-          Each listing needs a recent price, Solana supply and matching units.
+          Each listing needs a price, recent Solana supply and matching units.
           Missing values are excluded, never counted as zero.
         </p>
         <div className="market-table-scroll">
@@ -134,13 +109,14 @@ export function SolanaEcosystem({
           </table>
         </div>
         <p>
-          Unavailable includes expired data. Each excluded listing appears once,
-          under its first missing requirement. Units unverified means a dividend
-          or split adjustment needs a confirmed quote basis.
+          Quotes over 15 minutes old are labeled Last quote and can inform
+          estimates for up to 96 hours. They never supply a current 24h change
+          or holder rank. Unavailable includes expired data. Each excluded
+          listing appears once, under its first missing requirement. Units
+          unverified means a dividend or split adjustment needs a confirmed
+          quote basis.
         </p>
-      </details>
-      <details className="market-methodology">
-        <summary>Largest issued values</summary>
+        <h3>Largest issued values</h3>
         {leaders.map((r) => (
           <button
             key={r.symbol}
@@ -157,14 +133,12 @@ export function SolanaEcosystem({
           </button>
         ))}
         {!leaders.length && <p>Waiting for current prices and supply.</p>}
-      </details>
-      <details className="market-methodology">
-        <summary>Methodology & rights</summary>
+        <h3>Methodology &amp; rights</h3>
         <p>
           Each mint is counted once. Different issuers’ tokens remain separate
           products, even when they reference the same company. No cross-chain
-          balances or underlying-company market caps are included. Missing,
-          stale or unit-ambiguous valuations are excluded.
+          balances or underlying-company market caps are included. Missing or
+          unit-ambiguous valuations are excluded.
         </p>
         <p>
           Membership verifies a token balance, not registered shareholder

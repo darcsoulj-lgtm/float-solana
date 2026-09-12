@@ -1,0 +1,7506 @@
+{
+  "checkedAt": "2026-09-12T12:11:57.947Z",
+  "mode": "Offline replay of captured public data; not live production coverage",
+  "captureCompletedAt": "2026-09-12T03:01:10.808Z",
+  "beforeValued": 152,
+  "afterValued": 410,
+  "priced": 752,
+  "datedValuations": 258,
+  "tracked": 832,
+  "exclusions": {
+    "supply": 0,
+    "price": 80,
+    "units": 340,
+    "conflict": 2
+  },
+  "rows": [
+    {
+      "symbol": "AAOIx",
+      "price": 105.145,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6057030.387402829,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "AAPLx",
+      "price": 333.63070845854776,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0032690125398187
+    },
+    {
+      "symbol": "AAx",
+      "price": 48.175,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.001355800891
+    },
+    {
+      "symbol": "ABBVx",
+      "price": 259.13587995011926,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0217299849561985
+    },
+    {
+      "symbol": "ABNBx",
+      "price": 170.055,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6873223.307510805,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "ABTx",
+      "price": 105.37559274583755,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0174717786699443
+    },
+    {
+      "symbol": "ACNx",
+      "price": 186.59350743168667,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0282231285426122
+    },
+    {
+      "symbol": "ADBEx",
+      "price": 249.6930888317407,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": 12484654.441587035,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "ADIx",
+      "price": 378.5,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.002126249517
+    },
+    {
+      "symbol": "ADMx",
+      "price": 86.2,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.004414796847
+    },
+    {
+      "symbol": "ADPx",
+      "price": 268.8,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.004451427075
+    },
+    {
+      "symbol": "ADSKx",
+      "price": 212.375,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6664836.026987039,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "AEEx",
+      "price": 104.875,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.004930966469
+    },
+    {
+      "symbol": "AEISx",
+      "price": 281.885,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 3020532.235650266,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "AEPx",
+      "price": 123.18,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.005289111588
+    },
+    {
+      "symbol": "AFGx",
+      "price": 137.25,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 4871230.933672148,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "AFLx",
+      "price": 114.765,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.003507763082
+    },
+    {
+      "symbol": "AFRMx",
+      "price": 71.265,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 2770024.18721233,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "AGNCx",
+      "price": 10.165,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0077064220183487
+    },
+    {
+      "symbol": "AHRx",
+      "price": 55.405,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 2918597.661516715,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "AIAGRx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "AIGx",
+      "price": 75.11,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 5973753.976670017,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "AITx",
+      "price": 306.69,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.000998266316
+    },
+    {
+      "symbol": "AIZx",
+      "price": 200.84,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.002156485209
+    },
+    {
+      "symbol": "AIx",
+      "price": 10.515,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 2942756.848680784,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "AJGx",
+      "price": 243.655,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.001865316533
+    },
+    {
+      "symbol": "AKAMx",
+      "price": 106.7,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5625906.234896068,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "ALABx",
+      "price": 291.21,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5669807.436198251,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "ALBx",
+      "price": 118.05,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.002350339858
+    },
+    {
+      "symbol": "ALGNx",
+      "price": 150.025,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 4874898.456538809,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "ALLYx",
+      "price": 42.005,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.004829806808
+    },
+    {
+      "symbol": "ALLx",
+      "price": 254.5,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.002901220355
+    },
+    {
+      "symbol": "ALNYx",
+      "price": 250.11,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5211167.829981813,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "ALSNx",
+      "price": 126.975,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 4788168.852930289,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "AMATx",
+      "price": 456.885,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0016175352702579
+    },
+    {
+      "symbol": "AMBRx",
+      "price": 1.0900082390058838,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "conflict",
+      "multiplier": 1
+    },
+    {
+      "symbol": "AMDx",
+      "price": 514.401252010647,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "conflict",
+      "multiplier": 1
+    },
+    {
+      "symbol": "AMEx",
+      "price": 237.15,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5891925.465837464,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "AMGNx",
+      "price": 378.01,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.004067046319
+    },
+    {
+      "symbol": "AMHx",
+      "price": 31.65,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 2777414.6991667827,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "AMKRx",
+      "price": 51.715,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 3227540.160229411,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "AMPx",
+      "price": 563.885,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.002180126044
+    },
+    {
+      "symbol": "AMTx",
+      "price": 174.95,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 6011166.785968952,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "AMZNx",
+      "price": 256.6230512190392,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": 44215025.24192452,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "AMx",
+      "price": 22.375,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 4966476.279343842,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "ANETx",
+      "price": 199.4425,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 8177142.5,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "ANTASx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "APAx",
+      "price": 44.825,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 8091155.234656822,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "APDx",
+      "price": 290,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 6628571.4285706,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "APGx",
+      "price": 38.305,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 5584497.630907499,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "APHx",
+      "price": 83.81,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 2
+    },
+    {
+      "symbol": "APLDx",
+      "price": 26.4295,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5153752.5,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "APOx",
+      "price": 129.875,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.002941725812
+    },
+    {
+      "symbol": "APPx",
+      "price": 323.8658886224954,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": 8579855.121387148,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "ARESx",
+      "price": 137.455,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 7132491.567932066,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "ARMKx",
+      "price": 59.425,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.001388429752
+    },
+    {
+      "symbol": "ARMx",
+      "price": 264.725,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5912889.716145358,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "ARWRx",
+      "price": 82.5,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 4688129.439159375,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "ARWx",
+      "price": 211.1,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 6050010.747295139,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "ARx",
+      "price": 38.575,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5016280.8785195025,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "ASMLx",
+      "price": 1698.0267436835636,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0028663344146624
+    },
+    {
+      "symbol": "ASMPTx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "ASTSx",
+      "price": 60.20038861118556,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": 7525048.576398195,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "ASx",
+      "price": 28.175,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 2722053.8828032534,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "ATIx",
+      "price": 199.175,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 6096727.291277704,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "ATOx",
+      "price": 163.36,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.004195385076
+    },
+    {
+      "symbol": "AURx",
+      "price": 6.445,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 3357852.2258191616,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "AVGOx",
+      "price": 366.0095826710402,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0048837684862768
+    },
+    {
+      "symbol": "AVYx",
+      "price": 165.575,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.004044606229
+    },
+    {
+      "symbol": "AWKx",
+      "price": 137.725,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.004625322997
+    },
+    {
+      "symbol": "AXONx",
+      "price": 478.725,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6405776.092772716,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "AXSMx",
+      "price": 220.5,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 3174675.833748195,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "AXTIx",
+      "price": 64.655,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5128262.097127682,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "AZNx",
+      "price": 157.05,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 0.5111362527152737
+    },
+    {
+      "symbol": "AZOx",
+      "price": 2891.5,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 5678887.070361525,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "Ax",
+      "price": 151.01,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 7338597.983233049,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "BACx",
+      "price": 62.794786319076984,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0179352667683526
+    },
+    {
+      "symbol": "BALLx",
+      "price": 62.24,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.002223280927
+    },
+    {
+      "symbol": "BAMx",
+      "price": 47.775,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0072309094397545
+    },
+    {
+      "symbol": "BANKCx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "BAXx",
+      "price": 23.91,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 4620626.969086192,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "BAx",
+      "price": 210.775,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 5620541.76573801,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "BBIOx",
+      "price": 70.25,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 4444159.27581105,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "BBYx",
+      "price": 90.645,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 7240015.974440582,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "BDWAPx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "BDXx",
+      "price": 172.6,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.004103852596
+    },
+    {
+      "symbol": "BENx",
+      "price": 33.7,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 4835134.320410556,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "BETRx",
+      "price": 12.965,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 2959864.3119017957,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "BEx",
+      "price": 276.21,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 8513176.144243825,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "BIIBx",
+      "price": 217,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6388616.290480411,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "BITXx",
+      "price": 17.035,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0022919985525838
+    },
+    {
+      "symbol": "BJx",
+      "price": 91.44,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6376569.03765684,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "BKRx",
+      "price": 58.835,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.002565737052
+    },
+    {
+      "symbol": "BMNRx",
+      "price": 25.2331236119788,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": 15165107.29079926,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "BMRNx",
+      "price": 63.7,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 2901058.543636162,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "BMYx",
+      "price": 63.54,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6850673.854447027,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "BNYx",
+      "price": 164.35,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 6737726.760274049,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "BOCHKx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "BOCOMx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "BOTx",
+      "price": 26.76,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 9762653.612500206,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "BPOPx",
+      "price": 161.79,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5993059.222958719,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "BRK.Bx",
+      "price": 506.89397782526584,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": 16340156.639421973,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "BROx",
+      "price": 67.405,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.001616741321
+    },
+    {
+      "symbol": "BRx",
+      "price": 167.785,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.004285072447
+    },
+    {
+      "symbol": "BSPx",
+      "price": 39.006517949784595,
+      "priceTime": 1789177470000,
+      "dated": true,
+      "issuedValue": 19503258.974879425,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "BSXx",
+      "price": 43.11,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5816505.509331919,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "BSYx",
+      "price": 30.975,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 2541856.6613182994,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "BTBTx",
+      "price": 1.5702709772314558,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": 7233007.011834182,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "BTGOx",
+      "price": 19.952972721019,
+      "priceTime": 1789176840000,
+      "dated": true,
+      "issuedValue": 33056900.175971065,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "BURLx",
+      "price": 239.29,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 4517675.933353384,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "BWAx",
+      "price": 66.67,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.001854738155
+    },
+    {
+      "symbol": "BWXTx",
+      "price": 150.25,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.001101783841
+    },
+    {
+      "symbol": "BXPx",
+      "price": 64.72,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 2743226.9566456648,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "BXx",
+      "price": 128.68,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.007068493151
+    },
+    {
+      "symbol": "BYDCOx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "CACIx",
+      "price": 677.685,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 3280465.1287918114,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "CAHx",
+      "price": 232.785,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6481252.900231959,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "CARRx",
+      "price": 57.935,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 4543921.568626895,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "CASYx",
+      "price": 615,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.000524495677
+    },
+    {
+      "symbol": "CATx",
+      "price": 817.285,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0012961784886627
+    },
+    {
+      "symbol": "CBREx",
+      "price": 140.545,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6271763.787140331,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "CBRSx",
+      "price": 191.865,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6761054.408867773,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "CCIx",
+      "price": 76.065,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 5374668.786433039,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "CCKx",
+      "price": 112.57,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 4734483.651297509,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "CCONBx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "CDEx",
+      "price": 20.5,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 4767612.400690124,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "CDNSx",
+      "price": 291.005,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 4687265.942738893,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "CDWx",
+      "price": 151.985,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.003213114754
+    },
+    {
+      "symbol": "CEGx",
+      "price": 295.5230875852998,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.002158923675915
+    },
+    {
+      "symbol": "CFGx",
+      "price": 69.995,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.004515495723
+    },
+    {
+      "symbol": "CFx",
+      "price": 133.245,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.003588210167
+    },
+    {
+      "symbol": "CGx",
+      "price": 43.12,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.004971590909
+    },
+    {
+      "symbol": "CHDx",
+      "price": 94.175,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.002124457165
+    },
+    {
+      "symbol": "CHONGx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "CHRWx",
+      "price": 153.78,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.003006442377
+    },
+    {
+      "symbol": "CHTRx",
+      "price": 146.045,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6021646.509069781,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "CIENx",
+      "price": 349.375,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 4393732.970026481,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "CINFx",
+      "price": 169.93,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5499649.387776966,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "CITICx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "CIx",
+      "price": 279.38,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.003865213082
+    },
+    {
+      "symbol": "CKAHx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "CKHUTx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "CKINFx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "CLHx",
+      "price": 322.905,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 6644819.425864313,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "CLINSx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "CLONPx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "CLPHDx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "CLSKx",
+      "price": 13.675,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 11897246.964263367,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "CLXx",
+      "price": 87.9,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.008083140878
+    },
+    {
+      "symbol": "CLx",
+      "price": 86.345,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5680280.686365401,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "CMCSAx",
+      "price": 28.611707268973245,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0876797409606038
+    },
+    {
+      "symbol": "CMENDx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "CMERPx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "CMEx",
+      "price": 276,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.003270675341
+    },
+    {
+      "symbol": "CMGx",
+      "price": 36.135,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6801882.352940922,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "CMIx",
+      "price": 555,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.002595913964
+    },
+    {
+      "symbol": "CMSx",
+      "price": 68.775,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.005603932584
+    },
+    {
+      "symbol": "CNAx",
+      "price": 47.97,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 3919219.894176069,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "CNCx",
+      "price": 65.71,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 6529645.578005853,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "CNPx",
+      "price": 39.46,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.004158415842
+    },
+    {
+      "symbol": "COFx",
+      "price": 208.76,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.002463270872
+    },
+    {
+      "symbol": "COHRx",
+      "price": 305.8,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 4497113.935217882,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "COINx",
+      "price": 175.27811032951146,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": 23869160.817360986,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "COOx",
+      "price": 53.91,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 4353432.032301183,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "COPXx",
+      "price": 88.86471513312675,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.002370480441
+    },
+    {
+      "symbol": "COPx",
+      "price": 137.36,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.004637955513
+    },
+    {
+      "symbol": "CORTx",
+      "price": 110.315,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 2722974.9733459046,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "CORZx",
+      "price": 17.91309121160215,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": 11553943.831483029,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "CORx",
+      "price": 318.99,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.001354795007
+    },
+    {
+      "symbol": "COSCx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "COVELx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "CPAYx",
+      "price": 404.135,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 7167632.279040315,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "CPETCx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "CPNGx",
+      "price": 15.08,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 4898754.7374118855,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "CPRTx",
+      "price": 29.95,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5902447.035637863,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "CPTx",
+      "price": 109.55,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 5657356.801652248,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "CRAUTx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "CRBGx",
+      "price": 29.875,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 4696930.703892003,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "CRCLx",
+      "price": 90.95,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": 74677156.387071,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "CRESBx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "CRESLx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1.007684630739
+    },
+    {
+      "symbol": "CRESMx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1.02783530572
+    },
+    {
+      "symbol": "CRESPx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "CRMx",
+      "price": 246.34482103061464,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0054716788543585
+    },
+    {
+      "symbol": "CRSx",
+      "price": 450.5,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.000284333239
+    },
+    {
+      "symbol": "CRWDx",
+      "price": 628.16,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 4
+    },
+    {
+      "symbol": "CRWVx",
+      "price": 89.0325,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 7172328.141782517,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "CRx",
+      "price": 242.49,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0008623188405796
+    },
+    {
+      "symbol": "CSCOx",
+      "price": 112.60220257994263,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0180864518101183
+    },
+    {
+      "symbol": "CSGPx",
+      "price": 30.425,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6107393.777182848,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "CSHEEx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "CSLx",
+      "price": 338.495,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.002455382198
+    },
+    {
+      "symbol": "CSPCx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "CSXx",
+      "price": 48.97,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.001911076443
+    },
+    {
+      "symbol": "CTASx",
+      "price": 201.52,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.001813652217
+    },
+    {
+      "symbol": "CTFJWx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "CTINSx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "CTPCAx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "CTSHx",
+      "price": 59.955,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.004080551139
+    },
+    {
+      "symbol": "CTVAx",
+      "price": 83.925,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.001488833747
+    },
+    {
+      "symbol": "CVNAx",
+      "price": 69.3,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 6147704.5908180205,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "CVSx",
+      "price": 94.55,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5433387.606550548,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "CVXx",
+      "price": 219.88722036680485,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0295541831890767
+    },
+    {
+      "symbol": "CWx",
+      "price": 578.93,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 4683173.456109755,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "Cx",
+      "price": 138.75,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.003540958852
+    },
+    {
+      "symbol": "DALx",
+      "price": 80.03,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 5335333.3333328,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "DASHx",
+      "price": 201.8895,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6332463.798419767,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "DAXx",
+      "price": 46,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.013533965245
+    },
+    {
+      "symbol": "DCIx",
+      "price": 89.275,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 4703312.741078096,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "DDOGx",
+      "price": 222.5,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5131852.0796491,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "DECKx",
+      "price": 81.485,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 4689784.172661677,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "DELLx",
+      "price": 569.39,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0033165309725203
+    },
+    {
+      "symbol": "DEx",
+      "price": 676.41,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6816644.97165017,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "DFDVx",
+      "price": 5.221365061226482,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.01472895118
+    },
+    {
+      "symbol": "DGXx",
+      "price": 231.92,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6634816.192244926,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "DGx",
+      "price": 124.615,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6336355.932202312,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "DHIx",
+      "price": 137.94,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.002079894355
+    },
+    {
+      "symbol": "DHRx",
+      "price": 201.78530192354782,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0058105996481104
+    },
+    {
+      "symbol": "DINOx",
+      "price": 108.95,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 4584518.9244812,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "DISx",
+      "price": 106.275,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 6621495.327102192,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "DJTx",
+      "price": 8.69,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 4546906.196553474,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "DKNGx",
+      "price": 24.68,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5718478.470747159,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "DKSx",
+      "price": 135.005,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.006572029443
+    },
+    {
+      "symbol": "DLRx",
+      "price": 188.91,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 5806808.576038624,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "DLTRx",
+      "price": 118.185,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5811900.663879533,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "DOCNx",
+      "price": 123.39,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5329582.067147943,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "DOCUx",
+      "price": 65.575,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 2195821.220990038,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "DOCx",
+      "price": 20.395,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0069410957723546
+    },
+    {
+      "symbol": "DOVx",
+      "price": 178.86,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.001849708073
+    },
+    {
+      "symbol": "DOWx",
+      "price": 29.035,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.008030154048
+    },
+    {
+      "symbol": "DPZx",
+      "price": 312.84,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 2744551.899535129,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "DRAMx",
+      "price": 58.965,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 3166945.7379324096,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "DRIx",
+      "price": 209.95,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6107784.431136492,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "DRSx",
+      "price": 35.93,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 4737494.763422459,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "DTEx",
+      "price": 133.635,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 5326402.497756751,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "DTx",
+      "price": 50.84,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 6778666.6666664975,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "DUKx",
+      "price": 119.555,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.006100891638
+    },
+    {
+      "symbol": "DVAx",
+      "price": 179.5,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 2979069.8364671753,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "DVNx",
+      "price": 50.305,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 7068618.266978641,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "DXCMx",
+      "price": 83.9,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 7243165.467625181,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "DYx",
+      "price": 308.725,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 5033536.717412939,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "Dx",
+      "price": 64.725,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.006995807756
+    },
+    {
+      "symbol": "ECLx",
+      "price": 278.895,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 6047815.24449633,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "EDx",
+      "price": 106.985,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.005691187248
+    },
+    {
+      "symbol": "EFXx",
+      "price": 169.045,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.002016979676
+    },
+    {
+      "symbol": "EGPx",
+      "price": 198.175,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5331748.253008289,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "EGx",
+      "price": 379.225,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.005407890111673
+    },
+    {
+      "symbol": "EHCx",
+      "price": 119,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 2960079.0125678102,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "EIXx",
+      "price": 56.14,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 4508633.382411907,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "ELANx",
+      "price": 22.92,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5574381.840291754,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "ELSx",
+      "price": 59.76,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 5665349.976299229,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "ELVx",
+      "price": 414.5,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0030335097
+    },
+    {
+      "symbol": "ELx",
+      "price": 96.55,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.002369668246
+    },
+    {
+      "symbol": "EMEx",
+      "price": 777.625,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5356773.8231875375,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "EMRx",
+      "price": 154.955,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.002365872968
+    },
+    {
+      "symbol": "ENHAx",
+      "price": 1.585,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 5035431.473829189,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "ENNHLx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "ENTGx",
+      "price": 140.015,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.000592417062
+    },
+    {
+      "symbol": "EOGx",
+      "price": 146.54,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 6552934.600335267,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "EQHx",
+      "price": 51.405,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.004407135362
+    },
+    {
+      "symbol": "EQIXx",
+      "price": 1044.575,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.00332875614
+    },
+    {
+      "symbol": "EQTx",
+      "price": 53.8775,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.002188743604
+    },
+    {
+      "symbol": "ESSx",
+      "price": 287.575,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 5844525.362011619,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "ESx",
+      "price": 68.5,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5600218.0133527005,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "ETNx",
+      "price": 425.6,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0038078991013277
+    },
+    {
+      "symbol": "ETRx",
+      "price": 105.8,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.004153917478
+    },
+    {
+      "symbol": "EVRGx",
+      "price": 81.515,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.005796497081
+    },
+    {
+      "symbol": "EVRx",
+      "price": 283.965,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.002132685198
+    },
+    {
+      "symbol": "EWBCx",
+      "price": 130.69,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.00427480916
+    },
+    {
+      "symbol": "EWGx",
+      "price": 43.155,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.01375813519
+    },
+    {
+      "symbol": "EWQx",
+      "price": 40.755,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.01632636637
+    },
+    {
+      "symbol": "EWUx",
+      "price": 49.75,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.009889236641
+    },
+    {
+      "symbol": "EWYx",
+      "price": 188.95,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 12071431.222595435,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "EWx",
+      "price": 84.5,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 5810888.252148525,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "EXCx",
+      "price": 43.31,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.006602290591
+    },
+    {
+      "symbol": "EXELx",
+      "price": 56.495,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6200292.665081205,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "EXEx",
+      "price": 94.702,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.004180515164
+    },
+    {
+      "symbol": "EXPDx",
+      "price": 197.1,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 7292122.70695092,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "EXRx",
+      "price": 138.375,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5748658.473255986,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "FAAAx",
+      "price": 50.355,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.009604175864922
+    },
+    {
+      "symbol": "FANGx",
+      "price": 204.1,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.00383389763
+    },
+    {
+      "symbol": "FASTx",
+      "price": 49.35,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.00382031906
+    },
+    {
+      "symbol": "FCNCAx",
+      "price": 2670.555,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.00066998774
+    },
+    {
+      "symbol": "FCXx",
+      "price": 71.235,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6813486.370157645,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "FDSx",
+      "price": 258.49,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.002628001812415
+    },
+    {
+      "symbol": "FDXFx",
+      "price": 127.75,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5074478.649453517,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "FDXx",
+      "price": 311.995,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.00273726722
+    },
+    {
+      "symbol": "FERGx",
+      "price": 236.725,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.002601904444
+    },
+    {
+      "symbol": "FEZx",
+      "price": 70.07,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.01110672995
+    },
+    {
+      "symbol": "FEx",
+      "price": 46.345,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.006871437619
+    },
+    {
+      "symbol": "FFIVx",
+      "price": 411.125,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5975798.832335475,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "FGDLx",
+      "price": 59.1,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6200119.145314722,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "FHNx",
+      "price": 24.52,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.004806138934
+    },
+    {
+      "symbol": "FICOx",
+      "price": 975,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 4957627.11864225,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "FISVx",
+      "price": 51.33,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6288514.548238841,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "FISx",
+      "price": 38.31,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.007995846314
+    },
+    {
+      "symbol": "FITBx",
+      "price": 53.73,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 5592505.854800435,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "FIVEx",
+      "price": 245.45,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 2874680.645034119,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "FIXx",
+      "price": 1690.301,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.000362314673
+    },
+    {
+      "symbol": "FLBLx",
+      "price": 21.93,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0171047698353655
+    },
+    {
+      "symbol": "FLNCx",
+      "price": 9.965,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 2879624.598999219,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "FLQMx",
+      "price": 59.61,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.004295575527
+    },
+    {
+      "symbol": "FNFx",
+      "price": 44.425,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5499277.903857966,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "FNx",
+      "price": 414.495,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 4832239.776726551,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "FRHCx",
+      "price": 163.5,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 2878495.296015735,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "FSLRx",
+      "price": 209.165,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5217168.987735739,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "FSMLx",
+      "price": 23.45,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.001700362797
+    },
+    {
+      "symbol": "FTAIx",
+      "price": 186.36,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 4156728.62453445,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "FTNTx",
+      "price": 155.935,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6455599.254811983,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "FTVx",
+      "price": 55.585,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.000851137745
+    },
+    {
+      "symbol": "FWONKx",
+      "price": 95.5,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6183230.819035165,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "Fx",
+      "price": 13.955,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0075
+    },
+    {
+      "symbol": "GDDYx",
+      "price": 98.1,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5044574.526900219,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "GDXx",
+      "price": 97.065,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 12368844.186348412,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "GDx",
+      "price": 354.95,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6173043.478258709,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "GEELx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "GEHCx",
+      "price": 63.83,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5879788.132340359,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "GENTEx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "GENx",
+      "price": 30.325,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.003072331461
+    },
+    {
+      "symbol": "GEVx",
+      "price": 955.615,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0003574821
+    },
+    {
+      "symbol": "GEx",
+      "price": 323.81,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5213981.885273335,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "GFLx",
+      "price": 42.79,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 5245534.074657833,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "GFSx",
+      "price": 47.095,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 3111060.4003910944,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "GGGx",
+      "price": 76.895,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 6153651.217071626,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "GHx",
+      "price": 158.75,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 4738433.621565987,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "GILDx",
+      "price": 144.2,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6898696.328190015,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "GISx",
+      "price": 35.975,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 5993336.109953966,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "GLDx",
+      "price": 398.64604350762374,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": 46350134.206937134,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "GLPIx",
+      "price": 40.4,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.014006832601
+    },
+    {
+      "symbol": "GLWx",
+      "price": 162.545,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.001315612834
+    },
+    {
+      "symbol": "GLXYx",
+      "price": 24.54423552946492,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": 14235656.576980993,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "GLx",
+      "price": 122.995,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 4272761.485683517,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "GMEDx",
+      "price": 74.225,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 2692014.414478482,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "GMEx",
+      "price": 21.11825259693997,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.005309167384
+    },
+    {
+      "symbol": "GMx",
+      "price": 85.75,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.001444622793
+    },
+    {
+      "symbol": "GNRCx",
+      "price": 187.655,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 4470637.284097089,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "GOOGLx",
+      "price": 338.68,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0023772500603487
+    },
+    {
+      "symbol": "GPCx",
+      "price": 134.32,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.005404374364
+    },
+    {
+      "symbol": "GPNx",
+      "price": 88.22,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.001976284585
+    },
+    {
+      "symbol": "GSATx",
+      "price": 82.275,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 3019408.581579912,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "GSx",
+      "price": 1012.5486021570882,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0157573238042787
+    },
+    {
+      "symbol": "GWREx",
+      "price": 140.665,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 4636103.765900414,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "GWWx",
+      "price": 1280.27,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.001364330163
+    },
+    {
+      "symbol": "HAIDLx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "HAIERx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "HALOx",
+      "price": 106.32,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 2957447.463707594,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "HALx",
+      "price": 35.815,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.003233695652
+    },
+    {
+      "symbol": "HASx",
+      "price": 91.565,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.005213320566
+    },
+    {
+      "symbol": "HBANx",
+      "price": 16.82,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5680833.098789693,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "HCAx",
+      "price": 424.755,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6631874.780436395,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "HDx",
+      "price": 315.9054756743949,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.023299345701813
+    },
+    {
+      "symbol": "HEIx",
+      "price": 327.385,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 5562175.248827125,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "HIGx",
+      "price": 134.845,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.003057213568
+    },
+    {
+      "symbol": "HIIx",
+      "price": 279.71,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 4723572.055510882,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "HIMSx",
+      "price": 27.48,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 13761536.050156709,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "HKCGAx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "HKEXCx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "HLTx",
+      "price": 306.27,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.000318558296
+    },
+    {
+      "symbol": "HLx",
+      "price": 19.78,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 2892179.2094810684,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "HNDLDx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "HONx",
+      "price": 203.5984506562944,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0011576563945983
+    },
+    {
+      "symbol": "HOODx",
+      "price": 112.43183913076044,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": 67165590.30610983,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "HPEx",
+      "price": 62.105,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 7603917.967553727,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "HPQx",
+      "price": 35.49,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.006737247353
+    },
+    {
+      "symbol": "HRLx",
+      "price": 20.66,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 2696364.340632801,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "HRZRBx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "HSTx",
+      "price": 22.22,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5350993.377483411,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "HSYx",
+      "price": 173.4,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.005460992908
+    },
+    {
+      "symbol": "HUBBx",
+      "price": 454.15,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.002162467911
+    },
+    {
+      "symbol": "HUBSx",
+      "price": 226,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 2896672.7178296,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "HUMx",
+      "price": 409.5,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6621481.411611886,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "HUTx",
+      "price": 98.605,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 18636345,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "HWMx",
+      "price": 230.85,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.000338257628
+    },
+    {
+      "symbol": "Hx",
+      "price": 167.755,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0005913161006927
+    },
+    {
+      "symbol": "IBKRx",
+      "price": 91.37,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.000629561106
+    },
+    {
+      "symbol": "IBMx",
+      "price": 247.58219456067303,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0204029187943977
+    },
+    {
+      "symbol": "ICBCx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "ICEx",
+      "price": 158.755,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 7246329.402814686,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "IDXXx",
+      "price": 504.785,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5391274.164261088,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "IEMGx",
+      "price": 83.17017244196373,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.005582018893
+    },
+    {
+      "symbol": "IESCx",
+      "price": 343.8,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 3205602.144041004,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "IEXx",
+      "price": 198.765,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5357547.169810501,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "IFFx",
+      "price": 83.94,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6863450.531479897,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "IJRx",
+      "price": 142.245,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0032083550487445
+    },
+    {
+      "symbol": "ILMNx",
+      "price": 207,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 7011403.40973069,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "INCYx",
+      "price": 120.1,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6307773.109243535,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "INDIx",
+      "price": 3.345,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 2854907.5391179994,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "INSMx",
+      "price": 129.225,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 7424946.133588553,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "INTCx",
+      "price": 102.66694472123037,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": 42745587.40255373,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "INTUx",
+      "price": 321.295,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 7425638.457684279,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "INTWx",
+      "price": 23.83,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6513785.215480292,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "INVHx",
+      "price": 27.855,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 5516751.939263747,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "IONQx",
+      "price": 36.885,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 2746814.738779537,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "IOTx",
+      "price": 38.375,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 4689566.38520284,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "IPx",
+      "price": 34.58,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.007873297665
+    },
+    {
+      "symbol": "IQMx",
+      "price": 107.055,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 11846878.15552639,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "IQVx",
+      "price": 258.905,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 8583434.63365975,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "IRENx",
+      "price": 43.775,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 9643418.774999613,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "IRMx",
+      "price": 115.885,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 5266502.556333195,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "IRx",
+      "price": 72.165,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.000165172251
+    },
+    {
+      "symbol": "ISRGx",
+      "price": 368.575,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5563396.226414538,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "ITAx",
+      "price": 218.83,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0004897814278
+    },
+    {
+      "symbol": "ITTx",
+      "price": 173.32,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.001322370675
+    },
+    {
+      "symbol": "ITWx",
+      "price": 265.75,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 5951403.404001082,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "ITx",
+      "price": 179.33,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 4597437.691295548,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "IVZx",
+      "price": 32.92,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 2988997.3053181744,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "IWMx",
+      "price": 289.01,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.002900481874927
+    },
+    {
+      "symbol": "JAAAx",
+      "price": 50.635,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0111858841100714
+    },
+    {
+      "symbol": "JBHTx",
+      "price": 266.075,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.001178671656
+    },
+    {
+      "symbol": "JBLx",
+      "price": 319.565,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.000151204234
+    },
+    {
+      "symbol": "JDHLTx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "JDLOGx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "JEFx",
+      "price": 52,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 4899962.34424112,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "JKHYx",
+      "price": 161.085,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 2810411.0353894453,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "JLLx",
+      "price": 339.33,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 6567465.56562648,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "JMKEx",
+      "price": 21.723748806030077,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": 5839094.993094019,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "JNJx",
+      "price": 261.9645864894631,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0195885202077413
+    },
+    {
+      "symbol": "JPMx",
+      "price": 345.47210763941047,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0139174713894084
+    },
+    {
+      "symbol": "JPSTx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1.0094580396692463
+    },
+    {
+      "symbol": "JTGEXx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "Jx",
+      "price": 141.89,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.001703393268
+    },
+    {
+      "symbol": "KDPx",
+      "price": 31.48,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5672923.862441723,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "KEYSx",
+      "price": 332.3,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 5513141.340264174,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "KEYx",
+      "price": 21.65,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.006640444239
+    },
+    {
+      "symbol": "KHCx",
+      "price": 24.665,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.011014948859
+    },
+    {
+      "symbol": "KIMx",
+      "price": 23.22,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.008193979933
+    },
+    {
+      "symbol": "KKRx",
+      "price": 100.75,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.001327691859
+    },
+    {
+      "symbol": "KLACx",
+      "price": 180.7,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 10.01683308516363
+    },
+    {
+      "symbol": "KMBx",
+      "price": 98.265,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.008300138953
+    },
+    {
+      "symbol": "KMIx",
+      "price": 30.91,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.006471410814
+    },
+    {
+      "symbol": "KNXx",
+      "price": 67.99,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.00201236165
+    },
+    {
+      "symbol": "KORUx",
+      "price": 23.195,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 3445733.678288055,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "KOx",
+      "price": 89.44090973790756,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0183317967386898
+    },
+    {
+      "symbol": "KRAQx",
+      "price": 10.155,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.01375909737
+    },
+    {
+      "symbol": "KRx",
+      "price": 58.64,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.004770225406
+    },
+    {
+      "symbol": "KTOSx",
+      "price": 46.795,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 4423175.100346804,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "KUAIx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "KUNLx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "KVUEx",
+      "price": 17.82,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.007716535433
+    },
+    {
+      "symbol": "LAMRx",
+      "price": 149.12,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5717974.117270669,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "LAOPGx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "LDOSx",
+      "price": 128.91,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 7528323.924469283,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "LECOx",
+      "price": 251.28,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5672128.063804906,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "LENx",
+      "price": 79.725,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5313819.151299592,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "LHXx",
+      "price": 246.57,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.00333791104
+    },
+    {
+      "symbol": "LIIx",
+      "price": 367.025,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 4753445.29727504,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "LINx",
+      "price": 456.5595371909859,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0148730104315449
+    },
+    {
+      "symbol": "LITEx",
+      "price": 927.35,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 7418799.933100971,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "LLYx",
+      "price": 1122.4897519697988,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0052945747745534
+    },
+    {
+      "symbol": "LMTx",
+      "price": 524.5,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.004303048661
+    },
+    {
+      "symbol": "LNGx",
+      "price": 278.6675,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.001516748653
+    },
+    {
+      "symbol": "LNTx",
+      "price": 67.22,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.005282832557
+    },
+    {
+      "symbol": "LOWx",
+      "price": 197.05,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5360932.2571851695,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "LPLAx",
+      "price": 330.74,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.00056005974
+    },
+    {
+      "symbol": "LRCXx",
+      "price": 298.805,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.000492770889
+    },
+    {
+      "symbol": "LSCCx",
+      "price": 119.5,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5020656.81674835,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "LUVx",
+      "price": 39.2,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.003263403263
+    },
+    {
+      "symbol": "LVSx",
+      "price": 42.92,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.004441624365
+    },
+    {
+      "symbol": "LYVx",
+      "price": 169.86,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5752278.820374174,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "Lx",
+      "price": 108.665,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.000389061805
+    },
+    {
+      "symbol": "MAAx",
+      "price": 125.44,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 5240678.202137369,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "MANHx",
+      "price": 208.235,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 4762133.206867031,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "MARAx",
+      "price": 12.012072889522155,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": 16434918.119565254,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "MARx",
+      "price": 334.92,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.001419641617
+    },
+    {
+      "symbol": "MASx",
+      "price": 68.535,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.00305635148
+    },
+    {
+      "symbol": "MAx",
+      "price": 568.5918627714636,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0047223563218923
+    },
+    {
+      "symbol": "MCDx",
+      "price": 257.95530462329015,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0211807004882871
+    },
+    {
+      "symbol": "MCHPx",
+      "price": 74.285,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.004186382755
+    },
+    {
+      "symbol": "MCKx",
+      "price": 881.665,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.000743234085
+    },
+    {
+      "symbol": "MCOx",
+      "price": 472.905,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.001476188526
+    },
+    {
+      "symbol": "MDBx",
+      "price": 361.835,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6135656.4500387795,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "MDGLx",
+      "price": 535,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 3026012.8681008,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "MDLNx",
+      "price": 32.425,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 14401845.417236462,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "MDLZx",
+      "price": 62.405,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6197120.158887724,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "MDTx",
+      "price": 93.45328930715571,
+      "priceTime": 1789160480000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0294400153167536
+    },
+    {
+      "symbol": "MEDPx",
+      "price": 585.5,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 4774545.63061305,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "MEITx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "METAx",
+      "price": 648.877155105758,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.002298265651938
+    },
+    {
+      "symbol": "METCx",
+      "price": 11.185,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 2727588.8658855795,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "METx",
+      "price": 97.61,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.004306406396
+    },
+    {
+      "symbol": "MGMx",
+      "price": 39.945,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 4633741.322681222,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "MIXUx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "MKCx",
+      "price": 51.2,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 5747427.50233856,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "MKLx",
+      "price": 1786.25,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 5537586.351207775,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "MKSIx",
+      "price": 258.445,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.000626992942
+    },
+    {
+      "symbol": "MLIx",
+      "price": 61.465,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.001945679797
+    },
+    {
+      "symbol": "MLMx",
+      "price": 506,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.001133603239
+    },
+    {
+      "symbol": "MMGx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "MMMx",
+      "price": 163.82,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.003050961109
+    },
+    {
+      "symbol": "MOOx",
+      "price": 88.45526447538214,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": 11233818.588372648,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "MOx",
+      "price": 69.125,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 5628307.775817265,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "MPCx",
+      "price": 396.295,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.00191147156
+    },
+    {
+      "symbol": "MPWRx",
+      "price": 1237.325,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5028856.509975756,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "MPx",
+      "price": 50.64,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 4339009.496129182,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "MRKx",
+      "price": 142.0856528657548,
+      "priceTime": 1789181130000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0216625054701978
+    },
+    {
+      "symbol": "MRNAx",
+      "price": 140.042,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": 12089956.834531175,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "MRSHx",
+      "price": 180.765,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 6673168.0305173285,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "MRVLx",
+      "price": 234.992861906756,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0016650410248724
+    },
+    {
+      "symbol": "MSCIx",
+      "price": 557,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.002494610945
+    },
+    {
+      "symbol": "MSFTx",
+      "price": 496.7727543650551,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0059033904787456
+    },
+    {
+      "symbol": "MSIx",
+      "price": 466.285,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 6994275,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "MSTRx",
+      "price": 130.9544374708994,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": 62726403.22799842,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "MSx",
+      "price": 213.25,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.003832238408
+    },
+    {
+      "symbol": "MTBx",
+      "price": 211.5,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.004488330341
+    },
+    {
+      "symbol": "MTDx",
+      "price": 1293.79,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 6179221.740629952,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "MTRCPx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "MTSIx",
+      "price": 275,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 4545955.477186751,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "MTZx",
+      "price": 240.46,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 4399790.79123438,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "MUUx",
+      "price": 31.385,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 3274003.6865977556,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "MUx",
+      "price": 978.639786117648,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0004015986353854
+    },
+    {
+      "symbol": "MVLLx",
+      "price": 29.215,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5992349.307123139,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "NBISx",
+      "price": 224.3,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6816247.97406629,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "NBIXx",
+      "price": 155.5,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5489203.97717244,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "NDAQx",
+      "price": 91.465,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0023584393
+    },
+    {
+      "symbol": "NDSNx",
+      "price": 313.785,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0020959419
+    },
+    {
+      "symbol": "NEEx",
+      "price": 82.725,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.005226308853
+    },
+    {
+      "symbol": "NEMx",
+      "price": 126.525,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.001454138702
+    },
+    {
+      "symbol": "NETx",
+      "price": 307.855,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 19602349.811536867,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "NFLXx",
+      "price": 78.44353677978542,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 10
+    },
+    {
+      "symbol": "NIx",
+      "price": 41.585,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.004659418682
+    },
+    {
+      "symbol": "NKEx",
+      "price": 36.835,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.007347670251
+    },
+    {
+      "symbol": "NLRx",
+      "price": 113.445,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 9936872.066259803,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "NLYx",
+      "price": 21.96,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5846904.814732614,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "NOCx",
+      "price": 519,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.003169162527
+    },
+    {
+      "symbol": "NONGx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "NOWx",
+      "price": 132.015,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 8559433.758373888,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "NRGx",
+      "price": 113.55,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.002475984809
+    },
+    {
+      "symbol": "NSCx",
+      "price": 325.105,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.002759446359
+    },
+    {
+      "symbol": "NTAPx",
+      "price": 199.5025,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 8010540.052197884,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "NTNXx",
+      "price": 66.32,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 7726601.941747436,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "NTRAx",
+      "price": 325.36,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 7313926.0424843645,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "NTRSx",
+      "price": 189.3,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.003286297314
+    },
+    {
+      "symbol": "NUEx",
+      "price": 256.5,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6268456.102477635,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "NVDAx",
+      "price": 219.27149108858822,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.001701196801074
+    },
+    {
+      "symbol": "NVOx",
+      "price": 41.848667506726805,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0370549907437874
+    },
+    {
+      "symbol": "NVRx",
+      "price": 6160.515,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 2895483.936943219,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "NWGx",
+      "price": 9.410133775,
+      "priceTime": 1789140751000,
+      "dated": true,
+      "issuedValue": 4983983.066517556,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "NWSAx",
+      "price": 29.445,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 4762929.619386205,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "NWSx",
+      "price": 32.72,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 2824101.0879666167,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "NYTx",
+      "price": 67,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5529193.31545232,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "OCx",
+      "price": 131.935,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 4581631.002018935,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "ODFLx",
+      "price": 180.075,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.001085503449
+    },
+    {
+      "symbol": "OHIx",
+      "price": 46.975,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.009401540589
+    },
+    {
+      "symbol": "OKEx",
+      "price": 95.7,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.008247990309
+    },
+    {
+      "symbol": "OKLOx",
+      "price": 37.16711458161841,
+      "priceTime": 1789166750000,
+      "dated": true,
+      "issuedValue": 4534387.978957445,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "OKTAx",
+      "price": 166.6,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 7388299.641524075,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "OMCx",
+      "price": 79.03,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6324086.423045382,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "ONDSx",
+      "price": 7.22,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 9680329.010620445,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "ONTOx",
+      "price": 283.5,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5724236.057690745,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "ONx",
+      "price": 76.18,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 4445222.46535335,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "OPENx",
+      "price": 2.802163561458488,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.02081561906
+    },
+    {
+      "symbol": "ORCLx",
+      "price": 150.87809285345207,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.009318667481834
+    },
+    {
+      "symbol": "ORLYx",
+      "price": 85.805,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6001748.659360482,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "OTISx",
+      "price": 69.115,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.004217444886
+    },
+    {
+      "symbol": "OVVx",
+      "price": 63.995,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 7274225.632281619,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "OWLx",
+      "price": 10.605,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 4436227.525398733,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "OXYx",
+      "price": 61.375,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.003197389886
+    },
+    {
+      "symbol": "Ox",
+      "price": 59.855,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0060139568018365
+    },
+    {
+      "symbol": "PAGx",
+      "price": 217.335,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 2981028.888619556,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "PALLx",
+      "price": 24.06415268292282,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 5
+    },
+    {
+      "symbol": "PANWx",
+      "price": 338.468408538151,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": 18108059.85679108,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "PAYXx",
+      "price": 115.83,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.007213370281
+    },
+    {
+      "symbol": "PCARx",
+      "price": 122.76,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.001848638044
+    },
+    {
+      "symbol": "PCGx",
+      "price": 13.81,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 5006646.525679715,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "PCTx",
+      "price": 6.25,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 2961307.2490803124,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "PEGx",
+      "price": 72.625,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.006317349138
+    },
+    {
+      "symbol": "PENx",
+      "price": 317.815,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 5922570.425815046,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "PEPx",
+      "price": 142.61516917615242,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0344000941634355
+    },
+    {
+      "symbol": "PFEx",
+      "price": 27.611894906787164,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0537129709103943
+    },
+    {
+      "symbol": "PFGCx",
+      "price": 93.965,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5034064.020714926,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "PFGx",
+      "price": 116.07,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.005282544246
+    },
+    {
+      "symbol": "PGRx",
+      "price": 215.665,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 5716766.070245078,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "PGx",
+      "price": 148.9567823446783,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.021558909374661
+    },
+    {
+      "symbol": "PHx",
+      "price": 951.29,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.001407006894
+    },
+    {
+      "symbol": "PICCx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "PICOx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "PINSx",
+      "price": 19.025,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 5257945.647167094,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "PKGx",
+      "price": 288.54,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 7354304.284104691,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "PLDx",
+      "price": 135.635,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 5654599.777653495,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "PLTRx",
+      "price": 166.01109846418169,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": 24382108.056103308,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "PLx",
+      "price": 16.46,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 8073630,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "PMx",
+      "price": 187.27225704494214,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0323117557839803
+    },
+    {
+      "symbol": "PNCx",
+      "price": 242.615,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6156959.776677465,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "PNFPx",
+      "price": 99.79,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.003288546462
+    },
+    {
+      "symbol": "PNWx",
+      "price": 96.465,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.006307555203
+    },
+    {
+      "symbol": "POPMTx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "PPGx",
+      "price": 104.745,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.004326762446
+    },
+    {
+      "symbol": "PPLTx",
+      "price": 16.202796070795912,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 10
+    },
+    {
+      "symbol": "PPLx",
+      "price": 34.2,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.005774240232
+    },
+    {
+      "symbol": "PRADx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "PRUx",
+      "price": 118.49,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.008089145687
+    },
+    {
+      "symbol": "PRx",
+      "price": 23.68,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 8038472.418670215,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "PSAx",
+      "price": 299.68,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 5602106.148644086,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "PSBOCx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "PSXx",
+      "price": 259.745,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.00369569736
+    },
+    {
+      "symbol": "PTCx",
+      "price": 131.065,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6945374.254802039,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "PWAHLx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "PWRx",
+      "price": 651.005,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0002444237463104
+    },
+    {
+      "symbol": "PYPLx",
+      "price": 54.01561223543964,
+      "priceTime": 1789171700000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0040286411936261
+    },
+    {
+      "symbol": "Px",
+      "price": 98,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 7734297.92831248,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "QCOMx",
+      "price": 182.1,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.003789126853
+    },
+    {
+      "symbol": "QQQx",
+      "price": 716.7130878264577,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0027250296551051
+    },
+    {
+      "symbol": "QSRx",
+      "price": 77.075,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6653956.834531714,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "QUBTx",
+      "price": 7.985,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 3000457.1650711526,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "QUREx",
+      "price": 44.42,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6341939.321832183,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "Qx",
+      "price": 124.555,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.000465657742
+    },
+    {
+      "symbol": "RBAx",
+      "price": 82.125,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.002943975258713
+    },
+    {
+      "symbol": "RBLXx",
+      "price": 45.55,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 10303409.755129121,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "RBRKx",
+      "price": 86.55,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 4417782.568803531,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "RCATx",
+      "price": 7.98,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 10523569.392760117,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "RDDTx",
+      "price": 157.7,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 5462102.407203536,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "REGNx",
+      "price": 782.13,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.000816448079
+    },
+    {
+      "symbol": "REGx",
+      "price": 74.64,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.007017660337
+    },
+    {
+      "symbol": "RFx",
+      "price": 30.235,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.00702811245
+    },
+    {
+      "symbol": "RGAx",
+      "price": 309.96,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.002777552838
+    },
+    {
+      "symbol": "RGLDx",
+      "price": 252.2,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 7476653.98487917,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "RIOTx",
+      "price": 21.45,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 20162999.738425616,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "RIVNx",
+      "price": 16.07,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5444381.705251123,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "RJFx",
+      "price": 175.9,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 5684890.923780703,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "RKLBx",
+      "price": 63.12,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 9017598.573020572,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "RLx",
+      "price": 339.76,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 5054197.451281304,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "RMDx",
+      "price": 220.425,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.002003034901
+    },
+    {
+      "symbol": "RNRx",
+      "price": 333.61,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6191818.111513191,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "ROIVx",
+      "price": 41.245,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6794892.915980167,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "ROKUx",
+      "price": 154.75,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6538962.639528105,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "ROKx",
+      "price": 428.445,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.002149676213
+    },
+    {
+      "symbol": "ROLx",
+      "price": 34.92,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.00338500265
+    },
+    {
+      "symbol": "ROPx",
+      "price": 390.515,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6973482.142856027,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "ROSTx",
+      "price": 231.225,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.001350296935
+    },
+    {
+      "symbol": "RPMx",
+      "price": 100.235,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5381744.966442428,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "RRXx",
+      "price": 162.35,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 4541999.860115537,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "RSGx",
+      "price": 223.15,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6289163.417726332,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "RSx",
+      "price": 437.385,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.002058097142
+    },
+    {
+      "symbol": "RTXx",
+      "price": 197.8,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.002317670537
+    },
+    {
+      "symbol": "RVMDx",
+      "price": 203.69,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6554083.766824352,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "RVTYx",
+      "price": 124.8,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 2799843.262816704,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "RYANx",
+      "price": 36.57,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 4213732.279437943,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "SAIAx",
+      "price": 351.12,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5969574.195323323,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "SAILx",
+      "price": 17.275,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 2930122.3664702494,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "SATAx",
+      "price": 99.8225,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0448050734486107
+    },
+    {
+      "symbol": "SBACx",
+      "price": 185.47,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.004796360248
+    },
+    {
+      "symbol": "SBETx",
+      "price": 8.871530935059244,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": 16749450.202005617,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "SBUXx",
+      "price": 98.79,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.003998157531
+    },
+    {
+      "symbol": "SCCOx",
+      "price": 193,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.019224471246712
+    },
+    {
+      "symbol": "SCHFx",
+      "price": 28.335459770333866,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.004215328467
+    },
+    {
+      "symbol": "SCHWx",
+      "price": 106.93,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.002035253498
+    },
+    {
+      "symbol": "SCIx",
+      "price": 82.235,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 4861348.1141869705,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "SEICx",
+      "price": 112,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5040070.57464512,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "SFx",
+      "price": 82.64,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.002946273830156
+    },
+    {
+      "symbol": "SGIx",
+      "price": 67.53,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.001802484096
+    },
+    {
+      "symbol": "SGOVx",
+      "price": 100.515,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.012578295897736
+    },
+    {
+      "symbol": "SHAZx",
+      "price": 59.715,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6596376.528382699,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "SHEINx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "SHWx",
+      "price": 323.395,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.001614251535
+    },
+    {
+      "symbol": "SINOTx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1.026433691756
+    },
+    {
+      "symbol": "SINOx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "SITCx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "SJMx",
+      "price": 121.5,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.006499212468
+    },
+    {
+      "symbol": "SKHYx",
+      "price": 190.07732432844392,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": 14858021.705447443,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "SLMTx",
+      "price": 3.65,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 26449275.356499996,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "SLVx",
+      "price": 57.5698613624551,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": 9415875.157718794,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "SMCIx",
+      "price": 40.005,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 14401800,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "SMHx",
+      "price": 568.275,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 13070324.989282334,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "SMOIHx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "SMRx",
+      "price": 8.69,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 4932002.898142868,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "SMTCx",
+      "price": 167,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 3626036.8849193603,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "SNAx",
+      "price": 376.005,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.004316292234
+    },
+    {
+      "symbol": "SNBIOx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "SNDKx",
+      "price": 1632.3116834210527,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": 24311070.63148952,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "SNDSCx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "SNOWx",
+      "price": 328.125,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 8755837.224815626,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "SNPSx",
+      "price": 398.125,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5153721.682847806,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "SNXXx",
+      "price": 15.195,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5823457.024489411,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "SNXx",
+      "price": 260.555,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 7246819.337876742,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "SOFIx",
+      "price": 17.275,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5785654.47948646,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "SOLSx",
+      "price": 61.97,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.000931346461
+    },
+    {
+      "symbol": "SOXLx",
+      "price": 122.275,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 10320451.063383427,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "SOXSx",
+      "price": 43.88,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 2750723.118319159,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "SOXXx",
+      "price": 526.905,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0003319215094
+    },
+    {
+      "symbol": "SOx",
+      "price": 87.185,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.005732758621
+    },
+    {
+      "symbol": "SPCEx",
+      "price": 3.0505264207362677,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": 9273600.316962767,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "SPCXx",
+      "price": 149.88778367225433,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": 83936228.58479342,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "SPGx",
+      "price": 205.015,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.007433452898
+    },
+    {
+      "symbol": "SPYx",
+      "price": 774.42,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.005714560286254
+    },
+    {
+      "symbol": "SREx",
+      "price": 83.365,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5509307.192421353,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "SSNCx",
+      "price": 79.11,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.002531035314
+    },
+    {
+      "symbol": "STLDx",
+      "price": 234.27,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5590724.6837938735,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "STRCx",
+      "price": 106.39761197819328,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0808929977256367
+    },
+    {
+      "symbol": "STRKx",
+      "price": 76.275,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0561756999911942
+    },
+    {
+      "symbol": "STRLx",
+      "price": 511.38,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5230205.838192059,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "STTx",
+      "price": 192.58,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 7087747.278023726,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "STZx",
+      "price": 122.745,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.005472485769
+    },
+    {
+      "symbol": "SUIx",
+      "price": 115.435,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5595492.001938251,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "SUOPTx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "SWKx",
+      "price": 89.4,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.006039441249
+    },
+    {
+      "symbol": "SWPRPx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "SYFx",
+      "price": 75.48,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.003009610521
+    },
+    {
+      "symbol": "SYKx",
+      "price": 276.54,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 5361033.925684813,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "SYYx",
+      "price": 84.035,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6141786.954137879,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "SZIGHx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "TBLLx",
+      "price": 105.9984378357183,
+      "priceTime": 1789177150000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0187608513830024
+    },
+    {
+      "symbol": "TCENTx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "TDGx",
+      "price": 1139,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 5216793.89312325,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "TDYx",
+      "price": 612.075,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 5776154.263556173,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "TEAMx",
+      "price": 180.055,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 12904855.760614835,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "TERx",
+      "price": 379.185,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0005331063386256
+    },
+    {
+      "symbol": "TEx",
+      "price": 4.63,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 5332053.742802288,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "TFCx",
+      "price": 50.265,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.006869220608
+    },
+    {
+      "symbol": "THCx",
+      "price": 273,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 8841150.75295452,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "TJXx",
+      "price": 126.15,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.002201690584
+    },
+    {
+      "symbol": "TLNx",
+      "price": 314,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5264040.23470052,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "TMOx",
+      "price": 604.9411929946158,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0024522181978437
+    },
+    {
+      "symbol": "TMUSx",
+      "price": 181.165,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0078096296112127
+    },
+    {
+      "symbol": "TNGYIx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "TOLx",
+      "price": 134.795,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 4948724.224438122,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "TONXx",
+      "price": 3.0505264207362677,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": 13339952.037879698,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "TOSTx",
+      "price": 32.2,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 4488606.679669421,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "TPLx",
+      "price": 369.515,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.001121974675
+    },
+    {
+      "symbol": "TPRx",
+      "price": 116.305,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.002640701468
+    },
+    {
+      "symbol": "TQQQx",
+      "price": 71.04225956226135,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 2.008976295242212
+    },
+    {
+      "symbol": "TRGPx",
+      "price": 292.5,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.003260788552
+    },
+    {
+      "symbol": "TRMBx",
+      "price": 57.65,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6737436.696532825,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "TROWx",
+      "price": 106.585,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5739376.262059121,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "TRUx",
+      "price": 79,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.001047402442
+    },
+    {
+      "symbol": "TRVx",
+      "price": 377.85,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.002385171051
+    },
+    {
+      "symbol": "TSCOx",
+      "price": 33.105,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.004802744425
+    },
+    {
+      "symbol": "TSLAx",
+      "price": 364.9253581621148,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": 83800506.20616254,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "TSMx",
+      "price": 433.61777630408665,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.004065035082054
+    },
+    {
+      "symbol": "TSNx",
+      "price": 52.59,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.006474428727
+    },
+    {
+      "symbol": "TTMIx",
+      "price": 125.885,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5185799.636424369,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "TTWOx",
+      "price": 215.7775,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5377632.398753397,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "TWLOx",
+      "price": 230.275,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 6762683.243189376,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "TWSTx",
+      "price": 125.25,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 8108545.533016537,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "TWx",
+      "price": 101.3,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.000909935005
+    },
+    {
+      "symbol": "TXNx",
+      "price": 268.645,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.003565791362
+    },
+    {
+      "symbol": "TXRHx",
+      "price": 179.1,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0026840490797546
+    },
+    {
+      "symbol": "TXTx",
+      "price": 81.265,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.000176767677
+    },
+    {
+      "symbol": "TYLx",
+      "price": 365.16,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 7520027.458380271,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "UALx",
+      "price": 109.81,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5246118.321521593,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "UBERx",
+      "price": 71.90100882598483,
+      "priceTime": 1789173870000,
+      "dated": true,
+      "issuedValue": 13948795.385743609,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "UDRx",
+      "price": 35.29,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.002675276753
+    },
+    {
+      "symbol": "UHALx",
+      "price": 70.86,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5159212.776990191,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "UIx",
+      "price": 562.5,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0011679319262534
+    },
+    {
+      "symbol": "ULSx",
+      "price": 74.375,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.001015
+    },
+    {
+      "symbol": "ULTAx",
+      "price": 543.19,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6948903.553188726,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "UNHx",
+      "price": 381.1922148114055,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0273478685368111
+    },
+    {
+      "symbol": "UNMx",
+      "price": 91.55,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 6112842.198976083,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "UNPx",
+      "price": 283.245,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.003233466706
+    },
+    {
+      "symbol": "UPSx",
+      "price": 100.11,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.010985645933
+    },
+    {
+      "symbol": "URAx",
+      "price": 43.825,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 9071774.999999562,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "URIx",
+      "price": 985,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.001205851748
+    },
+    {
+      "symbol": "USARx",
+      "price": 15.645,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 7712984.998731503,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "USBx",
+      "price": 62.85,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6281859.070464375,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "USFDx",
+      "price": 94.535,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5712947.575162187,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "USPXx",
+      "price": 66.995,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.001926961395
+    },
+    {
+      "symbol": "UTHRx",
+      "price": 503.93,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5529640.907469175,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "UUUUx",
+      "price": 13.025,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 7202824.997579955,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "Ux",
+      "price": 43.955,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5010162.931450859,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "VCXx",
+      "price": 33.825,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 4431638.994845082,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "VEEVx",
+      "price": 262.645,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 8970626.743323108,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "VGKx",
+      "price": 90.84,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.009406813852
+    },
+    {
+      "symbol": "VICIx",
+      "price": 24.875,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5600375.234521551,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "VIDAx",
+      "price": 1.988003822955967,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": 8611323.811786845,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "VIKx",
+      "price": 85.275,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 4906266.48127696,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "VLOx",
+      "price": 391.47,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.002694812486
+    },
+    {
+      "symbol": "VLTOx",
+      "price": 92,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 5810526.3157892795,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "VMCx",
+      "price": 252.81,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.001298238105
+    },
+    {
+      "symbol": "VNOMx",
+      "price": 44.18,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 4986651.929325326,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "VOOx",
+      "price": 702.89,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.002032735937
+    },
+    {
+      "symbol": "VRSKx",
+      "price": 176.82,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5925272.270314151,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "VRSNx",
+      "price": 280,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.00204885452
+    },
+    {
+      "symbol": "VRTXx",
+      "price": 516.12,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6604504.3507899055,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "VRTx",
+      "price": 257,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.000314669728725
+    },
+    {
+      "symbol": "VTIx",
+      "price": 385.8159761935889,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0100563088016958
+    },
+    {
+      "symbol": "VTRSx",
+      "price": 16.6,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.005210918114
+    },
+    {
+      "symbol": "VTRx",
+      "price": 90.015,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6373119.358073786,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "VTx",
+      "price": 157.82868605098133,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.00974987730554
+    },
+    {
+      "symbol": "VUGx",
+      "price": 87.83,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 6.004667790486
+    },
+    {
+      "symbol": "VXUSx",
+      "price": 87.15,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.003137202554
+    },
+    {
+      "symbol": "VZx",
+      "price": 50.565,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 6526621.490803194,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "Vx",
+      "price": 372.75228902581773,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0066699189441244
+    },
+    {
+      "symbol": "WABx",
+      "price": 282.75,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.000721769499
+    },
+    {
+      "symbol": "WATx",
+      "price": 405.59,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6380294.429948397,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "WBDx",
+      "price": 28.145,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 9611517.5,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "WCCx",
+      "price": 357.25,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.00101744186
+    },
+    {
+      "symbol": "WDAYx",
+      "price": 185.545,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 9095343.137253555,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "WDCx",
+      "price": 447.325,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.000224618149
+    },
+    {
+      "symbol": "WECx",
+      "price": 105.345,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.006045973885
+    },
+    {
+      "symbol": "WELLx",
+      "price": 237,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.002632626875
+    },
+    {
+      "symbol": "WENx",
+      "price": 7.615,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.005903614458
+    },
+    {
+      "symbol": "WFCx",
+      "price": 90.24,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.003995889942
+    },
+    {
+      "symbol": "WGSx",
+      "price": 85.5,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 4967787.86500824,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "WHGROx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1.029261155816
+    },
+    {
+      "symbol": "WHRFRx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "WMBx",
+      "price": 72.965,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.00504669047
+    },
+    {
+      "symbol": "WMSx",
+      "price": 127.915,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.001031459515214
+    },
+    {
+      "symbol": "WMTx",
+      "price": 105.95193835687684,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0071845610241497
+    },
+    {
+      "symbol": "WMx",
+      "price": 213.985,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.003080039112
+    },
+    {
+      "symbol": "WPCx",
+      "price": 69.14,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5744512.912829531,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "WRBx",
+      "price": 69.875,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 5898283.624085466,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "WRFHDx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "WRLDx",
+      "price": 179,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 4954693.83584745,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "WSMx",
+      "price": 249,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 6234741.78403683,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "WSOx",
+      "price": 314,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5709472.841792,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "WSTx",
+      "price": 320.3,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.000456973294
+    },
+    {
+      "symbol": "WTRGx",
+      "price": 41.09,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5066527.234001821,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "WTSx",
+      "price": 356.11,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0012057416267943
+    },
+    {
+      "symbol": "WULFx",
+      "price": 16.42283404212771,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": 13220381.403912807,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "WUXIBx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "WWDx",
+      "price": 337.325,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.000622308654
+    },
+    {
+      "symbol": "WXXDCx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "WYFIx",
+      "price": 19.315,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5130093.854673802,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "WYx",
+      "price": 22.13,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.006380208333
+    },
+    {
+      "symbol": "Wx",
+      "price": 98.52,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 4712526.037991571,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "XELx",
+      "price": 75.3,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5737507.143309954,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "XIAOx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "XLEx",
+      "price": 66.66306518950277,
+      "priceTime": 1789151960000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.005010474242
+    },
+    {
+      "symbol": "XOMx",
+      "price": 166.82569808176783,
+      "priceTime": 1789181490000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.017648970535191
+    },
+    {
+      "symbol": "XOPx",
+      "price": 194.605,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.003415371022
+    },
+    {
+      "symbol": "XPOx",
+      "price": 186.5,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6889445.74037706,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "XRXx",
+      "price": 3.435,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 5211208.510302575,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "XYLx",
+      "price": 106.56,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.002653852936
+    },
+    {
+      "symbol": "XYZx",
+      "price": 79.5,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 6287069.98813749,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "YLDEx",
+      "price": 55.73,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.0194749276580042
+    },
+    {
+      "symbol": "YUMx",
+      "price": 142.4,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "units",
+      "multiplier": 1.003511470805
+    },
+    {
+      "symbol": "ZBHx",
+      "price": 95.74,
+      "priceTime": 1789181991000,
+      "dated": false,
+      "issuedValue": 6230706.654373385,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "ZBRAx",
+      "price": 350.47,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 7935169.811319962,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "ZHAOMx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "ZJGLDx",
+      "price": null,
+      "priceTime": 1789182070808,
+      "dated": false,
+      "issuedValue": null,
+      "excluded": "price",
+      "multiplier": 1
+    },
+    {
+      "symbol": "ZMx",
+      "price": 95.575,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6558211.344922061,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "ZSx",
+      "price": 164.75,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6511857.7075091,
+      "excluded": null,
+      "multiplier": 1
+    },
+    {
+      "symbol": "ZTSx",
+      "price": 73.16,
+      "priceTime": 1789170272000,
+      "dated": true,
+      "issuedValue": 6103448.275861823,
+      "excluded": null,
+      "multiplier": 1
+    }
+  ]
+}
