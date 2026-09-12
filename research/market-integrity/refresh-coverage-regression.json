@@ -1,0 +1,16 @@
+{
+  "checkedAt": "2026-09-12T11:39:03.420Z",
+  "mode": "Offline replay of captured public data; not live production coverage",
+  "captureCompletedAt": "2026-09-12T03:01:10.808Z",
+  "simulatedAgeSeconds": 130,
+  "oldRefreshBoundaryValued": 0,
+  "fixedRefreshBoundaryValued": 152,
+  "tracked": 832,
+  "exclusions": {
+    "supply": 0,
+    "price": 516,
+    "units": 162,
+    "conflict": 2
+  },
+  "expiredAfterFiveMinutesValued": 0
+}

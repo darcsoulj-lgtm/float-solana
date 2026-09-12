@@ -5,6 +5,8 @@ import { AppError } from '@/lib/validation';
 import { TOKENS, TOKEN_REVIEW_DATE, MARKET_BATCH_SIZE } from '@/lib/tokens';
 import {
   MARKET_REFRESH_MS,
+  POOL_REFRESH_MS,
+  MARKET_MAX_AGE_MS,
   fetchCatalog,
   fetchPools,
   fetchPrices,
@@ -33,7 +35,17 @@ export async function GET(req: Request) {
     await rateLimit('market-data:' + member!.id, 120);
     const database = db();
     const snapshot = <T>(key: string, ttl: number, loader: () => Promise<T>) =>
-      marketSnapshot(database, key, ttl, loader, waitUntil);
+      marketSnapshot(
+        database,
+        key,
+        ttl,
+        loader,
+        waitUntil,
+        Date.now(),
+        key.startsWith('book:') || key.startsWith('token-pairs-')
+          ? ttl
+          : Math.max(ttl, MARKET_MAX_AGE_MS),
+      );
     const symbol = new URL(req.url).searchParams.get('symbol');
     if (symbol && !TOKENS.some((t) => t.symbol === symbol))
       throw new AppError('Unsupported stock.');
@@ -98,7 +110,7 @@ export async function GET(req: Request) {
     const [pools, prices, markets, supplies, history] = await Promise.all([
       snapshot(
         'dex-pools-v4:' + TOKEN_REVIEW_DATE + ':' + batch,
-        MARKET_REFRESH_MS,
+        POOL_REFRESH_MS,
         () => fetchPools(fetch, tokens),
       ),
       snapshot(

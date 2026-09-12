@@ -14,6 +14,7 @@ export async function marketSnapshot<T>(
   loader: () => Promise<T>,
   defer: (work: Promise<unknown>) => void,
   now = Date.now(),
+  maxAge = ttl,
 ): Promise<SourceResult<T>> {
   const row = await db
     .prepare(
@@ -27,11 +28,18 @@ export async function marketSnapshot<T>(
   } catch {
     /* Invalid cached JSON is unavailable. */
   }
+  // Refresh cadence and validity are separate. Never renew the observation
+  // timestamp merely because it was served from cache.
   const fresh =
     data !== null &&
     !!row &&
     row.fetched_at <= now &&
     now - row.fetched_at < ttl;
+  const usable =
+    data !== null &&
+    !!row &&
+    row.fetched_at <= now &&
+    now - row.fetched_at < Math.max(ttl, maxAge);
   const due = !fresh && (!row || row.retry_after <= now);
   const refreshing =
     due ||
@@ -48,7 +56,7 @@ export async function marketSnapshot<T>(
   return {
     data,
     fetchedAt: row?.fetched_at || null,
-    stale: !fresh,
+    stale: !usable,
     refreshing,
     error:
       fresh || refreshing
@@ -83,8 +91,28 @@ export async function cachedMarket<T>(
     error:
       'The source is temporarily unavailable. Showing the last saved observation if available.',
   });
-  if (old && row && now - row.fetched_at < ttl)
+  if (old && row && row.fetched_at <= now && now - row.fetched_at < ttl)
     return { data: old, fetchedAt: row.fetched_at, stale: false, error: null };
+  // A provider-wide 429 must also stop the other market pages and detail reads.
+  const cooldownKey =
+    key.startsWith('dex-pools-') || key.startsWith('token-pairs-')
+      ? 'provider-cooldown:dexscreener'
+      : null;
+  if (cooldownKey) {
+    const cooldown = await db
+      .prepare('SELECT retry_after FROM market_cache WHERE key=?')
+      .bind(cooldownKey)
+      .first<{ retry_after: number }>();
+    if (cooldown && cooldown.retry_after > now) {
+      await db
+        .prepare(
+          'INSERT INTO market_cache (key,payload,fetched_at,retry_after) VALUES (?,NULL,0,?) ON CONFLICT(key) DO UPDATE SET retry_after=MAX(market_cache.retry_after,excluded.retry_after)',
+        )
+        .bind(key, cooldown.retry_after)
+        .run();
+      return previous();
+    }
+  }
   const lease = await db
     .prepare(
       'INSERT INTO market_cache (key,payload,fetched_at,retry_after) VALUES (?,NULL,0,?) ON CONFLICT(key) DO UPDATE SET retry_after=excluded.retry_after WHERE market_cache.retry_after<=? RETURNING key',
@@ -103,6 +131,18 @@ export async function cachedMarket<T>(
       .run();
     return { data, fetchedAt, stale: false, error: null };
   } catch (error) {
+    if (
+      cooldownKey &&
+      error instanceof SourceHttpError &&
+      error.status === 429
+    ) {
+      await db
+        .prepare(
+          'INSERT INTO market_cache (key,payload,fetched_at,retry_after) VALUES (?,NULL,0,?) ON CONFLICT(key) DO UPDATE SET retry_after=MAX(market_cache.retry_after,excluded.retry_after)',
+        )
+        .bind(cooldownKey, Date.now() + error.retryAfterMs)
+        .run();
+    }
     console.error(
       'Market source refresh failed',
       key,

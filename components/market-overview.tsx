@@ -181,7 +181,7 @@ export function MarketOverviewPanel({
         { name: 'DefiLlama', source: data.prices },
         { name: 'Solana supply', source: data.supplies },
       ]
-        .filter((r) => r.source?.stale)
+        .filter((r) => r.source?.stale || r.source?.error)
         .map((r) => r.name)
         .join(', ')
     : '';
@@ -191,7 +191,8 @@ export function MarketOverviewPanel({
       <div className="market-toolbar">
         <details className="market-refresh-note">
           <summary>Auto-updating</summary>
-          Prices and supply: 2 min · CoinMarketCap: 5 min · Order books: 30 sec.
+          Prices and supply: 2 min · Pools: 4 min · CoinMarketCap: 5 min · Order
+          books: 30 sec.
         </details>
         <Button
           variant="outline"

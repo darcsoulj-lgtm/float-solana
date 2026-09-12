@@ -45,7 +45,7 @@ export function useMarketOverview(holdings: string[], refresh: number) {
         failures = 0;
       try {
         // Subsequent reads check only sources still refreshing, not all tokens.
-        for (let pass = 0; active && pending.length && pass < 7; pass++) {
+        for (let pass = 0; active && pending.length && pass < 3; pass++) {
           if (pass) await pause();
           if (!active || document.visibilityState !== 'visible') break;
           const queue = pending;

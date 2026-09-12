@@ -87,6 +87,15 @@ export function tokenObservation(
   const priceConflict =
     comparedPrices.length > 1 &&
     Math.max(...comparedPrices) / Math.min(...comparedPrices) - 1 > 0.05;
+  const valuationUnavailableReason = !supply
+    ? 'supply'
+    : price === null
+      ? 'price'
+      : supply.valuationSafe === false
+        ? 'units'
+        : priceConflict
+          ? 'conflict'
+          : null;
   const issuedValue =
     supply && supply.valuationSafe !== false && price !== null && !priceConflict
       ? supply.supply * price
@@ -94,6 +103,7 @@ export function tokenObservation(
   const liquidityRows = pools.filter((p) => p.liquidity !== null);
   return {
     symbol,
+    valuationUnavailableReason,
     cmcDexVolume24h: cmc?.dexVolume24h ?? null,
     onchainVolume24h: recent(data?.volumes, now, symbol)
       ? (data?.volumes?.data?.[symbol]?.usd24h ?? null)
@@ -157,5 +167,15 @@ export function issuedCoverage(
       : null,
     pricedCount: rows.filter((r) => r.price !== null).length,
     supplyCount: rows.filter((r) => r.supply !== undefined).length,
+    missing: {
+      supply: rows.filter((r) => r.valuationUnavailableReason === 'supply')
+        .length,
+      price: rows.filter((r) => r.valuationUnavailableReason === 'price')
+        .length,
+      units: rows.filter((r) => r.valuationUnavailableReason === 'units')
+        .length,
+      conflict: rows.filter((r) => r.valuationUnavailableReason === 'conflict')
+        .length,
+    },
   };
 }

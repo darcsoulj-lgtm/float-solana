@@ -41,7 +41,11 @@ export function SolanaEcosystem({
       </div>
       <div className="ecosystem-stats">
         <div>
-          <span>Tracked issued value</span>
+          <span>
+            {coverage.valued.length === TOKENS.length
+              ? 'Issued value'
+              : 'Partial issued value'}
+          </span>
           <strong>{usd(coverage.total)}</strong>
           <small>
             {coverage.valued.length} / {TOKENS.length} tokens valued
@@ -83,6 +87,7 @@ export function SolanaEcosystem({
                 <ArrowUpRight size={15} />
               </span>
               <strong>{usd(c.total)}</strong>
+              {c.valued.length < count && <small>Partial value</small>}
               <small>
                 {c.valued.length} / {count} tokens valued
               </small>
@@ -90,6 +95,50 @@ export function SolanaEcosystem({
           );
         })}
       </div>
+      <details className="market-methodology coverage-diagnostics">
+        <summary>Valuation coverage</summary>
+        <p>
+          Each listing needs a recent price, Solana supply and matching units.
+          Missing values are excluded, never counted as zero.
+        </p>
+        <div className="market-table-scroll">
+          <table className="market-table">
+            <caption className="sr-only">Valuation coverage by issuer</caption>
+            <thead>
+              <tr>
+                <th>Issuer</th>
+                <th>Valued</th>
+                <th>Supply unavailable</th>
+                <th>Price unavailable</th>
+                <th>Units unverified</th>
+                <th>Price conflict</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ISSUERS.map((i) => {
+                const c = issuedCoverage(data, now, i.id);
+                return (
+                  <tr key={i.id}>
+                    <th scope="row">{i.name}</th>
+                    <td>
+                      {c.valued.length} / {c.rows.length}
+                    </td>
+                    <td>{c.missing.supply}</td>
+                    <td>{c.missing.price}</td>
+                    <td>{c.missing.units}</td>
+                    <td>{c.missing.conflict}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <p>
+          Unavailable includes expired data. Each excluded listing appears once,
+          under its first missing requirement. Units unverified means a dividend
+          or split adjustment needs a confirmed quote basis.
+        </p>
+      </details>
       <details className="market-methodology">
         <summary>Largest issued values</summary>
         {leaders.map((r) => (

@@ -1507,3 +1507,113 @@ test('snapshot failure preserves stale data and respects the provider cooldown',
   assert.equal(jobs.length, 0);
   f.sql.close();
 });
+
+test('refreshing market snapshots retain valid observations without resetting their age', async () => {
+  const { marketSnapshot } = await import(
+    pathToFileURL(dir + '/market-cache.mjs')
+  );
+  const { mergeMarketPages } = await import(
+    pathToFileURL(dir + '/market-data.mjs')
+  );
+  const f = newsDatabase(),
+    jobs = [],
+    now = Date.now(),
+    observedAt = now - 130000;
+  let release;
+  const wait = new Promise((resolve) => {
+    release = resolve;
+  });
+  f.sql
+    .prepare('INSERT INTO market_cache VALUES(?,?,?,?)')
+    .run(
+      'test:refresh-window',
+      JSON.stringify({ MUx: { supply: 10, valuationSafe: true } }),
+      observedAt,
+      0,
+    );
+  try {
+    const supply = await marketSnapshot(
+      f.db,
+      'test:refresh-window',
+      120000,
+      async () => {
+        await wait;
+        return {};
+      },
+      (work) => jobs.push(work),
+      now,
+      300000,
+    );
+    assert.equal(supply.stale, false);
+    assert.equal(supply.refreshing, true);
+    assert.equal(supply.fetchedAt, observedAt);
+    const page = {
+      catalog: source([], now),
+      markets: source({}, now),
+      prices: source({}, now),
+      pools: source({ MUx: [{ price: 2 }] }, observedAt),
+      supplies: supply,
+    };
+    const merged = mergeMarketPages([page]);
+    assert.equal(issuedCoverage(merged, now, 'xstocks').total, 20);
+    assert.equal(merged.supplies.asOf.MUx, observedAt);
+    assert.equal(
+      issuedCoverage(merged, observedAt + 300001, 'xstocks').total,
+      null,
+    );
+  } finally {
+    release();
+    await Promise.allSettled(jobs);
+    f.sql.close();
+  }
+});
+
+test('DEX rate-limit cooldown is shared across batches and token detail lookups', async () => {
+  const f = newsDatabase();
+  let requests = 0;
+  try {
+    await cachedMarket(f.db, 'dex-pools-v4:test:1', 240000, async () => {
+      requests++;
+      throw new SourceHttpError(
+        'api.dexscreener.com',
+        new Response('', { status: 429 }),
+      );
+    });
+    for (const key of ['dex-pools-v4:test:2', 'token-pairs-v1:mint']) {
+      const result = await cachedMarket(f.db, key, 120000, async () => {
+        requests++;
+        return {};
+      });
+      assert.equal(result.stale, true);
+    }
+    assert.equal(requests, 1);
+  } finally {
+    f.sql.close();
+  }
+});
+
+test('coverage explains every excluded listing without overlap or zero filling', () => {
+  const now = Date.now(),
+    data = {
+      markets: source({}, now),
+      prices: source({}, now),
+      pools: source({ MUx: [{ price: 2 }], AAPLx: [{ price: 3 }] }, now),
+      supplies: source(
+        {
+          MUx: { supply: 10, valuationSafe: true },
+          AAPLx: { supply: 10, valuationSafe: false },
+          AAx: { supply: 10, valuationSafe: true },
+        },
+        now,
+      ),
+    };
+  const c = issuedCoverage(data, now, 'xstocks');
+  assert.equal(c.total, 20);
+  assert.equal(c.valued.length, 1);
+  assert.equal(c.missing.units, 1);
+  assert.equal(c.missing.price, 1);
+  assert.equal(
+    c.rows.length,
+    c.valued.length + Object.values(c.missing).reduce((a, b) => a + b, 0),
+  );
+});

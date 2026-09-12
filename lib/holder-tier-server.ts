@@ -4,6 +4,7 @@ import { TOKENS, TOKEN_REVIEW_DATE, MARKET_BATCH_SIZE } from './tokens';
 import { cachedMarket } from './market-cache';
 import {
   MARKET_REFRESH_MS,
+  POOL_REFRESH_MS,
   fetchPools,
   fetchPrices,
   mergeMarketPages,
@@ -71,7 +72,7 @@ export async function updateHolderTier(
               cachedMarket(
                 database,
                 'dex-pools-v4:' + suffix,
-                MARKET_REFRESH_MS,
+                POOL_REFRESH_MS,
                 () => fetchPools(fetch, tokens),
               ),
               cachedMarket(

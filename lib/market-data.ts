@@ -7,6 +7,10 @@ import {
   type StockToken,
 } from './tokens';
 export const MARKET_REFRESH_MS = 120000;
+// Pool snapshots are secondary price observations; four minutes lowers shared
+// public-provider traffic while remaining inside the five-minute validity limit.
+export const POOL_REFRESH_MS = 240000;
+export const MARKET_MAX_AGE_MS = 300000;
 export type SourceResult<T> = {
   data: T | null;
   fetchedAt: number | null;
@@ -246,8 +250,10 @@ export function parseBook(
 }
 export class SourceHttpError extends Error {
   retryAfterMs: number;
+  status: number;
   constructor(host: string, response: Response) {
     super(`Source unavailable: ${host} HTTP ${response.status}`);
+    this.status = response.status;
     const value = response.headers.get('retry-after');
     const delay =
       value && /^\d+$/.test(value)
@@ -460,7 +466,7 @@ export function mergeMarketPages(pages: MarketOverview[]): MarketOverview {
           ),
         ),
       ),
-      error: sources.some((s) => s.stale)
+      error: sources.some((s) => s.stale || s.error)
         ? 'Some market coverage is temporarily unavailable.'
         : null,
     };
