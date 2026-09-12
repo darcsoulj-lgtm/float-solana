@@ -1,4 +1,5 @@
 'use client';
+import { HoldingsUpdateInfo } from './holdings-update-info';
 import { HolderTierBadge } from './holder-tier-badge';
 import { HOLDER_TIERS, type HolderTierResult } from '@/lib/holder-tier';
 import {
@@ -745,8 +746,8 @@ export function MemberDashboard({
                     />
                   </div>
                   <p>
-                    Based on verified tokenized stock value in this wallet. A tier
-                    appears when every holding has a reliable price.
+                    Based on verified tokenized stock value in this wallet. A
+                    tier appears when every holding has a reliable price.
                   </p>
                   <div className="holder-tier-scale">
                     {HOLDER_TIERS.map((t) => (
@@ -1022,34 +1023,25 @@ export function MemberDashboard({
               <div className="context-heading">
                 <ShieldCheck size={18} />
                 <span>HOLDINGS</span>
-                <LockKeyhole size={14} />
+                <HoldingsUpdateInfo
+                  checking={holdingsChecking}
+                  available={Boolean(data?.holdingsRefreshAvailable)}
+                  checkedAt={
+                    holdings.length
+                      ? Math.max(...holdings.map((h) => h.verified_at))
+                      : null
+                  }
+                />
+                <LockKeyhole size={14} aria-label="Private holdings" />
               </div>
-              <p className="context-caption">
-                {holdingsChecking
-                  ? 'Checking Solana…'
-                  : 'Auto-updates every minute'}
-              </p>
               {holdingsError && (
                 <p role="status" className="context-caption">
                   {holdingsError}
                 </p>
               )}
-              {!holdingsChecking && holdings.length > 0 && (
-                <p className="context-caption">
-                  Last checked{' '}
-                  {new Date(
-                    Math.max(...holdings.map((h) => h.verified_at)),
-                  ).toLocaleString(undefined, {
-                    month: 'short',
-                    day: 'numeric',
-                    hour: 'numeric',
-                    minute: '2-digit',
-                  })}
-                </p>
-              )}
               {data && !data.holdingsRefreshAvailable && (
                 <p className="context-caption">
-                  Verify once to enable automatic updates.
+                  Verify wallet to enable updates.
                 </p>
               )}
               <div className="holding-tags">

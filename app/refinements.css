@@ -939,3 +939,48 @@ fieldset.holding-filter-chips {
   color: var(--muted-foreground);
   margin: 12px 0 0;
 }
+
+/* Keep routine holdings metadata off the reading surface. */
+.holdings-info-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+.holdings-info-trigger:hover,
+.holdings-info-trigger[data-popup-open] {
+  background: var(--muted);
+  color: var(--foreground);
+}
+.holdings-info-trigger:focus-visible {
+  outline: 2px solid var(--foreground);
+  outline-offset: 2px;
+}
+.holdings-info-popover {
+  width: max-content;
+  max-width: min(280px, calc(100vw - 32px));
+  padding: 12px 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  letter-spacing: normal;
+  font-weight: 400;
+}
+.holdings-info-description {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  color: var(--foreground);
+}
+.holdings-info-time {
+  color: var(--muted-foreground);
+}
+.holdings-card > .holding-tags {
+  margin-top: 12px;
+}
