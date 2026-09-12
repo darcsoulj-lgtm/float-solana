@@ -40,7 +40,7 @@ Configure hosted values through Sites environment settings and deploy the saved 
 
 See [research](docs/RESEARCH.md), [architecture](docs/ARCHITECTURE.md), [operations](docs/OPERATIONS.md), and [verification report](docs/VERIFICATION.md).
 
-The reviewed registry contains 41 Backpack Solana tokens, including MU, SKHY, SPCX and BABA. See the [September 11 audit](docs/token-audit-2026-09-11.md) for every mint, evidence and two corrected omissions. Symbols alone are never accepted as token identity. Positive raw balances qualify; cohorts are raw token units, not adjusted economic shares. No exact balance is stored with answers.
+The reviewed registry contains 1,297 Solana mints across Backpack (41), xStocks (832), Ondo (416), PreStocks (7), and Tessera (1). See [multi-issuer coverage](docs/multi-issuer-coverage.md) for sources, limits, and valuation methodology. See the [September 11 audit](docs/token-audit-2026-09-11.md) for every mint, evidence and two corrected omissions. Symbols alone are never accepted as token identity. Positive raw balances qualify; cohorts are raw token units, not adjusted economic shares. No exact balance is stored with answers.
 
 ## Tests
 

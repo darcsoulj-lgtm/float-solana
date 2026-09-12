@@ -280,27 +280,32 @@ export async function detectHoldings(
     }
   }
   if (!candidates.size) return [];
-  // One bounded batch validates every detected mint against its actual token program.
   const mints = [...candidates.keys()];
-  const result = await rpc('getMultipleAccounts', [
-    mints,
-    {
-      encoding: 'jsonParsed',
-      commitment: 'finalized',
-      minContextSlot: Math.max(...scans.map((s) => s.context.slot)),
-    },
-  ]);
-  const values = result.value as unknown as (RpcAccount | null)[];
-  if (
-    !Array.isArray(values) ||
-    values.length !== mints.length ||
-    !Number.isSafeInteger(result.context?.slot) ||
-    result.context.slot < Math.max(...scans.map((s) => s.context.slot))
-  )
-    throw new AppError(
-      'The balance service returned an incomplete mint check.',
-      503,
-    );
+  const values: (RpcAccount | null)[] = [];
+  const minContextSlot = Math.max(...scans.map((s) => s.context.slot));
+  for (let offset = 0; offset < mints.length; offset += 100) {
+    const batch = mints.slice(offset, offset + 100);
+    const result = await rpc('getMultipleAccounts', [
+      batch,
+      {
+        encoding: 'jsonParsed',
+        commitment: 'finalized',
+        minContextSlot,
+      },
+    ]);
+    const checked = result.value as unknown as (RpcAccount | null)[];
+    if (
+      !Array.isArray(checked) ||
+      checked.length !== batch.length ||
+      !Number.isSafeInteger(result.context?.slot) ||
+      result.context.slot < minContextSlot
+    )
+      throw new AppError(
+        'The balance service returned an incomplete mint check.',
+        503,
+      );
+    values.push(...checked);
+  }
   const verifiedAt = Date.now();
   const holdings = mints.map((mint, index) => {
     const candidate = candidates.get(mint)!,

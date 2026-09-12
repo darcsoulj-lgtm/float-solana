@@ -11,13 +11,13 @@ const output = ts.transpileModule(source, {
     module: ts.ModuleKind.ES2022,
   },
 }).outputText;
-const { TOKENS } = await import(
+const { BACKPACK_TOKENS: TOKENS } = await import(
   'data:text/javascript;base64,' + Buffer.from(output).toString('base64')
 );
 try {
   const response = await fetch('https://api.backpack.exchange/api/v1/assets', {
     signal: AbortSignal.timeout(15000),
-    redirect: 'error',
+    redirect: 'manual',
   });
   if (!response.ok) throw new Error('Registry unavailable');
   const assets = await response.json();

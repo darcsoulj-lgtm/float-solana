@@ -381,7 +381,7 @@ export function MemberDashboard({
               <div>
                 <h1>
                   {view === 'markets'
-                    ? 'Backpack stocks'
+                    ? 'Solana stocks'
                     : view === 'brief'
                       ? 'Your news'
                       : view === 'calendar'
@@ -1022,8 +1022,8 @@ export function MemberDashboard({
             </section>
             <div className="context-principle">
               <small>
-                Independent of Backpack and underlying issuers. Discussions are
-                not investment advice.
+                Independent of token issuers. Discussions are not investment
+                advice.
               </small>
             </div>
           </aside>

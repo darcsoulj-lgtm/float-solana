@@ -1,55 +1,30 @@
 import { TOKENS, TOKEN_REVIEW_DATE } from '@/lib/tokens';
+import { TokenDirectory } from '@/components/token-directory';
 export default function Page() {
   return (
     <div className="page">
-      <p className="eyebrow">SUPPORTED STOCKS & ETFS</p>
-      <h1>One holding opens every topic.</h1>
+      <p className="eyebrow">SUPPORTED TOKENS</p>
+      <h1>One holding. Every room.</h1>
       <p>
-        {TOKENS.length} supported Solana tokens. Reviewed {TOKEN_REVIEW_DATE}{' '}
-        against Backpack’s official asset registry and finalized onchain mint
-        accounts.
+        {TOKENS.length.toLocaleString()} Solana stock tokens. Registry review:{' '}
+        {TOKEN_REVIEW_DATE}.
       </p>
-      <p>
-        We include securities whose Solana deposits or withdrawals are enabled
-        in{' '}
-        <a
-          href="https://api.backpack.exchange/api/v1/assets"
-          target="_blank"
-          rel="noreferrer"
-        >
-          Backpack’s public asset registry
-        </a>
-        . Ordinary brokerage positions, perpetuals, and disabled catalogue
-        entries are not eligible. Availability can change after this review.
-      </p>
-      <div className="token-directory">
-        {[...TOKENS]
-          .sort((a, b) => a.symbol.localeCompare(b.symbol))
-          .map((t) => (
-            <article className="token-directory-row" key={t.symbol}>
-              <div>
-                <h2>{t.symbol}</h2>
-                <p>{t.name}</p>
-                <a
-                  className="token-issuer-link"
-                  href={t.source}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Issuer record ↗
-                </a>
-              </div>
-              <a
-                href={'https://explorer.solana.com/address/' + t.mint}
-                target="_blank"
-                rel="noreferrer"
-                aria-label={'View ' + t.symbol + ' mint on Solana Explorer'}
-              >
-                <code>{t.mint}</code>
-              </a>
-            </article>
-          ))}
-      </div>
+      <details className="market-methodology">
+        <summary>Coverage & verification</summary>
+        <p>
+          xStocks uses its official assets API. Backpack uses its official
+          Solana asset registry. Ondo, PreStocks and Tessera use Solana
+          Foundation’s curated mint records, cross-checked against finalized
+          onchain mint accounts. Membership checks those exact mints.
+        </p>
+        <p>
+          This is a reviewed coverage list, not a claim to include every stock
+          token on Solana. New listings require review. Tokens on other chains
+          and ordinary brokerage balances do not qualify. Rights differ across
+          products; some provide indirect private-company exposure.
+        </p>
+      </details>
+      <TokenDirectory />
     </div>
   );
 }

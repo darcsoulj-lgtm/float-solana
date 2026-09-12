@@ -33,6 +33,9 @@ async function portfolio({ hidden = false, prices = {}, positions }) {
       ...React,
       useState: () => [hook++ === 0 ? hidden : false, () => {}],
     },
+    '@/lib/tokens': {
+      TOKENS: positions.map((p) => ({ symbol: p.symbol, issuer: 'backpack' })),
+    },
     '@/lib/token-observation': {
       tokenObservation: (_, symbol) => ({
         price: prices[symbol] ?? null,

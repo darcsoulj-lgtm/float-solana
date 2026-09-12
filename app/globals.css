@@ -4031,3 +4031,116 @@ body:has(.member-shell) > footer {
   outline: 2px solid var(--ring);
   outline-offset: -2px;
 }
+
+/* Multi-issuer market navigation, shared across light and dark themes. */
+.issuer-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  border: 0;
+  padding: 0;
+  margin: 20px 0;
+}
+.issuer-filters button {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--muted-foreground);
+  padding: 8px 13px;
+  font-size: 13px;
+  cursor: pointer;
+  min-height: 38px;
+}
+.issuer-filters button[aria-pressed='true'],
+.issuer-card[aria-pressed='true'] {
+  color: var(--foreground);
+  border-color: var(--primary);
+  background: var(--accent);
+}
+.issuer-filters button:focus-visible,
+.issuer-card:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+}
+.issuer-comparison {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+  gap: 12px;
+  margin: 24px 0;
+}
+.issuer-card {
+  text-align: left;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--foreground);
+  padding: 18px;
+  cursor: pointer;
+  min-width: 0;
+}
+.issuer-card > span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  gap: 8px;
+}
+.issuer-card > strong {
+  display: block;
+  font-size: 24px;
+  line-height: 1.3;
+  margin: 12px 0 6px;
+  font-variant-numeric: tabular-nums;
+}
+.issuer-card > small {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.directory-search {
+  display: grid;
+  gap: 8px;
+  max-width: 480px;
+  margin: 24px 0;
+  font-size: 14px;
+}
+.directory-search input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--foreground);
+  padding: 12px;
+}
+.directory-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 20px;
+  margin-top: 24px;
+}
+.directory-pagination button {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--foreground);
+  padding: 10px 14px;
+  cursor: pointer;
+}
+.directory-pagination button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+@media (max-width: 560px) {
+  .issuer-comparison {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .issuer-card {
+    padding: 14px;
+  }
+  .issuer-card > strong {
+    font-size: 22px;
+  }
+  .token-directory-row code {
+    overflow-wrap: anywhere;
+  }
+}

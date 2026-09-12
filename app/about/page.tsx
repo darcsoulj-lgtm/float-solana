@@ -3,7 +3,7 @@ export default function Page() {
     <div className="page info-page">
       <h1>About HolderPulse</h1>
       <section className="panel">
-        <h2>For Backpack stock-token holders</h2>
+        <h2>For Solana stock-token holders</h2>
         <p>
           HolderPulse brings together company news, token market data and member
           discussions. One verified holding gives access to every room.
@@ -12,7 +12,7 @@ export default function Page() {
       <section className="panel">
         <h2>Independent</h2>
         <p>
-          An APG Capital project. Not affiliated with Backpack or underlying
+          An APG Capital project. Not affiliated with token or underlying
           issuers. No announced partnerships or rewards.
         </p>
         <p>

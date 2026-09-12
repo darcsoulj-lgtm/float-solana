@@ -31,7 +31,9 @@ for (const file of [
     );
   await writeFile(dir + '/' + file + '.mjs', out);
 }
-const { TOKENS } = await import(pathToFileURL(dir + '/tokens.mjs'));
+const { TOKENS, BACKPACK_TOKENS } = await import(
+  pathToFileURL(dir + '/tokens.mjs')
+);
 const {
   parseListings,
   parsePools,
@@ -125,7 +127,7 @@ test('Full September 11 audit covers every enabled security and validates all 41
       : [],
   );
   assert.deepEqual(
-    TOKENS.map((t) => `${t.symbol}:${t.mint}`).sort(),
+    BACKPACK_TOKENS.map((t) => `${t.symbol}:${t.mint}`).sort(),
     eligible.sort(),
   );
   const listings = parseListings(audit.assets, audit.markets);
@@ -143,14 +145,17 @@ test('Full September 11 audit covers every enabled security and validates all 41
   const chain = {
     result: {
       context: { slot: audit.chain.result.context.slot },
-      value: TOKENS.map((t) => accounts.get(t.mint)),
+      value: BACKPACK_TOKENS.map((t) => accounts.get(t.mint)),
     },
   };
   const { parseSupplies } = await import(
     pathToFileURL(dir + '/token-supply.mjs')
   );
-  assert.equal(Object.keys(parseSupplies(chain)).length, 41);
-  TOKENS.forEach((t) => {
+  assert.equal(
+    Object.keys(parseSupplies(chain, Date.now(), BACKPACK_TOKENS)).length,
+    41,
+  );
+  BACKPACK_TOKENS.forEach((t) => {
     const info = accounts.get(t.mint).data.parsed.info;
     const metadata = info.extensions.find(
       (e) => e.extension === 'tokenMetadata',
@@ -311,8 +316,8 @@ test('Provider fetchers use documented batches and parse actual recorded respons
     return Response.json(await fixture('llamaprice'));
   };
   assert.ok((await fetchCatalog(fetcher)).length > 0);
-  assert.ok((await fetchPools(fetcher)).MU.length > 0);
-  assert.ok((await fetchPrices(fetcher)).MU.price > 0);
+  assert.ok((await fetchPools(fetcher, TOKENS.slice(0, 41))).MU.length > 0);
+  assert.ok((await fetchPrices(fetcher, TOKENS.slice(0, 41))).MU.price > 0);
   assert.equal(calls, 5);
 });
 function cacheDb() {
@@ -574,7 +579,7 @@ const supplyFixture = () => ({
     })),
   },
 });
-test('Supply checks every allowlisted mint in one batch, validating program, precision and complete response', async () => {
+test('Supply checks every allowlisted mint in bounded batches, validating program, precision and complete response', async () => {
   const raw = supplyFixture();
   const rows = parseSupplies(raw);
   assert.equal(Object.keys(rows).length, TOKENS.length);
@@ -596,17 +601,31 @@ test('Supply checks every allowlisted mint in one batch, validating program, pre
   const zero = supplyFixture();
   zero.result.value[0].data.parsed.info.supply = '0';
   assert.equal(parseSupplies(zero).MU.supply, 0);
-  await fetchSupplies('https://rpc.example', async (url, opts) => {
-    const body = JSON.parse(opts.body);
-    assert.equal(body.method, 'getMultipleAccounts');
-    assert.deepEqual(
-      body.params[0],
-      TOKENS.map((t) => t.mint),
-    );
-    assert.equal(body.params[1].commitment, 'finalized');
-    assert.equal(opts.redirect, 'manual');
-    return Response.json(supplyFixture());
-  });
+  let offset = 0;
+  const received = await fetchSupplies(
+    'https://rpc.example',
+    async (url, opts) => {
+      const body = JSON.parse(opts.body),
+        batch = TOKENS.slice(offset, offset + 100);
+      assert.equal(body.method, 'getMultipleAccounts');
+      assert.ok(body.params[0].length <= 100);
+      assert.deepEqual(
+        body.params[0],
+        batch.map((t) => t.mint),
+      );
+      assert.equal(body.params[1].commitment, 'finalized');
+      assert.equal(opts.redirect, 'manual');
+      const fixture = supplyFixture();
+      fixture.result.value = fixture.result.value.slice(
+        offset,
+        offset + batch.length,
+      );
+      offset += batch.length;
+      return Response.json(fixture);
+    },
+  );
+  assert.equal(offset, TOKENS.length);
+  assert.equal(Object.keys(received).length, TOKENS.length);
 });
 const source = (data, now) => ({
   data,
@@ -687,10 +706,10 @@ test('Token-level volume covers all 41 captured Backpack mints and includes GRND
     {},
     ...captured.responses.map(parseTokenVolumes),
   );
-  assert.equal(Object.keys(volumes).length, TOKENS.length);
+  assert.equal(Object.keys(volumes).length, BACKPACK_TOKENS.length);
   assert.ok(volumes.GRND.usd24h > 20_000_000);
   assert.ok(volumes.BABA.usd24h > 0);
-  for (const token of TOKENS)
+  for (const token of BACKPACK_TOKENS)
     assert.equal(volumes[token.symbol].mint, token.mint);
 });
 test('Volume parsing rejects wrong chain, fake mint, negative data and duplicates while preserving zero', () => {
@@ -735,20 +754,24 @@ test('Both onchain transports parse all 41 mints in bounded batches', async () =
   );
   for (const key of [undefined, 'test-private']) {
     const calls = [];
-    const result = await fetchTokenVolumes(async (url, options) => {
-      const u = new URL(url);
-      calls.push(u);
-      assert.equal(
-        u.hostname,
-        key ? 'pro-api.coingecko.com' : 'api.geckoterminal.com',
-      );
-      assert.ok(u.pathname.split('/').at(-1).split(',').length <= 30);
-      assert.equal(options.headers['x-api-key'], undefined);
-      assert.equal(options.headers['x-cg-pro-api-key'], key);
-      return Response.json(captured.responses[calls.length - 1]);
-    }, key);
+    const result = await fetchTokenVolumes(
+      async (url, options) => {
+        const u = new URL(url);
+        calls.push(u);
+        assert.equal(
+          u.hostname,
+          key ? 'pro-api.coingecko.com' : 'api.geckoterminal.com',
+        );
+        assert.ok(u.pathname.split('/').at(-1).split(',').length <= 30);
+        assert.equal(options.headers['x-api-key'], undefined);
+        assert.equal(options.headers['x-cg-pro-api-key'], key);
+        return Response.json(captured.responses[calls.length - 1]);
+      },
+      key,
+      TOKENS.slice(0, 41),
+    );
     assert.equal(calls.length, 2);
-    assert.equal(Object.keys(result).length, TOKENS.length);
+    assert.equal(Object.keys(result).length, BACKPACK_TOKENS.length);
   }
 });
 test('Onchain volume stays separate from CMC/pool scope and never uses stale values', () => {
@@ -765,4 +788,71 @@ test('Onchain volume stays separate from CMC/pool scope and never uses stale val
   data.volumes.stale = false;
   data.volumes.fetchedAt = now - 300001;
   assert.equal(tokenObservation(data, 'MU', now).onchainVolume24h, null);
+});
+
+test('Issuer totals partition one Solana total without merging wrappers or counting underlying market cap', () => {
+  const now = Date.now(),
+    chosen = ['MU', 'MUx', 'MUon'];
+  const supplies = Object.fromEntries(
+    chosen.map((s, i) => [s, { supply: (i + 1) * 10, valuationSafe: true }]),
+  );
+  const pools = Object.fromEntries(
+    chosen.map((s) => [s, [{ price: 2, liquidity: 100 }]]),
+  );
+  const data = {
+    supplies: source(supplies, now),
+    pools: source(pools, now),
+    prices: source({}, now),
+    markets: source({}, now),
+  };
+  assert.equal(issuedCoverage(data, now).total, 120);
+  assert.equal(issuedCoverage(data, now, 'backpack').total, 20);
+  assert.equal(issuedCoverage(data, now, 'xstocks').total, 40);
+  assert.equal(issuedCoverage(data, now, 'ondo').total, 60);
+  data.supplies.data.MUon.valuationSafe = false;
+  assert.equal(issuedCoverage(data, now).total, 60);
+  assert.equal(issuedCoverage(data, now, 'ondo').total, null);
+});
+test('Adjusted mint units stay visible as supply but cannot produce an unverified valuation', () => {
+  const fixture = supplyFixture(),
+    info =
+      fixture.result.value[TOKENS.findIndex((t) => t.symbol === 'MUx')].data
+        .parsed.info;
+  info.extensions = [
+    {
+      extension: 'scaledUiAmountConfig',
+      state: {
+        multiplier: '1.2',
+        newMultiplier: '1.5',
+        newMultiplierEffectiveTimestamp: 99999999999,
+      },
+    },
+  ];
+  assert.equal(parseSupplies(fixture).MUx.valuationSafe, false);
+  info.extensions[0].state.multiplier = '1';
+  assert.equal(parseSupplies(fixture).MUx.valuationSafe, true);
+  info.extensions[0].state.newMultiplierEffectiveTimestamp = 0;
+  assert.equal(parseSupplies(fixture).MUx.valuationSafe, false);
+});
+test('A failed issuer page never suppresses fresh data from another page', async () => {
+  const { mergeMarketPages } = await import(
+    pathToFileURL(dir + '/market-data.mjs')
+  );
+  const now = Date.now(),
+    good = {
+      catalog: source([], now),
+      markets: source({}, now),
+      prices: source({}, now),
+      pools: source({ MU: [{ price: 2 }] }, now),
+      supplies: source({ MU: { supply: 10 } }, now),
+    };
+  const bad = {
+    ...good,
+    pools: { ...source({ MUx: [{ price: 999 }] }, now), stale: true },
+    supplies: { ...source({ MUx: { supply: 20 } }, now), stale: true },
+  };
+  const merged = mergeMarketPages([good, bad]);
+  assert.equal(issuedCoverage(merged, now).total, 20);
+  assert.equal(merged.pools.data.MUx, undefined);
+  assert.ok(merged.pools.error);
 });

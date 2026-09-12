@@ -298,7 +298,7 @@ export function Community() {
             <h1>
               A community for
               <br />
-              Backpack stock holders.
+              Solana stock holders.
             </h1>
             <p>
               News, market data and discussions. Connect a wallet holding a

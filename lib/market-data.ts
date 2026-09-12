@@ -1,6 +1,11 @@
 import type { TokenMarket } from './cmc-data';
 import type { MintSupply } from './token-supply';
-import { TOKENS, TOKEN_REVIEW_DATE } from './tokens';
+import {
+  TOKENS,
+  BACKPACK_TOKENS,
+  TOKEN_REVIEW_DATE,
+  type StockToken,
+} from './tokens';
 export const MARKET_REFRESH_MS = 120000;
 export type SourceResult<T> = {
   data: T | null;
@@ -74,7 +79,7 @@ const nonnegative = (x: unknown) => {
 export function parseListings(assets: unknown, markets: unknown): Listing[] {
   if (!Array.isArray(assets) || !Array.isArray(markets))
     throw new Error('Invalid registry response');
-  return TOKENS.flatMap((token) => {
+  return BACKPACK_TOKENS.flatMap((token) => {
     const matches = assets.filter((a) =>
       list(record(a).tokens).some(
         (t) =>
@@ -115,17 +120,20 @@ export function parseListings(assets: unknown, markets: unknown): Listing[] {
     ];
   });
 }
-export function parsePools(raw: unknown): Record<string, Pool[]> {
+export function parsePools(
+  raw: unknown,
+  tokens: readonly StockToken[] = TOKENS,
+): Record<string, Pool[]> {
   if (!Array.isArray(raw)) throw new Error('Invalid pool response');
   const result: Record<string, Pool[]> = Object.fromEntries(
-    TOKENS.map((t) => [t.symbol, []]),
+    tokens.map((t) => [t.symbol, []]),
   );
   const seen = new Set<string>();
   for (const value of raw) {
     const p = record(value),
       base = record(p.baseToken),
       quote = record(p.quoteToken);
-    const token = TOKENS.find((t) => t.mint === base.address);
+    const token = tokens.find((t) => t.mint === base.address);
     if (
       !token ||
       p.chainId !== 'solana' ||
@@ -269,8 +277,13 @@ export async function fetchCatalog(fetcher: typeof fetch = fetch) {
   ]);
   return parseListings(a, m);
 }
-export async function fetchPools(fetcher: typeof fetch = fetch) {
-  const batches = [TOKENS.slice(0, 30), TOKENS.slice(30)];
+export async function fetchPools(
+  fetcher: typeof fetch = fetch,
+  tokens: readonly StockToken[] = TOKENS,
+) {
+  const batches = [];
+  for (let i = 0; i < tokens.length; i += 30)
+    batches.push(tokens.slice(i, i + 30));
   const data = await Promise.all(
     batches
       .filter((b) => b.length)
@@ -284,13 +297,16 @@ export async function fetchPools(fetcher: typeof fetch = fetch) {
   );
   if (data.some((x) => !Array.isArray(x)))
     throw new Error('Invalid pool response');
-  return parsePools(data.flat());
+  return parsePools(data.flat(), tokens);
 }
-export async function fetchPrices(fetcher: typeof fetch = fetch) {
+export async function fetchPrices(
+  fetcher: typeof fetch = fetch,
+  tokens: readonly StockToken[] = TOKENS,
+) {
   return parsePrices(
     await publicJson(
       'https://coins.llama.fi/prices/current/' +
-        TOKENS.map((t) => 'solana:' + t.mint).join(','),
+        tokens.map((t) => 'solana:' + t.mint).join(','),
       fetcher,
     ),
   );
@@ -325,10 +341,11 @@ export function volumeCacheKey(apiKey?: string) {
 export async function fetchTokenVolumes(
   fetcher: typeof fetch = fetch,
   apiKey?: string,
+  tokens: readonly StockToken[] = TOKENS,
 ) {
   const batches = [];
-  for (let i = 0; i < TOKENS.length; i += 30)
-    batches.push(TOKENS.slice(i, i + 30));
+  for (let i = 0; i < tokens.length; i += 30)
+    batches.push(tokens.slice(i, i + 30));
   const result: Record<string, TokenVolume> = {};
   // Bounded sequential batches respect the public provider's request allowance.
   for (const batch of batches) {
@@ -362,4 +379,37 @@ export async function fetchTokenVolumes(
   if (!Object.keys(result).length)
     throw new Error('No verified token volumes returned');
   return result;
+}
+
+// Merge only current chunks. A failed page never makes another issuer's data disappear.
+export function mergeMarketPages(pages: MarketOverview[]): MarketOverview {
+  function combine<T>(
+    sources: SourceResult<Record<string, T>>[],
+  ): SourceResult<Record<string, T>> {
+    const current = sources.filter((s) => s.data && !s.stale && s.fetchedAt);
+    return {
+      data: current.length
+        ? Object.assign({}, ...current.map((s) => s.data))
+        : null,
+      fetchedAt: current.length
+        ? Math.min(...current.map((s) => s.fetchedAt!))
+        : null,
+      stale: current.length === 0,
+      error: sources.some((s) => s.stale)
+        ? 'Some market coverage is temporarily unavailable.'
+        : null,
+    };
+  }
+  return {
+    catalog: pages.find((p) => p.catalog.fetchedAt)?.catalog || {
+      data: null,
+      fetchedAt: null,
+      stale: true,
+      error: null,
+    },
+    markets: combine(pages.map((p) => p.markets)),
+    prices: combine(pages.map((p) => p.prices)),
+    pools: combine(pages.map((p) => p.pools)),
+    supplies: combine(pages.map((p) => p.supplies)),
+  };
 }

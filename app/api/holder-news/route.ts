@@ -48,9 +48,9 @@ async function handle(req: Request) {
     const keys = symbols.map((s) => prefix + s);
     const cached = await database
       .prepare(
-        `SELECT key,payload,fetched_at,retry_after FROM market_cache WHERE key IN (${keys.map(() => '?').join(',')})`,
+        `SELECT key,payload,fetched_at,retry_after FROM market_cache WHERE key IN (SELECT value FROM json_each(?))`,
       )
-      .bind(...keys)
+      .bind(JSON.stringify(keys))
       .all<{
         key: string;
         payload: string | null;
@@ -131,9 +131,9 @@ async function handle(req: Request) {
     }
     const curated = await database
       .prepare(
-        `SELECT ${editorialColumns} FROM editorial_items e WHERE e.kind='news' AND e.status='published' AND e.coverage='direct' AND e.published_at>=? AND e.published_at<=? AND EXISTS(SELECT 1 FROM editorial_tags t WHERE t.item_id=e.id AND t.symbol IN (${symbols.map(() => '?').join(',')})) ORDER BY e.published_at DESC LIMIT 100`,
+        `SELECT ${editorialColumns} FROM editorial_items e WHERE e.kind='news' AND e.status='published' AND e.coverage='direct' AND e.published_at>=? AND e.published_at<=? AND EXISTS(SELECT 1 FROM editorial_tags t WHERE t.item_id=e.id AND t.symbol IN (SELECT value FROM json_each(?))) ORDER BY e.published_at DESC LIMIT 100`,
       )
-      .bind(now - NEWS_WINDOW_MS, now, ...symbols)
+      .bind(now - NEWS_WINDOW_MS, now, JSON.stringify(symbols))
       .all<Record<string, unknown>>();
     for (const row of curated.results) {
       const n = editorialRow(row);

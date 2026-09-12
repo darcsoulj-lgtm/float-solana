@@ -1,6 +1,6 @@
 import { freshTokenMarket } from './cmc-data';
 import type { MarketOverview, SourceResult } from './market-data';
-import { TOKENS } from './tokens';
+import { TOKENS, type IssuerId } from './tokens';
 
 function recent(source: SourceResult<unknown> | undefined, now: number) {
   return (
@@ -42,7 +42,10 @@ export function tokenObservation(
         : reference
           ? 'DefiLlama'
           : 'Unavailable';
-  const issuedValue = supply && price !== null ? supply.supply * price : null;
+  const issuedValue =
+    supply && supply.valuationSafe !== false && price !== null
+      ? supply.supply * price
+      : null;
   const liquidityRows = pools.filter((p) => p.liquidity !== null);
   return {
     symbol,
@@ -82,8 +85,14 @@ export function tokenObservation(
       issuedValue !== null && Number.isFinite(issuedValue) ? issuedValue : null,
   };
 }
-export function issuedCoverage(data: MarketOverview | null, now = Date.now()) {
-  const rows = TOKENS.map((t) => tokenObservation(data, t.symbol, now));
+export function issuedCoverage(
+  data: MarketOverview | null,
+  now = Date.now(),
+  issuer?: IssuerId,
+) {
+  const rows = TOKENS.filter((t) => !issuer || t.issuer === issuer).map((t) =>
+    tokenObservation(data, t.symbol, now),
+  );
   const valued = rows.filter((r) => r.issuedValue !== null);
   return {
     rows,

@@ -283,14 +283,12 @@ async function handler(req: Request) {
         ),
         db()
           .prepare(
-            'UPDATE community_members SET show_badge=0,qualifying_symbol=? WHERE id=? AND qualifying_symbol NOT IN (' +
-              holdings.map(() => '?').join(',') +
-              ')',
+            'UPDATE community_members SET show_badge=0,qualifying_symbol=? WHERE id=? AND qualifying_symbol NOT IN (SELECT value FROM json_each(?))',
           )
           .bind(
             holdings[0].symbol,
             member.id,
-            ...holdings.map((h) => h.symbol),
+            JSON.stringify(holdings.map((h) => h.symbol)),
           ),
         db()
           .prepare('DELETE FROM community_sessions WHERE member_id=?')

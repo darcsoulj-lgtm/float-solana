@@ -55,7 +55,7 @@ const {
   detectHoldings,
   displayTokenAmount,
 } = await import(pathToFileURL(dir + '/solana.mjs'));
-const { TOKENS, TOKEN_PROGRAMS } = await import(
+const { TOKENS, BACKPACK_TOKENS, TOKEN_PROGRAMS } = await import(
   pathToFileURL(dir + '/tokens.mjs')
 );
 const { communityPostErrors } = await import(
@@ -301,20 +301,23 @@ test('Reviewed registry includes every enabled Solana security from the captured
       'utf8',
     ),
   );
-  assert.equal(TOKENS.length, 41);
-  assert.equal(new Set(TOKENS.map((t) => t.mint)).size, TOKENS.length);
+  assert.equal(BACKPACK_TOKENS.length, 41);
+  assert.equal(
+    new Set(BACKPACK_TOKENS.map((t) => t.mint)).size,
+    BACKPACK_TOKENS.length,
+  );
   assert.deepEqual(
-    TOKENS.map((t) => [t.symbol, t.mint]),
+    BACKPACK_TOKENS.map((t) => [t.symbol, t.mint]),
     evidence.tokens.map((t) => [t.symbol, t.mint]),
   );
-  for (const t of TOKENS) {
+  for (const t of BACKPACK_TOKENS) {
     assert.equal(decodeBase58(t.mint).length, 32);
     assert.equal(
       validateSurvey({ ...good, symbol: t.symbol }).symbol,
       t.symbol,
     );
   }
-  assert.ok(TOKENS.find((t) => t.symbol === 'SPCX')?.mint);
+  assert.ok(BACKPACK_TOKENS.find((t) => t.symbol === 'SPCX')?.mint);
 });
 test('Wallet client does not request transaction signing or sending', async () => {
   for (const file of ['community', 'participant']) {
@@ -798,7 +801,10 @@ test('Every supported token receives an automatic company-matched feed candidate
           'manual',
           'Must use the Workers-supported redirect policy',
         );
-        assert.equal(new URL(url).searchParams.get('s'), t.symbol);
+        assert.equal(
+          new URL(url).searchParams.get('s'),
+          t.underlyingSymbol.replace('/', '-'),
+        );
         return new Response(
           `<rss><item><title>${companyAliases(t.symbol)[0]} update</title><pubDate>${new Date(now - 1000).toUTCString()}</pubDate><link>https://finance.yahoo.com/news/company-update</link></item></rss>`,
         );
@@ -877,4 +883,56 @@ test('Profile JPEG validation accepts a real small image and rejects fake or ove
   fake[98] = 255;
   fake[99] = 217;
   assert.equal(validAvatarJpeg(fake), false);
+});
+
+test('Multi-issuer registry keeps exact mints unique and existing Backpack identities stable', () => {
+  assert.equal(TOKENS.length, new Set(TOKENS.map((t) => t.mint)).size);
+  assert.equal(TOKENS.length, new Set(TOKENS.map((t) => t.symbol)).size);
+  for (const symbol of ['MU', 'MUx', 'MUon']) {
+    const t = TOKENS.find((t) => t.symbol === symbol);
+    assert.ok(t, symbol);
+    assert.equal(t.underlyingSymbol, 'MU');
+  }
+  assert.equal(
+    new Set(
+      ['MU', 'MUx', 'MUon'].map((s) => TOKENS.find((t) => t.symbol === s).mint),
+    ).size,
+    3,
+  );
+  assert.ok(
+    TOKENS.every(
+      (t) => t.issuer && t.source.startsWith('https://') && t.underlyingSymbol,
+    ),
+  );
+});
+test('Mixed-issuer wallet with over 100 holdings validates every mint in bounded RPC requests', async () => {
+  const selected = [
+    ...TOKENS.filter((t) => t.issuer === 'backpack').slice(0, 2),
+    ...TOKENS.filter((t) => t.issuer === 'ondo').slice(0, 55),
+    ...TOKENS.filter((t) => t.issuer === 'xstocks').slice(0, 60),
+  ];
+  const fixture = discoveryMock({
+    assets: selected.map((t) => ({
+      mint: t.mint,
+      amount: '1',
+      program: TOKEN_PROGRAMS[1],
+    })),
+  });
+  const result = await detectHoldings(
+    wallet,
+    'https://fixture.invalid',
+    fixture.fetcher,
+  );
+  assert.deepEqual(
+    result.map((h) => h.symbol).sort(),
+    selected.map((t) => t.symbol).sort(),
+  );
+  const checks = fixture.calls.filter(
+    (c) => c.method === 'getMultipleAccounts',
+  );
+  assert.deepEqual(
+    checks.map((c) => c.params[0].length),
+    [100, 17],
+  );
+  assert.ok(result.every((h) => !('rawAmount' in h)));
 });

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Eye, EyeOff, ChevronDown, LockKeyhole } from 'lucide-react';
 import type { Holding } from '@/lib/community-types';
 import type { MarketOverview } from '@/lib/market-data';
+import { TOKENS } from '@/lib/tokens';
 import { tokenObservation } from '@/lib/token-observation';
 const colors = ['#e94b56', '#6495ed', '#b092ed', '#d9a44b', '#42a8a1'];
 export function PortfolioSummary({
@@ -19,12 +20,20 @@ export function PortfolioSummary({
   const rows = positions
     .map((p) => {
       const o = tokenObservation(data, p.symbol, now);
+      const comparable =
+        TOKENS.find((t) => t.symbol === p.symbol)?.issuer === 'backpack'
+          ? o.supply?.valuationSafe !== false
+          : o.supply?.valuationSafe === true;
       const raw =
         p.raw_amount && p.decimals != null
           ? Number(p.raw_amount) / 10 ** p.decimals
           : null;
       const estimate =
-        raw !== null && Number.isFinite(raw) && raw >= 0 && o.price !== null
+        raw !== null &&
+        Number.isFinite(raw) &&
+        raw >= 0 &&
+        o.price !== null &&
+        comparable
           ? raw * o.price
           : null;
       const value =

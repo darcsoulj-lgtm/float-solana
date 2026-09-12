@@ -2,7 +2,7 @@ import { communityMember } from '@/lib/community-server';
 import { CMC_REFRESH_MS, fetchTokenMarkets } from '@/lib/cmc-data';
 import { db, rateLimit, runtime } from '@/lib/server';
 import { AppError } from '@/lib/validation';
-import { TOKENS, TOKEN_REVIEW_DATE } from '@/lib/tokens';
+import { TOKENS, TOKEN_REVIEW_DATE, MARKET_BATCH_SIZE } from '@/lib/tokens';
 import {
   MARKET_REFRESH_MS,
   fetchCatalog,
@@ -26,16 +26,37 @@ const json = (data: unknown, status = 200) =>
 export async function GET(req: Request) {
   try {
     const member = await communityMember(req);
-    await rateLimit('market-data:' + member!.id, 30);
+    await rateLimit('market-data:' + member!.id, 120);
     const symbol = new URL(req.url).searchParams.get('symbol');
     if (symbol && !TOKENS.some((t) => t.symbol === symbol))
       throw new AppError('Unsupported stock.');
-    const catalog = await cachedMarket(
-      db(),
-      'backpack-catalog-v1:' + TOKEN_REVIEW_DATE,
-      300000,
-      () => fetchCatalog(),
+    const batchParam = new URL(req.url).searchParams.get('batch') || '0';
+    const batch = Number(batchParam);
+    if (
+      !/^\d+$/.test(batchParam) ||
+      !Number.isSafeInteger(batch) ||
+      batch < 0 ||
+      batch >= Math.ceil(TOKENS.length / MARKET_BATCH_SIZE)
+    )
+      throw new AppError('Invalid market page.');
+    const tokens = TOKENS.slice(
+      batch * MARKET_BATCH_SIZE,
+      (batch + 1) * MARKET_BATCH_SIZE,
     );
+    if (
+      symbol &&
+      TOKENS.find((t) => t.symbol === symbol)!.issuer !== 'backpack'
+    )
+      return json({ book: null, reason: 'See observed DEX pools below.' });
+    const catalog =
+      batch > 0 && !symbol
+        ? { data: [], fetchedAt: null, stale: false, error: null }
+        : await cachedMarket(
+            db(),
+            'backpack-catalog-v1:' + TOKEN_REVIEW_DATE,
+            300000,
+            () => fetchCatalog(),
+          );
     if (symbol) {
       const listing = catalog.data?.find((l) => l.symbol === symbol);
       if (!listing?.spot || catalog.stale)
@@ -60,27 +81,42 @@ export async function GET(req: Request) {
     const [pools, prices, markets, supplies] = await Promise.all([
       cachedMarket(
         db(),
-        'dex-pools-v1:' + TOKEN_REVIEW_DATE,
+        'dex-pools-v3:' + TOKEN_REVIEW_DATE + ':' + batch,
         MARKET_REFRESH_MS,
-        () => fetchPools(),
+        () => fetchPools(fetch, tokens),
       ),
       cachedMarket(
         db(),
-        'llama-prices-v1:' + TOKEN_REVIEW_DATE,
+        'llama-prices-v3:' + TOKEN_REVIEW_DATE + ':' + batch,
         MARKET_REFRESH_MS,
-        () => fetchPrices(),
+        () => fetchPrices(fetch, tokens),
       ),
-      cachedMarket(db(), 'cmc-tokens-v2', CMC_REFRESH_MS, () =>
-        fetchTokenMarkets(runtime().CMC_API_KEY),
-      ),
+      batch > 0
+        ? Promise.resolve({
+            data: {},
+            fetchedAt: null,
+            stale: false,
+            error: null,
+          })
+        : cachedMarket(db(), 'cmc-tokens-v2', CMC_REFRESH_MS, () =>
+            fetchTokenMarkets(runtime().CMC_API_KEY),
+          ),
       cachedMarket(
         db(),
-        'solana-supplies-v1:' + TOKEN_REVIEW_DATE,
+        'solana-supplies-v3:' + TOKEN_REVIEW_DATE + ':' + batch,
         MARKET_REFRESH_MS,
-        () => fetchSupplies(runtime().SOLANA_RPC_URL),
+        () => fetchSupplies(runtime().SOLANA_RPC_URL, fetch, tokens),
       ),
     ]);
-    return json({ catalog, pools, prices, markets, supplies });
+    return json({
+      catalog,
+      pools,
+      prices,
+      markets,
+      supplies,
+      batch,
+      totalBatches: Math.ceil(TOKENS.length / MARKET_BATCH_SIZE),
+    });
   } catch (e) {
     if (e instanceof AppError) return json({ error: e.message }, e.status);
     console.error(

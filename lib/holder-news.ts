@@ -37,7 +37,7 @@ export function companyAliases(symbol: string) {
   const t = TOKENS.find((t) => t.symbol === symbol);
   if (!t) throw Error('Unsupported stock');
   return (
-    aliases[symbol] ||
+    aliases[t.underlyingSymbol] ||
     [t.shortName, t.name]
       .map((n) =>
         n
@@ -48,7 +48,7 @@ export function companyAliases(symbol: string) {
           )
           .trim(),
       )
-      .filter((n) => n.length >= 4)
+      .filter((n) => n.length >= 2)
   );
 }
 const decode = (s: string) =>
@@ -171,7 +171,9 @@ export async function fetchHeadlines(
   companyAliases(symbol);
   // Feed tickers are only candidates; every headline must still match the company.
   // Yahoo's SKHY feed covers the US listing and provides more direct company news.
-  const ticker = symbol;
+  const ticker = TOKENS.find(
+    (t) => t.symbol === symbol,
+  )!.underlyingSymbol.replace('/', '-');
   const url = new URL('https://feeds.finance.yahoo.com/rss/2.0/headline');
   url.search = new URLSearchParams({
     s: ticker,

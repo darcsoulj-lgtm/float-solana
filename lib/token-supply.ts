@@ -1,7 +1,8 @@
-import { TOKENS, TOKEN_PROGRAMS } from './tokens';
+import { TOKENS, TOKEN_PROGRAMS, type StockToken } from './tokens';
 
 export type MintSupply = {
   supply: number;
+  valuationSafe?: boolean;
   amount: string;
   decimals: number;
   slot: number;
@@ -14,6 +15,7 @@ const record = (value: unknown): Record<string, unknown> =>
 export function parseSupplies(
   raw: unknown,
   now = Date.now(),
+  tokens: readonly StockToken[] = TOKENS,
 ): Record<string, MintSupply> {
   const root = record(raw),
     result = record(root.result),
@@ -21,7 +23,7 @@ export function parseSupplies(
   if (
     root.error ||
     !Array.isArray(result?.value) ||
-    result.value.length !== TOKENS.length ||
+    result.value.length !== tokens.length ||
     typeof slot !== 'number' ||
     !Number.isSafeInteger(slot) ||
     slot < 0
@@ -47,7 +49,26 @@ export function parseSupplies(
       BigInt(info.supply) > 18446744073709551615n
     )
       return;
-    out[TOKENS[index].symbol] = {
+    out[tokens[index].symbol] = {
+      // Non-unit display multipliers need a documented quote-unit basis.
+      // Retain raw supply but exclude ambiguous valuations instead of mixing units.
+      valuationSafe:
+        tokens[index].issuer === 'backpack' ||
+        !Array.isArray(info.extensions) ||
+        !info.extensions.some((entry: unknown) => {
+          const e = record(entry),
+            state = record(e.state);
+          if (e.extension === 'interestBearingConfig') return true;
+          if (e.extension !== 'scaledUiAmountConfig') return false;
+          const effective = Number(state.newMultiplierEffectiveTimestamp);
+          return (
+            Number(
+              Number.isFinite(effective) && effective <= now / 1000
+                ? state.newMultiplier
+                : state.multiplier,
+            ) !== 1
+          );
+        }),
       supply: Number(info.supply) / 10 ** info.decimals,
       amount: info.supply,
       decimals: info.decimals,
@@ -61,7 +82,17 @@ export function parseSupplies(
 export async function fetchSupplies(
   rpcUrl = 'https://api.mainnet-beta.solana.com',
   fetcher: typeof fetch = fetch,
+  tokens: readonly StockToken[] = TOKENS,
 ) {
+  if (tokens.length > 100) {
+    const out: Record<string, MintSupply> = {};
+    for (let i = 0; i < tokens.length; i += 100)
+      Object.assign(
+        out,
+        await fetchSupplies(rpcUrl, fetcher, tokens.slice(i, i + 100)),
+      );
+    return out;
+  }
   // Fixed allowlisted mints only. No wallet addresses or client-supplied endpoints.
   const response = await fetcher(rpcUrl, {
     method: 'POST',
@@ -73,11 +104,14 @@ export async function fetchSupplies(
       id: 1,
       method: 'getMultipleAccounts',
       params: [
-        TOKENS.map((t) => t.mint),
+        tokens.map((t) => t.mint),
         { encoding: 'jsonParsed', commitment: 'finalized' },
       ],
     }),
   });
-  if (!response.ok) throw new Error('Solana supply service unavailable');
-  return parseSupplies(await response.json());
+  if (!response.ok)
+    throw new Error(
+      'Solana supply service unavailable: HTTP ' + response.status,
+    );
+  return parseSupplies(await response.json(), Date.now(), tokens);
 }
