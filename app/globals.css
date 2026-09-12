@@ -1845,7 +1845,7 @@ body:has(.member-shell) > footer {
   flex-direction: column;
   gap: 6px;
 }
-.member-nav button {
+.member-nav :is(button, a) {
   display: flex;
   gap: 12px;
   align-items: center;
@@ -1856,10 +1856,10 @@ body:has(.member-shell) > footer {
   font-size: 14px;
   cursor: pointer;
 }
-.member-nav button:hover {
+.member-nav :is(button, a):hover {
   background: var(--hp-bg-e7e7e7, #e7e7e7);
 }
-.member-nav button[aria-current] {
+.member-nav :is(button, a)[aria-current] {
   background: var(--hp-bg-dfe5e5, #dfe5e5);
   color: var(--hp-ink-4b4b4b, #4b4b4b);
   font-weight: 600;
@@ -2734,7 +2734,7 @@ body:has(.member-shell) > footer {
     margin-top: 13px;
     gap: 5px;
   }
-  .member-nav button {
+  .member-nav :is(button, a) {
     flex: 1;
     padding: 10px 5px;
     justify-content: center;
@@ -2917,7 +2917,7 @@ body:has(.member-shell) > footer {
   font-size: 11px;
 }
 .member-identity strong,
-.member-nav button {
+.member-nav :is(button, a) {
   font-size: 14px;
 }
 .member-identity div > span,
@@ -2999,7 +2999,7 @@ body:has(.member-shell) > footer {
   display: block;
 }
 @media (max-width: 700px) {
-  .member-nav button {
+  .member-nav :is(button, a) {
     font-size: 13px;
   }
   .topic-directory article {

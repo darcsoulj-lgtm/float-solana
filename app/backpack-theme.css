@@ -82,15 +82,15 @@ body,
 .member-page-heading h1 {
   margin: 0;
 }
-.member-nav button,
+.member-nav :is(button, a),
 .sidebar-bottom,
 .sidebar-note a {
   color: var(--hp-ink-62636b, #62636b);
 }
-.member-nav button:hover {
+.member-nav :is(button, a):hover {
   background: var(--hp-bg-e7e7eb, #e7e7eb);
 }
-.member-nav button[aria-current],
+.member-nav :is(button, a)[aria-current],
 .market-switch button[aria-pressed='true'] {
   color: var(--brand-accent-ink);
   background: var(--hp-bg-fff0f0, #fff0f0);

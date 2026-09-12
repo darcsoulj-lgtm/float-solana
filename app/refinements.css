@@ -373,7 +373,7 @@
 .dark textarea {
   color: var(--foreground);
 }
-.dark .member-nav button[aria-current],
+.dark .member-nav :is(button, a)[aria-current],
 .dark .market-switch button[aria-pressed='true'],
 .dark .market-table tr.is-selected {
   background: #302128;

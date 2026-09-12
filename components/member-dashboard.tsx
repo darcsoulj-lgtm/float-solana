@@ -5,6 +5,7 @@ import { HolderTierBadge } from './holder-tier-badge';
 import { HOLDER_TIERS, type HolderTierResult } from '@/lib/holder-tier';
 import {
   lazy,
+  Fragment,
   Suspense,
   useCallback,
   useEffect,
@@ -15,6 +16,7 @@ import {
 import Link from './site-link';
 import {
   Home,
+  Backpack,
   ChartNoAxesCombined,
   Newspaper,
   Compass,
@@ -358,19 +360,28 @@ export function MemberDashboard({
         </div>
         <nav className="member-nav" aria-label="Member navigation">
           {destinations.map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              aria-current={
-                (view === 'topics' ? 'home' : view) === id ? 'page' : undefined
-              }
-              onClick={() => navigate(id)}
-            >
-              <Icon size={19} />
-              {label}
-              {(view === 'topics' ? 'home' : view) === id && (
-                <span className="nav-indicator" />
+            <Fragment key={id}>
+              <button
+                aria-current={
+                  (view === 'topics' ? 'home' : view) === id
+                    ? 'page'
+                    : undefined
+                }
+                onClick={() => navigate(id)}
+              >
+                <Icon size={19} />
+                {label}
+                {(view === 'topics' ? 'home' : view) === id && (
+                  <span className="nav-indicator" />
+                )}
+              </button>
+              {id === 'markets' && (
+                <Link href="/backpack" aria-label="Backpack dashboard">
+                  <Backpack size={19} aria-hidden="true" />
+                  Backpack
+                </Link>
               )}
-            </button>
+            </Fragment>
           ))}
         </nav>
         <div className="sidebar-appearance">

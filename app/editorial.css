@@ -850,7 +850,7 @@ body:has(.operations-page) > footer {
     justify-content: flex-start;
     scrollbar-width: none;
   }
-  .member-shell .member-nav button {
+  .member-shell .member-nav :is(button, a) {
     flex: 0 0 auto;
     min-width: 78px;
     padding: 12px 8px;
