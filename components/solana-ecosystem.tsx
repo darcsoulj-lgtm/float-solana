@@ -104,9 +104,9 @@ export function SolanaEcosystem({
           reference prices, using the same units as its dashboard. HKD quotes
           are converted with dated ECB reference rates. Updated every 10
           minutes; reference prices may be up to 72 hours old. No multiplier is
-          applied twice. Other issuers remain unverified on this basis. Gross
-          mint values stay in each asset’s source details and are never added to
-          this total.
+          applied twice. Other issuers show separately labeled minted-value
+          estimates in the issuer filters and token table. Those estimates can
+          include inventory and are never added to this circulating total.
         </p>
         <h3>Largest circulating values</h3>
         {leaders.map((r) => (

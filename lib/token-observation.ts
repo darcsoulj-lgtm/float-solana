@@ -244,3 +244,39 @@ export function circulatingCoverage(
     },
   };
 }
+
+// Issuer summaries may expose different explicitly labeled measures. They are
+// never inputs to the circulating headline. xStocks must not fall back to its
+// gross pre-minted inventory when its circulating source is unavailable.
+export function issuerValuation(
+  data: MarketOverview | null,
+  now: number,
+  issuer: IssuerId,
+) {
+  const circulating = issuer === 'xstocks';
+  const coverage = circulating
+    ? circulatingCoverage(data, now, issuer)
+    : issuedCoverage(data, now, issuer);
+  return {
+    ...coverage,
+    label: circulating ? 'Circulating value' : 'Minted value',
+    basis: circulating ? 'circulating' : 'minted',
+  };
+}
+
+export function tokenValuation(
+  observation: ReturnType<typeof tokenObservation>,
+  issuer: IssuerId,
+) {
+  return issuer === 'xstocks'
+    ? {
+        value: observation.circulatingValue,
+        label: 'Circulating value',
+        basis: 'Circulating',
+      }
+    : {
+        value: observation.issuedValue,
+        label: 'Minted value',
+        basis: 'Minted',
+      };
+}

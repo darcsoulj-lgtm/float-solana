@@ -488,11 +488,18 @@ async function marketFixture() {
         React.createElement('div', null, 'Market-wide totals'),
     },
     '@/lib/token-observation': {
-      circulatingCoverage: () => ({
+      issuerValuation: () => ({
+        label: 'Minted value',
+        basis: 'minted',
         total: 12000,
         valued: [{}],
         rows: [{}, {}],
         issuerCount: 1,
+      }),
+      tokenValuation: () => ({
+        value: 12000,
+        label: 'Minted value',
+        basis: 'Minted',
       }),
       tokenObservation: () => ({
         price: null,
@@ -606,6 +613,9 @@ test('compact issuer value filters select and reset without duplicate cards', as
   );
   assert.match(html, /\$12K/);
   assert.match(html, /partial/);
+  assert.match(html, /Minted value/);
+  assert.doesNotMatch(html, /Not verified/);
+  assert.equal(button('Ondo').props.type, 'button');
   assert.doesNotMatch(html, /issuer-card/);
   cards.props.onIssuer('backpack');
   tree = f.render();

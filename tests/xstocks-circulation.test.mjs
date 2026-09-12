@@ -11,7 +11,7 @@ const root = new URL('../', import.meta.url).pathname;
 const { outputFiles } = await build({
   stdin: {
     contents:
-      "export * from './lib/xstocks-circulation'; export {circulatingCoverage,tokenObservation} from './lib/token-observation'; export {mergeMarketPages} from './lib/market-data';",
+      "export {TOKENS} from './lib/tokens'; export * from './lib/xstocks-circulation'; export {circulatingCoverage,tokenObservation,issuerValuation,tokenValuation} from './lib/token-observation'; export {mergeMarketPages} from './lib/market-data';",
     resolveDir: root,
     loader: 'ts',
   },
@@ -154,4 +154,90 @@ test('Transport fetches bounded complete pages without credentials and honors fa
       ),
     { status: 429, retryAfterMs: 600000 },
   );
+});
+
+test('Other issuer estimates remain available with minted labels and never enter circulation totals', () => {
+  const mixed = structuredClone(data);
+  const examples = ['backpack', 'ondo', 'prestocks', 'tessera'].map(
+    (issuer) => [issuer, api.TOKENS.find((t) => t.issuer === issuer).symbol],
+  );
+  for (const [, symbol] of examples) {
+    mixed.supplies.data[symbol] = { supply: 840, valuationSafe: true };
+    mixed.prices.data[symbol] = { price: 100, confidence: 1, timestamp: now };
+  }
+  for (const [issuer, symbol] of examples) {
+    const c = api.issuerValuation(mixed, now, issuer);
+    assert.equal(c.total, 84000);
+    assert.equal(c.label, 'Minted value');
+    assert.equal(c.basis, 'minted');
+    assert.equal(
+      api.tokenValuation(api.tokenObservation(mixed, symbol, now), issuer)
+        .value,
+      84000,
+    );
+  }
+  assert.equal(
+    api.circulatingCoverage(mixed, now).total,
+    api.circulatingCoverage(data, now).total,
+  );
+  assert.equal(
+    api.issuerValuation(mixed, now, 'xstocks').label,
+    'Circulating value',
+  );
+  mixed.circulation.stale = true;
+  // There is still a gross AAOIx estimate, but an expired xStocks net source must not use it.
+  mixed.supplies.data.AAOIx = { supply: 1000000, valuationSafe: true };
+  mixed.prices.data.AAOIx = { price: 100, confidence: 1, timestamp: now };
+  assert.equal(
+    api.tokenObservation(mixed, 'AAOIx', now).issuedValue,
+    100000000,
+  );
+  assert.equal(api.issuerValuation(mixed, now, 'xstocks').total, null);
+  assert.equal(
+    api.tokenValuation(api.tokenObservation(mixed, 'AAOIx', now), 'xstocks')
+      .value,
+    null,
+  );
+  // A feed error is not zero issuance, and stale snapshots cannot resurrect the estimate.
+  mixed.supplies.stale = true;
+  assert.equal(api.issuerValuation(mixed, now, 'backpack').total, null);
+});
+
+test('Captured Solana observations restore all four non-xStocks issuer estimates', () => {
+  const capture = JSON.parse(
+    fs.readFileSync(
+      root + 'research/market-integrity/audit-2026-09-12.json',
+      'utf8',
+    ),
+  );
+  const rows = capture.records.flatMap((batch) => batch.rows);
+  const at = Math.max(...rows.map((r) => r.supply?.timestamp || 0));
+  const snapshot = (value) => ({
+    data: value,
+    fetchedAt: at,
+    stale: false,
+    error: null,
+  });
+  const historical = {
+    supplies: snapshot({}),
+    prices: snapshot({}),
+    pools: snapshot({}),
+    markets: snapshot({}),
+    catalog: snapshot([]),
+  };
+  for (const row of rows) {
+    if (row.supply) historical.supplies.data[row.symbol] = row.supply;
+    if (row.llama) historical.prices.data[row.symbol] = row.llama;
+  }
+  for (const issuer of ['backpack', 'ondo', 'prestocks', 'tessera']) {
+    const c = api.issuerValuation(historical, at, issuer);
+    assert.ok(c.total > 0, issuer + ' retains a captured minted estimate');
+    assert.equal(c.label, 'Minted value');
+    assert.equal(
+      c.valued.every((r) => r.issuedValue !== null),
+      true,
+    );
+  }
+  assert.equal(api.circulatingCoverage(historical, at).total, null);
+  assert.equal(api.issuerValuation(historical, at, 'xstocks').total, null);
 });
