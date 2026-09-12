@@ -43,6 +43,14 @@ export default function Page() {
           <a href="mailto:elcresearch.support@gmail.com">Contact support</a>
         </p>
       </section>
+      <section className="panel">
+        <h2>Saved and badges</h2>
+        <p>
+          Find saved posts under Discussions → Saved. Your holder tier is in
+          Profile. Enable Show value badge to display its value range beside
+          your name.
+        </p>
+      </section>
     </div>
   );
 }

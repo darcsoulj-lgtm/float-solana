@@ -1,4 +1,5 @@
 'use client';
+import { HolderTierBadge } from './holder-tier-badge';
 import { MemberAvatar } from './member-avatar';
 import { useState } from 'react';
 import { Bookmark } from 'lucide-react';
@@ -51,6 +52,12 @@ export function Thread({
         />
         <strong>{t.alias}</strong>
         {t.badge && <span className="pill">{t.badge} holder</span>}
+        {t.value_tier && (
+          <HolderTierBadge
+            tier={t.value_tier}
+            expiresAt={t.value_tier_expires_at}
+          />
+        )}
         <span>
           {t.room_name || t.topic} ·{' '}
           {new Date(t.created_at).toLocaleDateString()}
@@ -118,6 +125,12 @@ export function Thread({
                 />
                 <strong>{r.alias}</strong>
                 {r.badge && <span className="pill">{r.badge} holder</span>}
+                {r.value_tier && (
+                  <HolderTierBadge
+                    tier={r.value_tier}
+                    expiresAt={r.value_tier_expires_at}
+                  />
+                )}
               </div>
               <p style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
                 {r.body}

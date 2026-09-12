@@ -25,9 +25,10 @@ export default function Page() {
         <p>
           We store a private hash of your wallet address, display name,
           supported token symbols and verification slots/times, verification
-          expiry, badge choice, followed topics, saved-item references, reply
-          notification preferences and in-app notifications, posts, replies,
-          reports, and moderation records.
+          expiry, optional value tier and its expiry, badge preferences,
+          followed topics, saved-item references, reply notification preferences
+          and in-app notifications, posts, replies, reports, and moderation
+          records.
         </p>
         <p>
           Raw wallet addresses are temporarily stored in five-minute challenges
@@ -60,12 +61,12 @@ export default function Page() {
         <h2>What others see</h2>
         <p>
           Member discussions require an active verified session. Other members
-          see your alias, contributions, and optional qualifying-token badge.
-          Public visitors see an illustrative preview with no member data. Your
-          full holdings list, followed topics, saved items, and notifications
-          are returned only to your own active session. Administrators can
-          review content, reports, and member records. Members can copy content,
-          so this is not a confidential channel.
+          see your alias, contributions, and any stock or value badges you
+          choose to show. Public visitors see an illustrative preview with no
+          member data. Your full holdings list, followed topics, saved items,
+          and notifications are returned only to your own active session.
+          Administrators can review content, reports, and member records.
+          Members can copy content, so this is not a confidential channel.
         </p>
       </section>
       <section className="panel">
@@ -98,6 +99,23 @@ export default function Page() {
           underlying companies. There are no funded rewards or guaranteed
           benefits. Legacy research tools retain their separate consent and
           simulated-data labels.
+        </p>
+      </section>
+      <section className="panel">
+        <h2>Holder tiers</h2>
+        <p>
+          Tiers use the estimated USD value of supported stock tokens in your
+          verified wallet: Bronze under $100; Silver $100–$999; Gold
+          $1,000–$9,999; Platinum $10,000–$99,999; Diamond $100,000 or more.
+        </p>
+        <p>
+          Every holding needs a reliable current price. Tiers expire when checks
+          become stale. They do not indicate expertise or total wealth, and do
+          not change posting rights.
+        </p>
+        <p>
+          Value badges are private by default. Enable Show value badge in
+          Profile to share your tier and its range. Exact balances stay private.
         </p>
       </section>
     </div>

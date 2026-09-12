@@ -14,6 +14,7 @@ export type CommunityMember = {
   bio?: string;
   qualifying_symbol: string;
   show_badge: number;
+  show_value_badge?: number;
   notify_replies: number;
   verified_until: number;
   suspended: number;
@@ -25,6 +26,8 @@ export type CommunityAuthor = {
   avatar_key?: string | null;
   bio?: string;
   badge: string | null;
+  value_tier?: string | null;
+  value_tier_expires_at?: number;
 };
 export type CommunityThread = CommunityAuthor & {
   id: string;

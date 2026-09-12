@@ -1,4 +1,6 @@
 'use client';
+import { HolderTierBadge } from './holder-tier-badge';
+import { HOLDER_TIERS, type HolderTierResult } from '@/lib/holder-tier';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import Link from './site-link';
 import {
@@ -45,20 +47,12 @@ import {
   type ThreadPage,
   type CommunitySource,
 } from '@/lib/community-types';
-type View =
-  | 'markets'
-  | 'brief'
-  | 'calendar'
-  | 'home'
-  | 'topics'
-  | 'saved'
-  | 'profile';
+type View = 'markets' | 'brief' | 'calendar' | 'home' | 'topics' | 'profile';
 const destinations = [
   { id: 'brief', label: 'News', icon: Newspaper },
   { id: 'markets', label: 'Markets', icon: ChartNoAxesCombined },
   { id: 'home', label: 'Discussions', icon: Home },
   { id: 'calendar', label: 'Calendar', icon: CalendarDays },
-  { id: 'saved', label: 'Saved', icon: Bookmark },
   { id: 'profile', label: 'Profile', icon: UserRound },
 ] as const;
 export function MemberDashboard({
@@ -76,11 +70,25 @@ export function MemberDashboard({
       typeof window !== 'undefined'
         ? new URLSearchParams(window.location.search).get('view')
         : null;
+    if (value === 'saved') return 'home';
     return value === 'topics' || destinations.some((d) => d.id === value)
       ? (value as View)
       : 'brief';
   });
-  const [feed, setFeed] = useState('personal');
+  const [feed, setFeed] = useState(() => {
+    if (typeof window === 'undefined') return 'personal';
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('view') === 'saved') return 'saved';
+    const value = params.get('feed');
+    return value === 'saved' || value === 'all' ? value : 'personal';
+  });
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('view', view);
+    if (view === 'home') url.searchParams.set('feed', feed);
+    else url.searchParams.delete('feed');
+    window.history.replaceState(null, '', url.pathname + url.search + url.hash);
+  }, [view, feed]);
   const [topic, setTopic] = useState('all');
   const [coverageSymbol, setCoverageSymbol] = useState('all');
   const [threadId, setThreadId] = useState('');
@@ -144,9 +152,16 @@ export function MemberDashboard({
   const [alias, setAlias] = useState(member.alias);
   const [bio, setBio] = useState(member.bio || '');
   const [badge, setBadge] = useState(!!member.show_badge);
+  const [showValueBadge, setShowValueBadge] = useState(
+    !!member.show_value_badge,
+  );
+  const [holderTier, setHolderTier] = useState<HolderTierResult>({
+    tier: null,
+    expiresAt: 0,
+  });
   const [badgeSymbol, setBadgeSymbol] = useState(member.qualifying_symbol);
   const [notifyReplies, setNotifyReplies] = useState(!!member.notify_replies);
-  const query = `community/threads?topic=${encodeURIComponent(topic)}&feed=${view === 'saved' ? 'saved' : feed}&thread=${encodeURIComponent(threadId)}`;
+  const query = `community/threads?topic=${encodeURIComponent(topic)}&feed=${feed}&thread=${encodeURIComponent(threadId)}`;
   const loading = loadedQuery !== query;
   const refresh = useCallback(async () => {
     const sequence = ++requestSequence.current;
@@ -236,6 +251,30 @@ export function MemberDashboard({
     url.hash = '';
     window.history.replaceState(null, '', url.pathname + url.search);
   }
+  useEffect(() => {
+    let active = true;
+    setHolderTier({ tier: null, expiresAt: 0 });
+    if (data?.holdings.length) {
+      void api<HolderTierResult>('community/holder-tier', {})
+        .then((result) => {
+          if (active) setHolderTier(result);
+        })
+        .catch(() => {
+          /* A price outage must not block community access. */
+        });
+    }
+    return () => {
+      active = false;
+    };
+  }, [data?.holdings]);
+  useEffect(() => {
+    if (!holderTier.expiresAt) return;
+    const timer = setTimeout(
+      () => setHolderTier({ tier: null, expiresAt: 0 }),
+      Math.max(0, holderTier.expiresAt - Date.now()),
+    );
+    return () => clearTimeout(timer);
+  }, [holderTier.expiresAt]);
   const rooms = data?.rooms || [];
   const roomName = (id: string) => rooms.find((r) => r.id === id)?.name || id;
   const holdings = data?.holdings || [];
@@ -273,7 +312,7 @@ export function MemberDashboard({
     await refresh();
   }
   const sourceItems = (data?.sources || []).filter((s) =>
-    view === 'saved'
+    feed === 'saved'
       ? s.saved
       : (topic === 'all' || s.symbol === topic) &&
         (feed === 'all' || relevant.has(s.symbol)),
@@ -296,7 +335,7 @@ export function MemberDashboard({
           <div>
             <strong>{member.alias}</strong>
             <span>
-              <span className="small-dot" /> Verified member
+              <span className="small-dot" /> Verified holder
             </span>
           </div>
         </div>
@@ -363,7 +402,7 @@ export function MemberDashboard({
           <div>
             <ThemeToggle />
             <span className="private-label">
-              <LockKeyhole size={13} /> Members only
+              <LockKeyhole size={13} /> Holders only
             </span>
             <Button
               variant="ghost"
@@ -390,9 +429,7 @@ export function MemberDashboard({
                           ? 'Discussions'
                           : view === 'topics'
                             ? 'Discussions'
-                            : view === 'saved'
-                              ? 'Saved'
-                              : 'Profile'}
+                            : 'Profile'}
                 </h1>
               </div>
               {view === 'home' && (
@@ -568,6 +605,7 @@ export function MemberDashboard({
                       alias,
                       bio,
                       showBadge: badge,
+                      showValueBadge,
                       badgeSymbol,
                       notifyReplies,
                     });
@@ -585,7 +623,7 @@ export function MemberDashboard({
                   <div>
                     <strong>{alias || 'Your display name'}</strong>
                     <span>
-                      {badge ? `${badgeSymbol} holder` : 'Verified member'}
+                      {badge ? `${badgeSymbol} holder` : 'Verified holder'}
                     </span>
                   </div>
                   <span className="eyebrow">PROFILE PREVIEW</span>
@@ -662,14 +700,11 @@ export function MemberDashboard({
                 </label>
                 <div className="profile-setting">
                   <div>
-                    <h3>Show a holder badge</h3>
-                    <p>
-                      Optional. Let members see one stock token you hold. Your
-                      other holdings and balances stay off your profile.
-                    </p>
+                    <h3>Show stock badge</h3>
+                    <p>Show one verified stock beside your name.</p>
                   </div>
                   <Checkbox
-                    aria-label="Show a holder badge"
+                    aria-label="Show stock badge"
                     checked={badge}
                     onCheckedChange={(v) => setBadge(v === true)}
                   />
@@ -688,6 +723,44 @@ export function MemberDashboard({
                     }))}
                   />
                 )}
+                <section className="profile-tier" aria-label="Holder tier">
+                  <div className="profile-tier-heading">
+                    <h3>Your holder tier</h3>
+                    <HolderTierBadge
+                      tier={holderTier.tier}
+                      expiresAt={holderTier.expiresAt}
+                    />
+                  </div>
+                  <p>
+                    Based on verified stock-token value in this wallet. A tier
+                    appears when every holding has a reliable price.
+                  </p>
+                  <div className="holder-tier-scale">
+                    {HOLDER_TIERS.map((t) => (
+                      <div
+                        key={t.id}
+                        className={holderTier.tier === t.id ? 'is-current' : ''}
+                      >
+                        <HolderTierBadge tier={t.id} />
+                        <small>{t.range}</small>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="profile-setting">
+                    <div>
+                      <h3>Show value badge</h3>
+                      <p>
+                        Others can see your tier and its value range. Exact
+                        balances stay private.
+                      </p>
+                    </div>
+                    <Checkbox
+                      aria-label="Show value badge"
+                      checked={showValueBadge}
+                      onCheckedChange={(v) => setShowValueBadge(v === true)}
+                    />
+                  </div>
+                </section>
                 <div className="profile-setting">
                   <div>
                     <h3>Replies to your discussions</h3>
@@ -769,6 +842,16 @@ export function MemberDashboard({
                         >
                           All discussions
                         </button>
+                        <button
+                          aria-pressed={feed === 'saved' && !threadId}
+                          onClick={() => {
+                            setFeed('saved');
+                            setTopic('all');
+                            setThreadId('');
+                          }}
+                        >
+                          <Bookmark size={15} aria-hidden="true" /> Saved
+                        </button>
                       </>
                     ) : (
                       <strong>Saved discussions</strong>
@@ -805,7 +888,17 @@ export function MemberDashboard({
                   threads.map((t) => (
                     <Thread
                       key={t.id}
-                      thread={t}
+                      thread={
+                        t.member_id === member.id
+                          ? {
+                              ...t,
+                              value_tier: member.show_value_badge
+                                ? holderTier.tier
+                                : null,
+                              value_tier_expires_at: holderTier.expiresAt,
+                            }
+                          : t
+                      }
                       memberId={member.id}
                       refresh={refresh}
                     />
@@ -816,13 +909,13 @@ export function MemberDashboard({
                     <h3>
                       {threadId
                         ? 'This discussion is unavailable.'
-                        : view === 'saved'
-                          ? 'A place for your next good find.'
+                        : feed === 'saved'
+                          ? 'No saved discussions.'
                           : 'No discussions yet.'}
                     </h3>
                     <p>
-                      {view === 'saved'
-                        ? 'Tap Save on a discussion or source to find it here.'
+                      {feed === 'saved'
+                        ? 'Saved discussions appear here.'
                         : threadId
                           ? 'It may have been removed by its author or a moderator.'
                           : feed === 'personal'
@@ -833,13 +926,11 @@ export function MemberDashboard({
                       <Button
                         variant="outline"
                         onClick={() =>
-                          feed === 'personal'
-                            ? setFeed('all')
-                            : startDiscussion()
+                          feed !== 'all' ? setFeed('all') : startDiscussion()
                         }
                       >
-                        {feed === 'personal'
-                          ? 'Explore all discussions'
+                        {feed !== 'all'
+                          ? 'Browse discussions'
                           : 'Start a discussion'}{' '}
                         <ArrowUpRight size={15} />
                       </Button>
@@ -864,12 +955,12 @@ export function MemberDashboard({
                     Load more
                   </Button>
                 )}
-                {!loading && view === 'saved' && sourceItems.length > 0 && (
+                {!loading && feed === 'saved' && sourceItems.length > 0 && (
                   <section className="member-sources">
                     <div className="source-heading">
                       <div>
                         <h2>
-                          {view === 'saved' ? 'Saved sources' : 'Sources'}
+                          {feed === 'saved' ? 'Saved sources' : 'Sources'}
                         </h2>
                       </div>
                     </div>
@@ -903,7 +994,7 @@ export function MemberDashboard({
                       ))
                     ) : (
                       <p className="source-empty">
-                        {view === 'saved'
+                        {feed === 'saved'
                           ? 'Sources you save will appear here.'
                           : 'No curated source links for this selection yet. Explore all discussions to browse the library.'}
                       </p>

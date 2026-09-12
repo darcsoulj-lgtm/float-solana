@@ -13,6 +13,8 @@ for (const file of [
   'cmc-data',
   'token-supply',
   'token-observation',
+  'holder-tier',
+  'holder-tier-server',
 ]) {
   const raw = await readFile(
     new URL('../lib/' + file + '.ts', import.meta.url),
@@ -26,7 +28,7 @@ for (const file of [
       },
     })
     .outputText.replace(
-      /from '\.\/(tokens|market-data|cmc-data|token-supply|token-observation)'/g,
+      /from '\.\/(tokens|market-data|market-cache|cmc-data|token-supply|token-observation|holder-tier)'/g,
       "from './$1.mjs'",
     );
   await writeFile(dir + '/' + file + '.mjs', out);
@@ -1028,4 +1030,158 @@ test('Divergent quote units never enter issuer valuation totals; adjustment wind
   assert.equal(issuedCoverage(data, now).total, null);
   data.supplies.data.MU.adjustmentAt = now - 3600000;
   assert.equal(tokenObservation(data, 'MU', now).change24h, null);
+});
+
+const { calculateHolderTier, tierForValue } = await import(
+  pathToFileURL(dir + '/holder-tier.mjs')
+);
+const { TIER_WRITE_SQL } = await import(
+  pathToFileURL(dir + '/holder-tier-server.mjs')
+);
+test('holder tiers cover each boundary and never rank zero or invalid values', () => {
+  for (const [value, tier] of [
+    [0, null],
+    [-1, null],
+    [NaN, null],
+    [Infinity, null],
+    [0.01, 'bronze'],
+    [99.99, 'bronze'],
+    [100, 'silver'],
+    [999.99, 'silver'],
+    [1000, 'gold'],
+    [9999.99, 'gold'],
+    [10000, 'platinum'],
+    [99999.99, 'platinum'],
+    [100000, 'diamond'],
+  ])
+    assert.equal(tierForValue(value), tier);
+});
+function tierFixture() {
+  const now = Date.now();
+  const source = (data) => ({
+    data,
+    fetchedAt: now,
+    stale: false,
+    error: null,
+  });
+  return {
+    now,
+    holdings: [
+      {
+        symbol: 'MU',
+        raw_amount: '2000000',
+        decimals: 6,
+        verified_at: now,
+        slot: 1,
+      },
+    ],
+    data: {
+      markets: source({}),
+      catalog: source([]),
+      pools: source({ MU: [] }),
+      prices: source({ MU: { price: 600, confidence: 1, timestamp: now } }),
+      supplies: source({ MU: { supply: 10000, valuationSafe: true } }),
+    },
+  };
+}
+test('holder tier uses verified raw units, prices all holdings and bounds expiry', () => {
+  const { now, holdings, data } = tierFixture();
+  assert.deepEqual(calculateHolderTier(holdings, data, now), {
+    tier: 'gold',
+    expiresAt: now + 120000,
+  });
+  holdings[0].ui_amount = '999999999';
+  assert.equal(calculateHolderTier(holdings, data, now).tier, 'gold');
+  holdings.push({ ...holdings[0], symbol: 'SPCX' });
+  assert.equal(calculateHolderTier(holdings, data, now).tier, null);
+});
+test('holder tier fails closed for stale, conflicting, ambiguous and pool-only valuations', () => {
+  const changes = [
+    (f) => (f.holdings[0].verified_at -= 180000),
+    (f) => (f.holdings[0].verified_at += 10000),
+    (f) => (f.holdings[0].raw_amount = null),
+    (f) => (f.holdings[0].raw_amount = '-5'),
+    (f) => (f.holdings[0].symbol = 'fake'),
+    (f) => (f.holdings[0].decimals = 99),
+    (f) => (f.data.supplies.stale = true),
+    (f) => (f.data.supplies.data.MU.valuationSafe = false),
+    (f) => delete f.data.supplies.data.MU.valuationSafe,
+    (f) => (f.data.prices.data.MU.confidence = 0.2),
+    (f) => (f.data.prices.fetchedAt -= 300001),
+    (f) => (f.data.pools.data.MU = [{ price: 1000 }]),
+    (f) => {
+      f.data.prices.data = {};
+      f.data.pools.data.MU = [{ price: 600 }];
+    },
+    (f) => f.holdings.push({ ...f.holdings[0] }),
+  ];
+  for (const change of changes) {
+    const f = tierFixture();
+    change(f);
+    assert.equal(calculateHolderTier(f.holdings, f.data, f.now).tier, null);
+  }
+});
+test('tier migration preserves users, defaults private, and rejects writes for changed snapshots', async () => {
+  const db = new DatabaseSync(':memory:');
+  db.exec(
+    "CREATE TABLE community_members (id TEXT PRIMARY KEY, suspended INTEGER, verified_until INTEGER); CREATE TABLE community_holdings (member_id TEXT,symbol TEXT,verified_at INTEGER); INSERT INTO community_members VALUES ('a',0,9999999999999); INSERT INTO community_holdings VALUES ('a','MU',1000)",
+  );
+  const migration = await readFile(
+    new URL('../drizzle/0008_hot_reavers.sql', import.meta.url),
+    'utf8',
+  );
+  db.exec(migration);
+  assert.equal(
+    db.prepare('SELECT show_value_badge FROM community_members').get()
+      .show_value_badge,
+    0,
+  );
+  const write = db.prepare(TIER_WRITE_SQL);
+  assert.equal(write.get('gold', 5000, 'a', 1000, 1, 1000).value_tier, 'gold');
+  db.exec('UPDATE community_holdings SET verified_at=2000');
+  assert.equal(write.get('diamond', 5000, 'a', 1000, 1, 1000), undefined);
+  db.exec("INSERT INTO community_holdings VALUES ('a','SPCX',2000)");
+  assert.equal(write.get('diamond', 5000, 'a', 1000, 1, 2000), undefined);
+  db.exec('UPDATE community_members SET suspended=1');
+  assert.equal(write.get('diamond', 5000, 'a', 1000, 2, 2000), undefined);
+  db.close();
+});
+test('public author queries reveal tiers only with opt-in, fresh verification and fresh tier', async () => {
+  const raw = await readFile(
+    new URL('../lib/community-server.ts', import.meta.url),
+    'utf8',
+  );
+  const sql = raw.match(/export const authorColumns =\s*'([^']+)'/)[1];
+  const db = new DatabaseSync(':memory:');
+  db.exec(
+    'CREATE TABLE community_members (alias TEXT,avatar_key TEXT,show_badge INTEGER,show_value_badge INTEGER,qualifying_symbol TEXT,verified_until INTEGER,suspended INTEGER,value_tier TEXT,value_tier_expires_at INTEGER)',
+  );
+  const now = Date.now();
+  db.prepare('INSERT INTO community_members VALUES (?,?,?,?,?,?,?,?,?)').run(
+    'Alias',
+    null,
+    0,
+    0,
+    'MU',
+    now + 60000,
+    0,
+    'gold',
+    now + 60000,
+  );
+  const get = () =>
+    db.prepare('SELECT ' + sql + ' FROM community_members m').get(now);
+  assert.equal(get().value_tier, null);
+  db.exec('UPDATE community_members SET show_value_badge=1');
+  assert.equal(get().value_tier, 'gold');
+  db.exec('UPDATE community_members SET value_tier_expires_at=0');
+  assert.equal(get().value_tier, null);
+  db.prepare(
+    'UPDATE community_members SET value_tier_expires_at=?,verified_until=0',
+  ).run(now + 60000);
+  assert.equal(get().value_tier, null);
+  db.prepare('UPDATE community_members SET verified_until=?,suspended=1').run(
+    now + 60000,
+  );
+  assert.equal(get().value_tier, null);
+  db.close();
 });

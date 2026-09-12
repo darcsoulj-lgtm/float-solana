@@ -18,7 +18,7 @@ export async function communityMember(req: Request, required = true) {
   const member = session
     ? await db()
         .prepare(
-          'SELECT m.id,m.alias,m.bio,m.avatar_key,m.qualifying_symbol,m.show_badge,m.notify_replies,m.verified_until,m.suspended,m.created_at FROM community_sessions s JOIN community_members m ON m.id=s.member_id WHERE s.hash=? AND s.expires_at>? AND m.verified_until>? AND m.suspended=0',
+          'SELECT m.id,m.alias,m.bio,m.avatar_key,m.qualifying_symbol,m.show_badge,m.show_value_badge,m.notify_replies,m.verified_until,m.suspended,m.created_at FROM community_sessions s JOIN community_members m ON m.id=s.member_id WHERE s.hash=? AND s.expires_at>? AND m.verified_until>? AND m.suspended=0',
         )
         .bind(await digest(session), Date.now(), Date.now())
         .first<CommunityMember>()
@@ -65,4 +65,4 @@ export async function communityCleanup() {
   ]);
 }
 export const authorColumns =
-  'm.alias,m.avatar_key, CASE WHEN m.show_badge=1 AND m.verified_until>? AND m.suspended=0 THEN m.qualifying_symbol ELSE NULL END badge';
+  'm.alias,m.avatar_key, CASE WHEN m.show_badge=1 AND m.verified_until>? AND m.suspended=0 THEN m.qualifying_symbol ELSE NULL END badge, CASE WHEN m.show_value_badge=1 AND m.verified_until>unixepoch()*1000 AND m.value_tier_expires_at>unixepoch()*1000 AND m.suspended=0 THEN m.value_tier ELSE NULL END value_tier, m.value_tier_expires_at';

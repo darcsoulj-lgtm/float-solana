@@ -12,7 +12,7 @@
     "lint": "oxlint",
     "format": "oxfmt",
     "db:generate": "drizzle-kit generate",
-    "test": "node --test tests/core.test.mjs tests/wallet-provider.test.mjs",
+    "test": "node --test tests/core.test.mjs tests/wallet-provider.test.mjs tests/market-data.test.mjs tests/market-stock-row.test.mjs tests/dashboard-presentation.test.mjs tests/holder-tier-api.test.mjs",
     "test:integration": "node tests/integration.mjs",
     "test:wallet": "node tests/verified-flow.mjs",
     "typecheck": "tsc --noEmit",

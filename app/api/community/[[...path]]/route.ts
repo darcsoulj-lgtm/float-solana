@@ -1,3 +1,4 @@
+import { updateHolderTier } from '@/lib/holder-tier-server';
 import { refreshHoldings } from '@/lib/holdings-refresh';
 import { getChatGPTUser } from '@/app/chatgpt-auth';
 import {
@@ -264,6 +265,11 @@ async function handler(req: Request) {
       const session = crypto.randomUUID() + crypto.randomUUID();
       await db().batch([
         db()
+          .prepare(
+            'UPDATE community_members SET value_tier=NULL,value_tier_expires_at=0 WHERE id=?',
+          )
+          .bind(member.id),
+        db()
           .prepare('DELETE FROM community_holdings WHERE member_id=?')
           .bind(member.id),
         ...holdings.map((h) =>
@@ -441,6 +447,17 @@ async function handler(req: Request) {
       );
     }
     if (!member) throw new AppError('Membership required.', 401);
+    if (path[0] === 'holder-tier' && post) {
+      await rateLimit('holder-tier:' + member.id, 10);
+      return json(
+        await updateHolderTier(
+          db(),
+          member.id,
+          runtime().SOLANA_RPC_URL,
+          runtime().CMC_API_KEY,
+        ),
+      );
+    }
     if (path[0] === 'rooms' && post) {
       const name = textValue(b.name, 3, 60, 'Room name')
         .normalize('NFKC')
@@ -657,9 +674,14 @@ async function handler(req: Request) {
         throw new AppError('Only a verified holding can appear as your badge.');
       if (b.notifyReplies !== undefined && typeof b.notifyReplies !== 'boolean')
         throw new AppError('Invalid notification preference.');
+      if (
+        b.showValueBadge !== undefined &&
+        typeof b.showValueBadge !== 'boolean'
+      )
+        throw new AppError('Invalid value badge preference.');
       await db()
         .prepare(
-          'UPDATE community_members SET alias=?,bio=?,show_badge=?,qualifying_symbol=?,notify_replies=? WHERE id=?',
+          'UPDATE community_members SET alias=?,bio=?,show_badge=?,qualifying_symbol=?,notify_replies=?,show_value_badge=? WHERE id=?',
         )
         .bind(
           alias,
@@ -669,6 +691,11 @@ async function handler(req: Request) {
           b.notifyReplies === undefined
             ? member.notify_replies
             : b.notifyReplies
+              ? 1
+              : 0,
+          b.showValueBadge === undefined
+            ? member.show_value_badge || 0
+            : b.showValueBadge
               ? 1
               : 0,
           member.id,

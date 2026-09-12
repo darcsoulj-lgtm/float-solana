@@ -339,7 +339,7 @@ export function Community() {
                 <strong>Your dashboard</strong>
                 <span className="selected">⌂ &nbsp; Home</span>
                 <span>◎ &nbsp; Topics</span>
-                <span>♧ &nbsp; Saved</span>
+                <span>♧ &nbsp; Profile</span>
               </div>
               <div className="preview-main">
                 <span className="eyebrow">VERIFIED MEMBERS</span>

@@ -54,17 +54,21 @@ export async function refreshHoldings(
     ),
     db
       .prepare(
-        'UPDATE community_members SET show_badge=0,qualifying_symbol=? WHERE id=? AND qualifying_symbol NOT IN (' +
-          (holdings.length ? holdings.map(() => '?').join(',') : "''") +
-          ') AND ' +
+        'UPDATE community_members SET show_badge=0,qualifying_symbol=? WHERE id=? AND qualifying_symbol NOT IN (SELECT value FROM json_each(?)) AND ' +
           guard,
       )
       .bind(
         holdings[0]?.symbol || 'MU',
         memberId,
-        ...holdings.map((h) => h.symbol),
+        JSON.stringify(holdings.map((h) => h.symbol)),
         ...args,
       ),
+    db
+      .prepare(
+        'UPDATE community_members SET value_tier=NULL,value_tier_expires_at=0 WHERE id=? AND ' +
+          guard,
+      )
+      .bind(memberId, ...args),
     ...(!holdings.length
       ? [
           db

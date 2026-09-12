@@ -172,3 +172,104 @@ test('Appearance offers direct Light selection, persists it, and synchronizes al
     Object.assign(globalThis, prior);
   }
 });
+
+const tierLevels = [
+  { id: 'bronze', label: 'Bronze', range: 'Under $100' },
+  { id: 'silver', label: 'Silver', range: '$100–$999' },
+  { id: 'gold', label: 'Gold', range: '$1k–$9,999' },
+  { id: 'platinum', label: 'Platinum', range: '$10k–$99,999' },
+  { id: 'diamond', label: 'Diamond', range: '$100k+' },
+];
+test('value badge renders a compact label, never an exact balance, and hides expired tiers', async () => {
+  const { HolderTierBadge } = await component('holder-tier-badge.tsx', {
+    '@/lib/holder-tier': { HOLDER_TIERS: tierLevels },
+  });
+  const active = renderToStaticMarkup(
+    React.createElement(HolderTierBadge, {
+      tier: 'gold',
+      expiresAt: Date.now() + 60000,
+    }),
+  );
+  assert.match(active, /Gold/);
+  assert.match(active, /estimated USD value/);
+  const expired = renderToStaticMarkup(
+    React.createElement(HolderTierBadge, { tier: 'gold', expiresAt: 1 }),
+  );
+  assert.doesNotMatch(expired, /Gold/);
+  assert.match(expired, /Verified holder/);
+});
+async function renderDashboard(search) {
+  const Empty = () => null;
+  const Wrap = ({ children }) => React.createElement('div', null, children);
+  const { MemberDashboard } = await component('member-dashboard.tsx', {
+    './site-link': { default: Wrap },
+    './ui/button': { Button: Wrap },
+    './ui/checkbox': { Checkbox: Empty },
+    './ui/dialog': {
+      Dialog: Empty,
+      DialogContent: Wrap,
+      DialogTitle: Wrap,
+      DialogDescription: Wrap,
+    },
+    './search-picker': { SearchPicker: Empty },
+    './community-thread': { Thread: Empty },
+    './room-creator': { RoomCreator: Empty },
+    './market-overview': { MarketOverviewPanel: Empty },
+    './theme-toggle': { ThemeToggle: Empty },
+    './member-avatar': { MemberAvatar: Empty },
+    './member-brief': { MemberBrief: Empty },
+    './holder-tier-badge': { HolderTierBadge: Empty },
+    '@/lib/holder-tier': { HOLDER_TIERS: tierLevels },
+    '@/lib/client': { api: () => {} },
+    '@/lib/community-post': {
+      communityPostErrors: () => ({}),
+      POST_LIMITS: { title: { max: 200 }, body: { max: 50000 } },
+    },
+  });
+  const previous = globalThis.window;
+  globalThis.window = { location: { search } };
+  try {
+    return renderToStaticMarkup(
+      React.createElement(MemberDashboard, {
+        status: {
+          member: {
+            id: 'me',
+            alias: 'Alias',
+            qualifying_symbol: 'MU',
+            show_badge: 0,
+            notify_replies: 1,
+            verified_until: Date.now() + 60000,
+          },
+          memberCount: 1,
+          threadCount: 0,
+          admin: false,
+        },
+        refreshStatus: async () => {},
+        renew: () => {},
+      }),
+    );
+  } finally {
+    if (previous === undefined) delete globalThis.window;
+    else globalThis.window = previous;
+  }
+}
+test('old Saved links open Discussions with Saved selected, not a separate destination', async () => {
+  const html = await renderDashboard('?view=saved');
+  assert.match(html, /<h1>Discussions<\/h1>/);
+  assert.match(html, /<button aria-pressed="true">[^]*?Saved<\/button>/);
+  assert.doesNotMatch(html.split('</aside>')[0], />Saved</);
+  assert.match(html, /Holders only/);
+  assert.doesNotMatch(html, /Members only/);
+});
+test('Profile stays Profile after navigation and displays the private value badge control', async () => {
+  const html = await renderDashboard('?view=profile');
+  assert.match(html, /<h1>Profile<\/h1>/);
+  assert.match(html, /Show value badge/);
+  assert.match(html, /Exact balances stay private/);
+});
+
+test('Saved filter survives a fresh page load through its own URL', async () => {
+  const html = await renderDashboard('?view=home&feed=saved');
+  assert.match(html, /<h1>Discussions<\/h1>/);
+  assert.match(html, /<button aria-pressed="true">[^]*?Saved<\/button>/);
+});

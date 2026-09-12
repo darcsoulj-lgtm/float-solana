@@ -42,6 +42,23 @@ export default function Page() {
           shareholder status. <Link href="/trust">Privacy details</Link>.
         </p>
       </section>
+      <section className="panel">
+        <h2>Holder tiers</h2>
+        <p>
+          Tiers use the estimated USD value of supported stock tokens in your
+          verified wallet: Bronze under $100; Silver $100–$999; Gold
+          $1,000–$9,999; Platinum $10,000–$99,999; Diamond $100,000 or more.
+        </p>
+        <p>
+          Every holding needs a reliable current price. Tiers expire when checks
+          become stale. They do not indicate expertise or total wealth, and do
+          not change posting rights.
+        </p>
+        <p>
+          Value badges are private by default. Enable Show value badge in
+          Profile to share your tier and its range. Exact balances stay private.
+        </p>
+      </section>
     </div>
   );
 }
