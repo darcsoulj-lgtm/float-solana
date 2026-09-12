@@ -985,60 +985,49 @@ fieldset.holding-filter-chips {
   margin-top: 12px;
 }
 
-/* Float's shared mark and wordmark keep the same proportions on every surface. */
-.float-mark {
-  --float-mark-size: 36px;
-  display: inline-block;
-  position: relative;
-  flex: 0 0 auto;
-  width: calc(var(--float-mark-size) * 0.82);
-  height: var(--float-mark-size);
-  overflow: hidden;
-  line-height: 0;
-}
-.float-mark img {
-  position: absolute;
-  width: calc(var(--float-mark-size) * 1.18);
-  height: calc(var(--float-mark-size) * 1.18);
-  max-width: none;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-}
-.float-mark-small {
-  --float-mark-size: 26px;
-}
+/* Float wordmark: one quiet typographic signature on every surface. */
 .brand,
 .member-brand,
 .operations-brand {
-  gap: 10px;
   letter-spacing: normal;
   font-style: normal;
 }
-.brand .float-wordmark,
-.member-brand .float-wordmark,
-.operations-brand .float-wordmark {
-  margin: 0;
-  padding: 0;
+.float-lockup {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
   color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, sans-serif;
-  font-size: 28px;
-  font-weight: 650;
   line-height: 1;
-  letter-spacing: -1.2px;
 }
-.operations-brand .float-wordmark small {
+/* The transparent original stays intact; a mask gives both themes flat ink. */
+.float-wordmark-art {
+  display: block;
+  width: 104px;
+  height: 36px;
+  background: currentColor;
+  -webkit-mask: url('/brand/float-wordmark.png') 50% 54% / 115% auto no-repeat;
+  mask: url('/brand/float-wordmark.png') 50% 54% / 115% auto no-repeat;
+}
+.member-brand > .float-lockup,
+.operations-brand > .float-lockup {
+  color: var(--foreground);
+}
+.float-lockup-small .float-wordmark-art {
+  width: 68px;
+  height: 24px;
+}
+.operations-brand .float-lockup small {
+  margin: 0;
+  font-family: var(--font-geist-sans), Arial, sans-serif;
   font-size: 9px;
+  font-weight: 500;
   letter-spacing: 1.4px;
-  margin-top: 6px;
+  color: var(--muted-foreground);
 }
 @media (max-width: 700px) {
-  body > header .brand .float-mark,
-  .member-brand .float-mark {
-    --float-mark-size: 30px;
-  }
-  body > header .brand .float-wordmark,
-  .member-brand .float-wordmark {
-    font-size: 24px;
+  body > header .float-wordmark-art {
+    width: 88px;
+    height: 30px;
   }
 }

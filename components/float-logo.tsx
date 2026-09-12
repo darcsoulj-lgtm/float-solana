@@ -1,21 +1,15 @@
-export function FloatMark({ small = false }: { small?: boolean }) {
+export function FloatLogo({
+  admin = false,
+  small = false,
+}: {
+  admin?: boolean;
+  small?: boolean;
+}) {
   return (
-    <span
-      className={`float-mark${small ? ' float-mark-small' : ''}`}
-      aria-hidden="true"
-    >
-      <img src="/brand/float-mark.png" alt="" width={1254} height={1254} />
+    <span className={`float-lockup${small ? ' float-lockup-small' : ''}`}>
+      <span className="float-wordmark-art" aria-hidden="true" />
+      <span className="sr-only">Float</span>
+      {admin && <small>ADMIN</small>}
     </span>
-  );
-}
-
-export function FloatLogo({ admin = false }: { admin?: boolean }) {
-  return (
-    <>
-      <FloatMark />
-      <strong className="float-wordmark">
-        Float{admin && <small>ADMIN</small>}
-      </strong>
-    </>
   );
 }

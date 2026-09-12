@@ -12,8 +12,7 @@ export const metadata: Metadata = {
     template: '%s | Float',
   },
   icons: {
-    icon: { url: '/brand/float-mark.png', type: 'image/png' },
-    apple: '/brand/float-mark.png',
+    icon: { url: '/favicon.svg?v=float-minimal', type: 'image/svg+xml' },
   },
   openGraph: {
     title: 'Float — For Solana tokenized stock holders',

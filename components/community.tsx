@@ -1,5 +1,5 @@
 'use client';
-import { FloatMark } from './float-logo';
+import { FloatLogo } from './float-logo';
 import Link from '@/components/site-link';
 import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -338,7 +338,7 @@ export function Community() {
             </div>
             <div className="preview-layout">
               <div className="preview-nav">
-                <FloatMark small />
+                <FloatLogo small />
                 <strong>Your dashboard</strong>
                 <span className="selected">⌂ &nbsp; Home</span>
                 <span>◎ &nbsp; Topics</span>
