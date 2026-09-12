@@ -31,12 +31,12 @@ export function SolanaEcosystem({
   return (
     <section
       className="ecosystem-overview"
-      aria-label="Solana stock token overview"
+      aria-label="Tokenized stocks on Solana"
     >
       <div className="ecosystem-heading">
         <div>
           <span className="market-kicker">SOLANA</span>
-          <h2>Stock tokens</h2>
+          <h2>Tokenized stocks</h2>
         </div>
         <a href="/tokens" className="market-chain">
           Coverage ↗
@@ -51,7 +51,7 @@ export function SolanaEcosystem({
           </small>
         </div>
         <div>
-          <span>Stock tokens</span>
+          <span>Tokens</span>
           <strong>{TOKENS.length.toLocaleString()}</strong>
           <small>{ISSUERS.length} issuers tracked</small>
         </div>

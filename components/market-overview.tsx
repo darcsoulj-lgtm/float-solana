@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { api } from '@/lib/client';
 import { useMarketOverview } from '@/hooks/use-market-overview';
-import { TOKENS, issuerName, type IssuerId } from '@/lib/tokens';
+import { TOKENS, ISSUERS, issuerName, type IssuerId } from '@/lib/tokens';
 import { type Book, type Pool, type SourceResult } from '@/lib/market-data';
 import { Button } from './ui/button';
 import { PortfolioSummary } from './portfolio-summary';
@@ -61,6 +61,11 @@ export function MarketOverviewPanel({
     symbol: string;
     source: SourceResult<Pool[]>;
   } | null>(null);
+  const chooseIssuer = (id: IssuerId | 'all') => {
+    setIssuer(id);
+    setPage(0);
+    setQuery('');
+  };
   const matches = TOKENS.filter(
     (t) =>
       (!onlyHoldings || holdings.includes(t.symbol)) &&
@@ -214,11 +219,7 @@ export function MarketOverviewPanel({
         data={data}
         now={now}
         issuer={issuer}
-        onIssuer={(id) => {
-          setIssuer(id);
-          setPage(0);
-          setQuery('');
-        }}
+        onIssuer={chooseIssuer}
         select={(symbol) => {
           setOnlyHoldings(false);
           setQuery('');
@@ -230,6 +231,25 @@ export function MarketOverviewPanel({
             ?.scrollIntoView({ block: 'start' });
         }}
       />
+      <fieldset className="issuer-filters" aria-label="Filter by issuer">
+        <button
+          type="button"
+          aria-pressed={issuer === 'all'}
+          onClick={() => chooseIssuer('all')}
+        >
+          All issuers
+        </button>
+        {ISSUERS.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            aria-pressed={issuer === item.id}
+            onClick={() => chooseIssuer(item.id)}
+          >
+            {item.name}
+          </button>
+        ))}
+      </fieldset>
       <div className="market-search-row">
         <label htmlFor="market-search">
           Stock
@@ -245,18 +265,6 @@ export function MarketOverviewPanel({
           />
         </label>
         <div className="market-table-filters">
-          {issuer !== 'all' && (
-            <button
-              className="filter-chip"
-              onClick={() => {
-                setIssuer('all');
-                setPage(0);
-              }}
-              aria-label="Clear issuer filter"
-            >
-              {issuerName(issuer)} ×
-            </button>
-          )}
           <label className="holdings-toggle">
             <input
               type="checkbox"
@@ -275,7 +283,7 @@ export function MarketOverviewPanel({
       <div className="market-table-scroll">
         <table className="market-table">
           <caption>
-            Solana stock tokens ·{' '}
+            Tokenized stocks ·{' '}
             {issuer === 'all' ? 'All issuers' : issuerName(issuer)}
           </caption>
           <thead>

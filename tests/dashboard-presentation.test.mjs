@@ -458,6 +458,7 @@ async function marketFixture() {
     '@/lib/client': { api: () => {} },
     '@/lib/tokens': {
       TOKENS: tokens,
+      ISSUERS: [{ id: 'backpack', name: 'Backpack' }, { id: 'ondo', name: 'Ondo' }],
       MARKET_BATCH_SIZE: 90,
       issuerName: (id) => id,
     },
@@ -569,4 +570,35 @@ test('News keeps its agenda visible when the headline request fails', async () =
   );
   assert.match(html, /Headline request failed/);
   assert.match(html, /Agenda for MU/);
+});
+
+
+test('explicit issuer filters select, reset and synchronize with issuer cards', async () => {
+  const f = await marketFixture();
+  let tree = f.render();
+  const filters = () => findElement(tree, (e) => e.props?.['aria-label'] === 'Filter by issuer');
+  const button = (name) => findElement(filters(), (e) => e.type === 'button' && e.props.children === name);
+  assert.equal(button('All issuers').props['aria-pressed'], true);
+  button('Ondo').props.onClick();
+  tree = f.render();
+  let html = renderToStaticMarkup(tree);
+  assert.equal(button('Ondo').props['aria-pressed'], true);
+  assert.match(html, /GOOGLon/);
+  assert.doesNotMatch(html, /MU Held/);
+  assert.match(html, /Market-wide totals/);
+  assert.match(html, /Portfolio summary/);
+  const cards = findElement(tree, (e) => typeof e.props?.onIssuer === 'function');
+  assert.equal(cards.props.issuer, 'ondo');
+  cards.props.onIssuer('backpack');
+  tree = f.render();
+  assert.equal(button('Backpack').props['aria-pressed'], true);
+  html = renderToStaticMarkup(tree);
+  assert.match(html, /MU Held/);
+  assert.doesNotMatch(html, /GOOGLon/);
+  button('All issuers').props.onClick();
+  tree = f.render();
+  html = renderToStaticMarkup(tree);
+  assert.match(html, /MU Held/);
+  assert.match(html, /GOOGLon/);
+  assert.equal(button('All issuers').props['aria-pressed'], true);
 });

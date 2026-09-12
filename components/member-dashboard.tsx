@@ -436,7 +436,7 @@ export function MemberDashboard({
               <div>
                 <h1>
                   {view === 'markets'
-                    ? 'Solana stocks'
+                    ? 'Markets'
                     : view === 'brief'
                       ? 'Your news'
                       : view === 'home'
