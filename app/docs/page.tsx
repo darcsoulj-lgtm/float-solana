@@ -44,6 +44,19 @@ export default function Page() {
         </p>
       </section>
       <section className="panel">
+        <h2>News and markets</h2>
+        <p>
+          News includes upcoming events for your holdings. Choose View all to
+          open the full agenda. The stock filter applies to both events and
+          headlines.
+        </p>
+        <p>
+          Markets combines your portfolio with Solana-wide metrics. Use Only my
+          holdings to narrow the token table. Issuer cards filter the table;
+          overall market totals stay Solana-wide.
+        </p>
+      </section>
+      <section className="panel">
         <h2>Saved and badges</h2>
         <p>
           Find saved posts under Discussions → Saved. Your holder tier is in

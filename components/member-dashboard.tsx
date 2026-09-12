@@ -7,7 +7,6 @@ import {
   Home,
   ChartNoAxesCombined,
   Newspaper,
-  CalendarDays,
   Compass,
   Bookmark,
   UserRound,
@@ -47,12 +46,11 @@ import {
   type ThreadPage,
   type CommunitySource,
 } from '@/lib/community-types';
-type View = 'markets' | 'brief' | 'calendar' | 'home' | 'topics' | 'profile';
+type View = 'markets' | 'brief' | 'home' | 'topics' | 'profile';
 const destinations = [
   { id: 'brief', label: 'News', icon: Newspaper },
   { id: 'markets', label: 'Markets', icon: ChartNoAxesCombined },
   { id: 'home', label: 'Discussions', icon: Home },
-  { id: 'calendar', label: 'Calendar', icon: CalendarDays },
   { id: 'profile', label: 'Profile', icon: UserRound },
 ] as const;
 export function MemberDashboard({
@@ -71,6 +69,7 @@ export function MemberDashboard({
         ? new URLSearchParams(window.location.search).get('view')
         : null;
     if (value === 'saved') return 'home';
+    if (value === 'calendar') return 'brief';
     return value === 'topics' || destinations.some((d) => d.id === value)
       ? (value as View)
       : 'brief';
@@ -84,6 +83,8 @@ export function MemberDashboard({
   });
   useEffect(() => {
     const url = new URL(window.location.href);
+    if (url.searchParams.get('view') === 'calendar')
+      url.searchParams.set('agenda', 'open');
     url.searchParams.set('view', view);
     if (view === 'home') url.searchParams.set('feed', feed);
     else url.searchParams.delete('feed');
@@ -319,7 +320,7 @@ export function MemberDashboard({
   );
   return (
     <div
-      className={`member-shell ${view === 'markets' ? 'markets-view' : ''} ${view === 'brief' || view === 'calendar' ? 'reading-view' : ''}`}
+      className={`member-shell ${view === 'markets' ? 'markets-view' : ''} ${view === 'brief' ? 'reading-view' : ''}`}
     >
       <aside className="member-sidebar">
         <Link className="member-brand" href="/">
@@ -423,13 +424,11 @@ export function MemberDashboard({
                     ? 'Solana stocks'
                     : view === 'brief'
                       ? 'Your news'
-                      : view === 'calendar'
-                        ? 'Calendar'
-                        : view === 'home'
+                      : view === 'home'
+                        ? 'Discussions'
+                        : view === 'topics'
                           ? 'Discussions'
-                          : view === 'topics'
-                            ? 'Discussions'
-                            : 'Profile'}
+                          : 'Profile'}
                 </h1>
               </div>
               {view === 'home' && (
@@ -495,14 +494,13 @@ export function MemberDashboard({
                   <p>Loading your holdings…</p>
                 )}
               </>
-            ) : view === 'brief' || view === 'calendar' ? (
+            ) : view === 'brief' ? (
               <MemberBrief
                 key={view}
-                kind={view === 'brief' ? 'news' : 'event'}
+                kind="news"
                 holdings={holdings.map((h) => h.symbol)}
                 symbol={held.has(coverageSymbol) ? coverageSymbol : 'all'}
                 onSymbolChange={setCoverageSymbol}
-                onCalendar={() => navigate('calendar')}
                 onDiscuss={(item) => {
                   startDiscussion(item.title.slice(0, 140), item.symbols[0]);
                   setDraftBody(`Source: ${item.url}\n\nComment: `);

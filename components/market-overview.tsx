@@ -11,7 +11,6 @@ import {
 import { api } from '@/lib/client';
 import {
   TOKENS,
-  ISSUERS,
   issuerName,
   MARKET_BATCH_SIZE,
   type IssuerId,
@@ -56,7 +55,7 @@ export function MarketOverviewPanel({
   holdings: string[];
   positions?: Holding[];
 }) {
-  const [scope, setScope] = useState<'holdings' | 'all'>('holdings'),
+  const [onlyHoldings, setOnlyHoldings] = useState(false),
     [query, setQuery] = useState(''),
     [issuer, setIssuer] = useState<IssuerId | 'all'>('all'),
     [page, setPage] = useState(0);
@@ -76,7 +75,7 @@ export function MarketOverviewPanel({
   } | null>(null);
   const matches = TOKENS.filter(
     (t) =>
-      (scope === 'all' || holdings.includes(t.symbol)) &&
+      (!onlyHoldings || holdings.includes(t.symbol)) &&
       (issuer === 'all' || t.issuer === issuer) &&
       (t.symbol + ' ' + t.underlyingSymbol + ' ' + t.name)
         .toLowerCase()
@@ -105,26 +104,24 @@ export function MarketOverviewPanel({
       setBusy(true);
       try {
         const pages: MarketOverview[] = [];
-        const batches =
-          scope === 'all'
-            ? Array.from(
-                { length: Math.ceil(TOKENS.length / MARKET_BATCH_SIZE) },
-                (_, i) => i,
-              )
-            : [
-                ...new Set([
-                  0,
-                  ...holdingsKey
-                    .split('|')
-                    .map((symbol) =>
-                      Math.floor(
-                        TOKENS.findIndex((t) => t.symbol === symbol) /
-                          MARKET_BATCH_SIZE,
-                      ),
-                    )
-                    .filter((i) => i >= 0),
-                ]),
-              ];
+        // Load wallet-relevant chunks first; table filters never narrow aggregate coverage.
+        const ownedBatches = new Set(
+          holdingsKey
+            .split('|')
+            .map((symbol) =>
+              Math.floor(
+                TOKENS.findIndex((t) => t.symbol === symbol) /
+                  MARKET_BATCH_SIZE,
+              ),
+            ),
+        );
+        const batches = Array.from(
+          { length: Math.ceil(TOKENS.length / MARKET_BATCH_SIZE) },
+          (_, i) => i,
+        ).sort(
+          (a, b) =>
+            Number(ownedBatches.has(b)) - Number(ownedBatches.has(a)) || a - b,
+        );
         const count = batches.length;
         let cursor = 0,
           failures = 0;
@@ -174,7 +171,7 @@ export function MarketOverviewPanel({
       window.removeEventListener('focus', visible);
       window.removeEventListener('online', visible);
     };
-  }, [refresh, scope, holdingsKey]);
+  }, [refresh, holdingsKey]);
   useEffect(() => {
     let active = true;
     const load = async () => {
@@ -279,28 +276,10 @@ export function MarketOverviewPanel({
     <div className="market-overview">
       <PortfolioSummary positions={positions} data={data} now={now} />
       <div className="market-toolbar">
-        <fieldset className="market-switch" aria-label="Stock coverage">
-          <button
-            aria-pressed={scope === 'holdings'}
-            onClick={() => {
-              setScope('holdings');
-              setPage(0);
-              if (!holdings.includes(selected))
-                setSelected(holdings[0] || 'MU');
-            }}
-          >
-            Your holdings
-          </button>
-          <button
-            aria-pressed={scope === 'all'}
-            onClick={() => {
-              setScope('all');
-              setPage(0);
-            }}
-          >
-            Solana overview
-          </button>
-        </fieldset>
+        <details className="market-refresh-note">
+          <summary>Auto-updating</summary>
+          Prices and supply: 2 min · CoinMarketCap: 5 min · Order books: 30 sec.
+        </details>
         <Button
           variant="outline"
           disabled={busy}
@@ -310,10 +289,6 @@ export function MarketOverviewPanel({
           {busy ? 'Updating…' : 'Refresh'}
         </Button>
       </div>
-      <details className="market-refresh-note">
-        <summary>Auto-updating</summary>
-        Prices and supply: 2 min · CoinMarketCap: 5 min · Order books: 30 sec.
-      </details>
 
       {error && (
         <div className="error" role="alert">
@@ -327,50 +302,26 @@ export function MarketOverviewPanel({
           below.
         </output>
       )}
-      {scope === 'all' && (
-        <SolanaEcosystem
-          data={data}
-          now={now}
-          issuer={issuer}
-          onIssuer={(id) => {
-            setIssuer(id);
-            setPage(0);
-            setQuery('');
-          }}
-          select={(symbol) => {
-            setSelected(symbol);
-            setCopied(false);
-            document
-              .getElementById('selected-stock-detail')
-              ?.scrollIntoView({ block: 'start' });
-          }}
-        />
-      )}
-      <fieldset className="issuer-filters" aria-label="Issuer">
-        <button
-          type="button"
-          aria-pressed={issuer === 'all'}
-          onClick={() => {
-            setIssuer('all');
-            setPage(0);
-          }}
-        >
-          All issuers
-        </button>
-        {ISSUERS.map((i) => (
-          <button
-            key={i.id}
-            type="button"
-            aria-pressed={issuer === i.id}
-            onClick={() => {
-              setIssuer(i.id);
-              setPage(0);
-            }}
-          >
-            {i.name}
-          </button>
-        ))}
-      </fieldset>
+      <SolanaEcosystem
+        data={data}
+        now={now}
+        issuer={issuer}
+        onIssuer={(id) => {
+          setIssuer(id);
+          setPage(0);
+          setQuery('');
+        }}
+        select={(symbol) => {
+          setOnlyHoldings(false);
+          setQuery('');
+          setPage(0);
+          setSelected(symbol);
+          setCopied(false);
+          document
+            .getElementById('selected-stock-detail')
+            ?.scrollIntoView({ block: 'start' });
+        }}
+      />
       <div className="market-search-row">
         <label htmlFor="market-search">
           Stock
@@ -385,7 +336,33 @@ export function MarketOverviewPanel({
             }}
           />
         </label>
-        <span>{matches.length} stocks</span>
+        <div className="market-table-filters">
+          {issuer !== 'all' && (
+            <button
+              className="filter-chip"
+              onClick={() => {
+                setIssuer('all');
+                setPage(0);
+              }}
+              aria-label="Clear issuer filter"
+            >
+              {issuerName(issuer)} ×
+            </button>
+          )}
+          <label className="holdings-toggle">
+            <input
+              type="checkbox"
+              role="switch"
+              checked={onlyHoldings}
+              onChange={(e) => {
+                setOnlyHoldings(e.target.checked);
+                setPage(0);
+              }}
+            />
+            Only my holdings
+          </label>
+          <span>{matches.length} stocks</span>
+        </div>
       </div>
       <div className="market-table-scroll">
         <table className="market-table">

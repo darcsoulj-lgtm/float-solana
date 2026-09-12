@@ -273,3 +273,289 @@ test('Saved filter survives a fresh page load through its own URL', async () => 
   assert.match(html, /<h1>Discussions<\/h1>/);
   assert.match(html, /<button aria-pressed="true">[^]*?Saved<\/button>/);
 });
+
+test('old Calendar links open News and Calendar is absent from sidebar destinations', async () => {
+  const html = await renderDashboard('?view=calendar');
+  assert.match(html, /<h1>Your news<\/h1>/);
+  assert.doesNotMatch(html.split('</aside>')[0], />Calendar</);
+  for (const name of ['News', 'Markets', 'Discussions', 'Profile'])
+    assert.ok(html.split('</aside>')[0].includes(name));
+});
+
+const agendaItem = (id, day = '2026-09-20') => ({
+  id,
+  title: 'Event ' + id,
+  symbols: ['MU'],
+  event_at: null,
+  event_date: day,
+  certainty: 'confirmed',
+  url: 'https://example.com/events/' + id,
+});
+function localToday() {
+  const d = new Date();
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+    .toISOString()
+    .slice(0, 10);
+}
+async function agendaFixture({
+  expanded = false,
+  error = '',
+  hasMore = false,
+} = {}) {
+  const items = [
+    agendaItem('one'),
+    agendaItem('two'),
+    agendaItem('three', '2026-09-21'),
+  ];
+  const key = `MU:MU:0:0:0:${localToday()}`;
+  const states = [
+    expanded,
+    { key: 'MU:MU', page: 0 },
+    { key, data: { items, hasMore }, error },
+    0,
+  ];
+  let index = 0;
+  const { UpcomingAgenda, groupAgendaEvents } = await component(
+    'upcoming-agenda.tsx',
+    {
+      react: {
+        ...React,
+        useState: (initial) => {
+          const i = index++;
+          if (states[i] === undefined)
+            states[i] = typeof initial === 'function' ? initial() : initial;
+          return [
+            states[i],
+            (update) => {
+              states[i] =
+                typeof update === 'function' ? update(states[i]) : update;
+            },
+          ];
+        },
+        useEffect: () => {},
+        useId: () => 'agenda',
+      },
+      '@/lib/client': { api: () => {} },
+      '@/lib/editorial': { eventLabel: (i) => i.event_date },
+    },
+  );
+  return {
+    states,
+    groupAgendaEvents,
+    render: (symbol = 'MU') => {
+      index = 0;
+      return UpcomingAgenda({ symbol, holdingsKey: 'MU', refresh: 0 });
+    },
+  };
+}
+test('Upcoming previews two events and View all expands the same dated agenda', async () => {
+  const f = await agendaFixture();
+  let tree = f.render();
+  let html = renderToStaticMarkup(tree);
+  assert.match(html, /Event one/);
+  assert.match(html, /Event two/);
+  assert.doesNotMatch(html, /Event three/);
+  const previous = globalThis.window;
+  let nextUrl = '';
+  globalThis.window = {
+    location: { href: 'https://test.local/?view=brief' },
+    history: {
+      replaceState: (_, __, url) => {
+        nextUrl = url;
+      },
+    },
+  };
+  try {
+    tree.props.children[0].props.children[1].props.onClick();
+  } finally {
+    if (previous === undefined) delete globalThis.window;
+    else globalThis.window = previous;
+  }
+  html = renderToStaticMarkup(f.render());
+  assert.match(html, /Event three/);
+  assert.match(html, /aria-expanded="true"/);
+  assert.match(nextUrl, /agenda=open/);
+  assert.match(html, /https:\/\/example.com\/events\/three/);
+  assert.equal(
+    f.groupAgendaEvents([
+      agendaItem('b', '2026-09-21'),
+      agendaItem('a'),
+      agendaItem('c'),
+    ]).length,
+    2,
+  );
+});
+test('changing the stock filter hides the previous agenda while new events load', async () => {
+  const f = await agendaFixture({ expanded: true });
+  const html = renderToStaticMarkup(f.render('SPCX'));
+  assert.match(html, /Loading events/);
+  assert.doesNotMatch(html, /Event one/);
+});
+test('agenda failures are explicit and longer agendas expose bounded pagination', async () => {
+  const failed = await agendaFixture({ error: 'Events unavailable.' });
+  const html = renderToStaticMarkup(failed.render());
+  assert.match(html, /Events unavailable/);
+  assert.match(html, /Retry/);
+  assert.doesNotMatch(html, /No upcoming events/);
+  const paged = await agendaFixture({ expanded: true, hasMore: true });
+  assert.match(
+    renderToStaticMarkup(paged.render()),
+    /aria-label="Event pages"/,
+  );
+});
+
+async function marketFixture() {
+  const states = [];
+  let index = 0;
+  const Empty = () => null;
+  const Wrap = ({ children }) => React.createElement('div', null, children);
+  const tokens = [
+    {
+      symbol: 'MU',
+      underlyingSymbol: 'MU',
+      shortName: 'Micron',
+      name: 'Micron',
+      issuer: 'backpack',
+      mint: 'mint1',
+      source: 'https://example.com/mu',
+    },
+    {
+      symbol: 'GOOGLon',
+      underlyingSymbol: 'GOOGL',
+      shortName: 'Alphabet',
+      name: 'Alphabet',
+      issuer: 'ondo',
+      mint: 'mint2',
+      source: 'https://example.com/googl',
+    },
+  ];
+  const { MarketOverviewPanel } = await component('market-overview.tsx', {
+    react: {
+      ...React,
+      useState: (initial) => {
+        const i = index++;
+        if (!(i in states))
+          states[i] = typeof initial === 'function' ? initial() : initial;
+        return [
+          states[i],
+          (update) => {
+            states[i] =
+              typeof update === 'function' ? update(states[i]) : update;
+          },
+        ];
+      },
+      useEffect: () => {},
+      useRef: (v) => ({ current: v }),
+    },
+    '@/lib/client': { api: () => {} },
+    '@/lib/tokens': {
+      TOKENS: tokens,
+      MARKET_BATCH_SIZE: 90,
+      issuerName: (id) => id,
+    },
+    '@/lib/market-data': {},
+    './ui/button': { Button: Wrap },
+    './portfolio-summary': {
+      PortfolioSummary: () =>
+        React.createElement('div', null, 'Portfolio summary'),
+    },
+    './market-stock-row': {
+      MarketStockRow: ({ symbol, held, children }) =>
+        React.createElement(
+          'tr',
+          null,
+          React.createElement('td', null, symbol, held ? ' Held' : ''),
+          children,
+        ),
+    },
+    './solana-ecosystem': {
+      SolanaEcosystem: () =>
+        React.createElement('div', null, 'Market-wide totals'),
+    },
+    '@/lib/token-observation': {
+      tokenObservation: () => ({
+        price: null,
+        change24h: null,
+        issuedValue: null,
+        cmcDexVolume24h: null,
+        priceTime: null,
+        supply: null,
+      }),
+    },
+  });
+  return {
+    states,
+    render: () => {
+      index = 0;
+      return MarketOverviewPanel({ holdings: ['MU'], positions: [] });
+    },
+  };
+}
+function findElement(tree, predicate) {
+  if (!tree || typeof tree !== 'object') return null;
+  if (predicate(tree)) return tree;
+  for (const child of [tree.props?.children].flat(Infinity)) {
+    const found = findElement(child, predicate);
+    if (found) return found;
+  }
+  return null;
+}
+test('one market table filters to owned tokens without removing market-wide metrics', async () => {
+  const f = await marketFixture();
+  let tree = f.render();
+  let html = renderToStaticMarkup(tree);
+  assert.match(html, /GOOGLon/);
+  assert.match(html, /MU Held/);
+  assert.match(html, /Market-wide totals/);
+  assert.doesNotMatch(html, /Solana overview/);
+  findElement(tree, (e) => e.props?.role === 'switch').props.onChange({
+    target: { checked: true },
+  });
+  html = renderToStaticMarkup(f.render());
+  assert.doesNotMatch(html, /GOOGLon/);
+  assert.match(html, /MU Held/);
+  assert.match(html, /Market-wide totals/);
+  assert.match(html, /Portfolio summary/);
+});
+
+test('News keeps its agenda visible when the headline request fails', async () => {
+  let index = 0;
+  const key = 'holder-news?symbol=MU&offset=0&retry=0&holdings=MU';
+  const states = [
+    null,
+    'Headline request failed',
+    0,
+    key,
+    { key: 'news:MU:MU', page: 0 },
+    localToday(),
+  ];
+  const Wrap = ({ children }) => React.createElement('div', null, children);
+  const { MemberBrief } = await component('member-brief.tsx', {
+    react: {
+      ...React,
+      useState: () => [states[index++], () => {}],
+      useEffect: () => {},
+      useRef: () => ({ current: '' }),
+    },
+    './ui/button': { Button: Wrap },
+    './search-picker': { SearchPicker: () => null },
+    './upcoming-agenda': {
+      UpcomingAgenda: ({ symbol }) =>
+        React.createElement('section', null, 'Agenda for ' + symbol),
+    },
+    '@/lib/client': { api: () => {} },
+    '@/lib/tokens': { TOKENS: [] },
+    '@/lib/editorial': { eventLabel: () => '' },
+  });
+  const html = renderToStaticMarkup(
+    MemberBrief({
+      kind: 'news',
+      holdings: ['MU'],
+      symbol: 'MU',
+      onSymbolChange: () => {},
+      onDiscuss: () => {},
+    }),
+  );
+  assert.match(html, /Headline request failed/);
+  assert.match(html, /Agenda for MU/);
+});

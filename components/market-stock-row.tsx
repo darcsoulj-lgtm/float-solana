@@ -33,7 +33,7 @@ export function MarketStockRow({
         >
           <strong>{symbol}</strong>
           <span>{name}</span>
-          {held && <small>Your holding</small>}
+          {held && <small>Held</small>}
         </button>
       </td>
       {children}

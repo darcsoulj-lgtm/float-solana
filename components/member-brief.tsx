@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { SearchPicker } from './search-picker';
+import { UpcomingAgenda } from './upcoming-agenda';
 import { api } from '@/lib/client';
 import { TOKENS } from '@/lib/tokens';
 import {
@@ -110,7 +111,6 @@ export function EventCard({ item }: { item: EditorialItem }) {
 export function MemberBrief({
   kind,
   onDiscuss,
-  onCalendar,
   holdings,
   symbol,
   onSymbolChange,
@@ -120,10 +120,8 @@ export function MemberBrief({
   symbol: string;
   onSymbolChange: (symbol: string) => void;
   onDiscuss: (item: EditorialItem) => void;
-  onCalendar: () => void;
 }) {
-  const [data, setData] = useState<BriefData | null>(null),
-    [events, setEvents] = useState<EditorialItem[]>([]);
+  const [data, setData] = useState<BriefData | null>(null);
   const [error, setError] = useState(''),
     [retry, setRetry] = useState(0);
   const [loadedKey, setLoadedKey] = useState('');
@@ -169,23 +167,13 @@ export function MemberBrief({
     let active = true;
     currentKey.current = requestKey;
     (async () => {
-      // Editorial/calendar availability must not prevent the separate news feed loading.
-      if (kind === 'news')
-        await api('editorial/initialize', {}).catch(() => null);
-      else await api('editorial/initialize', {});
+      if (kind === 'event') await api('editorial/initialize', {});
       let refreshFailed = false;
       if (kind === 'news')
         await api('holder-news', { symbol }).catch(() => {
           refreshFailed = true;
         });
-      const [feed, calendar] = await Promise.all([
-        api<BriefData>(query),
-        kind === 'news'
-          ? api<BriefData>(
-              `editorial/brief?kind=event&scope=personal&symbol=${encodeURIComponent(symbol)}&today=${today}`,
-            ).catch(() => null)
-          : Promise.resolve(null),
-      ]);
+      const feed = await api<BriefData>(query);
       if (active) {
         setError('');
         setLoadedKey(requestKey);
@@ -199,7 +187,6 @@ export function MemberBrief({
               }
             : feed,
         );
-        setEvents(calendar?.items.slice(0, 2) || []);
       }
     })().catch((e) => {
       if (active) {
@@ -264,6 +251,13 @@ export function MemberBrief({
         <p className="brief-scope-note">Times shown in your timezone.</p>
       )}
 
+      {kind === 'news' && (
+        <UpcomingAgenda
+          symbol={symbol}
+          holdingsKey={holdingsKey}
+          refresh={retry}
+        />
+      )}
       {!loading && error ? (
         <div className="brief-empty" role="alert">
           <p>{error}</p>
@@ -277,33 +271,6 @@ export function MemberBrief({
         </output>
       ) : (
         <>
-          {kind === 'news' && events.length > 0 && (
-            <section className="up-next-strip" aria-label="Upcoming events">
-              <div>
-                <CalendarDays size={19} />
-                <strong>
-                  Next {events.length}{' '}
-                  {events.length === 1 ? 'event' : 'events'}
-                </strong>
-                <button onClick={onCalendar}>
-                  Calendar <ArrowUpRight size={14} />
-                </button>
-              </div>
-              {events.map((e) => (
-                <a
-                  key={e.id}
-                  href={e.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <span>{e.title}</span>
-                  <small>
-                    {eventLabel(e)} · {e.certainty}
-                  </small>
-                </a>
-              ))}
-            </section>
-          )}
           {data.items.length ? (
             <div className={kind === 'news' ? 'brief-stories' : 'brief-events'}>
               {data.items.map((item) =>
