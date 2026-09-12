@@ -131,7 +131,11 @@ function TokenDetail({ row }: { row: Row }) {
     </div>
   );
 }
-export function BackpackDashboardPage() {
+export function BackpackDashboardPage({
+  embedded = false,
+}: {
+  embedded?: boolean;
+}) {
   const [data, setData] = useState<MarketOverview | null>(null),
     [busy, setBusy] = useState(true),
     [error, setError] = useState('');
@@ -240,18 +244,20 @@ export function BackpackDashboardPage() {
     ['issuedValue', 'Minted value'],
   ];
   return (
-    <div className="backpack-dashboard">
+    <div className={`backpack-dashboard${embedded ? ' bp-embedded' : ''}`}>
       <div className="bp-heading">
         <div>
-          <span className="bp-eyebrow">FLOAT / SOLANA</span>
+          {!embedded && <span className="bp-eyebrow">FLOAT / SOLANA</span>}
           <h1>
             Backpack onchain<span>.</span>
           </h1>
           <p>Tokenized stocks, in one place.</p>
         </div>
-        <a className="bp-primary" href="/?join=1">
-          Join the holder community <ArrowUpRight size={17} />
-        </a>
+        {!embedded && (
+          <a className="bp-primary" href="/?join=1">
+            Join the holder community <ArrowUpRight size={17} />
+          </a>
+        )}
       </div>
       <div className="bp-stats" aria-label="Backpack overview">
         <div>

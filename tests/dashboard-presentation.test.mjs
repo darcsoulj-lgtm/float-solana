@@ -22,13 +22,18 @@ async function component(file, overrides) {
   new Function('require', 'module', 'exports', outputText)(
     (id) =>
       overrides[id] ??
-      (id === '@/lib/client-loading'
+      (id === './metric-info'
         ? {
-            readThenRefresh: () => {
-              throw Error('Unexpected effect in static render test');
-            },
+            MetricInfo: ({ label }) =>
+              React.createElement('button', { 'aria-label': label }),
           }
-        : require(id)),
+        : id === '@/lib/client-loading'
+          ? {
+              readThenRefresh: () => {
+                throw Error('Unexpected effect in static render test');
+              },
+            }
+          : require(id)),
     module,
     module.exports,
   );
@@ -211,6 +216,9 @@ async function renderDashboard(search) {
   const Wrap = ({ children }) => React.createElement('div', null, children);
   const { MemberDashboard } = await component('member-dashboard.tsx', {
     './site-link': { default: Wrap },
+    './float-logo': { FloatLogo: Empty },
+    './holdings-update-info': { HoldingsUpdateInfo: Empty },
+    './backpack-dashboard': { BackpackDashboardPage: Empty },
     './ui/button': { Button: Wrap },
     './ui/checkbox': { Checkbox: Empty },
     './ui/dialog': {
@@ -614,6 +622,13 @@ test('compact issuer value filters select and reset without duplicate cards', as
   assert.match(html, /\$12K/);
   assert.match(html, /partial/);
   assert.match(html, /Minted value/);
+  const table = findElement(
+    tree,
+    (e) => e.type === 'table' && e.props.className === 'market-table',
+  );
+  const body = findElement(table, (e) => e.type === 'tbody');
+  assert.doesNotMatch(renderToStaticMarkup(body), />Minted<|>Circulating</);
+  assert.match(renderToStaticMarkup(table), /About token values/);
   assert.doesNotMatch(html, /Not verified/);
   assert.equal(button('Ondo').props.type, 'button');
   assert.doesNotMatch(html, /issuer-card/);
@@ -657,9 +672,25 @@ test('Ecosystem overview keeps numbers and one disclosure without duplicate issu
   );
   assert.equal((html.match(/<details/g) || []).length, 1);
   assert.match(html, /Coverage &amp; methodology/);
-  assert.match(html, /1 \/ 1 issuers/);
+  assert.match(html, /1 \/ 1 xStocks valued/);
+  assert.match(html, /xStocks circulating value/);
+  assert.doesNotMatch(html, /Tracked circulating value/);
   assert.match(html, /Pre-minted inventory excluded/);
   assert.doesNotMatch(html, /Partial issued value/);
   assert.match(html, /\$1K/);
   assert.doesNotMatch(html, /issuer-comparison|issuer-card/);
+});
+
+test('Backpack is an active internal holder destination and preserves the member shell', async () => {
+  const html = await renderDashboard('?view=backpack');
+  const nav = html.match(
+    /<nav[^>]*aria-label="Member navigation"[^>]*>([\s\S]*?)<\/nav>/,
+  )?.[1];
+  assert.ok(nav);
+  assert.match(nav, /<button aria-current="page">[^]*?Backpack[^]*?<\/button>/);
+  assert.doesNotMatch(nav, /href="\/backpack"/);
+  assert.match(html, /member-shell markets-view/);
+  assert.match(html, /member-sidebar/);
+  assert.match(html, /Loading Backpack/);
+  assert.doesNotMatch(html, /<h1>Profile/);
 });

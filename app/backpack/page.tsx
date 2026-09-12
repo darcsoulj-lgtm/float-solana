@@ -1,4 +1,3 @@
-import '../backpack-dashboard.css';
 import type { Metadata } from 'next';
 import { BackpackDashboardPage } from '@/components/backpack-dashboard';
 export const metadata: Metadata = {

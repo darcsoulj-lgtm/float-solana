@@ -1031,3 +1031,22 @@ fieldset.holding-filter-chips {
     height: 30px;
   }
 }
+
+.metric-label,
+.ecosystem-stats .metric-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.metric-label .holdings-info-trigger {
+  color: inherit;
+  flex-shrink: 0;
+}
+
+.ecosystem-stats .holdings-info-trigger:hover,
+.ecosystem-stats .holdings-info-trigger[data-popup-open] {
+  background: #ffffff24;
+}
+.ecosystem-stats .holdings-info-trigger:focus-visible {
+  outline-color: currentColor;
+}

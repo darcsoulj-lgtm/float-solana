@@ -249,3 +249,19 @@ test('Public initial render contains accessible search, sort and detail controls
   assert.match(html, /Sources &amp; coverage/);
   assert.doesNotMatch(html, /Sign in to view|data-theme="light"/);
 });
+
+test('Embedded Backpack keeps dashboard controls without the public join prompt', () => {
+  const React = require('react');
+  const { renderToStaticMarkup } = require('react-dom/server');
+  const html = renderToStaticMarkup(
+    React.createElement(BackpackDashboardPage, { embedded: true }),
+  );
+  assert.match(html, /backpack-dashboard bp-embedded/);
+  assert.match(html, /aria-label="Search stocks"/);
+  assert.match(html, /Sources &amp; coverage/);
+  assert.doesNotMatch(html, /Join the holder community|FLOAT \/ SOLANA/);
+  const publicHtml = renderToStaticMarkup(
+    React.createElement(BackpackDashboardPage),
+  );
+  assert.match(publicHtml, /Join the holder community/);
+});

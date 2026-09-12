@@ -1,3 +1,4 @@
+import { MetricInfo } from './metric-info';
 import { ArrowUpRight } from 'lucide-react';
 import { TOKENS, ISSUERS, type IssuerId } from '@/lib/tokens';
 import { circulatingCoverage } from '@/lib/token-observation';
@@ -22,7 +23,7 @@ export function SolanaEcosystem({
   onIssuer: (id: IssuerId | 'all') => void;
   select: (symbol: string) => void;
 }) {
-  const coverage = circulatingCoverage(data, now, undefined, true);
+  const coverage = circulatingCoverage(data, now, 'xstocks', true);
   const leaders = [...coverage.valued]
     .sort((a, b) => b.circulatingValue! - a.circulatingValue!)
     .slice(0, 5);
@@ -39,7 +40,14 @@ export function SolanaEcosystem({
       </div>
       <div className="ecosystem-stats">
         <div>
-          <span>Tracked circulating value</span>
+          <span className="metric-label">
+            xStocks circulating value
+            <MetricInfo label="About xStocks circulating value">
+              xStocks circulation on Solana × issuer reference price. Pre-minted
+              inventory excluded. Other issuers use minted-value estimates and
+              are not included in this figure.
+            </MetricInfo>
+          </span>
           <strong>{usd(coverage.total)}</strong>
           {coverage.delayed && (
             <small>
@@ -61,7 +69,8 @@ export function SolanaEcosystem({
             </small>
           )}
           <small>
-            {coverage.issuerCount} / {ISSUERS.length} issuers · partial coverage
+            Solana · {coverage.valued.length} / {coverage.rows.length} xStocks
+            valued
           </small>
         </div>
         <div>
@@ -79,16 +88,11 @@ export function SolanaEcosystem({
           <small>Stocks, ETFs & private-company exposure</small>
         </div>
       </div>
-      <p className="market-footnote">
-        Solana circulation × issuer reference price. Pre-minted inventory
-        excluded. Unverified issuers are omitted; this is not the total market
-        or all-chain AUM.
-      </p>
       <details className="market-methodology coverage-diagnostics">
         <summary>Coverage &amp; methodology</summary>
         <p>
-          Only issuer-reported Solana circulation with a matched USD reference
-          is counted. Missing values are excluded, never counted as zero.
+          This headline covers xStocks on Solana only. Pre-minted inventory
+          excluded. Missing values are excluded, never counted as zero.
         </p>
         <div className="market-table-scroll">
           <table className="market-table">

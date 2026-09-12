@@ -5,7 +5,6 @@ import { HolderTierBadge } from './holder-tier-badge';
 import { HOLDER_TIERS, type HolderTierResult } from '@/lib/holder-tier';
 import {
   lazy,
-  Fragment,
   Suspense,
   useCallback,
   useEffect,
@@ -50,6 +49,11 @@ const MarketOverviewPanel = lazy(() =>
     default: module.MarketOverviewPanel,
   })),
 );
+const BackpackDashboardPage = lazy(() =>
+  import('./backpack-dashboard').then((module) => ({
+    default: module.BackpackDashboardPage,
+  })),
+);
 import { ThemeToggle } from './theme-toggle';
 import { MemberAvatar, prepareAvatar } from './member-avatar';
 import { MemberBrief } from './member-brief';
@@ -63,10 +67,11 @@ import {
   type ThreadPage,
   type CommunitySource,
 } from '@/lib/community-types';
-type View = 'markets' | 'brief' | 'home' | 'topics' | 'profile';
+type View = 'backpack' | 'markets' | 'brief' | 'home' | 'topics' | 'profile';
 const destinations = [
   { id: 'brief', label: 'News', icon: Newspaper },
   { id: 'markets', label: 'Markets', icon: ChartNoAxesCombined },
+  { id: 'backpack', label: 'Backpack', icon: Backpack },
   { id: 'home', label: 'Discussions', icon: Home },
   { id: 'profile', label: 'Profile', icon: UserRound },
 ] as const;
@@ -339,7 +344,7 @@ export function MemberDashboard({
   );
   return (
     <div
-      className={`member-shell ${view === 'markets' ? 'markets-view' : ''} ${view === 'brief' ? 'reading-view' : ''}`}
+      className={`member-shell ${view === 'markets' || view === 'backpack' ? 'markets-view' : ''} ${view === 'brief' ? 'reading-view' : ''}`}
     >
       <aside className="member-sidebar">
         <Link className="member-brand" href="/">
@@ -360,28 +365,19 @@ export function MemberDashboard({
         </div>
         <nav className="member-nav" aria-label="Member navigation">
           {destinations.map(({ id, label, icon: Icon }) => (
-            <Fragment key={id}>
-              <button
-                aria-current={
-                  (view === 'topics' ? 'home' : view) === id
-                    ? 'page'
-                    : undefined
-                }
-                onClick={() => navigate(id)}
-              >
-                <Icon size={19} />
-                {label}
-                {(view === 'topics' ? 'home' : view) === id && (
-                  <span className="nav-indicator" />
-                )}
-              </button>
-              {id === 'markets' && (
-                <Link href="/backpack" aria-label="Backpack dashboard">
-                  <Backpack size={19} aria-hidden="true" />
-                  Backpack
-                </Link>
+            <button
+              key={id}
+              aria-current={
+                (view === 'topics' ? 'home' : view) === id ? 'page' : undefined
+              }
+              onClick={() => navigate(id)}
+            >
+              <Icon size={19} />
+              {label}
+              {(view === 'topics' ? 'home' : view) === id && (
+                <span className="nav-indicator" />
               )}
-            </Fragment>
+            </button>
           ))}
         </nav>
         <div className="sidebar-appearance">
@@ -444,7 +440,7 @@ export function MemberDashboard({
         </div>
         <div className="member-columns">
           <section className="member-main">
-            {view !== 'markets' && (
+            {view !== 'markets' && view !== 'backpack' && (
               <div className="member-page-heading">
                 <div>
                   <h1>
@@ -521,6 +517,10 @@ export function MemberDashboard({
                   <p>Loading your holdings…</p>
                 )}
               </>
+            ) : view === 'backpack' ? (
+              <Suspense fallback={<p role="status">Loading Backpack…</p>}>
+                <BackpackDashboardPage embedded />
+              </Suspense>
             ) : view === 'brief' ? (
               <MemberBrief
                 key={view}

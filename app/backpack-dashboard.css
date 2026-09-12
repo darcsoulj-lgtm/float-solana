@@ -601,3 +601,8 @@
     font-size: 18px;
   }
 }
+
+.member-shell .backpack-dashboard.bp-embedded {
+  max-width: none;
+  padding: 0;
+}

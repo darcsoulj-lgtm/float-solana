@@ -1,4 +1,5 @@
 'use client';
+import { MetricInfo } from './metric-info';
 import { useEffect, useState } from 'react';
 import {
   ArrowUpRight,
@@ -328,7 +329,21 @@ export function MarketOverviewPanel({
               <th>Stock</th>
               <th>Token price</th>
               <th>24h change</th>
-              <th>Token value · est.</th>
+              <th>
+                <span className="metric-label">
+                  {issuer === 'xstocks'
+                    ? 'Circulating value'
+                    : issuer === 'all'
+                      ? 'Token value · est.'
+                      : 'Minted value · est.'}
+                  <MetricInfo label="About token values">
+                    xStocks: circulating supply on Solana × issuer reference
+                    price. Other issuers: minted supply on Solana × token price;
+                    may include inventory. These values use different supply
+                    measures and are not an all-issuer AUM total.
+                  </MetricInfo>
+                </span>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -368,7 +383,13 @@ export function MarketOverviewPanel({
                   </td>
                   <td>
                     {money(valuation.value, true)}
-                    <small className="quote-age">{valuation.basis}</small>
+                    {t.issuer === 'xstocks' &&
+                      !row.circulation &&
+                      row.lastCirculation && (
+                        <small className="quote-age">
+                          Last verified · {time(row.lastCirculationTime)}
+                        </small>
+                      )}
                   </td>
                 </MarketStockRow>
               );
@@ -389,10 +410,10 @@ export function MarketOverviewPanel({
             Prices: CoinMarketCap, fresh DefiLlama, then DEX pool. Older
             DefiLlama references are labeled Last quote (up to 96 hours).
             xStocks uses issuer-reported Solana circulation and reference
-            prices. Other issuers show Solana minted supply × token price,
-            labeled Minted. Minted value can include inventory and is not AUM.
-            These measures are not combined in the circulating headline. Missing
-            or conflicting data is excluded from each estimate.
+            prices. Other issuers show Solana minted supply × token price.
+            Minted value can include inventory and is not AUM. These measures
+            are not combined in the circulating headline. Missing or conflicting
+            data is excluded from each estimate.
           </p>
         </details>
         <div>
