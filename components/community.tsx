@@ -158,7 +158,7 @@ export function Community() {
       );
       diagnostic(providerName, 'connect', 'ok', flowId);
       phase = 'holdings';
-      setStage('Finding your supported stock tokens…');
+      setStage('Finding your supported tokenized stocks…');
       const challenge = await api<{
         id: string;
         message: string;
@@ -297,7 +297,7 @@ export function Community() {
         <div className="club public-club">
           <section className="public-hero">
             <div className="eyebrow">
-              <span className="small-dot" /> FOR BACKPACK STOCK-TOKEN HOLDERS
+              <span className="small-dot" /> FOR BACKPACK TOKENIZED STOCK HOLDERS
             </div>
             <h1>
               A community for
@@ -306,7 +306,7 @@ export function Community() {
             </h1>
             <p>
               News, market data and discussions. Connect a wallet holding a
-              supported stock token to join.
+              supported tokenized stock to join.
             </p>
             <div className="hero-actions">
               <Button onClick={openJoin}>
@@ -426,7 +426,7 @@ export function Community() {
                 <div>
                   <strong>{walletLabel(pending.provider)} connected</strong>
                   <span>
-                    {pending.holdingCount} supported stock token
+                    {pending.holdingCount} supported tokenized stock
                     {pending.holdingCount === 1 ? '' : 's'} found
                   </span>
                 </div>

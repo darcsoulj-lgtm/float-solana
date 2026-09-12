@@ -6,7 +6,7 @@ export default function Page() {
       <p className="eyebrow">SUPPORTED TOKENS</p>
       <h1>One holding. Every room.</h1>
       <p>
-        {TOKENS.length.toLocaleString()} Solana stock tokens. Registry review:{' '}
+        {TOKENS.length.toLocaleString()} Solana tokenized stocks. Registry review:{' '}
         {TOKEN_REVIEW_DATE}.
       </p>
       <details className="market-methodology">

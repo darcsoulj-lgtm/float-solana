@@ -3,7 +3,7 @@ export default function Page() {
     <div className="page info-page">
       <h1>About HolderPulse</h1>
       <section className="panel">
-        <h2>For Solana stock-token holders</h2>
+        <h2>For Solana tokenized stock holders</h2>
         <p>
           HolderPulse brings together company news, token market data and member
           discussions. One verified holding gives access to every room.

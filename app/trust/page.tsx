@@ -104,7 +104,7 @@ export default function Page() {
       <section className="panel">
         <h2>Holder tiers</h2>
         <p>
-          Tiers use the estimated USD value of supported stock tokens in your
+          Tiers use the estimated USD value of supported tokenized stocks in your
           verified wallet: Bronze under $100; Silver $100–$999; Gold
           $1,000–$9,999; Platinum $10,000–$99,999; Diamond $100,000 or more.
         </p>

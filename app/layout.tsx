@@ -7,7 +7,7 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { AgentTools } from '@/components/agent-tools';
 export const metadata: Metadata = {
   title: {
-    default: 'HolderPulse — For Solana stock-token holders',
+    default: 'HolderPulse — For Solana tokenized stock holders',
     template: '%s | HolderPulse',
   },
   description:
@@ -53,7 +53,7 @@ export default function RootLayout({
             <Link className="footer-brand" href="/">
               HolderPulse
             </Link>
-            <p>An independent community for Solana stock-token holders.</p>
+            <p>An independent community for Solana tokenized stock holders.</p>
           </div>
           <div className="footerlinks">
             <Link href="/about">About</Link>

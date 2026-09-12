@@ -745,7 +745,7 @@ export function MemberDashboard({
                     />
                   </div>
                   <p>
-                    Based on verified stock-token value in this wallet. A tier
+                    Based on verified tokenized stock value in this wallet. A tier
                     appears when every holding has a reliable price.
                   </p>
                   <div className="holder-tier-scale">

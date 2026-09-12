@@ -29,7 +29,7 @@ export function HolderTierBadge({
       className={'holder-tier-badge ' + (level?.id || 'verified')}
       title={
         level
-          ? `${level.range} in verified stock tokens · estimated USD value`
+          ? `${level.range} in verified tokenized stocks · estimated USD value`
           : 'Verified holder'
       }
     >

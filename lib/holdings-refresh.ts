@@ -89,7 +89,7 @@ export async function refreshHoldings(
     return { needsVerification: false, checked: false };
   if (!holdings.length)
     throw new AppError(
-      'No supported stock tokens remain in this wallet. Verify a wallet with a supported holding to return.',
+      'No supported tokenized stocks remain in this wallet. Verify a wallet with a supported holding to return.',
       401,
     );
   return { needsVerification: false, checked: true };

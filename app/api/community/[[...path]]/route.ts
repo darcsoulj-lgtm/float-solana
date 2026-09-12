@@ -147,7 +147,7 @@ async function handler(req: Request) {
       const holdings = await detectHoldings(wallet, runtime().SOLANA_RPC_URL);
       if (!holdings.length)
         throw new AppError(
-          'No supported stock tokens were found in this wallet. Try another Solana account, or check the supported stocks list. No signature is needed.',
+          'No supported tokenized stocks were found in this wallet. Try another Solana account, or check the supported stocks list. No signature is needed.',
           403,
         );
       const id = crypto.randomUUID(),
@@ -212,7 +212,7 @@ async function handler(req: Request) {
       );
       if (!holdings.length)
         throw new AppError(
-          'This wallet no longer holds a supported stock token. Please reconnect after checking your holdings.',
+          'This wallet no longer holds a supported tokenized stock. Please reconnect after checking your holdings.',
           403,
         );
       const walletHash = await digest('holderpulse-community:' + c.wallet),

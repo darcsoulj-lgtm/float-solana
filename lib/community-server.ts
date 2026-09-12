@@ -25,7 +25,7 @@ export async function communityMember(req: Request, required = true) {
     : null;
   if (!member && required)
     throw new AppError(
-      'Verify a supported stock token to enter the member community. Membership checks expire after 24 hours.',
+      'Verify a supported tokenized stock to enter the member community. Membership checks expire after 24 hours.',
       401,
     );
   return member;

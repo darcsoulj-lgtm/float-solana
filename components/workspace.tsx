@@ -215,11 +215,11 @@ export function CreateSurvey({ id }: { id?: string }) {
         value={description}
         onChange={(e) => setDescription(e.target.value)}
       />
-      <p className="field-label">Target stock token</p>
+      <p className="field-label">Target tokenized stock</p>
       <Picker
         value={symbol}
         onChange={setSymbol}
-        label="Target stock token"
+        label="Target tokenized stock"
         items={TOKENS.filter((t) => t.mint).map((t) => ({
           value: t.symbol,
           label: t.symbol + ' — ' + t.name,
