@@ -432,26 +432,24 @@ export function MemberDashboard({
         </div>
         <div className="member-columns">
           <section className="member-main">
-            <div className="member-page-heading">
-              <div>
-                <h1>
-                  {view === 'markets'
-                    ? 'Markets'
-                    : view === 'brief'
+            {view !== 'markets' && (
+              <div className="member-page-heading">
+                <div>
+                  <h1>
+                    {view === 'brief'
                       ? 'Your news'
-                      : view === 'home'
+                      : view === 'home' || view === 'topics'
                         ? 'Discussions'
-                        : view === 'topics'
-                          ? 'Discussions'
-                          : 'Profile'}
-                </h1>
+                        : 'Profile'}
+                  </h1>
+                </div>
+                {view === 'home' && (
+                  <Button onClick={() => startDiscussion()}>
+                    <Plus size={17} /> New discussion
+                  </Button>
+                )}
               </div>
-              {view === 'home' && (
-                <Button onClick={() => startDiscussion()}>
-                  <Plus size={17} /> New discussion
-                </Button>
-              )}
-            </div>
+            )}
             {(view === 'home' || view === 'topics') && (
               <div
                 className="feed-tabs discussion-views"
