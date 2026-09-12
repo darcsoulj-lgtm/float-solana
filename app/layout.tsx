@@ -39,7 +39,7 @@ export default function RootLayout({
           </Link>
           <nav aria-label="Main navigation">
             <Link href="/">Community</Link>
-            <Link href="/methodology">Membership</Link>
+            <Link href="/backpack">Backpack dashboard</Link>
             <Link href="/rules">Guidelines</Link>
           </nav>
           <ThemeToggle />

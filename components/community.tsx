@@ -30,6 +30,10 @@ export function Community() {
   const [joinError, setJoinError] = useState('');
   const [busy, setBusy] = useState(false);
   const [join, setJoin] = useState(false);
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('join') === '1')
+      setJoin(true);
+  }, []);
   const [provider, setProvider] = useState('backpack');
   const [consent, setConsent] = useState(false);
   const [stage, setStage] = useState('');

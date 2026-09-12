@@ -29,6 +29,7 @@ export type Listing = {
   bookState: string | null;
 };
 export type Pool = {
+  createdAt?: number | null;
   address: string;
   dex: string;
   quote: string;
@@ -165,6 +166,13 @@ export function parsePools(
       const isBase = token.mint === base.address;
       const counterpart = isBase ? quote : base;
       result[token.symbol].push({
+        createdAt:
+          typeof p.pairCreatedAt === 'number' &&
+          Number.isSafeInteger(p.pairCreatedAt) &&
+          p.pairCreatedAt > 0 &&
+          p.pairCreatedAt <= Date.now()
+            ? p.pairCreatedAt
+            : null,
         address: p.pairAddress,
         dex: p.dexId,
         quote:
