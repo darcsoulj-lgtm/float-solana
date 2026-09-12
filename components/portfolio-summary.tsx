@@ -33,6 +33,7 @@ export function PortfolioSummary({
         Number.isFinite(raw) &&
         raw >= 0 &&
         o.price !== null &&
+        !o.priceConflict &&
         comparable
           ? raw * o.price
           : null;

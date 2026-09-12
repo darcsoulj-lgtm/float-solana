@@ -2,6 +2,9 @@ import { TOKENS, TOKEN_PROGRAMS, type StockToken } from './tokens';
 
 export type MintSupply = {
   supply: number;
+  uiSupply?: number | null;
+  multiplier?: number | null;
+  adjustmentAt?: number | null;
   valuationSafe?: boolean;
   amount: string;
   decimals: number;
@@ -49,27 +52,53 @@ export function parseSupplies(
       BigInt(info.supply) > 18446744073709551615n
     )
       return;
+    const extensions = Array.isArray(info.extensions)
+      ? info.extensions.map(record)
+      : [];
+    const scaled = extensions.filter(
+      (e) => e.extension === 'scaledUiAmountConfig',
+    );
+    const interestBearing = extensions.some(
+      (e) => e.extension === 'interestBearingConfig',
+    );
+    let multiplier: number | null = 1;
+    if (scaled.length === 1) {
+      const state = record(scaled[0].state);
+      const effective = Number(state.newMultiplierEffectiveTimestamp);
+      const candidate = Number(
+        effective <= now / 1000 ? state.newMultiplier : state.multiplier,
+      );
+      multiplier =
+        Number.isFinite(effective) &&
+        Number.isFinite(candidate) &&
+        candidate > 0
+          ? candidate
+          : null;
+    } else if (scaled.length > 1) multiplier = null;
+    if (interestBearing) multiplier = null;
+    const supply = Number(info.supply) / 10 ** info.decimals;
+    const adjusted =
+      multiplier === null
+        ? null
+        : Math.floor(Number(info.supply) * multiplier) / 10 ** info.decimals;
     out[tokens[index].symbol] = {
       // Non-unit display multipliers need a documented quote-unit basis.
       // Retain raw supply but exclude ambiguous valuations instead of mixing units.
       valuationSafe:
-        tokens[index].issuer === 'backpack' ||
-        !Array.isArray(info.extensions) ||
-        !info.extensions.some((entry: unknown) => {
-          const e = record(entry),
-            state = record(e.state);
-          if (e.extension === 'interestBearingConfig') return true;
-          if (e.extension !== 'scaledUiAmountConfig') return false;
-          const effective = Number(state.newMultiplierEffectiveTimestamp);
-          return (
-            Number(
-              Number.isFinite(effective) && effective <= now / 1000
-                ? state.newMultiplier
-                : state.multiplier,
-            ) !== 1
-          );
-        }),
-      supply: Number(info.supply) / 10 ** info.decimals,
+        multiplier !== null &&
+        (tokens[index].issuer === 'backpack' || multiplier === 1),
+      supply,
+      uiSupply:
+        adjusted !== null && Number.isFinite(adjusted) ? adjusted : null,
+      multiplier,
+      adjustmentAt:
+        scaled.length === 1 &&
+        Number.isFinite(
+          Number(record(scaled[0].state).newMultiplierEffectiveTimestamp),
+        )
+          ? Number(record(scaled[0].state).newMultiplierEffectiveTimestamp) *
+            1000
+          : null,
       amount: info.supply,
       decimals: info.decimals,
       slot,

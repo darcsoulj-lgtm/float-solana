@@ -20,6 +20,7 @@ import {
   mergeMarketPages,
   type MarketOverview,
   type Book,
+  type Pool,
   type SourceResult,
 } from '@/lib/market-data';
 import { Button } from './ui/button';
@@ -69,6 +70,10 @@ export function MarketOverviewPanel({
     [bookMessage, setBookReason] = useState('Loading order book…'),
     [bookSymbol, setBookSymbol] = useState(''),
     [now, setNow] = useState(() => Date.now());
+  const [poolDetail, setPoolDetail] = useState<{
+    symbol: string;
+    source: SourceResult<Pool[]>;
+  } | null>(null);
   const matches = TOKENS.filter(
     (t) =>
       (scope === 'all' || holdings.includes(t.symbol)) &&
@@ -171,6 +176,36 @@ export function MarketOverviewPanel({
     };
   }, [refresh, scope, holdingsKey]);
   useEffect(() => {
+    let active = true;
+    const load = async () => {
+      try {
+        const result = await api<{ pools: SourceResult<Pool[]> }>(
+          'market-data?pools=' + encodeURIComponent(selected),
+        );
+        if (active) setPoolDetail({ symbol: selected, source: result.pools });
+      } catch {
+        if (active)
+          setPoolDetail({
+            symbol: selected,
+            source: {
+              data: null,
+              fetchedAt: null,
+              stale: true,
+              error: 'Pool data unavailable.',
+            },
+          });
+      }
+    };
+    void load();
+    const timer = setInterval(() => {
+      if (document.visibilityState === 'visible') void load();
+    }, 30000);
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, [selected, refresh]);
+  useEffect(() => {
     if (
       TOKENS.find((t) => t.symbol === selected)?.issuer !== 'backpack' ||
       !data?.catalog.fetchedAt
@@ -210,9 +245,18 @@ export function MarketOverviewPanel({
     rows = matches.slice(currentPage * 10, currentPage * 10 + 10);
   const token = TOKENS.find((t) => t.symbol === selected)!,
     listing = data?.catalog.data?.find((t) => t.symbol === selected),
-    pools = data?.pools.data?.[selected] || [],
-    top = pools[0],
+    detailedPools = poolDetail?.symbol === selected ? poolDetail.source : null,
+    pools = detailedPools?.data || [],
+    top = pools.find((p) => p.price !== null),
     reference = data?.prices.data?.[selected];
+  const poolLiquidity =
+    detailedPools &&
+    !detailedPools.stale &&
+    detailedPools.fetchedAt &&
+    now - detailedPools.fetchedAt <= 300000 &&
+    pools.some((p) => p.liquidity !== null)
+      ? pools.reduce((sum, p) => sum + (p.liquidity ?? 0), 0)
+      : null;
   const observation = tokenObservation(data, selected, now);
   const observed = observation.cmc;
   const quote =
@@ -451,7 +495,15 @@ export function MarketOverviewPanel({
               <strong>{money(observation.price)}</strong>
             </div>
             <div>
-              <span>24h change</span>
+              <span
+                title={
+                  observation.change24h === null
+                    ? observation.changeUnavailableReason
+                    : observation.changeSource
+                }
+              >
+                24h change
+              </span>
               <strong
                 className={
                   (observation.change24h || 0) < 0
@@ -487,9 +539,24 @@ export function MarketOverviewPanel({
                 </dd>
               </div>
               <div>
-                <dt>Price / change</dt>
+                <dt>Price</dt>
                 <dd>
                   {observation.priceSource} · {time(observation.priceTime)}
+                </dd>
+              </div>
+              <div>
+                <dt>24h change</dt>
+                <dd>
+                  {observation.change24h === null
+                    ? observation.changeUnavailableReason
+                    : observation.changeSource}
+                  {observation.historyTime && (
+                    <>
+                      {' '}
+                      · {time(observation.historyTime)} to{' '}
+                      {time(observation.priceTime)}
+                    </>
+                  )}
                 </dd>
               </div>
               {observation.cmcDexVolume24h !== null && observed && (
@@ -508,9 +575,32 @@ export function MarketOverviewPanel({
                 </div>
               )}
               <div>
-                <dt>Supply</dt>
-                <dd>Solana · {time(observation.supply?.timestamp)}</dd>
+                <dt>Solana supply</dt>
+                <dd>
+                  <a
+                    href={'https://explorer.solana.com/address/' + token.mint}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Mint account ↗
+                  </a>{' '}
+                  · {time(observation.supply?.timestamp)}. Unadjusted tokens;
+                  excludes other chains.
+                </dd>
               </div>
+              {observation.supply?.multiplier != null &&
+                observation.supply.multiplier !== 1 && (
+                  <div>
+                    <dt>Adjusted display supply</dt>
+                    <dd>
+                      {observation.supply.uiSupply?.toLocaleString('en-US', {
+                        maximumFractionDigits: 6,
+                      })}{' '}
+                      · onchain multiplier ×{observation.supply.multiplier}.
+                      Display units differ from unadjusted tokens.
+                    </dd>
+                  </div>
+                )}
             </dl>
             {observation.cmcDexVolume24h !== null && (
               <p>
@@ -522,7 +612,9 @@ export function MarketOverviewPanel({
           </details>
           <div className="market-metrics token-metrics market-secondary-metrics">
             <div>
-              <span>Total minted supply</span>
+              <span title="Minted tokens on Solana, net of burns. Unadjusted for display multipliers; excludes other chains.">
+                Solana supply
+              </span>
               <strong>
                 {observation.supply
                   ? new Intl.NumberFormat('en-US', {
@@ -530,20 +622,22 @@ export function MarketOverviewPanel({
                     }).format(observation.supply.supply)
                   : 'Not available'}
               </strong>
-              <small>Solana · {time(observation.supply?.timestamp)}</small>
+              <small>Unadjusted tokens · excludes other chains</small>
             </div>
             <div>
               <span>Issued token value · estimate</span>
               <strong>{money(observation.issuedValue, true)}</strong>
-              <small>Total minted supply × token price</small>
+              <small>Solana supply × token price</small>
             </div>
             <div>
-              <span>Indexed DEX liquidity</span>
-              <strong>{money(observation.liquidity, true)}</strong>
-              <small>Across observed pools · excludes RFQ</small>
+              <span>Observed pool liquidity</span>
+              <strong>{money(poolLiquidity, true)}</strong>
+              <small>{pools.length} returned pools · partial coverage</small>
             </div>
           </div>
           <p className="market-footnote market-source-line">
+            {observation.priceConflict &&
+              'Price sources differ by more than 5%. Valuation is withheld pending reconciliation. '}
             Issued value includes reserves. It is not circulating market cap or
             company value.
             {observation.priceSource === 'DEX pool' &&
@@ -688,11 +782,11 @@ export function MarketOverviewPanel({
               </span>
             </div>
             <p className="market-footnote">
-              {pools.length} observed pools · DEX Screener retrieved{' '}
-              {time(data?.pools.fetchedAt)}
-              {data?.pools.stale ? ' · Delayed' : ''}. Ranked by reported pool
-              liquidity. Each row is one pool; it is not the stock’s total
-              trading volume. Prices are observations, not executable quotes.
+              {pools.length} returned pools · {time(detailedPools?.fetchedAt)}
+              {detailedPools?.stale ? ' · Delayed' : ''}. DEX Screener may limit
+              results. Pool addresses are counted once, including pairs where
+              this token is on either side. Liquidity includes both assets in
+              each pool; excludes unreturned pools and RFQ.
             </p>
             {pools.slice(0, 5).map((p) => (
               <a
@@ -710,8 +804,11 @@ export function MarketOverviewPanel({
             ))}
             {!pools.length && (
               <p className="market-empty">
-                No base-token pools returned by DEX Screener. This does not
-                establish that no liquidity exists.
+                {detailedPools?.stale
+                  ? 'Pool data is temporarily unavailable.'
+                  : detailedPools
+                    ? 'No pools returned by DEX Screener. Other liquidity may exist.'
+                    : 'Loading pools…'}
               </p>
             )}
             {pools.length > 5 && (
@@ -790,12 +887,21 @@ export function MarketOverviewPanel({
           display observations no older than 15 minutes; missing listings use
           separately labeled pool or onchain data where available. CMC market
           cap measures circulating tokens at the provider’s price, not the
-          underlying company’s market cap. DEX Screener prices and liquidity
-          come from indexed pools where the stock token is the base asset. When
-          a CMC price is unavailable, the table uses a fallback from the pool
-          with the highest reported liquidity. DefiLlama is a separate
-          token-price observation, not the underlying share price. Neither
-          source proves backing or solvency.
+          underlying company’s market cap. Without a CMC price, we prefer a
+          recent DefiLlama reference with confidence of at least 0.8; a single
+          DEX pool is the final fallback. Reference prices are not executable
+          quotes. Neither source proves backing or solvency. A difference above
+          5% between available price sources triggers a review flag and excludes
+          the token from valuation totals. This is our review threshold, not an
+          accuracy guarantee.
+        </p>
+        <p>
+          DefiLlama 24h changes compare prices for the same mint from the same
+          source, with timestamps within 15 minutes of a 24-hour interval. We
+          never combine a pool price with another provider’s historical price.
+          DEX liquidity sums unique returned pool addresses, including either
+          side of a pair. The provider may limit the returned set; this is not
+          total Solana liquidity or volume.
         </p>
         <p>
           Fetched timestamps show when we retrieved data. DEX Screener does not
@@ -804,11 +910,11 @@ export function MarketOverviewPanel({
           balances are not sent to these providers.
         </p>
         <p>
-          Solana supply comes from validated mint accounts at finalized
-          commitment. Issued value multiplies that total supply by a recent
-          observed token price; it includes reserves and does not estimate
-          circulating supply. We omit stale inputs and show the number of
-          supported tokens included in the total.
+          Solana-only unadjusted supply comes from validated mint accounts at
+          finalized commitment. Issued value multiplies that total supply by a
+          recent observed token price; it includes reserves and does not
+          estimate circulating supply. We omit stale inputs and show the number
+          of supported tokens included in the total.
         </p>
         <p>
           Token rights, conversion and eligibility depend on the issuer’s terms.

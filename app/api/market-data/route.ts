@@ -8,6 +8,8 @@ import {
   fetchCatalog,
   fetchPools,
   fetchPrices,
+  fetchHistoricalPrices,
+  fetchTokenPools,
   parseBook,
   publicJson,
 } from '@/lib/market-data';
@@ -43,6 +45,18 @@ export async function GET(req: Request) {
       batch * MARKET_BATCH_SIZE,
       (batch + 1) * MARKET_BATCH_SIZE,
     );
+    const poolSymbol = new URL(req.url).searchParams.get('pools');
+    if (poolSymbol) {
+      const token = TOKENS.find((t) => t.symbol === poolSymbol);
+      if (!token) throw new AppError('Unsupported stock.');
+      const pools = await cachedMarket(
+        db(),
+        'token-pairs-v1:' + token.mint,
+        MARKET_REFRESH_MS,
+        () => fetchTokenPools(token),
+      );
+      return json({ pools });
+    }
     if (
       symbol &&
       TOKENS.find((t) => t.symbol === symbol)!.issuer !== 'backpack'
@@ -78,10 +92,10 @@ export async function GET(req: Request) {
       );
       return json({ book, reason: null });
     }
-    const [pools, prices, markets, supplies] = await Promise.all([
+    const [pools, prices, markets, supplies, history] = await Promise.all([
       cachedMarket(
         db(),
-        'dex-pools-v3:' + TOKEN_REVIEW_DATE + ':' + batch,
+        'dex-pools-v4:' + TOKEN_REVIEW_DATE + ':' + batch,
         MARKET_REFRESH_MS,
         () => fetchPools(fetch, tokens),
       ),
@@ -103,9 +117,15 @@ export async function GET(req: Request) {
           ),
       cachedMarket(
         db(),
-        'solana-supplies-v3:' + TOKEN_REVIEW_DATE + ':' + batch,
+        'solana-supplies-v4:' + TOKEN_REVIEW_DATE + ':' + batch,
         MARKET_REFRESH_MS,
         () => fetchSupplies(runtime().SOLANA_RPC_URL, fetch, tokens),
+      ),
+      cachedMarket(
+        db(),
+        'llama-history-v1:' + TOKEN_REVIEW_DATE + ':' + batch,
+        MARKET_REFRESH_MS,
+        () => fetchHistoricalPrices(fetch, tokens),
       ),
     ]);
     return json({
@@ -114,6 +134,7 @@ export async function GET(req: Request) {
       prices,
       markets,
       supplies,
+      history,
       batch,
       totalBatches: Math.ceil(TOKENS.length / MARKET_BATCH_SIZE),
     });

@@ -12,6 +12,7 @@ export type SourceResult<T> = {
   fetchedAt: number | null;
   stale: boolean;
   error: string | null;
+  asOf?: Record<string, number>;
 };
 export type Listing = {
   symbol: string;
@@ -30,6 +31,7 @@ export type Pool = {
   liquidity: number | null;
   volume24h: number | null;
   url: string;
+  side?: 'base' | 'quote';
 };
 export type TokenPrice = {
   price: number;
@@ -38,6 +40,7 @@ export type TokenPrice = {
 };
 export type TokenVolume = { usd24h: number; mint: string };
 export type MarketOverview = {
+  history?: SourceResult<Record<string, TokenPrice>>;
   volumes?: SourceResult<Record<string, TokenVolume>>;
   supplies: SourceResult<Record<string, MintSupply>>;
   markets: SourceResult<Record<string, TokenMarket>>;
@@ -133,10 +136,16 @@ export function parsePools(
     const p = record(value),
       base = record(p.baseToken),
       quote = record(p.quoteToken);
-    const token = tokens.find((t) => t.mint === base.address);
+    const matched = tokens.filter(
+      (t) => t.mint === base.address || t.mint === quote.address,
+    );
     if (
-      !token ||
+      !matched.length ||
       p.chainId !== 'solana' ||
+      typeof base.address !== 'string' ||
+      !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(base.address) ||
+      typeof quote.address !== 'string' ||
+      !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(quote.address) ||
       typeof p.pairAddress !== 'string' ||
       !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(p.pairAddress) ||
       seen.has(p.pairAddress)
@@ -145,17 +154,24 @@ export function parsePools(
     if (typeof p.dexId !== 'string' || p.dexId.length > 40) continue;
     // Price is the base token price. Never attribute a quote token's price to the held stock.
     seen.add(p.pairAddress);
-    result[token.symbol].push({
-      address: p.pairAddress,
-      dex: p.dexId,
-      quote:
-        typeof quote.symbol === 'string' ? quote.symbol.slice(0, 16) : 'Other',
-      price: positive(p.priceUsd),
-      change24h: numeric(record(p.priceChange).h24),
-      liquidity: nonnegative(record(p.liquidity).usd),
-      volume24h: nonnegative(record(p.volume).h24),
-      url: 'https://dexscreener.com/solana/' + p.pairAddress,
-    });
+    for (const token of matched) {
+      const isBase = token.mint === base.address;
+      const counterpart = isBase ? quote : base;
+      result[token.symbol].push({
+        address: p.pairAddress,
+        dex: p.dexId,
+        quote:
+          typeof counterpart.symbol === 'string'
+            ? counterpart.symbol.slice(0, 16)
+            : 'Other',
+        side: isBase ? 'base' : 'quote',
+        price: isBase ? positive(p.priceUsd) : null,
+        change24h: isBase ? numeric(record(p.priceChange).h24) : null,
+        liquidity: nonnegative(record(p.liquidity).usd),
+        volume24h: nonnegative(record(p.volume).h24),
+        url: 'https://dexscreener.com/solana/' + p.pairAddress,
+      });
+    }
   }
   for (const pools of Object.values(result))
     pools.sort((a, b) => (b.liquidity ?? -1) - (a.liquidity ?? -1));
@@ -312,6 +328,43 @@ export async function fetchPrices(
   );
 }
 
+// The batch endpoint is only a discovery snapshot. Detail uses the token-pairs
+// endpoint, whose returned subset must not be described as every Solana pool.
+export async function fetchTokenPools(
+  token: StockToken,
+  fetcher: typeof fetch = fetch,
+) {
+  const raw = await publicJson(
+    'https://api.dexscreener.com/token-pairs/v1/solana/' + token.mint,
+    fetcher,
+  );
+  return parsePools(raw, [token])[token.symbol];
+}
+
+export async function fetchHistoricalPrices(
+  fetcher: typeof fetch = fetch,
+  tokens: readonly StockToken[] = TOKENS,
+  now = Date.now(),
+) {
+  const target = Math.floor(now / 1000) - 86400;
+  const parsed = parsePrices(
+    await publicJson(
+      'https://coins.llama.fi/prices/historical/' +
+        target +
+        '/' +
+        tokens.map((t) => 'solana:' + t.mint).join(',') +
+        '?searchWidth=15m',
+      fetcher,
+    ),
+    now,
+  );
+  return Object.fromEntries(
+    Object.entries(parsed).filter(
+      ([, row]) => Math.abs(row.timestamp - target * 1000) <= 900000,
+    ),
+  );
+}
+
 // Token-level DEX volume from a single provider; never sum it with pool or CEX figures.
 export function parseTokenVolumes(raw: unknown): Record<string, TokenVolume> {
   const data = record(raw).data;
@@ -395,6 +448,17 @@ export function mergeMarketPages(pages: MarketOverview[]): MarketOverview {
         ? Math.min(...current.map((s) => s.fetchedAt!))
         : null,
       stale: current.length === 0,
+      asOf: Object.assign(
+        {},
+        ...current.map((s) =>
+          Object.fromEntries(
+            Object.keys(s.data!).map((key) => [
+              key,
+              s.asOf?.[key] ?? s.fetchedAt!,
+            ]),
+          ),
+        ),
+      ),
       error: sources.some((s) => s.stale)
         ? 'Some market coverage is temporarily unavailable.'
         : null,
@@ -411,5 +475,6 @@ export function mergeMarketPages(pages: MarketOverview[]): MarketOverview {
     prices: combine(pages.map((p) => p.prices)),
     pools: combine(pages.map((p) => p.pools)),
     supplies: combine(pages.map((p) => p.supplies)),
+    history: combine(pages.flatMap((p) => (p.history ? [p.history] : []))),
   };
 }

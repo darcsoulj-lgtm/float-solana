@@ -856,3 +856,176 @@ test('A failed issuer page never suppresses fresh data from another page', async
   assert.equal(merged.pools.data.MUx, undefined);
   assert.ok(merged.pools.error);
 });
+
+test('Live GOOGLon supply agrees with the independent Solana indexer; adjusted units stay separate', async () => {
+  const audit = JSON.parse(
+    await readFile(
+      new URL(
+        '../research/market-integrity/audit-2026-09-12.json',
+        import.meta.url,
+      ),
+      'utf8',
+    ),
+  );
+  const page = audit.records.find((p) =>
+    p.rows.some((r) => r.symbol === 'GOOGLon'),
+  );
+  const tokens = page.rows.map((r) =>
+    TOKENS.find((t) => t.symbol === r.symbol),
+  );
+  const supply = parseSupplies(
+    page.rpc,
+    Date.parse(audit.startedAt),
+    tokens,
+  ).GOOGLon;
+  const indexed = audit.samples.find((r) => r.symbol === 'GOOGLon').gecko.data
+    .attributes;
+  assert.equal(supply.supply, Number(indexed.normalized_total_supply));
+  assert.equal(supply.amount, indexed.total_supply.split('.')[0]);
+  assert.ok(supply.uiSupply > supply.supply);
+  assert.equal(supply.valuationSafe, false);
+  // A provider's global market cap is never interpreted as Solana supply.
+  assert.notEqual(
+    supply.supply,
+    Number(indexed.market_cap_usd) / Number(indexed.price_usd),
+  );
+});
+
+test('GOOGLon gains a same-source 24h change without using its illiquid pool price', async () => {
+  const audit = JSON.parse(
+    await readFile(
+      new URL(
+        '../research/market-integrity/audit-2026-09-12.json',
+        import.meta.url,
+      ),
+      'utf8',
+    ),
+  );
+  const page = audit.records.find((p) =>
+    p.rows.some((r) => r.symbol === 'GOOGLon'),
+  );
+  const now = Date.parse(audit.completedAt);
+  const prices = parsePrices(page.llama, now),
+    history = parsePrices(page.history, now);
+  const data = {
+    markets: source({}, now),
+    supplies: source({}, now),
+    pools: source(parsePools(page.dex), now),
+    prices: source(prices, now),
+    history: source(history, now),
+  };
+  const observed = tokenObservation(data, 'GOOGLon', now);
+  assert.equal(observed.priceSource, 'DefiLlama');
+  assert.equal(observed.price, prices.GOOGLon.price);
+  assert.equal(
+    observed.change24h,
+    (prices.GOOGLon.price / history.GOOGLon.price - 1) * 100,
+  );
+  assert.ok(observed.change24h > 2 && observed.change24h < 3);
+  history.GOOGLon.timestamp -= 3600000;
+  assert.equal(tokenObservation(data, 'GOOGLon', now).change24h, null);
+  assert.equal(
+    tokenObservation(data, 'GOOGLon', now).price,
+    prices.GOOGLon.price,
+  );
+});
+
+test('Per-token pool endpoint restores multiple pools, deduplicates addresses, and never assigns a base price to the quote asset', async () => {
+  const { fetchTokenPools } = await import(
+    pathToFileURL(dir + '/market-data.mjs')
+  );
+  const audit = JSON.parse(
+    await readFile(
+      new URL(
+        '../research/market-integrity/audit-2026-09-12.json',
+        import.meta.url,
+      ),
+      'utf8',
+    ),
+  );
+  const sample = audit.samples.find((s) => s.symbol === 'MU');
+  const token = TOKENS.find((t) => t.symbol === 'MU');
+  const pools = await fetchTokenPools(token, async (url) => {
+    assert.equal(
+      String(url),
+      'https://api.dexscreener.com/token-pairs/v1/solana/' + token.mint,
+    );
+    return Response.json([...sample.pairs, ...sample.pairs]);
+  });
+  assert.equal(
+    pools.length,
+    new Set(sample.pairs.map((p) => p.pairAddress)).size,
+  );
+  assert.ok(pools.length > 1);
+  const pair = structuredClone(sample.pairs[0]);
+  pair.baseToken.address = TOKENS.find((t) => t.symbol === 'SPCX').mint;
+  pair.quoteToken.address = token.mint;
+  const quote = parsePools([pair], [token]).MU[0];
+  assert.equal(quote.side, 'quote');
+  assert.equal(quote.price, null);
+  assert.equal(quote.change24h, null);
+  assert.equal(quote.liquidity, pair.liquidity.usd);
+});
+
+test('Old batches do not age out fresh prices and supply in another batch', async () => {
+  const { mergeMarketPages } = await import(
+    pathToFileURL(dir + '/market-data.mjs')
+  );
+  const now = Date.now();
+  const page = (symbol, time) => ({
+    catalog: source([], time),
+    markets: source({}, time),
+    pools: source({}, time),
+    prices: source(
+      { [symbol]: { price: 2, timestamp: time, confidence: 1 } },
+      time,
+    ),
+    supplies: source({ [symbol]: { supply: 10, valuationSafe: true } }, time),
+  });
+  const merged = mergeMarketPages([
+    page('MU', now - 600000),
+    page('SPCX', now),
+  ]);
+  assert.equal(tokenObservation(merged, 'MU', now).price, null);
+  assert.equal(tokenObservation(merged, 'SPCX', now).issuedValue, 20);
+});
+
+test('Low-confidence prices and stale historical sources cannot manufacture a daily change', () => {
+  const now = Date.now();
+  const data = {
+    markets: source({}, now),
+    supplies: source({}, now),
+    pools: source({}, now),
+    prices: source({ MU: { price: 10, confidence: 0.2, timestamp: now } }, now),
+    history: source(
+      { MU: { price: 5, confidence: 1, timestamp: now - 86400000 } },
+      now,
+    ),
+  };
+  assert.equal(tokenObservation(data, 'MU', now).price, null);
+  data.prices.data.MU.confidence = 1;
+  data.history.stale = true;
+  assert.equal(tokenObservation(data, 'MU', now).price, 10);
+  assert.equal(tokenObservation(data, 'MU', now).change24h, null);
+});
+
+test('Divergent quote units never enter issuer valuation totals; adjustment windows suppress unconfirmed returns', () => {
+  const now = Date.now();
+  const data = {
+    markets: source({}, now),
+    supplies: source({ MU: { supply: 100, valuationSafe: true } }, now),
+    pools: source({ MU: [{ price: 1000, liquidity: 10000 }] }, now),
+    prices: source({ MU: { price: 100, confidence: 1, timestamp: now } }, now),
+    history: source(
+      { MU: { price: 90, confidence: 1, timestamp: now - 86400000 } },
+      now,
+    ),
+  };
+  const row = tokenObservation(data, 'MU', now);
+  assert.equal(row.priceConflict, true);
+  assert.equal(row.price, 100);
+  assert.equal(row.issuedValue, null);
+  assert.equal(issuedCoverage(data, now).total, null);
+  data.supplies.data.MU.adjustmentAt = now - 3600000;
+  assert.equal(tokenObservation(data, 'MU', now).change24h, null);
+});
