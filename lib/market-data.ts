@@ -1,4 +1,5 @@
 import type { TokenMarket } from './cmc-data';
+import type { IssuerCirculation } from './xstocks-circulation';
 import type { MintSupply } from './token-supply';
 import {
   TOKENS,
@@ -45,6 +46,7 @@ export type TokenPrice = {
 };
 export type TokenVolume = { usd24h: number; mint: string };
 export type MarketOverview = {
+  circulation?: SourceResult<Record<string, IssuerCirculation>>;
   history?: SourceResult<Record<string, TokenPrice>>;
   volumes?: SourceResult<Record<string, TokenVolume>>;
   supplies: SourceResult<Record<string, MintSupply>>;
@@ -482,6 +484,9 @@ export function mergeMarketPages(pages: MarketOverview[]): MarketOverview {
     prices: combine(pages.map((p) => p.prices)),
     pools: combine(pages.map((p) => p.pools)),
     supplies: combine(pages.map((p) => p.supplies)),
+    circulation: combine(
+      pages.flatMap((p) => (p.circulation ? [p.circulation] : [])),
+    ),
     history: combine(pages.flatMap((p) => (p.history ? [p.history] : []))),
   };
 }

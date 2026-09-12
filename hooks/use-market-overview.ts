@@ -80,6 +80,7 @@ export function useMarketOverview(holdings: string[], refresh: number) {
                     'supplies',
                     'pools',
                     'history',
+                    'circulation',
                   ] as const) {
                     if (next[key]?.refreshing && previous[key]?.data) {
                       Object.assign(next, {

@@ -17,7 +17,7 @@ import { PortfolioSummary } from './portfolio-summary';
 import type { Holding } from '@/lib/community-types';
 import { MarketStockRow } from './market-stock-row';
 import { SolanaEcosystem } from './solana-ecosystem';
-import { tokenObservation, issuedCoverage } from '@/lib/token-observation';
+import { tokenObservation, circulatingCoverage } from '@/lib/token-observation';
 const money = (n: number | null | undefined, compact = false) =>
   n === null || n === undefined
     ? '—'
@@ -180,6 +180,7 @@ export function MarketOverviewPanel({
         { name: 'DEX Screener', source: data.pools },
         { name: 'DefiLlama', source: data.prices },
         { name: 'Solana supply', source: data.supplies },
+        { name: 'xStocks circulation', source: data.circulation },
       ]
         .filter((r) => r.source?.stale || r.source?.error)
         .map((r) => r.name)
@@ -192,7 +193,7 @@ export function MarketOverviewPanel({
         <details className="market-refresh-note">
           <summary>Auto-updating</summary>
           Prices and supply: 2 min · Pools: 4 min · CoinMarketCap: 5 min · Order
-          books: 30 sec.
+          books: 30 sec · Issuer circulation: 10 min.
         </details>
         <Button
           variant="outline"
@@ -242,7 +243,7 @@ export function MarketOverviewPanel({
           <strong>{TOKENS.length.toLocaleString()} tokens</strong>
         </button>
         {ISSUERS.map((item) => {
-          const c = issuedCoverage(data, now, item.id);
+          const c = circulatingCoverage(data, now, item.id);
           const partial = c.valued.length < c.rows.length;
           return (
             <button
@@ -251,13 +252,17 @@ export function MarketOverviewPanel({
               aria-label={item.name}
               aria-describedby={`issuer-value-${item.id}`}
               aria-pressed={issuer === item.id}
-              title={`${c.valued.length} / ${c.rows.length} tokens valued${c.datedCount ? `; ${c.datedCount} dated quotes` : ''}. Click to filter.`}
+              title={`${c.valued.length} / ${c.rows.length} circulating values verified on Solana. Click to filter.`}
               onClick={() => chooseIssuer(item.id)}
             >
               <span>{item.name}</span>
               <strong id={`issuer-value-${item.id}`}>
                 {money(c.total, true)}
-                {partial && <small> partial</small>}
+                {c.total === null ? (
+                  <small> Not verified</small>
+                ) : (
+                  partial && <small> partial</small>
+                )}
               </strong>
             </button>
           );
@@ -304,7 +309,7 @@ export function MarketOverviewPanel({
               <th>Stock</th>
               <th>Token price</th>
               <th>24h change</th>
-              <th>Issued value · est.</th>
+              <th>Circulating value · est.</th>
             </tr>
           </thead>
           <tbody>
@@ -341,7 +346,7 @@ export function MarketOverviewPanel({
                   >
                     {pct(change)}
                   </td>
-                  <td>{money(row.issuedValue, true)}</td>
+                  <td>{money(row.circulatingValue, true)}</td>
                 </MarketStockRow>
               );
             })}
@@ -359,8 +364,10 @@ export function MarketOverviewPanel({
           <summary>Table sources</summary>
           <p>
             Prices: CoinMarketCap, fresh DefiLlama, then DEX pool. Older
-            DefiLlama references are labeled Last quote (up to 96 hours). Issued
-            value: Solana mint supply × token price.
+            DefiLlama references are labeled Last quote (up to 96 hours).
+            Circulating values use issuer-reported Solana quantities and
+            reference prices. Unverified circulation is unavailable; gross mint
+            values are not substituted.
           </p>
         </details>
         <div>
@@ -478,6 +485,58 @@ export function MarketOverviewPanel({
                   )}
                 </dd>
               </div>
+              {observation.circulation && (
+                <>
+                  <div>
+                    <dt>Circulating supply · Solana</dt>
+                    <dd>
+                      {observation.circulation.circulatingSupply.toLocaleString(
+                        'en-US',
+                        { maximumFractionDigits: 5 },
+                      )}{' '}
+                      adjusted units
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Valuation reference</dt>
+                    <dd>
+                      {money(observation.circulation.referencePriceUsd)} ·{' '}
+                      <a
+                        href="https://defi.xstocks.fi"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        xStocks issuer data ↗
+                      </a>
+                      . Retrieved {time(observation.circulationTime)}; reference
+                      prices may be up to 72 hours old.
+                    </dd>
+                  </div>
+                  {observation.circulation.fxDate && (
+                    <div>
+                      <dt>FX conversion</dt>
+                      <dd>
+                        HKD to USD ·{' '}
+                        <a
+                          href="https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          ECB ↗
+                        </a>{' '}
+                        · {observation.circulation.fxDate}
+                      </dd>
+                    </div>
+                  )}
+                </>
+              )}
+              <div>
+                <dt>Gross minted value · not AUM</dt>
+                <dd>
+                  {money(observation.issuedValue, true)} · includes inventory;
+                  token-price estimate
+                </dd>
+              </div>
               {observation.cmcDexVolume24h !== null && observed && (
                 <div>
                   <dt>DEX volume · 24h</dt>
@@ -544,9 +603,13 @@ export function MarketOverviewPanel({
               <small>Unadjusted tokens · excludes other chains</small>
             </div>
             <div>
-              <span>Issued token value · estimate</span>
-              <strong>{money(observation.issuedValue, true)}</strong>
-              <small>Solana supply × token price</small>
+              <span>Circulating value · estimate</span>
+              <strong>{money(observation.circulatingValue, true)}</strong>
+              <small>
+                {observation.circulation
+                  ? 'Issuer reference · Solana only'
+                  : 'Circulation not yet verified'}
+              </small>
             </div>
             <div>
               <span>Observed pool liquidity</span>
@@ -557,12 +620,12 @@ export function MarketOverviewPanel({
           <p className="market-footnote market-source-line">
             {observation.priceConflict &&
               'Price sources differ by more than 5%. Valuation is withheld pending reconciliation. '}
-            Issued value includes reserves. It is not circulating market cap or
-            company value.
+            Circulating value excludes pre-minted inventory. It is a reference
+            estimate for Solana, not all-chain AUM or an executable quote.
             {observation.priceSource === 'DEX pool' &&
               ' Pool prices may move sharply when liquidity is thin.'}
             {observation.valuationUnavailableReason === 'units' &&
-              ' Issued value is unavailable while adjusted quote units are unconfirmed.'}
+              ' Gross mint valuation is unavailable while token quote units are unconfirmed.'}
             {observation.price === null &&
               ' No recent price is available from the connected sources.'}
           </p>
@@ -829,11 +892,12 @@ export function MarketOverviewPanel({
           balances are not sent to these providers.
         </p>
         <p>
-          Solana-only unadjusted supply comes from validated mint accounts at
-          finalized commitment. Issued value multiplies that total supply by a
-          recent observed token price; it includes reserves and does not
-          estimate circulating supply. We omit stale inputs and show the number
-          of supported tokens included in the total.
+          Gross unadjusted supply comes from validated Solana mint accounts. Its
+          value includes inventory and appears only in source details. The
+          headline and table use issuer-adjusted circulating quantities,
+          excluding pre-minted inventory, multiplied by issuer reference prices.
+          No other chains, unverified issuers or gross mint values enter this
+          aggregate.
         </p>
         <p>
           Token rights, conversion and eligibility depend on the issuer’s terms.

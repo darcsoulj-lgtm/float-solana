@@ -488,11 +488,11 @@ async function marketFixture() {
         React.createElement('div', null, 'Market-wide totals'),
     },
     '@/lib/token-observation': {
-      issuedCoverage: () => ({
+      circulatingCoverage: () => ({
         total: 12000,
         valued: [{}],
         rows: [{}, {}],
-        datedCount: 1,
+        issuerCount: 1,
       }),
       tokenObservation: () => ({
         price: null,
@@ -628,11 +628,11 @@ test('Ecosystem overview keeps numbers and one disclosure without duplicate issu
       ISSUERS: [{ id: 'xstocks', name: 'xStocks', url: 'https://xstocks.fi' }],
     },
     '@/lib/token-observation': {
-      issuedCoverage: () => ({
+      circulatingCoverage: () => ({
         total: 1000,
         rows: [{}],
-        valued: [{ symbol: 'MUx', issuedValue: 1000 }],
-        datedCount: 1,
+        valued: [{ symbol: 'MUx', circulatingValue: 1000 }],
+        issuerCount: 1,
         missing: { supply: 0, price: 0, units: 0, conflict: 0 },
       }),
     },
@@ -647,7 +647,9 @@ test('Ecosystem overview keeps numbers and one disclosure without duplicate issu
   );
   assert.equal((html.match(/<details/g) || []).length, 1);
   assert.match(html, /Coverage &amp; methodology/);
-  assert.match(html, /1 values use dated quotes/);
+  assert.match(html, /1 \/ 1 issuers/);
+  assert.match(html, /Pre-minted inventory excluded/);
+  assert.doesNotMatch(html, /Partial issued value/);
   assert.match(html, /\$1K/);
   assert.doesNotMatch(html, /issuer-comparison|issuer-card/);
 });

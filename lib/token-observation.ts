@@ -120,9 +120,22 @@ export function tokenObservation(
     supply && valuationUnavailableReason === null && price !== null
       ? supply.supply * price
       : null;
+  const circulationTime =
+    data?.circulation?.asOf?.[symbol] ?? data?.circulation?.fetchedAt;
+  const circulation =
+    circulationTime &&
+    !data?.circulation?.stale &&
+    circulationTime <= now + 60000 &&
+    now - circulationTime < 900000
+      ? data?.circulation?.data?.[symbol]
+      : undefined;
+  const circulatingValue = circulation?.valueUsd ?? null;
   const liquidityRows = pools.filter((p) => p.liquidity !== null);
   return {
     symbol,
+    circulation,
+    circulationTime: circulation ? circulationTime : null,
+    circulatingValue,
     valuationUnavailableReason,
     cmcDexVolume24h: cmc?.dexVolume24h ?? null,
     onchainVolume24h: recent(data?.volumes, now, symbol)
@@ -199,6 +212,34 @@ export function issuedCoverage(
       units: rows.filter((r) => r.valuationUnavailableReason === 'units')
         .length,
       conflict: rows.filter((r) => r.valuationUnavailableReason === 'conflict')
+        .length,
+    },
+  };
+}
+
+// Comparable net circulation only. Gross mint supply and global CMC values
+// must never be substituted when an issuer has no chain-specific circulation.
+export function circulatingCoverage(
+  data: MarketOverview | null,
+  now = Date.now(),
+  issuer?: IssuerId,
+) {
+  const tokens = TOKENS.filter((t) => !issuer || t.issuer === issuer);
+  const rows = tokens.map((t) => tokenObservation(data, t.symbol, now));
+  const valued = rows.filter((r) => r.circulatingValue !== null);
+  const valuedSymbols = new Set(valued.map((r) => r.symbol));
+  return {
+    rows,
+    valued,
+    total: valued.length
+      ? valued.reduce((s, r) => s + r.circulatingValue!, 0)
+      : null,
+    issuerCount: new Set(
+      tokens.filter((t) => valuedSymbols.has(t.symbol)).map((t) => t.issuer),
+    ).size,
+    missing: {
+      supply: rows.filter((r) => !r.circulation).length,
+      price: rows.filter((r) => r.circulation && r.circulatingValue === null)
         .length,
     },
   };

@@ -1,6 +1,6 @@
 import { ArrowUpRight } from 'lucide-react';
 import { TOKENS, ISSUERS, type IssuerId } from '@/lib/tokens';
-import { issuedCoverage } from '@/lib/token-observation';
+import { circulatingCoverage } from '@/lib/token-observation';
 import type { MarketOverview } from '@/lib/market-data';
 const usd = (n: number | null) =>
   n === null
@@ -22,9 +22,9 @@ export function SolanaEcosystem({
   onIssuer: (id: IssuerId | 'all') => void;
   select: (symbol: string) => void;
 }) {
-  const coverage = issuedCoverage(data, now);
+  const coverage = circulatingCoverage(data, now);
   const leaders = [...coverage.valued]
-    .sort((a, b) => b.issuedValue! - a.issuedValue!)
+    .sort((a, b) => b.circulatingValue! - a.circulatingValue!)
     .slice(0, 5);
   return (
     <section
@@ -39,14 +39,10 @@ export function SolanaEcosystem({
       </div>
       <div className="ecosystem-stats">
         <div>
-          <span>
-            {coverage.valued.length === TOKENS.length
-              ? 'Issued value'
-              : 'Partial issued value'}
-          </span>
+          <span>Tracked circulating value</span>
           <strong>{usd(coverage.total)}</strong>
           <small>
-            {coverage.valued.length} / {TOKENS.length} tokens valued
+            {coverage.issuerCount} / {ISSUERS.length} issuers · partial coverage
           </small>
         </div>
         <div>
@@ -65,16 +61,15 @@ export function SolanaEcosystem({
         </div>
       </div>
       <p className="market-footnote">
-        Solana minted supply × observed token price. Includes reserves. Partial
-        coverage; not company market cap.
-        {coverage.datedCount > 0 &&
-          ` ${coverage.datedCount} values use dated quotes.`}
+        Solana circulation × issuer reference price. Pre-minted inventory
+        excluded. Unverified issuers are omitted; this is not the total market
+        or all-chain AUM.
       </p>
       <details className="market-methodology coverage-diagnostics">
         <summary>Coverage &amp; methodology</summary>
         <p>
-          Each listing needs a price, recent Solana supply and matching units.
-          Missing values are excluded, never counted as zero.
+          Only issuer-reported Solana circulation with a matched USD reference
+          is counted. Missing values are excluded, never counted as zero.
         </p>
         <div className="market-table-scroll">
           <table className="market-table">
@@ -85,13 +80,11 @@ export function SolanaEcosystem({
                 <th>Valued</th>
                 <th>Supply unavailable</th>
                 <th>Price unavailable</th>
-                <th>Units unverified</th>
-                <th>Price conflict</th>
               </tr>
             </thead>
             <tbody>
               {ISSUERS.map((i) => {
-                const c = issuedCoverage(data, now, i.id);
+                const c = circulatingCoverage(data, now, i.id);
                 return (
                   <tr key={i.id}>
                     <th scope="row">{i.name}</th>
@@ -100,8 +93,6 @@ export function SolanaEcosystem({
                     </td>
                     <td>{c.missing.supply}</td>
                     <td>{c.missing.price}</td>
-                    <td>{c.missing.units}</td>
-                    <td>{c.missing.conflict}</td>
                   </tr>
                 );
               })}
@@ -109,14 +100,15 @@ export function SolanaEcosystem({
           </table>
         </div>
         <p>
-          Quotes over 15 minutes old are labeled Last quote and can inform
-          estimates for up to 96 hours. They never supply a current 24h change
-          or holder rank. Unavailable includes expired data. Each excluded
-          listing appears once, under its first missing requirement. Units
-          unverified means a dividend or split adjustment needs a confirmed
-          quote basis.
+          xStocks: issuer-adjusted circulating quantities and collateral
+          reference prices, using the same units as its dashboard. HKD quotes
+          are converted with dated ECB reference rates. Updated every 10
+          minutes; reference prices may be up to 72 hours old. No multiplier is
+          applied twice. Other issuers remain unverified on this basis. Gross
+          mint values stay in each asset’s source details and are never added to
+          this total.
         </p>
-        <h3>Largest issued values</h3>
+        <h3>Largest circulating values</h3>
         {leaders.map((r) => (
           <button
             key={r.symbol}
@@ -128,7 +120,7 @@ export function SolanaEcosystem({
             }}
           >
             <b>{r.symbol}</b>
-            <strong>{usd(r.issuedValue)}</strong>
+            <strong>{usd(r.circulatingValue)}</strong>
             <ArrowUpRight size={15} />
           </button>
         ))}

@@ -17,6 +17,11 @@ import {
 } from '@/lib/market-data';
 import { marketSnapshot } from '@/lib/market-cache';
 import { waitUntil } from 'cloudflare:workers';
+import {
+  fetchXstocksCirculation,
+  CIRCULATION_REFRESH_MS,
+  CIRCULATION_MAX_AGE_MS,
+} from '@/lib/xstocks-circulation';
 import { fetchSupplies } from '@/lib/token-supply';
 export const dynamic = 'force-dynamic';
 const json = (data: unknown, status = 200) =>
@@ -42,9 +47,11 @@ export async function GET(req: Request) {
         loader,
         waitUntil,
         Date.now(),
-        key.startsWith('book:') || key.startsWith('token-pairs-')
-          ? ttl
-          : Math.max(ttl, MARKET_MAX_AGE_MS),
+        key.startsWith('xstocks-circulation:')
+          ? CIRCULATION_MAX_AGE_MS
+          : key.startsWith('book:') || key.startsWith('token-pairs-')
+            ? ttl
+            : Math.max(ttl, MARKET_MAX_AGE_MS),
       );
     const symbol = new URL(req.url).searchParams.get('symbol');
     if (symbol && !TOKENS.some((t) => t.symbol === symbol))
@@ -107,38 +114,44 @@ export async function GET(req: Request) {
       );
       return json({ book, reason: null });
     }
-    const [pools, prices, markets, supplies, history] = await Promise.all([
-      snapshot(
-        'dex-pools-v4:' + TOKEN_REVIEW_DATE + ':' + batch,
-        POOL_REFRESH_MS,
-        () => fetchPools(fetch, tokens),
-      ),
-      snapshot(
-        'llama-prices-v3:' + TOKEN_REVIEW_DATE + ':' + batch,
-        MARKET_REFRESH_MS,
-        () => fetchPrices(fetch, tokens),
-      ),
-      batch > 0
-        ? Promise.resolve({
-            data: {},
-            fetchedAt: null,
-            stale: false,
-            error: null,
-          })
-        : snapshot('cmc-tokens-v2', CMC_REFRESH_MS, () =>
-            fetchTokenMarkets(runtime().CMC_API_KEY),
-          ),
-      snapshot(
-        'solana-supplies-v4:' + TOKEN_REVIEW_DATE + ':' + batch,
-        MARKET_REFRESH_MS,
-        () => fetchSupplies(runtime().SOLANA_RPC_URL, fetch, tokens),
-      ),
-      snapshot(
-        'llama-history-v1:' + TOKEN_REVIEW_DATE + ':' + batch,
-        MARKET_REFRESH_MS,
-        () => fetchHistoricalPrices(fetch, tokens),
-      ),
-    ]);
+    const [pools, prices, markets, supplies, history, circulation] =
+      await Promise.all([
+        snapshot(
+          'dex-pools-v4:' + TOKEN_REVIEW_DATE + ':' + batch,
+          POOL_REFRESH_MS,
+          () => fetchPools(fetch, tokens),
+        ),
+        snapshot(
+          'llama-prices-v3:' + TOKEN_REVIEW_DATE + ':' + batch,
+          MARKET_REFRESH_MS,
+          () => fetchPrices(fetch, tokens),
+        ),
+        batch > 0
+          ? Promise.resolve({
+              data: {},
+              fetchedAt: null,
+              stale: false,
+              error: null,
+            })
+          : snapshot('cmc-tokens-v2', CMC_REFRESH_MS, () =>
+              fetchTokenMarkets(runtime().CMC_API_KEY),
+            ),
+        snapshot(
+          'solana-supplies-v4:' + TOKEN_REVIEW_DATE + ':' + batch,
+          MARKET_REFRESH_MS,
+          () => fetchSupplies(runtime().SOLANA_RPC_URL, fetch, tokens),
+        ),
+        snapshot(
+          'llama-history-v1:' + TOKEN_REVIEW_DATE + ':' + batch,
+          MARKET_REFRESH_MS,
+          () => fetchHistoricalPrices(fetch, tokens),
+        ),
+        batch === 0
+          ? snapshot('xstocks-circulation:v1', CIRCULATION_REFRESH_MS, () =>
+              fetchXstocksCirculation(),
+            )
+          : Promise.resolve(undefined),
+      ]);
     const response = json({
       catalog,
       pools,
@@ -146,6 +159,7 @@ export async function GET(req: Request) {
       markets,
       supplies,
       history,
+      ...(circulation ? { circulation } : {}),
       batch,
       totalBatches: Math.ceil(TOKENS.length / MARKET_BATCH_SIZE),
     });
