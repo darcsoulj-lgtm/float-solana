@@ -1,0 +1,59 @@
+{
+  "recordedAt": "2026-09-13T10:36:37.098Z",
+  "scope": "Follow-up to release 68: build dependency repair and read-only browser verification",
+  "dependencyAudit": {
+    "info": 0,
+    "low": 0,
+    "moderate": 0,
+    "high": 0,
+    "critical": 0,
+    "advisories": 0
+  },
+  "releaseGate": {
+    "tests": 247,
+    "passed": 247,
+    "failed": 0,
+    "skipped": 0,
+    "types": "passed",
+    "lint": "passed",
+    "productionBuild": "passed"
+  },
+  "packageChange": {
+    "framework": "vinext@1.0.0-beta.5",
+    "removed": "image-size@2.0.2",
+    "replacement": "image-dimensions@2.5.1",
+    "patch": "patches/vinext@1.0.0-beta.5.patch"
+  },
+  "browser": {
+    "releaseInspected": 68,
+    "normalChrome": "working",
+    "desktopReadOnlyJourneys": [
+      "Markets",
+      "expanded stock details",
+      "portfolio and news",
+      "Profile",
+      "Discussions",
+      "Rooms",
+      "public Backpack dashboard"
+    ],
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "route": "/backpack",
+      "pageWidth": 390,
+      "visualInspection": "passed"
+    },
+    "mutationsTested": false,
+    "accessPolicyChanged": false,
+    "observations": [
+      "Delayed xStocks circulation with upstream timeout",
+      "Temporary unavailable market values populated during background refresh",
+      "Explicit MetaMask extension errors and unattributed connection errors; console not certified clean"
+    ]
+  },
+  "limitations": [
+    "Fresh wallet signing and posting not exercised",
+    "No new global production load test",
+    "Zero known advisories does not mean vulnerability-free"
+  ]
+}

@@ -9,7 +9,14 @@ overrides:
   'sharp@<0.35.4': '0.35.4'
   'esbuild@<=0.24.2': '0.25.12'
   'esbuild@0.27.3': '0.28.1'
+  'vinext>image-size': '-'
+packageExtensions:
+  'vinext@1.0.0-beta.5':
+    dependencies:
+      image-dimensions: '2.5.1'
 allowBuilds:
   esbuild: true
   sharp: true
   workerd: true
+patchedDependencies:
+  vinext@1.0.0-beta.5: patches/vinext@1.0.0-beta.5.patch

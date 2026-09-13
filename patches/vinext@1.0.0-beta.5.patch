@@ -1,0 +1,35 @@
+diff --git a/dist/server/metadata-route-build-data.js b/dist/server/metadata-route-build-data.js
+index ec923b904c3c7dc31bcae548b9489224457625ea..c5b1a1ad1dfc08712f0ddbba7a31cf6aa053defc 100644
+--- a/dist/server/metadata-route-build-data.js
++++ b/dist/server/metadata-route-build-data.js
+@@ -2,7 +2,7 @@ import { routePatternParts } from "../routing/route-pattern.js";
+ import { getMetadataRouteKind } from "./metadata-routes.js";
+ import fs from "node:fs";
+ import { createHash } from "node:crypto";
+-import { imageSize } from "image-size";
++import { imageDimensionsFromData } from "image-dimensions";
+ //#region src/server/metadata-route-build-data.ts
+ function createMetadataContentHash(buffer) {
+ 	return createHash("sha1").update(buffer).digest("hex").slice(0, 16);
+@@ -28,7 +28,10 @@ function readMetadataRouteAltText(route) {
+ }
+ function readMetadataImageDimensions(buffer, route) {
+ 	try {
+-		const dimensions = imageSize(buffer);
++		const dimensions = imageDimensionsFromData(buffer);
++		if (!dimensions || !Number.isSafeInteger(dimensions.width) || !Number.isSafeInteger(dimensions.height) || dimensions.width <= 0 || dimensions.height <= 0) {
++			throw new Error("Unsupported or invalid metadata image. Use PNG, JPEG, GIF, WebP, AVIF or HEIF.");
++		}
+ 		return {
+ 			width: dimensions.width,
+ 			height: dimensions.height
+@@ -81,7 +84,8 @@ function createBaseEntryData(route, contentHash) {
+ 	};
+ }
+ function readStaticMetadataImageDimensions(route, buffer) {
+-	return route.contentType.startsWith("image/") ? readMetadataImageDimensions(buffer, route) : {};
++	// SVG icons use sizes="any"; no binary parser is needed for vector metadata.
++	return route.contentType.startsWith("image/") && route.contentType !== "image/svg+xml" ? readMetadataImageDimensions(buffer, route) : {};
+ }
+ function createMetadataRouteEntryData(route) {
+ 	const buffer = readMetadataRouteFile(route);

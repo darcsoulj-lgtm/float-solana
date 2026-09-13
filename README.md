@@ -53,6 +53,7 @@ See [the current member experience](docs/release-26-holder-experience.md) for da
 - `node tests/authorization.mjs`: local researcher/admin/foreign-owner boundaries and forged-header rejection.
 - `pnpm test:wallet`: temporary local RPC fixture with genuine key generation/signatures; tests proof replay, fresh balance checks, duplicate wallets, analytics, reward refusal. Restores `.env` and `.dev.vars` afterward.
 - `pnpm build` (also `pnpm verify`): requires strict types, repository-wide lint and all regression suites to pass before producing the production build. A failed check stops the release build.
+- The [metadata-parser security patch](docs/dependency-security-2026-09-13.md) removes two vulnerable build-time parser paths. Keep its regression tests and review bundled dependencies before upgrading Vinext.
 - `node scripts/check-repair-runtime.mjs`: isolated Worker/D1 test with real application routes and sessions, synthetic users, and simulated slow/rate-limited providers. It does not load project secrets or contact providers. Reports latency, database work and request isolation. Local results do not establish regional production capacity.
 
 Integration tests require a running local server, applied migrations, and local admin configuration. They create only local test studies. Wallet tests never mint tokens, transact, or use a user's private keys. Do not run the fixture against a production database.

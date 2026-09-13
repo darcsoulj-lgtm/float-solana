@@ -2,6 +2,8 @@
 
 Date: 13 September 2026. Owner: engineering. Baseline: release 67, commit `4d0a19e4db579f8ff304fbb3915fcd48ba247d98`.
 
+**Follow-up:** the two dependency alerts described below have now been removed, and normal Chrome inspection is working. The full gate now passes 247 tests with zero known dependency advisories. See [dependency repair and live verification](dependency-security-2026-09-13.md). The release 68 results below are retained as historical evidence.
+
 This release repairs the highest-risk integration, security and database findings in the [baseline audit](engineering-audit-2026-09-13.md). It keeps one application and deployment. It does not claim that all architectural debt is eliminated or that global production capacity has been established.
 
 ## Implemented boundaries
@@ -28,7 +30,7 @@ Normal active market polling is now two minutes. The first market batch provides
 
 The advisory scan decreased from 23 findings to **two high-severity findings**, both in `image-size@2.0.2` via Vinext. The registry did not offer the advisory feed's suggested 2.0.3; the official [ICNS advisory](https://github.com/advisories/GHSA-w3rx-r6r6-pgpr) and [JXL/HEIF advisory](https://github.com/advisories/GHSA-5p2g-fcmc-qvqq) list no published fix at the time checked.
 
-Reachability review found Vinext's only direct `image-size` import in its build-time metadata reader, which reads repository files. Inspection of the newly generated server JavaScript found no `image-size`, metadata-reader or identified parser markers. This supports excluding that parser from the inspected deployed Worker, but is not a general penetration-test result. The installed build dependency remains flagged: do not process untrusted metadata images during builds; replace it when a compatible upstream fix is published. The audit is not being reported as clean.
+Reachability review found Vinext's only direct `image-size` import in its build-time metadata reader, which reads repository files. Inspection of the newly generated server JavaScript found no `image-size`, metadata-reader or identified parser markers. This supports excluding that parser from the inspected deployed Worker, but is not a general penetration-test result. The installed build dependency remained flagged at the release 68 check. It was subsequently replaced through a pinned, tested package patch; see the follow-up above.
 
 ## Verification and measured limits
 
@@ -46,15 +48,15 @@ All **244 regression tests** pass, with no skipped tests. Strict TypeScript, ful
 
 Cold responses can contain unavailable source values while background work runs. Their low latency does not mean fresh prices arrived in 48 ms. These measurements are local, single-machine results, not a worldwide latency promise or a supported-user-count claim. Evidence: [runtime results](../research/engineering/2026-09-13/repair-runtime.json), [before counters](../research/engineering/2026-09-13/repair-runtime-before-room-counters.json).
 
-Browser inspection was administratively unavailable during this repair. CSS review preserves block layout for status elements, and component regressions run, but rendered desktop/mobile/wallet visual checks have **not** been completed for this release. Automated source/build checks are not being substituted for visual QA.
+Browser inspection was unavailable during the original repair. Follow-up inspection succeeded using normal Chrome, including existing signed-in pages and a public dashboard at mobile width. A separate automated HTTP client received Cloudflare error 1010; that client-specific rejection did not establish that normal-browser verification was blocked. Fresh wallet signing and other mutating browser journeys remain untested. See the follow-up for exact coverage and limitations.
 
 ## Outstanding work
 
-1. Run rendered desktop/mobile and real wallet-browser journeys when browser access is restored; run multi-region staging tests and measure provider/D1 quota headroom before a wider launch.
+1. Extend the completed browser checks to fresh wallet signing and mutating journeys; run multi-region staging tests and measure provider/D1 quota headroom before a wider launch.
 2. Replace full-universe client aggregation with a compact server summary and visible-page endpoint when required by measured traffic. The all-market flow still loads roughly 15 batches for the seeded universe; this repair reduces duplicate work and polling, but does not remove that fan-out.
 3. Automatic issuer discovery remains Backpack-only. Other issuers retain their reviewed seeds. Background refresh remains demand-driven; `waitUntil` is not a durable scheduler or a guarantee that an idle site updates.
 4. Continue extracting profile, notifications and market presentation from large components as those features change. The global styles and main community route still contain architectural debt; they were not rewritten wholesale.
-5. Track the two remaining build-time image-parser advisories and validate any upstream replacement. An independent security review, production monitoring, backup/restore exercise and actual-user wallet verification remain separate launch evidence.
+5. Maintain the tested metadata-reader patch until an upstream release removes or fixes the vulnerable parser, including bundled copies. An independent security review, production monitoring, backup/restore exercise and actual-user wallet verification remain separate launch evidence.
 
 ## Deployment and rollback
 
