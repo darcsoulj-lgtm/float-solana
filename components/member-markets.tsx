@@ -4,11 +4,14 @@ import { ArrowLeft } from 'lucide-react';
 import type { Holding } from '@/lib/community-types';
 import { ISSUERS } from '@/lib/tokens';
 import type { MarketView } from '@/lib/member-navigation';
+import { loadClientModule } from '@/lib/client-module';
 const MarketOverviewPanel = lazy(() =>
-  import('./market-overview').then((m) => ({ default: m.MarketOverviewPanel })),
+  loadClientModule(() => import('./market-overview')).then((m) => ({
+    default: m.MarketOverviewPanel,
+  })),
 );
 const IssuerDashboardPage = lazy(() =>
-  import('./issuer-dashboard').then((m) => ({
+  loadClientModule(() => import('./issuer-dashboard')).then((m) => ({
     default: m.IssuerDashboardPage,
   })),
 );

@@ -23,6 +23,7 @@ export function MarketStockRow({
     >
       <td>
         <button
+          className="stock-row-trigger"
           type="button"
           id={`stock-trigger-${symbol}`}
           aria-label={`View ${symbol} details`}
@@ -35,7 +36,7 @@ export function MarketStockRow({
           }}
         >
           <strong>{symbol}</strong>
-          <span>{name}</span>
+          <span title={name}>{name}</span>
           {held && <small>Held</small>}
         </button>
       </td>

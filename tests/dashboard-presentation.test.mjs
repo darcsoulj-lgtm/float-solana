@@ -261,6 +261,8 @@ async function renderDashboard(search, interact) {
     '@/lib/member-navigation': navModule.exports,
     './member-home': { MemberHomePanel: Empty },
     './member-markets': { MemberMarkets: Empty },
+    './member-section-boundary': { MemberSectionBoundary: Wrap },
+    '@/lib/client-module': { loadClientModule: (load) => load() },
     './site-link': { default: Wrap },
     './float-logo': { FloatLogo: Empty },
     './holdings-update-info': { HoldingsUpdateInfo: Empty },

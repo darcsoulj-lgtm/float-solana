@@ -168,7 +168,7 @@ a {
 a:hover {
   color: var(--hp-ink-585858, #585858);
 }
-header {
+body > header {
   height: 100px;
   max-width: 1440px;
   margin: auto;
@@ -643,7 +643,7 @@ textarea {
   }
 }
 @media (max-width: 700px) {
-  header {
+  body > header {
     height: auto;
     min-height: 90px;
     flex-wrap: wrap;
@@ -796,7 +796,7 @@ textarea {
   --input: #e2e4e8;
   --ring: #585858;
 }
-header {
+body > header {
   max-width: 1500px;
   height: 88px;
 }
@@ -1135,7 +1135,7 @@ nav {
   }
 }
 @media (max-width: 760px) {
-  header {
+  body > header {
     height: auto;
   }
   .club {
@@ -3479,7 +3479,7 @@ body:has(.member-shell) > footer {
 .market-table th:first-child {
   text-align: left;
 }
-.market-table td button {
+.market-table .stock-row-trigger {
   display: grid;
   gap: 3px;
   text-align: left;
@@ -3490,7 +3490,7 @@ body:has(.member-shell) > footer {
   font-size: 15px;
   color: var(--hp-ink-393939, #393939);
 }
-.market-table td button > span {
+.market-table .stock-row-trigger > span {
   font-size: 12px;
   color: var(--hp-ink-6f6f6f, #6f6f6f);
   max-width: 180px;

@@ -61,3 +61,10 @@ Integration tests require a running local server, applied migrations, and local 
 A successful mainnet holder submission from an actual funded user wallet has not been tested. A dedicated RPC URL, real wallet-browser compatibility testing, payment/subscription processing, USDC funding and payout worker, historical indexer, operator privacy procedures, monitoring, backups, and independent security review remain necessary before paid institutional operation. Mobile currently requires a compatible wallet browser; deep-link pairing is not included. The public site is an initial working release, not a claim of audited institutional readiness.
 
 Initial provisioning used a temporary fixed-data bootstrap route. That route has been removed from the published application; subsequent demo seeding is available only to signed-in administrators.
+
+
+### Client release continuity
+
+The Vite client build retains immutable JavaScript, CSS and related assets from the three preceding builds. Keep `.float-build-cache/client-assets/` (ignored) between release builds; a clean checkout has no previous assets to retain. Only manifest-referenced static files are carried forward, never old HTML, manifests, server code or configuration. The current build plus three prior dependency graphs are tested before packaging. Purge this cache and old build output when an urgent client security fix requires invalidating old code.
+
+Home and Markets have independent error boundaries. Module download failures retry twice; render errors are not automatically retried. Failures report only section, category, React error code and static chunk paths to the rate-limited, same-origin `/api/client-error` endpoint. Raw messages, page URLs, wallet identifiers and form contents are not sent. Inspect Sites Worker logs for `Client section failed` to diagnose a recurrence; source-refresh timeouts alone do not establish a client crash cause.

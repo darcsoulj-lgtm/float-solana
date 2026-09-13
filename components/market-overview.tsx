@@ -213,24 +213,28 @@ export function MarketOverviewPanel({
         aria-label={`${token.symbol} market details`}
       >
         <header>
-          <div>
-            <h2>
-              {token.symbol} <span>{token.shortName}</span>
-            </h2>
+          <div className="market-detail-heading">
+            <h2>{token.symbol}</h2>
+            <p>{token.shortName}</p>
           </div>
-          <span className="market-chain">
-            {issuerName(token.issuer)} · Solana
-          </span>
-          <Button
-            variant="ghost"
-            aria-label={`Close ${token.symbol} details`}
-            onClick={() => {
-              document.getElementById(`stock-trigger-${token.symbol}`)?.focus();
-              setDetailOpen(false);
-            }}
-          >
-            <X size={17} />
-          </Button>
+          <div className="market-detail-actions">
+            <span className="market-chain">
+              {issuerName(token.issuer)} · Solana
+            </span>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={`Close ${token.symbol} details`}
+              onClick={() => {
+                document
+                  .getElementById(`stock-trigger-${token.symbol}`)
+                  ?.focus();
+                setDetailOpen(false);
+              }}
+            >
+              <X size={17} />
+            </Button>
+          </div>
         </header>
         <div
           className={`market-metrics token-metrics ${observation.cmcDexVolume24h === null ? 'two-metrics' : ''}`}
@@ -256,9 +260,11 @@ export function MarketOverviewPanel({
             </span>
             <strong
               className={
-                (observation.change24h || 0) < 0
-                  ? 'market-negative'
-                  : 'market-positive'
+                observation.change24h === null
+                  ? undefined
+                  : observation.change24h < 0
+                    ? 'market-negative'
+                    : 'market-positive'
               }
             >
               {pct(observation.change24h)}
@@ -862,9 +868,11 @@ export function MarketOverviewPanel({
                     </td>
                     <td
                       className={
-                        (change || 0) < 0
-                          ? 'market-negative'
-                          : 'market-positive'
+                        change === null
+                          ? undefined
+                          : change < 0
+                            ? 'market-negative'
+                            : 'market-positive'
                       }
                     >
                       {pct(change)}

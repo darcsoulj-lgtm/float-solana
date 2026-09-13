@@ -43,13 +43,15 @@ import {
 import { SearchPicker } from './search-picker';
 import { Thread } from './community-thread';
 import { RoomCreator } from './room-creator';
+import { MemberSectionBoundary } from './member-section-boundary';
+import { loadClientModule } from '@/lib/client-module';
 const MemberHomePanel = lazy(() =>
-  import('./member-home').then((module) => ({
+  loadClientModule(() => import('./member-home')).then((module) => ({
     default: module.MemberHomePanel,
   })),
 );
 const MemberMarkets = lazy(() =>
-  import('./member-markets').then((module) => ({
+  loadClientModule(() => import('./member-markets')).then((module) => ({
     default: module.MemberMarkets,
   })),
 );
@@ -576,64 +578,70 @@ export function MemberDashboard({
             {notice && <output className="member-notice">{notice}</output>}
             {visited.has('overview') && (
               <Activity mode={view === 'overview' ? 'visible' : 'hidden'}>
-                {data ? (
-                  <Suspense
-                    fallback={
-                      <p className="inline-status" role="status">
-                        Loading Home…
-                      </p>
-                    }
-                  >
-                    <MemberHomePanel
-                      revision={communityRevision}
-                      positions={holdings}
-                      symbol={held.has(coverageSymbol) ? coverageSymbol : 'all'}
-                      onSymbolChange={setCoverageSymbol}
-                      onDiscuss={(item) => {
-                        startDiscussion(
-                          item.title.slice(0, 140),
-                          item.symbols[0],
-                        );
-                        setDraftBody(`Source: ${item.url}\n\n`);
-                      }}
-                      onMarkets={() => navigate('markets', 'all')}
-                      onThread={(id) => {
-                        setThreadId(id);
-                        setFeed('all');
-                        setTopic('all');
-                        navigate('home');
-                      }}
-                      onDiscussions={() => {
-                        setFeed('all');
-                        setTopic('all');
-                        setThreadId('');
-                        navigate('home');
-                      }}
-                      onCreate={() => startDiscussion()}
-                    />
-                  </Suspense>
-                ) : (
-                  <p className="inline-status" role="status">
-                    Loading your holdings…
-                  </p>
-                )}
+                <MemberSectionBoundary section="Home">
+                  {data ? (
+                    <Suspense
+                      fallback={
+                        <p className="inline-status" role="status">
+                          Loading Home…
+                        </p>
+                      }
+                    >
+                      <MemberHomePanel
+                        revision={communityRevision}
+                        positions={holdings}
+                        symbol={
+                          held.has(coverageSymbol) ? coverageSymbol : 'all'
+                        }
+                        onSymbolChange={setCoverageSymbol}
+                        onDiscuss={(item) => {
+                          startDiscussion(
+                            item.title.slice(0, 140),
+                            item.symbols[0],
+                          );
+                          setDraftBody(`Source: ${item.url}\n\n`);
+                        }}
+                        onMarkets={() => navigate('markets', 'all')}
+                        onThread={(id) => {
+                          setThreadId(id);
+                          setFeed('all');
+                          setTopic('all');
+                          navigate('home');
+                        }}
+                        onDiscussions={() => {
+                          setFeed('all');
+                          setTopic('all');
+                          setThreadId('');
+                          navigate('home');
+                        }}
+                        onCreate={() => startDiscussion()}
+                      />
+                    </Suspense>
+                  ) : (
+                    <p className="inline-status" role="status">
+                      Loading your holdings…
+                    </p>
+                  )}
+                </MemberSectionBoundary>
               </Activity>
             )}
             {visited.has('markets') && (
               <Activity mode={view === 'markets' ? 'visible' : 'hidden'}>
-                <Suspense
-                  fallback={
-                    <p className="inline-status" role="status">
-                      Loading markets…
-                    </p>
-                  }
-                >
-                  <MemberMarkets
-                    positions={holdings}
-                    market={market}
-                    onMarketChange={(next) => navigate('markets', next)}
-                  />
-                </Suspense>
+                <MemberSectionBoundary section="Markets">
+                  <Suspense
+                    fallback={
+                      <p className="inline-status" role="status">
+                        Loading markets…
+                      </p>
+                    }
+                  >
+                    <MemberMarkets
+                      positions={holdings}
+                      market={market}
+                      onMarketChange={(next) => navigate('markets', next)}
+                    />
+                  </Suspense>
+                </MemberSectionBoundary>
               </Activity>
             )}
             {view === 'markets' || view === 'overview' ? null : view ===
