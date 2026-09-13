@@ -20,11 +20,7 @@ import { PortfolioSummary } from './portfolio-summary';
 import type { Holding } from '@/lib/community-types';
 import { MarketStockRow } from './market-stock-row';
 import { SolanaEcosystem } from './solana-ecosystem';
-import {
-  tokenObservation,
-  issuerValuation,
-  tokenValuation,
-} from '@/lib/token-observation';
+import { tokenObservation, tokenValuation } from '@/lib/token-observation';
 const money = (n: number | null | undefined, compact = false) =>
   n === null || n === undefined
     ? '—'
@@ -709,77 +705,33 @@ export function MarketOverviewPanel({
           setCopied(false);
         }}
       />
-      <div className="issuer-value-heading">
-        <span>Estimated Solana value</span>
-        <MetricInfo label="How issuer values are calculated">
-          Value is supply on Solana multiplied by the token price. xStocks uses
-          circulating supply, excluding pre-minted inventory. Other issuers use
-          minted supply, which can include issuer inventory. These estimates
-          have different bases and are not directly comparable or all-chain AUM.
-          Partial means some tokens could not be valued. Delayed means the last
-          verified value is shown.
-          {ISSUERS.map((item) => {
-            const c = issuerValuation(data, now, item.id);
-            return c.delayed && c.total !== null ? (
-              <span key={item.id}>
-                <br />
-                {item.name}: last verified {time(c.observedAt)}.
-              </span>
-            ) : null;
-          })}
-        </MetricInfo>
-      </div>
       <fieldset className="issuer-filters" aria-label="Filter by issuer">
-        <button
-          type="button"
-          aria-label="All issuers"
-          aria-pressed={issuer === 'all'}
-          onClick={() => chooseIssuer('all')}
-        >
-          <span className="issuer-filter-name">
-            All issuers
-            <Check size={14} aria-hidden="true" />
-          </span>
-          <strong>{tokens.length.toLocaleString()} tokens</strong>
-        </button>
-        {ISSUERS.map((item) => {
-          const c = issuerValuation(data, now, item.id);
-          const partial = c.valued.length < c.rows.length;
-          return (
-            <button
-              key={item.id}
-              type="button"
-              aria-label={item.name}
-              aria-describedby={`issuer-value-${item.id} issuer-basis-${item.id}`}
-              aria-pressed={issuer === item.id}
-              title={`${c.label} on Solana: ${c.valued.length} / ${c.rows.length} tokens valued. ${c.basis === 'minted' ? 'Includes minted inventory; not AUM.' : 'Pre-minted inventory excluded.'}${c.delayed ? ` Last verified ${time(c.observedAt)}.` : ''}`}
-              onClick={() => chooseIssuer(item.id)}
-            >
-              <span className="issuer-filter-name">
-                {item.name}
-                <Check size={14} aria-hidden="true" />
-              </span>
-              <strong id={`issuer-value-${item.id}`}>
-                {money(c.total, true)}
-                {c.total === null ? (
-                  <small>
-                    {item.id === 'xstocks' && data?.circulation?.refreshing
-                      ? ' Updating…'
-                      : ' Unavailable'}
-                  </small>
-                ) : (
-                  partial && <small> partial</small>
-                )}
-                {c.delayed && c.total !== null && <small> · Delayed</small>}
-              </strong>
-              <span className="sr-only" id={`issuer-basis-${item.id}`}>
-                {c.delayed
-                  ? `${c.label} · last verified ${time(c.observedAt)}`
-                  : `${c.label} · est.`}
-              </span>
-            </button>
-          );
-        })}
+        {[{ id: 'all' as const, name: 'All issuers' }, ...ISSUERS].map(
+          (item) => {
+            const count =
+              item.id === 'all'
+                ? tokens.length
+                : tokens.filter((token) => token.issuer === item.id).length;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                aria-label={item.name}
+                aria-pressed={issuer === item.id}
+                title={`${count.toLocaleString()} tokenized stocks`}
+                onClick={() => chooseIssuer(item.id)}
+              >
+                <span className="issuer-filter-name">
+                  {item.name}
+                  <Check size={14} aria-hidden="true" />
+                </span>
+                <span className="issuer-filter-count">
+                  {count.toLocaleString()}
+                </span>
+              </button>
+            );
+          },
+        )}
       </fieldset>
       <div className="market-search-row">
         <label htmlFor="market-search">
@@ -825,16 +777,22 @@ export function MarketOverviewPanel({
               <th>24h change</th>
               <th>
                 <span className="metric-label">
-                  {issuer === 'xstocks'
-                    ? 'Circulating value'
-                    : issuer === 'all'
-                      ? 'Token value · est.'
-                      : 'Minted value · est.'}
-                  <MetricInfo label="About token values">
-                    xStocks: circulating supply on Solana × issuer reference
-                    price. Other issuers: minted supply on Solana × token price;
-                    may include inventory. These values use different supply
-                    measures and are not an all-issuer AUM total.
+                  DEX volume · 24h
+                  <MetricInfo label="About DEX volume">
+                    Rolling 24-hour trading across CoinMarketCap-covered DEX
+                    markets. Coverage varies by token. Missing values are not
+                    zero.
+                  </MetricInfo>
+                </span>
+              </th>
+              <th>
+                <span className="metric-label">
+                  Pool liquidity
+                  <MetricInfo label="About pool liquidity">
+                    Liquidity in observed Solana pools, including both assets in
+                    each pool. Coverage is partial. Shared pools can appear
+                    under more than one token, so rows should not be added
+                    together.
                   </MetricInfo>
                 </span>
               </th>
@@ -844,7 +802,6 @@ export function MarketOverviewPanel({
             {rows.map((t) => {
               const row = tokenObservation(data, t.symbol, now);
               const change = row.change24h;
-              const valuation = tokenValuation(row, t.issuer);
               return (
                 <Fragment key={t.symbol}>
                   <MarketStockRow
@@ -880,20 +837,12 @@ export function MarketOverviewPanel({
                     >
                       {pct(change)}
                     </td>
-                    <td>
-                      {money(valuation.value, true)}
-                      {t.issuer === 'xstocks' &&
-                        !row.circulation &&
-                        row.lastCirculation && (
-                          <small className="quote-age">
-                            Last verified · {time(row.lastCirculationTime)}
-                          </small>
-                        )}
-                    </td>
+                    <td>{money(row.cmcDexVolume24h, true)}</td>
+                    <td>{money(row.liquidity, true)}</td>
                   </MarketStockRow>
                   {detailOpen && selection === t.symbol && (
                     <tr className="stock-detail-row">
-                      <td colSpan={4}>{stockDetail}</td>
+                      <td colSpan={5}>{stockDetail}</td>
                     </tr>
                   )}
                 </Fragment>
@@ -913,12 +862,11 @@ export function MarketOverviewPanel({
           <summary>Table sources</summary>
           <p>
             Prices: CoinMarketCap, fresh DefiLlama, then DEX pool. Older
-            DefiLlama references are labeled Last quote (up to 96 hours).
-            xStocks uses issuer-reported Solana circulation and reference
-            prices. Other issuers show Solana minted supply × token price.
-            Minted value can include inventory and is not AUM. These measures
-            are not combined in the circulating headline. Missing or conflicting
-            data is excluded from each estimate.
+            DefiLlama references are labeled Last quote (up to 96 hours). DEX
+            volume: CoinMarketCap-covered DEX markets. Pool liquidity: observed
+            DEX Screener pools, with partial coverage. Missing data is shown as
+            —. Supply and valuation estimates are available in stock details and
+            Coverage &amp; methodology.
           </p>
         </details>
         <div>

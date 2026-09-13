@@ -674,7 +674,7 @@ void test('News keeps its agenda visible when the headline request fails', async
   assert.match(html, /Agenda for MU/);
 });
 
-void test('compact issuer value filters select and reset without duplicate cards', async () => {
+void test('compact issuer filters select and reset while the table prioritizes trading data', async () => {
   const f = await marketFixture();
   let tree = f.render();
   const filters = () =>
@@ -697,16 +697,19 @@ void test('compact issuer value filters select and reset without duplicate cards
     tree,
     (e) => typeof e.props?.onIssuer === 'function',
   );
-  assert.match(html, /\$12K/);
-  assert.match(html, /partial/);
-  assert.match(html, /Minted value/);
+  assert.doesNotMatch(
+    renderToStaticMarkup(filters()),
+    /\$|Minted value|Circulating value/,
+  );
+  assert.match(renderToStaticMarkup(filters()), /title="1 tokenized stocks"/);
   const table = findElement(
     tree,
     (e) => e.type === 'table' && e.props.className === 'market-table',
   );
   const body = findElement(table, (e) => e.type === 'tbody');
   assert.doesNotMatch(renderToStaticMarkup(body), />Minted<|>Circulating</);
-  assert.match(renderToStaticMarkup(table), /About token values/);
+  assert.match(renderToStaticMarkup(table), /About DEX volume/);
+  assert.match(renderToStaticMarkup(table), /Pool liquidity/);
   assert.doesNotMatch(html, /Not verified/);
   assert.equal(button('Ondo').props.type, 'button');
   assert.doesNotMatch(html, /issuer-card/);
@@ -724,7 +727,7 @@ void test('compact issuer value filters select and reset without duplicate cards
   assert.equal(button('All issuers').props['aria-pressed'], true);
 });
 
-void test('Ecosystem overview shows the combined estimate with scope and delay status', async () => {
+void test('Ecosystem overview keeps valuation estimates and their caveats inside collapsed coverage', async () => {
   const issuers = [
     {
       id: 'xstocks',
@@ -780,6 +783,11 @@ void test('Ecosystem overview shows the combined estimate with scope and delay s
     }),
   );
   assert.equal((html.match(/<details/g) || []).length, 1);
+  const headline = html.split('<details')[0];
+  assert.doesNotMatch(headline, /\$|Tracked value|Mixed supply bases/);
+  assert.match(headline, /Tokens/);
+  assert.match(headline, /Underlying assets/);
+  assert.doesNotMatch(html, /<details[^>]*\sopen(?:[ =>])/);
   assert.match(html, /Coverage &amp; methodology/);
   assert.match(html, /2 \/ 2 issuers/);
   assert.match(html, /Tracked value · est./);
@@ -923,23 +931,21 @@ void test('Home news starts with five headlines, expands on demand, and Discuss 
   assert.doesNotMatch(renderToStaticMarkup(render()), /Updates delayed/);
 });
 
-void test('Issuer cards keep delayed values explicit and expose valuation basis accessibly', async () => {
+void test('Issuer filters remain usable when valuation data is delayed', async () => {
   const f = await marketFixture(
     {},
-    {
-      delayed: true,
-      observedAt: Date.now() - 3600000,
-    },
+    { delayed: true, observedAt: Date.now() - 3600000 },
   );
-  const html = renderToStaticMarkup(f.render());
-  assert.match(html, /How issuer values are calculated/);
-  assert.match(html, /· Delayed/);
-  assert.match(html, /class="sr-only" id="issuer-basis-backpack"/);
-  assert.match(html, /Minted value · last verified/);
-  assert.match(
-    html,
-    /aria-describedby="issuer-value-backpack issuer-basis-backpack"/,
+  const tree = f.render();
+  const filters = findElement(
+    tree,
+    (e) => e.props?.['aria-label'] === 'Filter by issuer',
   );
+  const html = renderToStaticMarkup(filters);
+  assert.match(html, /Backpack/);
+  assert.match(html, /Ondo/);
+  assert.match(html, /issuer-filter-count/);
+  assert.doesNotMatch(html, /\$|Delayed|Minted|Circulating|Unavailable/);
 });
 
 void test('Home portfolio links filter the existing news area and market navigation stays explicit', async () => {
@@ -1014,7 +1020,7 @@ void test('Stock details expand under the selected row and collapse without navi
     (e) => e.type === 'tr' && e.props.className === 'stock-detail-row',
   );
   assert.ok(detail);
-  assert.equal(detail.props.children.props.colSpan, 4);
+  assert.equal(detail.props.children.props.colSpan, 5);
   assert.match(renderToStaticMarkup(detail), /id="selected-stock-detail"/);
   assert.equal(row().props.selected, true);
   row().props.onSelect('MU');

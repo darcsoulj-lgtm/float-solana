@@ -158,6 +158,11 @@ function TokenDetail({ row }: { row: Row }) {
         <div>
           <span>{row.valuation.label} · est.</span>
           <strong>{dollars(row.value)}</strong>
+          {row.token.issuer !== 'xstocks' && (
+            <small className="bp-muted">
+              May include issuer inventory · not market cap
+            </small>
+          )}
         </div>
       </div>
       <div className="bp-pool-head">
@@ -402,7 +407,9 @@ export function IssuerDashboardContent({
     ['change24h', '24h change'],
     ['dexVolume', 'Pool volume · 24h'],
     ['poolLiquidity', 'Liquidity'],
-    ['value', dashboard.valueLabel],
+    ...(issuer === 'xstocks'
+      ? [['value', 'Circulating value'] as [Sort, string]]
+      : []),
   ];
   return (
     <div className={`backpack-dashboard${embedded ? ' bp-embedded' : ''}`}>
@@ -419,14 +426,6 @@ export function IssuerDashboardContent({
         )}
       </div>
       <div className="bp-stats" aria-label={`${issuerName(issuer)} overview`}>
-        <div>
-          <span>{dashboard.valueLabel} · est.</span>
-          <strong>{dollars(dashboard.value)}</strong>
-          <small>
-            {dashboard.valued} of {dashboard.rows.length} tokens valued
-            {dashboard.delayed ? ' · delayed' : ''}
-          </small>
-        </div>
         <div>
           <span>
             DEX pool volume · 24h{' '}
@@ -449,6 +448,24 @@ export function IssuerDashboardContent({
           <span>Pool liquidity</span>
           <strong>{dollars(dashboard.liquidity)}</strong>
           <small>{dashboard.pools.length} unique trading pools</small>
+        </div>
+        <div>
+          {issuer === 'xstocks' ? (
+            <>
+              <span>Circulating value · est.</span>
+              <strong>{dollars(dashboard.value)}</strong>
+              <small>
+                {dashboard.valued} of {dashboard.rows.length} tokens valued
+                {dashboard.delayed ? ' · delayed' : ''}
+              </small>
+            </>
+          ) : (
+            <>
+              <span>Tokenized stocks</span>
+              <strong>{dashboard.rows.length.toLocaleString()}</strong>
+              <small>Tracked on Solana</small>
+            </>
+          )}
         </div>
       </div>
       {leaders.length > 0 ? (
@@ -609,11 +626,11 @@ export function IssuerDashboardContent({
                     </td>
                     <td>{dollars(row.dexVolume)}</td>
                     <td>{dollars(row.poolLiquidity)}</td>
-                    <td>{dollars(row.value)}</td>
+                    {issuer === 'xstocks' && <td>{dollars(row.value)}</td>}
                   </tr>
                   {selected === row.token.symbol ? (
                     <tr id={`detail-${row.token.symbol}`}>
-                      <td colSpan={6}>
+                      <td colSpan={columns.length + 1}>
                         <TokenDetail key={row.token.mint} row={row} />
                       </td>
                     </tr>
@@ -691,6 +708,13 @@ export function IssuerDashboardContent({
       <details className="bp-method">
         <summary>Sources & coverage</summary>
         <div>
+          <p>
+            <strong>
+              {dashboard.valueLabel} · est.: {dollars(dashboard.value)}
+            </strong>{' '}
+            · {dashboard.valued} of {dashboard.rows.length} tokens valued
+            {dashboard.delayed ? ' · delayed' : ''}
+          </p>
           {issuer === 'backpack' && (
             <p>
               Listings are checked every five minutes while Float is in use. New

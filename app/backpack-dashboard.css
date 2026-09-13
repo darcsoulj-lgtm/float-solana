@@ -346,6 +346,12 @@
 .bp-detail-head strong {
   font-size: 18px;
 }
+.bp-detail-head small {
+  display: block;
+  margin-top: 6px;
+  font-size: 14px;
+  line-height: 1.5;
+}
 .bp-detail-head a {
   font-size: 12px;
   color: var(--muted-foreground);
@@ -565,6 +571,24 @@ output.bp-muted {
 @media (max-width: 600px) {
   .bp-assets table {
     min-width: 0;
+    table-layout: fixed;
+  }
+  .bp-assets thead th:first-child {
+    width: 44%;
+  }
+  .bp-assets thead th:nth-child(2) {
+    width: 24%;
+  }
+  .bp-assets thead th:nth-child(4) {
+    width: 32%;
+    white-space: normal;
+  }
+  .bp-assets tbody th button > span:not(.bp-monogram) {
+    min-width: 0;
+    flex: 1;
+  }
+  .bp-assets th small {
+    max-width: 100%;
   }
   .bp-assets tr > :nth-child(3),
   .bp-assets tr > :nth-child(5),

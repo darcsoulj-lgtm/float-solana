@@ -312,7 +312,7 @@ void test('xStocks dashboard never substitutes gross minted or global values for
   d.circulation.fetchedAt = now - 86400001;
   assert.equal(api.issuerDashboard(d, 'xstocks', now).value, null);
 });
-void test('All issuer dashboards render the same metric controls and their own value basis', () => {
+void test('Issuer dashboards prioritize trading metrics and retain valuation in collapsed coverage', () => {
   const React = require('react');
   const { renderToStaticMarkup } = require('react-dom/server');
   for (const issuer of api.ISSUERS) {
@@ -341,6 +341,13 @@ void test('All issuer dashboards render the same metric controls and their own v
         issuer.id === 'xstocks' ? 'Circulating value' : 'Minted value',
       ),
     );
+    const summary = html.split('<details class="bp-method"')[0];
+    assert.doesNotMatch(summary, /Minted value/);
+    assert.match(
+      summary,
+      issuer.id === 'xstocks' ? /Circulating value/ : /Tracked on Solana/,
+    );
+    assert.match(html.split('<details class="bp-method"')[1], /tokens valued/);
     assert.doesNotMatch(html, /Join the holder community/);
   }
 });

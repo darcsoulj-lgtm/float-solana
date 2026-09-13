@@ -1,6 +1,5 @@
 import Link from '@/components/site-link';
 import { marketTokens } from '@/lib/market-data';
-import { MetricInfo } from './metric-info';
 import { ArrowUpRight } from 'lucide-react';
 import { ISSUERS, type IssuerId } from '@/lib/tokens';
 import { trackedValuation } from '@/lib/token-observation';
@@ -43,32 +42,6 @@ export function SolanaEcosystem({
       </div>
       <div className="ecosystem-stats">
         <div>
-          <span className="metric-label">
-            Tracked value · est.
-            <MetricInfo label="About the tracked Solana total">
-              Sum of the issuer estimates below, on Solana only. xStocks uses
-              circulation excluding pre-minted inventory; the other issuers use
-              minted supply and may include inventory. This mixed-basis estimate
-              is not circulating market cap or all-chain AUM. Missing values are
-              excluded. Details and dates are in Coverage &amp; methodology.
-            </MetricInfo>
-          </span>
-          <strong>{usd(coverage.total)}</strong>
-          {coverage.delayed && <small>Includes delayed data</small>}
-          {coverage.total === null && (
-            <small>
-              {data?.circulation?.refreshing
-                ? 'Updating issuer data…'
-                : 'Issuer data temporarily unavailable'}
-            </small>
-          )}
-          <small>
-            {coverage.issuerCount} / {ISSUERS.length} issuers
-            {coverage.partial && ' · Partial coverage'}
-            {coverage.mixedBases && ' · Mixed supply bases'}
-          </small>
-        </div>
-        <div>
           <span>Tokens</span>
           <strong>{tokens.length.toLocaleString()}</strong>
           <small>{ISSUERS.length} issuers tracked</small>
@@ -85,6 +58,13 @@ export function SolanaEcosystem({
       </div>
       <details className="market-methodology coverage-diagnostics">
         <summary>Coverage &amp; methodology</summary>
+        <p>
+          <strong>Tracked value · est.: {usd(coverage.total)}</strong> ·{' '}
+          {coverage.issuerCount} / {ISSUERS.length} issuers
+          {coverage.partial && ' · Partial coverage'}
+          {coverage.delayed && ' · Includes delayed data'}
+          {coverage.mixedBases && ' · Mixed supply bases'}
+        </p>
         <p>
           This estimate adds the available issuer values shown below. All
           quantities are on Solana. Supply bases differ: it is not a uniform
