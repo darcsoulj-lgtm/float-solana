@@ -397,9 +397,7 @@ export function IssuerDashboardContent({
       <div className="bp-heading">
         <div>
           {!embedded && <span className="bp-eyebrow">FLOAT / SOLANA</span>}
-          <h1>
-            {issuerName(issuer)} onchain<span>.</span>
-          </h1>
+          <h1>{issuerName(issuer)} onchain</h1>
           <p>Tokenized stocks on Solana</p>
         </div>
         {!embedded && (

@@ -1,5 +1,5 @@
 // Reviewed against Backpack public assets and finalized Solana mint accounts.
-export const TOKEN_REVIEW_DATE = '2026-09-12';
+export const TOKEN_REVIEW_DATE = '2026-09-13';
 export const BACKPACK_TOKENS = [
   {
     symbol: 'MU',
@@ -307,6 +307,27 @@ export const BACKPACK_TOKENS = [
     mint: 'UPSqUeMHcWbkdg784XuBUEF9DtySSnW9ur5LAVdcuB9',
     source:
       'https://learn.backpack.exchange/blog/20-new-tokenized-stocks-solana',
+  },
+  {
+    symbol: 'DKNG',
+    name: 'DraftKings',
+    shortName: 'DraftKings',
+    mint: 'DKNGQFNGQmoBdXSRGKJ8tTu7uPDasw5JDcfMmWniNfow',
+    source: 'https://api.backpack.exchange/api/v1/assets',
+  },
+  {
+    symbol: 'FLWS',
+    name: '1-800-FLOWERS.COM',
+    shortName: '1-800-FLOWERS.COM',
+    mint: 'FLWSojG1gB5VStYR3Sb4nQFRt43UBYkqih1j2CpVLqgd',
+    source: 'https://api.backpack.exchange/api/v1/assets',
+  },
+  {
+    symbol: 'WEN',
+    name: "The Wendy's Company",
+    shortName: "The Wendy's Company",
+    mint: 'WENAZ2WyPbmgvUcKfQ8hyMDfBQP9bZ65hsZ5KTFrRGZ',
+    source: 'https://api.backpack.exchange/api/v1/assets',
   },
 ] as const;
 export const ISSUERS = [

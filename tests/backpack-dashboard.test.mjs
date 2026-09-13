@@ -81,7 +81,7 @@ test('Other issuers cannot leak into Backpack-only totals', () => {
   const result = api.backpackDashboard(d, now);
   assert.equal(result.volume, null);
   assert.ok(result.rows.every((r) => r.token.issuer === 'backpack'));
-  assert.equal(result.rows.length, 41);
+  assert.equal(result.rows.length, 44);
 });
 test('Recent pools exclude old and future timestamps, without inventing stock listing dates', () => {
   const d = blank();
@@ -326,6 +326,7 @@ test('All issuer dashboards render the same metric controls and their own value 
       }),
     );
     assert.match(html, new RegExp(issuer.name + ' onchain'));
+    assert.doesNotMatch(html, /onchain<span>\.<\/span>/);
     for (const label of [
       'DEX pool volume',
       'Pool liquidity',

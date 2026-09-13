@@ -130,12 +130,19 @@ test('Full September 11 audit covers every enabled security and validates all 41
           .map((t) => `${a.symbol.slice(0, -3)}:${t.contractAddress}`)
       : [],
   );
+  const historical = BACKPACK_TOKENS.filter((t) =>
+    eligible.includes(`${t.symbol}:${t.mint}`),
+  );
   assert.deepEqual(
-    BACKPACK_TOKENS.map((t) => `${t.symbol}:${t.mint}`).sort(),
+    historical.map((t) => `${t.symbol}:${t.mint}`).sort(),
     eligible.sort(),
   );
   const listings = parseListings(audit.assets, audit.markets);
-  assert.equal(listings.length, 41);
+  assert.equal(
+    listings.filter((t) => historical.some((h) => h.symbol === t.symbol))
+      .length,
+    41,
+  );
   for (const symbol of ['BABA', 'DNUT', 'GRND']) {
     const listing = listings.find((t) => t.symbol === symbol);
     assert.ok(listing, symbol);
@@ -149,17 +156,17 @@ test('Full September 11 audit covers every enabled security and validates all 41
   const chain = {
     result: {
       context: { slot: audit.chain.result.context.slot },
-      value: BACKPACK_TOKENS.map((t) => accounts.get(t.mint)),
+      value: historical.map((t) => accounts.get(t.mint)),
     },
   };
   const { parseSupplies } = await import(
     pathToFileURL(dir + '/token-supply.mjs')
   );
   assert.equal(
-    Object.keys(parseSupplies(chain, Date.now(), BACKPACK_TOKENS)).length,
+    Object.keys(parseSupplies(chain, Date.now(), historical)).length,
     41,
   );
-  BACKPACK_TOKENS.forEach((t) => {
+  historical.forEach((t) => {
     const info = accounts.get(t.mint).data.parsed.info;
     const metadata = info.extensions.find(
       (e) => e.extension === 'tokenMetadata',
@@ -713,11 +720,14 @@ test('Token-level volume covers all 41 captured Backpack mints and includes GRND
     {},
     ...captured.responses.map(parseTokenVolumes),
   );
-  assert.equal(Object.keys(volumes).length, BACKPACK_TOKENS.length);
+  assert.equal(Object.keys(volumes).length, 41);
   assert.ok(volumes.GRND.usd24h > 20_000_000);
   assert.ok(volumes.BABA.usd24h > 0);
-  for (const token of BACKPACK_TOKENS)
-    assert.equal(volumes[token.symbol].mint, token.mint);
+  for (const [symbol, volume] of Object.entries(volumes))
+    assert.equal(
+      volume.mint,
+      BACKPACK_TOKENS.find((t) => t.symbol === symbol).mint,
+    );
 });
 test('Volume parsing rejects wrong chain, fake mint, negative data and duplicates while preserving zero', () => {
   const row = {
@@ -778,7 +788,7 @@ test('Both onchain transports parse all 41 mints in bounded batches', async () =
       TOKENS.slice(0, 41),
     );
     assert.equal(calls.length, 2);
-    assert.equal(Object.keys(result).length, BACKPACK_TOKENS.length);
+    assert.equal(Object.keys(result).length, 41);
   }
 });
 test('Onchain volume stays separate from CMC/pool scope and never uses stale values', () => {
@@ -1745,6 +1755,58 @@ test('Syndication matching keeps different stories, days and generic headlines s
       { publisher: 'Bloomberg.com' },
       { publisher: 'Yahoo Finance' },
     ),
+    false,
+  );
+});
+
+test('September 13 listings match the full enabled registry and verified finalized mints', async () => {
+  const audit = JSON.parse(
+    await readFile(
+      new URL('../research/token-audit/2026-09-13.json', import.meta.url),
+      'utf8',
+    ),
+  );
+  const enabled = audit.enabledAssets.flatMap((a) =>
+    a.tokens
+      .filter(
+        (t) =>
+          t.blockchain === 'Solana' && (t.depositEnabled || t.withdrawEnabled),
+      )
+      .map((t) => `${a.symbol.slice(0, -3)}:${t.contractAddress}`),
+  );
+  assert.deepEqual(
+    BACKPACK_TOKENS.map((t) => `${t.symbol}:${t.mint}`).sort(),
+    enabled.sort(),
+  );
+  assert.equal(BACKPACK_TOKENS.length, 44);
+  const listings = parseListings(audit.enabledAssets, []);
+  for (const symbol of ['DKNG', 'FLWS', 'WEN']) {
+    const token = BACKPACK_TOKENS.find((t) => t.symbol === symbol);
+    const index = audit.newAssets.findIndex((a) => a.symbol === symbol + '.US');
+    const account = audit.chain.result.value[index];
+    const metadata = account.data.parsed.info.extensions.find(
+      (e) => e.extension === 'tokenMetadata',
+    ).state;
+    assert.equal(account.owner, 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb');
+    assert.equal(metadata.mint, token.mint);
+    assert.equal(metadata.symbol, symbol);
+    assert.equal(
+      metadata.updateAuthority,
+      '2cVYpagTt7ZGc3mmTXBa7fAznUtx5DUu6aCq8uVDaf4a',
+    );
+    assert.ok(metadata.name.endsWith(' - Backpack Securities'));
+    assert.ok(listings.find((t) => t.symbol === symbol)?.deposit);
+    assert.ok(
+      TOKENS.find(
+        (t) =>
+          t.mint === token.mint &&
+          t.issuer === 'backpack' &&
+          t.underlyingSymbol === symbol,
+      ),
+    );
+  }
+  assert.equal(
+    TOKENS.some((t) => t.symbol === 'FLWG'),
     false,
   );
 });
