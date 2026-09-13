@@ -15,6 +15,7 @@ import {
   type SourceResult,
   type Pool,
 } from '@/lib/market-data';
+import { MetricInfo } from './metric-info';
 import { issuerDashboard } from '@/lib/issuer-dashboard';
 import { useMarketOverview } from '@/hooks/use-market-overview';
 import { issuerName, type IssuerId } from '@/lib/tokens';
@@ -387,7 +388,7 @@ export function IssuerDashboardContent({
   const columns: [Sort, string][] = [
     ['price', 'Price'],
     ['change24h', '24h change'],
-    ['dexVolume', 'DEX volume · 24h'],
+    ['dexVolume', 'Pool volume · 24h'],
     ['poolLiquidity', 'Liquidity'],
     ['value', dashboard.valueLabel],
   ];
@@ -417,12 +418,25 @@ export function IssuerDashboardContent({
           </small>
         </div>
         <div>
-          <span>Tracked DEX volume · 24h</span>
+          <span>
+            DEX pool volume · 24h{' '}
+            <MetricInfo label="Volume source and coverage">
+              DEX Screener pool trades only. Excludes RFQ trades, direct issuer
+              trades and centralized exchanges. Pool discovery is partial; this
+              is not total issuer volume.{' '}
+              {issuer === 'xstocks'
+                ? 'The xStocks API supplies circulation and reference valuations, not this volume figure.'
+                : ''}
+            </MetricInfo>
+          </span>
           <strong>{dollars(dashboard.volume)}</strong>
-          <small>{dashboard.volumeCovered} tokens with volume data</small>
+          <small>
+            {dashboard.volumeCovered} of {dashboard.rows.length} tokens · RFQ
+            excluded
+          </small>
         </div>
         <div>
-          <span>Tracked liquidity</span>
+          <span>Pool liquidity</span>
           <strong>{dollars(dashboard.liquidity)}</strong>
           <small>{dashboard.pools.length} unique trading pools</small>
         </div>
@@ -430,7 +444,7 @@ export function IssuerDashboardContent({
       {leaders.length > 0 ? (
         <section className="bp-activity" aria-label="Most active tokens">
           <h2>
-            Most active <small>24h DEX volume</small>
+            Most active <small>24h pool volume</small>
           </h2>
           <div>
             {leaders.map((r) => (
@@ -669,8 +683,9 @@ export function IssuerDashboardContent({
             DEX Screener supplies pool volume and liquidity. Each returned
             Solana pool is counted once in the overview, including pools shared
             by two stocks. Coverage is partial; routed swaps can involve several
-            pool trades. These figures do not include every venue or centralized
-            exchange volume.{' '}
+            pool trades. RFQ trades, direct issuer trades and centralized
+            exchange trades are not included. These figures are not total issuer
+            trading volume.{' '}
             {issuer !== 'backpack'
               ? 'The overview uses batch-discovered pools. Open a stock for additional per-token pool discovery; those details may have broader coverage than the overview.'
               : ''}

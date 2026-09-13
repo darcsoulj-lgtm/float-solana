@@ -327,8 +327,8 @@ test('All issuer dashboards render the same metric controls and their own value 
     );
     assert.match(html, new RegExp(issuer.name + ' onchain'));
     for (const label of [
-      'Tracked DEX volume',
-      'Tracked liquidity',
+      'DEX pool volume',
+      'Pool liquidity',
       '24h change',
       'Search stocks',
       'Sources &amp; coverage',
@@ -341,4 +341,24 @@ test('All issuer dashboards render the same metric controls and their own value 
     );
     assert.doesNotMatch(html, /Join the holder community/);
   }
+});
+
+test('Ondo limited pool coverage is visible alongside volume, not presented as issuer total', () => {
+  const React = require('react');
+  const { renderToStaticMarkup } = require('react-dom/server');
+  const data = blank();
+  data.pools.data.GOOGLon = [pool('googl', 7.28, 20)];
+  const html = renderToStaticMarkup(
+    React.createElement(uiModule.exports.IssuerDashboardContent, {
+      issuer: 'ondo',
+      embedded: true,
+      data,
+      busy: false,
+      error: '',
+      onRefresh: () => {},
+    }),
+  );
+  assert.match(html, /DEX pool volume/);
+  assert.match(html, /1 of 416 tokens · RFQ excluded/);
+  assert.match(html, /Volume source and coverage/);
 });

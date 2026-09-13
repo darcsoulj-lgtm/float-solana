@@ -239,10 +239,25 @@ new Function(
   navModule.exports,
 );
 
-async function renderDashboard(search) {
+async function renderDashboard(search, interact) {
   const Empty = () => null;
   const Wrap = ({ children }) => React.createElement('div', null, children);
   const { MemberDashboard } = await component('member-dashboard.tsx', {
+    ...(interact
+      ? {
+          react: {
+            ...React,
+            useState: (initial) => [
+              typeof initial === 'function' ? initial() : initial,
+              () => {},
+            ],
+            useEffect: () => {},
+            useRef: (initial) => ({ current: initial }),
+            useCallback: (fn) => fn,
+            useId: () => 'test-id',
+          },
+        }
+      : {}),
     '@/lib/member-navigation': navModule.exports,
     './member-home': { MemberHomePanel: Empty },
     './member-markets': { MemberMarkets: Empty },
@@ -274,27 +289,32 @@ async function renderDashboard(search) {
     },
   });
   const previous = globalThis.window;
-  globalThis.window = { location: { search } };
+  const pushed = [];
+  globalThis.window = {
+    location: { search, href: 'https://example.com/' + search },
+    scrollY: 0,
+    history: { pushState: (_, __, url) => pushed.push(url) },
+  };
   try {
-    return renderToStaticMarkup(
-      React.createElement(MemberDashboard, {
-        status: {
-          member: {
-            id: 'me',
-            alias: 'Alias',
-            qualifying_symbol: 'MU',
-            show_badge: 0,
-            notify_replies: 1,
-            verified_until: Date.now() + 60000,
-          },
-          memberCount: 1,
-          threadCount: 0,
-          admin: false,
+    const props = {
+      status: {
+        member: {
+          id: 'me',
+          alias: 'Alias',
+          qualifying_symbol: 'MU',
+          show_badge: 0,
+          notify_replies: 1,
+          verified_until: Date.now() + 60000,
         },
-        refreshStatus: async () => {},
-        renew: () => {},
-      }),
-    );
+        memberCount: 1,
+        threadCount: 0,
+        admin: false,
+      },
+      refreshStatus: async () => {},
+      renew: () => {},
+    };
+    if (interact) return interact(MemberDashboard(props), pushed);
+    return renderToStaticMarkup(React.createElement(MemberDashboard, props));
   } finally {
     if (previous === undefined) delete globalThis.window;
     else globalThis.window = previous;
@@ -930,10 +950,45 @@ test('All issuer deep links resolve inside Markets and unknown issuers reset saf
 
 test('Issuer buttons open their matching dashboard when used inside Markets', async () => {
   const opened = [];
-  const f = await marketFixture({onIssuer: (issuer) => opened.push(issuer)});
+  const f = await marketFixture({ onIssuer: (issuer) => opened.push(issuer) });
   for (const name of ['Backpack', 'Ondo']) {
     const tree = f.render();
-    findElement(tree, (e) => e.type === 'button' && e.props['aria-label'] === name).props.onClick();
+    findElement(
+      tree,
+      (e) => e.type === 'button' && e.props['aria-label'] === name,
+    ).props.onClick();
   }
-  assert.deepEqual(opened, ['backpack','ondo']);
+  assert.deepEqual(opened, ['backpack', 'ondo']);
+});
+
+test('Markets sidebar resets every issuer dashboard to All markets and clears the stock deep link', async () => {
+  for (const issuer of [
+    'backpack',
+    'xstocks',
+    'ondo',
+    'prestocks',
+    'tessera',
+  ]) {
+    await renderDashboard(
+      '?view=markets&issuer=' + issuer + '&stock=MU',
+      (tree, pushed) => {
+        const nav = findElement(
+          tree,
+          (e) => e.props?.['aria-label'] === 'Member navigation',
+        );
+        const button = findElement(
+          nav,
+          (e) =>
+            e.type === 'button' &&
+            React.Children.toArray(e.props.children).includes('Markets'),
+        );
+        assert.ok(button);
+        button.props.onClick();
+        const url = new URL(pushed[0], 'https://example.com');
+        assert.equal(url.searchParams.get('view'), 'markets');
+        assert.equal(url.searchParams.has('issuer'), false);
+        assert.equal(url.searchParams.has('stock'), false);
+      },
+    );
+  }
 });

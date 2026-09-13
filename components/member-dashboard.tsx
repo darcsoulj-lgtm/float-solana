@@ -437,7 +437,7 @@ export function MemberDashboard({
               aria-current={
                 (view === 'topics' ? 'home' : view) === id ? 'page' : undefined
               }
-              onClick={() => navigate(id)}
+              onClick={() => navigate(id, id === 'markets' ? 'all' : market)}
             >
               <Icon size={19} />
               {label}
