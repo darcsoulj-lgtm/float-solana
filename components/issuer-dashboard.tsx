@@ -1,6 +1,13 @@
 'use client';
 import Link from '@/components/site-link';
-import { Fragment, useEffect, useRef, useState } from 'react';
+import {
+  Fragment,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import {
   ArrowUpRight,
   ChevronDown,
@@ -22,6 +29,13 @@ import { useMarketOverview } from '@/hooks/use-market-overview';
 import { issuerName, type IssuerId } from '@/lib/tokens';
 
 type Row = ReturnType<typeof issuerDashboard>['rows'][number];
+const subscribeStockLink = (onChange: () => void) => {
+  window.addEventListener('popstate', onChange);
+  return () => window.removeEventListener('popstate', onChange);
+};
+const readStockLink = () =>
+  new URLSearchParams(window.location.search).get('stock') || '';
+const serverStockLink = () => '';
 type Sort =
   | 'dexVolume'
   | 'poolLiquidity'
@@ -63,6 +77,71 @@ export function sortedIssuerRows(
         a.token.symbol.localeCompare(b.token.symbol)
       );
     });
+}
+export function TokenTradingPools({ pools }: { pools: Pool[] }) {
+  const [expanded, setExpanded] = useState(false);
+  const id = useId();
+  const ranked = [...pools].sort(
+    (a, b) =>
+      (b.liquidity ?? -1) - (a.liquidity ?? -1) ||
+      a.address.localeCompare(b.address),
+  );
+  const visible = expanded ? ranked : ranked.slice(0, 3);
+  return (
+    <>
+      <div className="bp-pool-head">
+        <span>Trading pools</span>
+        <span>Liquidity</span>
+        <span>Volume · 24h</span>
+      </div>
+      <div id={id}>
+        {visible.length ? (
+          visible.map((p) => (
+            <a
+              className="bp-pool"
+              key={p.address}
+              href={p.url}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <span>
+                <b>{p.dex}</b>
+                <small>
+                  {p.address.slice(0, 5)}…{p.address.slice(-4)} · {p.quote}{' '}
+                  <ArrowUpRight size={12} />
+                </small>
+              </span>
+              <span>{dollars(p.liquidity)}</span>
+              <span>{dollars(p.volume24h)}</span>
+            </a>
+          ))
+        ) : (
+          <p className="bp-muted">Pool data is currently unavailable.</p>
+        )}
+      </div>
+      {ranked.length > 3 && (
+        <button
+          type="button"
+          className="bp-pool-toggle"
+          aria-expanded={expanded}
+          aria-controls={id}
+          onClick={(event) => {
+            setExpanded(!expanded);
+            if (expanded) {
+              const button = event.currentTarget;
+              requestAnimationFrame(() => {
+                if (button.isConnected)
+                  button.scrollIntoView({ block: 'nearest' });
+              });
+            }
+          }}
+        >
+          {expanded ? 'Show fewer pools' : `View all pools (${ranked.length})`}
+          <ChevronDown size={16} aria-hidden="true" />
+        </button>
+      )}
+    </>
+  );
 }
 function TokenDetail({ row }: { row: Row }) {
   const [detail, setDetail] = useState<SourceResult<Pool[]> | null>(null);
@@ -165,34 +244,7 @@ function TokenDetail({ row }: { row: Row }) {
           )}
         </div>
       </div>
-      <div className="bp-pool-head">
-        <span>Trading pools</span>
-        <span>Liquidity</span>
-        <span>Volume · 24h</span>
-      </div>
-      {poolData.length ? (
-        poolData.map((p) => (
-          <a
-            className="bp-pool"
-            key={p.address}
-            href={p.url}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <span>
-              <b>{p.dex}</b>
-              <small>
-                {p.address.slice(0, 5)}…{p.address.slice(-4)} · {p.quote}{' '}
-                <ArrowUpRight size={12} />
-              </small>
-            </span>
-            <span>{dollars(p.liquidity)}</span>
-            <span>{dollars(p.volume24h)}</span>
-          </a>
-        ))
-      ) : (
-        <p className="bp-muted">Pool data is currently unavailable.</p>
-      )}
+      <TokenTradingPools key={row.token.mint} pools={poolData} />
       {loading || poolError || detail?.error ? (
         <output className="bp-muted">
           {loading
@@ -372,16 +424,19 @@ export function IssuerDashboardContent({
   error: string;
   onRefresh: () => void;
 }) {
-  const [initialStock] = useState(() =>
-    typeof window === 'undefined'
-      ? ''
-      : new URLSearchParams(window.location.search).get('stock') || '',
+  // URL state becomes available after hydration without changing server markup.
+  const linkedStock = useSyncExternalStore(
+    subscribeStockLink,
+    readStockLink,
+    serverStockLink,
   );
-  const [query, setQuery] = useState(initialStock),
+  const [queryOverride, setQuery] = useState<string | null>(null),
     [sort, setSort] = useState<Sort>('dexVolume'),
     [ascending, setAscending] = useState(false),
     [page, setPage] = useState(0),
-    [selected, setSelected] = useState(initialStock);
+    [selectedOverride, setSelected] = useState<string | null>(null);
+  const query = queryOverride ?? linkedStock;
+  const selected = selectedOverride ?? linkedStock;
   const dashboard = issuerDashboard(data, issuer),
     rows = sortedIssuerRows(dashboard.rows, query, sort, ascending),
     pageCount = Math.max(1, Math.ceil(rows.length / 15));
@@ -396,6 +451,7 @@ export function IssuerDashboardContent({
   const fetched = data?.pools.fetchedAt;
   function select(symbol: string) {
     const next = selected === symbol ? '' : symbol;
+    setQuery(query);
     setSelected(next);
     const url = new URL(window.location.href);
     if (next) url.searchParams.set('stock', next);

@@ -384,6 +384,32 @@
   margin-top: 4px;
   font-size: 11px;
 }
+.bp-pool-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  margin-top: 8px;
+  padding: 8px 0;
+  border: 0;
+  background: transparent;
+  color: var(--foreground);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+.bp-pool-toggle:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.bp-pool-toggle:focus-visible {
+  outline: 2px solid var(--foreground);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+.bp-pool-toggle[aria-expanded='true'] svg {
+  transform: rotate(180deg);
+}
 .bp-row-source {
   margin-top: 18px;
   font-size: 12px;

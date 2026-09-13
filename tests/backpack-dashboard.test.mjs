@@ -204,7 +204,7 @@ void test('Invalid public batch requests are rejected', async () => {
 const uiBundle = await build({
   stdin: {
     contents:
-      "export * from './components/backpack-dashboard'; export {IssuerDashboardContent} from './components/issuer-dashboard';",
+      "export * from './components/backpack-dashboard'; export {IssuerDashboardContent, TokenTradingPools} from './components/issuer-dashboard';",
     resolveDir: root,
     loader: 'tsx',
   },
@@ -221,6 +221,135 @@ compileFunction(uiBundle.outputFiles[0].text, ['require', 'module', 'exports'])(
   uiModule.exports,
 );
 const { sortedBackpackRows, BackpackDashboardPage } = uiModule.exports;
+void test('A direct stock link preserves matching server and first client markup', () => {
+  const React = require('react');
+  const { renderToStaticMarkup } = require('react-dom/server');
+  const browserModule = { exports: {} };
+  compileFunction(uiBundle.outputFiles[0].text, [
+    'require',
+    'module',
+    'exports',
+    'window',
+  ])(require, browserModule, browserModule.exports, {
+    location: { search: '?stock=FLWS' },
+  });
+  const props = {
+    issuer: 'backpack',
+    embedded: false,
+    data: null,
+    busy: true,
+    error: '',
+    onRefresh: () => {},
+  };
+  const server = renderToStaticMarkup(
+    React.createElement(uiModule.exports.IssuerDashboardContent, props),
+  );
+  const client = renderToStaticMarkup(
+    React.createElement(browserModule.exports.IssuerDashboardContent, props),
+  );
+  assert.equal(client, server);
+});
+void test('Pool disclosure ranks a copy, expands every observed pool and collapses again', () => {
+  const React = require('react');
+  const { renderToStaticMarkup } = require('react-dom/server');
+  let expanded = false;
+  const poolModule = { exports: {} };
+  let returnedToToggle = false;
+  const event = {
+    currentTarget: {
+      isConnected: true,
+      scrollIntoView: () => {
+        returnedToToggle = true;
+      },
+    },
+  };
+  compileFunction(uiBundle.outputFiles[0].text, [
+    'require',
+    'module',
+    'exports',
+    'requestAnimationFrame',
+  ])(
+    (id) =>
+      id === 'react'
+        ? {
+            ...React,
+            useId: () => 'test-pools',
+            useState: () => [
+              expanded,
+              (value) => {
+                expanded = value;
+              },
+            ],
+          }
+        : require(id),
+    poolModule,
+    poolModule.exports,
+    (callback) => callback(),
+  );
+  const pools = Object.freeze([
+    pool('unknown', 500, null),
+    pool('small', 100, 1),
+    pool('large', 1, 100),
+    pool('medium', 2, 50),
+    pool('zero', 3, 0),
+  ]);
+  const render = () => poolModule.exports.TokenTradingPools({ pools });
+  const links = (tree) => tree.props.children[1].props.children;
+  const button = (tree) => tree.props.children[2];
+  let tree = render();
+  assert.deepEqual(
+    links(tree).map((link) => link.key),
+    ['large', 'medium', 'small'],
+  );
+  assert.equal(button(tree).props['aria-expanded'], false);
+  assert.equal(
+    button(tree).props['aria-controls'],
+    tree.props.children[1].props.id,
+  );
+  assert.match(renderToStaticMarkup(tree), /View all pools \(5\)/);
+  button(tree).props.onClick(event);
+  tree = render();
+  assert.equal(button(tree).props['aria-expanded'], true);
+  assert.deepEqual(
+    links(tree).map((link) => link.key),
+    ['large', 'medium', 'small', 'zero', 'unknown'],
+  );
+  assert.match(renderToStaticMarkup(tree), /Show fewer pools/);
+  button(tree).props.onClick(event);
+  assert.equal(links(render()).length, 3);
+  assert.equal(returnedToToggle, true);
+  assert.deepEqual(
+    pools.map((p) => p.address),
+    ['unknown', 'small', 'large', 'medium', 'zero'],
+  );
+});
+void test('Small and unavailable pool lists do not show an unnecessary disclosure', () => {
+  const React = require('react');
+  const { renderToStaticMarkup } = require('react-dom/server');
+  for (let count = 0; count <= 3; count++) {
+    const html = renderToStaticMarkup(
+      React.createElement(uiModule.exports.TokenTradingPools, {
+        pools: Array.from({ length: count }, (_, i) => pool(`pool-${i}`, 0, i)),
+      }),
+    );
+    assert.equal((html.match(/class="bp-pool"/g) || []).length, count);
+    assert.doesNotMatch(html, /View all pools|Show fewer pools/);
+    if (!count) assert.match(html, /Pool data is currently unavailable/);
+  }
+});
+void test('Issuer totals include pools beyond the three initially displayed', () => {
+  const d = blank();
+  d.pools.data.MU = Array.from({ length: 5 }, (_, i) =>
+    pool(`pool-${i}`, 10, i + 1),
+  );
+  const result = api.backpackDashboard(d, now);
+  const row = result.rows.find((r) => r.token.symbol === 'MU');
+  assert.equal(row.pools.length, 5);
+  assert.equal(row.dexVolume, 50);
+  assert.equal(row.poolLiquidity, 15);
+  assert.equal(result.volume, 50);
+  assert.equal(result.liquidity, 15);
+});
 void test('Sort keeps unknown values last in either direction and search matches company names', () => {
   const d = blank();
   d.pools.data.MU = [pool('mu', 50, 100)];
