@@ -211,6 +211,12 @@ export function MemberBrief({
       active = false;
     };
   }, [query, kind, symbol, requestKey, displayKey]);
+  const updatesDelayed =
+    !loading &&
+    !!data?.items.length &&
+    (!!error ||
+      !!data.unavailable ||
+      data.notice === 'Could not update. Showing saved headlines.');
   return (
     <div className={`holder-brief${compact ? ' brief-compact' : ''}`}>
       <div className="brief-toolbar">
@@ -249,13 +255,18 @@ export function MemberBrief({
           </div>
         )}
         {kind === 'news' && (
-          <MetricInfo label="News sources and updates">
-            Headlines via Google News and Yahoo Finance. Last 7 days; checks
-            every 15 minutes while open.
-            {data?.lastReviewed
-              ? ` Last checked ${new Date(data.lastReviewed).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}.`
-              : ''}
-          </MetricInfo>
+          <div className="news-update-status">
+            {updatesDelayed && <span role="status">Updates delayed</span>}
+            <MetricInfo label="News sources and updates">
+              Headlines via Google News and Yahoo Finance. Last 7 days; checks
+              every 15 minutes while open.
+              {updatesDelayed &&
+                ' Some sources could not update. Saved headlines remain available and automatic checks continue.'}
+              {data?.lastReviewed
+                ? ` Last checked ${new Date(data.lastReviewed).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}.`
+                : ''}
+            </MetricInfo>
+          </div>
         )}
         <Button
           variant="ghost"
@@ -290,12 +301,6 @@ export function MemberBrief({
           </output>
         ) : (
           <>
-            {!loading && error && (
-              <p className="inline-status" role="status">
-                Couldn’t update news. Showing saved headlines.{' '}
-                <button onClick={() => setRetry((v) => v + 1)}>Retry</button>
-              </p>
-            )}
             {data.items.length ? (
               <div
                 className={kind === 'news' ? 'brief-stories' : 'brief-events'}
@@ -401,12 +406,6 @@ export function MemberBrief({
                   </Button>
                 </div>
               )}
-            {!!data.unavailable && (
-              <p className="inline-status" role="status">
-                Some holdings’ news could not update.{' '}
-                <button onClick={() => setRetry((v) => v + 1)}>Retry</button>
-              </p>
-            )}
           </>
         )}
       </div>

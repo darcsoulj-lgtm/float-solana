@@ -4034,6 +4034,17 @@ body:has(.member-shell) > footer {
 }
 
 /* Multi-issuer market navigation, shared across light and dark themes. */
+.issuer-value-heading {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 20px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+.issuer-value-heading + .issuer-filters {
+  margin-top: 8px;
+}
 .issuer-filters {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));

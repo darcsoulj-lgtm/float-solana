@@ -701,6 +701,26 @@ export function MarketOverviewPanel({
           setCopied(false);
         }}
       />
+      <div className="issuer-value-heading">
+        <span>Estimated Solana value</span>
+        <MetricInfo label="How issuer values are calculated">
+          Value is supply on Solana multiplied by the token price. xStocks uses
+          circulating supply, excluding pre-minted inventory. Other issuers use
+          minted supply, which can include issuer inventory. These estimates
+          have different bases and are not directly comparable or all-chain AUM.
+          Partial means some tokens could not be valued. Delayed means the last
+          verified value is shown.
+          {ISSUERS.map((item) => {
+            const c = issuerValuation(data, now, item.id);
+            return c.delayed && c.total !== null ? (
+              <span key={item.id}>
+                <br />
+                {item.name}: last verified {time(c.observedAt)}.
+              </span>
+            ) : null;
+          })}
+        </MetricInfo>
+      </div>
       <fieldset className="issuer-filters" aria-label="Filter by issuer">
         <button
           type="button"
@@ -724,7 +744,7 @@ export function MarketOverviewPanel({
               aria-label={item.name}
               aria-describedby={`issuer-value-${item.id} issuer-basis-${item.id}`}
               aria-pressed={issuer === item.id}
-              title={`${c.label} on Solana: ${c.valued.length} / ${c.rows.length} tokens valued. ${c.basis === 'minted' ? 'Includes minted inventory; not AUM.' : 'Pre-minted inventory excluded.'}`}
+              title={`${c.label} on Solana: ${c.valued.length} / ${c.rows.length} tokens valued. ${c.basis === 'minted' ? 'Includes minted inventory; not AUM.' : 'Pre-minted inventory excluded.'}${c.delayed ? ` Last verified ${time(c.observedAt)}.` : ''}`}
               onClick={() => chooseIssuer(item.id)}
             >
               <span className="issuer-filter-name">
@@ -742,12 +762,13 @@ export function MarketOverviewPanel({
                 ) : (
                   partial && <small> partial</small>
                 )}
+                {c.delayed && c.total !== null && <small> · Delayed</small>}
               </strong>
-              <small id={`issuer-basis-${item.id}`}>
+              <span className="sr-only" id={`issuer-basis-${item.id}`}>
                 {c.delayed
                   ? `${c.label} · last verified ${time(c.observedAt)}`
                   : `${c.label} · est.`}
-              </small>
+              </span>
             </button>
           );
         })}

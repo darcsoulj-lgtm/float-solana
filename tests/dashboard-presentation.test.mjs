@@ -471,7 +471,7 @@ test('agenda failures are explicit and longer agendas expose bounded pagination'
   );
 });
 
-async function marketFixture(props = {}) {
+async function marketFixture(props = {}, valuation = {}) {
   const states = [];
   let index = 0;
   const Empty = () => null;
@@ -554,6 +554,7 @@ async function marketFixture(props = {}) {
         valued: [{}],
         rows: [{}, {}],
         issuerCount: 1,
+        ...valuation,
       }),
       tokenValuation: () => ({
         value: 12000,
@@ -844,6 +845,42 @@ test('Home news starts with five headlines, expands on demand, and Discuss passe
   assert.equal(elements(tree, SourceCard).length, 12);
   assert.match(renderToStaticMarkup(tree), /Older news/);
   assert.match(renderToStaticMarkup(tree), /Upcoming events/);
+  for (const failure of [
+    { unavailable: 1 },
+    { notice: 'Could not update. Showing saved headlines.' },
+  ]) {
+    states[0] = { items, ...failure };
+    const delayed = renderToStaticMarkup(render());
+    assert.match(delayed, /Updates delayed/);
+    assert.match(delayed, /Micron headline/);
+    assert.doesNotMatch(delayed, /Retry|inline-status|Try again/);
+  }
+  states[0] = { items: [], unavailable: 1 };
+  const empty = renderToStaticMarkup(render());
+  assert.match(empty, /News temporarily unavailable/);
+  assert.match(empty, /Try again/);
+  assert.doesNotMatch(empty, /Updates delayed|inline-status/);
+  states[0] = { items };
+  assert.doesNotMatch(renderToStaticMarkup(render()), /Updates delayed/);
+});
+
+test('Issuer cards keep delayed values explicit and expose valuation basis accessibly', async () => {
+  const f = await marketFixture(
+    {},
+    {
+      delayed: true,
+      observedAt: Date.now() - 3600000,
+    },
+  );
+  const html = renderToStaticMarkup(f.render());
+  assert.match(html, /How issuer values are calculated/);
+  assert.match(html, /· Delayed/);
+  assert.match(html, /class="sr-only" id="issuer-basis-backpack"/);
+  assert.match(html, /Minted value · last verified/);
+  assert.match(
+    html,
+    /aria-describedby="issuer-value-backpack issuer-basis-backpack"/,
+  );
 });
 
 test('Home portfolio links filter the existing news area and market navigation stays explicit', async () => {

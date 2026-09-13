@@ -143,7 +143,13 @@
 .home-news .brief-toolbar .holding-filter-chips {
   flex: 1;
 }
-.home-news .brief-toolbar > .holdings-info-trigger {
+.news-update-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  white-space: nowrap;
   flex-shrink: 0;
 }
 .home-news .upcoming-agenda {
