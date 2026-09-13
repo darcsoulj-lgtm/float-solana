@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { Eye, EyeOff, ChevronDown, LockKeyhole } from 'lucide-react';
+import { Eye, EyeOff, ChevronDown } from 'lucide-react';
 import type { Holding } from '@/lib/community-types';
 import type { MarketOverview } from '@/lib/market-data';
 import { TOKENS } from '@/lib/tokens';
@@ -35,7 +35,7 @@ export function PortfolioSummary({
     return (
       <section className="portfolio-summary" aria-label="Private portfolio">
         <div className="portfolio-heading">
-          <h2>Portfolio</h2>
+          <h2>My Portfolio</h2>
         </div>
         <p className="portfolio-notice">No tokenized stocks detected.</p>
       </section>
@@ -110,10 +110,7 @@ export function PortfolioSummary({
     >
       <div className="portfolio-heading">
         <div>
-          <h2>Portfolio</h2>
-          <span>
-            <LockKeyhole size={12} aria-hidden="true" /> Only you
-          </span>
+          <h2>My Portfolio</h2>
         </div>
         <button
           type="button"
