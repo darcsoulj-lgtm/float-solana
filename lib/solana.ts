@@ -17,7 +17,7 @@ type RpcResult = {
 };
 import { ed25519 } from '@noble/curves/ed25519.js';
 import { AppError, cohortFor } from './validation';
-import { TOKEN_PROGRAMS, TOKENS } from './tokens';
+import { TOKEN_PROGRAMS, TOKENS, type StockToken } from './tokens';
 const ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 export function decodeBase58(value: string) {
   if (typeof value !== 'string' || value.length > 100)
@@ -195,6 +195,7 @@ export async function detectHoldings(
   rpcUrl = 'https://api.mainnet-beta.solana.com',
   fetcher: typeof fetch = fetch,
   includeAmounts = false,
+  tokens: readonly StockToken[] = TOKENS,
 ) {
   validWallet(wallet);
   const rpc = rpcClient(rpcUrl, fetcher);
@@ -207,6 +208,7 @@ export async function detectHoldings(
       ]),
     ),
   );
+  const byMint = new Map(tokens.map((t) => [t.mint, t]));
   const candidates = new Map<
     string,
     {
@@ -230,7 +232,7 @@ export async function detectHoldings(
       );
     for (const entry of scan.value) {
       const parsed = entry.account?.data?.parsed;
-      const token = TOKENS.find((t) => t.mint === parsed?.info?.mint);
+      const token = byMint.get(parsed?.info?.mint || '');
       if (!token) continue;
       const info = parsed!.info;
       if (

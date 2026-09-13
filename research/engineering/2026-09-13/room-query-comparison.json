@@ -1,0 +1,28 @@
+{
+  "mode": "local SQLite synthetic; not production capacity",
+  "rooms": 100,
+  "threads": 10000,
+  "runsEach": 7,
+  "existingSchema": {
+    "rows": 100,
+    "medianMs": 56.48,
+    "maxMs": 58.16,
+    "plan": [
+      "SCAN r",
+      "CORRELATED SCALAR SUBQUERY 1",
+      "SEARCH community_threads USING INDEX idx_community_threads_feed (hidden=?)",
+      "USE TEMP B-TREE FOR ORDER BY"
+    ]
+  },
+  "candidateIndexOnly": {
+    "rows": 100,
+    "medianMs": 0.29,
+    "maxMs": 0.31,
+    "plan": [
+      "SCAN r",
+      "CORRELATED SCALAR SUBQUERY 1",
+      "SEARCH community_threads USING COVERING INDEX audit_candidate_threads_topic_hidden (topic=? AND hidden=?)",
+      "USE TEMP B-TREE FOR ORDER BY"
+    ]
+  }
+}

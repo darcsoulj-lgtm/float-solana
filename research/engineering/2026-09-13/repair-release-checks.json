@@ -1,0 +1,26 @@
+{
+  "date": "2026-09-13",
+  "baselineCommit": "4d0a19e4db579f8ff304fbb3915fcd48ba247d98",
+  "command": "node scripts/verify-release.mjs",
+  "exitCode": 0,
+  "types": "pass",
+  "repositoryLint": "pass",
+  "tests": 244,
+  "passed": 244,
+  "failed": 0,
+  "skipped": 0,
+  "productionBuild": "pass",
+  "runtimeEvidence": "repair-runtime.json",
+  "browserQA": "not performed: administrative browser restriction",
+  "imageParserReview": {
+    "serverFiles": 119,
+    "markersAbsent": [
+      "image-size",
+      "metadata-route-build-data",
+      "ICNS",
+      "findBox"
+    ],
+    "installedAdvisoriesRemaining": 2,
+    "scope": "Inspected Vinext build-time metadata reader plus generated server bundle; not a penetration test"
+  }
+}

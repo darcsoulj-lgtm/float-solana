@@ -1,3 +1,4 @@
+import { readBoundedText } from '@/lib/request-body';
 import {
   fetchNewsDrafts,
   persistNewsDrafts,
@@ -12,7 +13,7 @@ import {
   editorialRow,
   initializeEditorial,
 } from '@/lib/editorial-server';
-import { TOKENS } from '@/lib/tokens';
+import { verifiedRegistry } from '@/lib/registry-server';
 export const dynamic = 'force-dynamic';
 const json = (data: unknown, status = 200) =>
   Response.json(data, {
@@ -34,7 +35,7 @@ async function handler(req: Request) {
         throw new AppError('A same-origin request is required.', 403);
       if (!req.headers.get('content-type')?.includes('application/json'))
         throw new AppError('Use JSON.', 415);
-      const text = await req.text();
+      const text = await readBoundedText(req, 24000);
       if (text.length > 14000) throw new AppError('Content is too large.', 413);
       try {
         b = JSON.parse(text);
@@ -66,7 +67,8 @@ async function handler(req: Request) {
         !Number.isInteger(offset) ||
         offset < 0 ||
         offset > 5000 ||
-        (symbol !== 'all' && !TOKENS.some((t) => t.symbol === symbol))
+        (symbol !== 'all' &&
+          !(await verifiedRegistry()).tokens.some((t) => t.symbol === symbol))
       )
         throw new AppError('Invalid feed filter.');
       const from = dateValue(
@@ -154,7 +156,11 @@ async function handler(req: Request) {
     }
     if (path === 'items' && post) {
       await rateLimit('editorial:' + user.userId, 60);
-      const p = validateEditorial(b),
+      const p = validateEditorial(
+          b,
+          Date.now(),
+          (await verifiedRegistry()).tokens,
+        ),
         id = typeof b.id === 'string' ? b.id : crypto.randomUUID(),
         now = Date.now();
       if (!/^[a-zA-Z0-9-]{1,100}$/.test(id))

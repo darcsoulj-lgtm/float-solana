@@ -19,7 +19,6 @@ import {
 } from '@/components/ui/dialog';
 import { WalletList } from './wallet-list';
 import { MemberDashboard } from './member-dashboard';
-import { TOKENS } from '@/lib/tokens';
 import { api } from '@/lib/client';
 import type { CommunityStatus } from '@/lib/community-types';
 import type { CommunitySignInInput } from '@/lib/community-sign-in';
@@ -29,11 +28,11 @@ export function Community() {
   const [error, setError] = useState('');
   const [joinError, setJoinError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [join, setJoin] = useState(false);
-  useEffect(() => {
-    if (new URLSearchParams(window.location.search).get('join') === '1')
-      setJoin(true);
-  }, []);
+  const [join, setJoin] = useState(
+    () =>
+      typeof window !== 'undefined' &&
+      new URLSearchParams(window.location.search).get('join') === '1',
+  );
   const [provider, setProvider] = useState('backpack');
   const [stage, setStage] = useState('');
   const [pending, setPending] = useState<{

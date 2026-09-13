@@ -256,6 +256,7 @@
   padding: 10px 0;
 }
 .inline-status {
+  display: block;
   margin: 10px 0;
   padding: 12px 14px;
   border-radius: 8px;

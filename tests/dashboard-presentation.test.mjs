@@ -1,3 +1,4 @@
+import { compileFunction } from 'node:vm';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
@@ -6,6 +7,7 @@ import ts from 'typescript';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 const require = createRequire(import.meta.url);
+const Empty = () => null;
 async function component(file, overrides) {
   const source = await readFile(
     new URL('../components/' + file, import.meta.url),
@@ -18,15 +20,34 @@ async function component(file, overrides) {
       jsx: ts.JsxEmit.ReactJSX,
     },
   });
-  const module = { exports: {} };
-  new Function('require', 'module', 'exports', outputText)(
+  const compiledModule = { exports: {} };
+  compileFunction(outputText, ['require', 'module', 'exports'])(
     (id) =>
-      (id === '@/lib/market-data'
+      (id === '@/components/site-link'
         ? {
-            ...overrides[id],
-            marketTokens: () => overrides['@/lib/tokens']?.TOKENS ?? [],
+            default: ({ children, ...props }) =>
+              React.createElement('a', props, children),
           }
-        : overrides[id]) ??
+        : id === '@/hooks/use-community-feed'
+          ? {
+              useCommunityFeed: () => ({
+                threads: [],
+                cursor: null,
+                error: '',
+                loading: false,
+                hasPage: true,
+                refresh: async () => {},
+                loadMore: async () => {},
+              }),
+            }
+          : id === '@/lib/token-registry'
+            ? { registryTokens: () => overrides['@/lib/tokens']?.TOKENS ?? [] }
+            : id === '@/lib/market-data'
+              ? {
+                  ...overrides[id],
+                  marketTokens: () => overrides['@/lib/tokens']?.TOKENS ?? [],
+                }
+              : overrides[id]) ??
       (id === './metric-info'
         ? {
             MetricInfo: ({ label }) =>
@@ -39,10 +60,10 @@ async function component(file, overrides) {
               },
             }
           : require(id)),
-    module,
-    module.exports,
+    compiledModule,
+    compiledModule.exports,
   );
-  return module.exports;
+  return compiledModule.exports;
 }
 async function portfolio({ hidden = false, prices = {}, positions }) {
   let hook = 0;
@@ -79,7 +100,7 @@ function elements(node, type) {
     ...elements(node.props?.children, type),
   ];
 }
-test('Portfolio ring and list agree on value and allocation', async () => {
+void test('Portfolio ring and list agree on value and allocation', async () => {
   const tree = await portfolio({
     positions: [holding('MU'), holding('SPCX')],
     prices: { MU: 75, SPCX: 25 },
@@ -92,7 +113,7 @@ test('Portfolio ring and list agree on value and allocation', async () => {
   assert.equal(arcs.length, 2);
   assert.equal(arcs[1].props.strokeDashoffset, -75);
 });
-test('An unpriced holding suppresses allocation instead of presenting a false 100 percent', async () => {
+void test('An unpriced holding suppresses allocation instead of presenting a false 100 percent', async () => {
   const tree = await portfolio({
     positions: [holding('MU'), holding('SPCX')],
     prices: { MU: 75 },
@@ -103,7 +124,7 @@ test('An unpriced holding suppresses allocation instead of presenting a false 10
   );
   assert.match(renderToStaticMarkup(tree), /Priced holdings/);
 });
-test('Hide balances removes dollar values and allocation from the rendered chart and list', async () => {
+void test('Hide balances removes dollar values and allocation from the rendered chart and list', async () => {
   const tree = await portfolio({
     hidden: true,
     positions: [holding('MU')],
@@ -116,7 +137,7 @@ test('Hide balances removes dollar values and allocation from the rendered chart
     0,
   );
 });
-test('Large portfolios group smaller holdings in the ring and initially show five rows', async () => {
+void test('Large portfolios group smaller holdings in the ring and initially show five rows', async () => {
   const positions = Array.from({ length: 8 }, (_, i) => holding('T' + i));
   const prices = Object.fromEntries(positions.map((p, i) => [p.symbol, 8 - i]));
   const tree = await portfolio({ positions, prices });
@@ -130,7 +151,7 @@ test('Large portfolios group smaller holdings in the ring and initially show fiv
     5,
   );
 });
-test('Appearance offers direct Light selection, persists it, and synchronizes all controls', async () => {
+void test('Appearance offers direct Light selection, persists it, and synchronizes all controls', async () => {
   const callbacks = new Map(),
     saved = new Map(),
     effects = [];
@@ -198,7 +219,7 @@ const tierLevels = [
   { id: 'platinum', label: 'Platinum', range: '$10k–$99,999' },
   { id: 'diamond', label: 'Diamond', range: '$100k+' },
 ];
-test('value badge renders a compact label, never an exact balance, and hides expired tiers', async () => {
+void test('value badge renders a compact label, never an exact balance, and hides expired tiers', async () => {
   const { HolderTierBadge } = await component('holder-tier-badge.tsx', {
     '@/lib/holder-tier': { HOLDER_TIERS: tierLevels },
   });
@@ -221,16 +242,14 @@ const navSource = await readFile(
   'utf8',
 );
 const navModule = { exports: {} };
-new Function(
-  'require',
-  'module',
-  'exports',
+compileFunction(
   ts.transpileModule(navSource, {
     compilerOptions: {
       module: ts.ModuleKind.CommonJS,
       target: ts.ScriptTarget.ES2022,
     },
   }).outputText,
+  ['require', 'module', 'exports'],
 )(
   (id) =>
     id === './tokens'
@@ -245,7 +264,6 @@ new Function(
 );
 
 async function renderDashboard(search, interact) {
-  const Empty = () => null;
   const Wrap = ({ children }) => React.createElement('div', null, children);
   const { MemberDashboard } = await component('member-dashboard.tsx', {
     ...(interact
@@ -282,6 +300,7 @@ async function renderDashboard(search, interact) {
     },
     './search-picker': { SearchPicker: Empty },
     './community-thread': { Thread: Empty },
+    './room-directory': { RoomDirectory: Empty },
     './room-creator': { RoomCreator: Empty },
     './market-overview': { MarketOverviewPanel: Empty },
     './theme-toggle': { ThemeToggle: Empty },
@@ -327,7 +346,7 @@ async function renderDashboard(search, interact) {
     else globalThis.window = previous;
   }
 }
-test('old Saved links open Discussions with Saved selected, not a separate destination', async () => {
+void test('old Saved links open Discussions with Saved selected, not a separate destination', async () => {
   const html = await renderDashboard('?view=saved');
   assert.match(html, /<h1>Discussions<\/h1>/);
   assert.match(html, /<button aria-pressed="true">[^]*?Saved<\/button>/);
@@ -335,20 +354,20 @@ test('old Saved links open Discussions with Saved selected, not a separate desti
   assert.match(html, /Holders only/);
   assert.doesNotMatch(html, /Members only/);
 });
-test('Profile stays Profile after navigation and displays the private value badge control', async () => {
+void test('Profile stays Profile after navigation and displays the private value badge control', async () => {
   const html = await renderDashboard('?view=profile');
   assert.match(html, /<h1>Profile<\/h1>/);
   assert.match(html, /Show value badge/);
   assert.match(html, /Exact balances stay private/);
 });
 
-test('Saved filter survives a fresh page load through its own URL', async () => {
+void test('Saved filter survives a fresh page load through its own URL', async () => {
   const html = await renderDashboard('?view=home&feed=saved');
   assert.match(html, /<h1>Discussions<\/h1>/);
   assert.match(html, /<button aria-pressed="true">[^]*?Saved<\/button>/);
 });
 
-test('old Calendar links open Home and Calendar is absent from sidebar destinations', async () => {
+void test('old Calendar links open Home and Calendar is absent from sidebar destinations', async () => {
   const html = await renderDashboard('?view=calendar');
   assert.match(html, /member-shell markets-view home-view/);
   assert.doesNotMatch(html.split('</aside>')[0], />Calendar</);
@@ -422,9 +441,9 @@ async function agendaFixture({
     },
   };
 }
-test('Upcoming previews two events and View all expands the same dated agenda', async () => {
+void test('Upcoming previews two events and View all expands the same dated agenda', async () => {
   const f = await agendaFixture();
-  let tree = f.render();
+  const tree = f.render();
   let html = renderToStaticMarkup(tree);
   assert.match(html, /Event one/);
   assert.match(html, /Event two/);
@@ -459,13 +478,13 @@ test('Upcoming previews two events and View all expands the same dated agenda', 
     2,
   );
 });
-test('changing the stock filter hides the previous agenda while new events load', async () => {
+void test('changing the stock filter hides the previous agenda while new events load', async () => {
   const f = await agendaFixture({ expanded: true });
   const html = renderToStaticMarkup(f.render('SPCX'));
   assert.match(html, /Loading events/);
   assert.doesNotMatch(html, /Event one/);
 });
-test('agenda failures are explicit and longer agendas expose bounded pagination', async () => {
+void test('agenda failures are explicit and longer agendas expose bounded pagination', async () => {
   const failed = await agendaFixture({ error: 'Events unavailable.' });
   const html = renderToStaticMarkup(failed.render());
   assert.match(html, /Events unavailable/);
@@ -481,7 +500,6 @@ test('agenda failures are explicit and longer agendas expose bounded pagination'
 async function marketFixture(props = {}, valuation = {}) {
   const states = [];
   let index = 0;
-  const Empty = () => null;
   const Wrap = ({ children }) => React.createElement('div', null, children);
   const tokens = [
     {
@@ -595,9 +613,9 @@ function findElement(tree, predicate) {
   }
   return null;
 }
-test('one market table filters to owned tokens without removing market-wide metrics', async () => {
+void test('one market table filters to owned tokens without removing market-wide metrics', async () => {
   const f = await marketFixture();
-  let tree = f.render();
+  const tree = f.render();
   let html = renderToStaticMarkup(tree);
   assert.match(html, /GOOGLon/);
   assert.match(html, /MU Held/);
@@ -613,7 +631,7 @@ test('one market table filters to owned tokens without removing market-wide metr
   assert.match(html, /Portfolio summary/);
 });
 
-test('News keeps its agenda visible when the headline request fails', async () => {
+void test('News keeps its agenda visible when the headline request fails', async () => {
   let index = 0;
   const key = 'holder-news?symbol=MU&offset=0&holdings=MU';
   const states = [
@@ -656,7 +674,7 @@ test('News keeps its agenda visible when the headline request fails', async () =
   assert.match(html, /Agenda for MU/);
 });
 
-test('compact issuer value filters select and reset without duplicate cards', async () => {
+void test('compact issuer value filters select and reset without duplicate cards', async () => {
   const f = await marketFixture();
   let tree = f.render();
   const filters = () =>
@@ -706,7 +724,7 @@ test('compact issuer value filters select and reset without duplicate cards', as
   assert.equal(button('All issuers').props['aria-pressed'], true);
 });
 
-test('Ecosystem overview shows the combined estimate with scope and delay status', async () => {
+void test('Ecosystem overview shows the combined estimate with scope and delay status', async () => {
   const issuers = [
     {
       id: 'xstocks',
@@ -775,7 +793,7 @@ test('Ecosystem overview shows the combined estimate with scope and delay status
   );
 });
 
-test('Legacy Backpack links open Markets and preserve the four-item member shell', async () => {
+void test('Legacy Backpack links open Markets and preserve the four-item member shell', async () => {
   const html = await renderDashboard('?view=backpack');
   const nav = html.match(
     /<nav[^>]*aria-label="Member navigation"[^>]*>([\s\S]*?)<\/nav>/,
@@ -791,7 +809,7 @@ test('Legacy Backpack links open Markets and preserve the four-item member shell
   assert.doesNotMatch(html, /<h1>Profile/);
 });
 
-test('Legacy routes and direct issuer links resolve consistently', () => {
+void test('Legacy routes and direct issuer links resolve consistently', () => {
   assert.equal(navModule.exports.memberLocation('').view, 'overview');
   assert.equal(
     navModule.exports.memberLocation('?view=brief').view,
@@ -809,7 +827,7 @@ test('Legacy routes and direct issuer links resolve consistently', () => {
   );
 });
 
-test('Home news starts with five headlines, expands on demand, and Discuss passes the exact source', async () => {
+void test('Home news starts with five headlines, expands on demand, and Discuss passes the exact source', async () => {
   const items = Array.from({ length: 12 }, (_, i) => ({
     id: 'n' + i,
     title: 'Micron headline ' + i,
@@ -905,7 +923,7 @@ test('Home news starts with five headlines, expands on demand, and Discuss passe
   assert.doesNotMatch(renderToStaticMarkup(render()), /Updates delayed/);
 });
 
-test('Issuer cards keep delayed values explicit and expose valuation basis accessibly', async () => {
+void test('Issuer cards keep delayed values explicit and expose valuation basis accessibly', async () => {
   const f = await marketFixture(
     {},
     {
@@ -924,14 +942,12 @@ test('Issuer cards keep delayed values explicit and expose valuation basis acces
   );
 });
 
-test('Home portfolio links filter the existing news area and market navigation stays explicit', async () => {
+void test('Home portfolio links filter the existing news area and market navigation stays explicit', async () => {
   let selected,
-    markets = 0,
-    thread;
+    markets = 0;
   const positions = [holding('MU')];
   const Portfolio = () => null;
   const News = () => null;
-  const Empty = () => null;
   const { MemberHomePanel } = await component('member-home.tsx', {
     './portfolio-summary': { PortfolioSummary: Portfolio },
     './member-brief': { MemberBrief: News },
@@ -961,7 +977,7 @@ test('Home portfolio links filter the existing news area and market navigation s
     onMarkets: () => markets++,
     onDiscuss: Empty,
     onThread: (id) => {
-      thread = id;
+      assert.equal(typeof id, 'string');
     },
     onDiscussions: Empty,
     onCreate: Empty,
@@ -981,7 +997,7 @@ test('Home portfolio links filter the existing news area and market navigation s
   assert.doesNotMatch(html, /Backpack dashboard/);
 });
 
-test('Stock details expand under the selected row and collapse without navigating away', async () => {
+void test('Stock details expand under the selected row and collapse without navigating away', async () => {
   const f = await marketFixture();
   let tree = f.render();
   assert.doesNotMatch(renderToStaticMarkup(tree), /id="selected-stock-detail"/);
@@ -1006,7 +1022,7 @@ test('Stock details expand under the selected row and collapse without navigatin
   assert.doesNotMatch(renderToStaticMarkup(tree), /id="selected-stock-detail"/);
 });
 
-test('All issuer deep links resolve inside Markets and unknown issuers reset safely', () => {
+void test('All issuer deep links resolve inside Markets and unknown issuers reset safely', () => {
   for (const issuer of [
     'backpack',
     'xstocks',
@@ -1026,7 +1042,7 @@ test('All issuer deep links resolve inside Markets and unknown issuers reset saf
   );
 });
 
-test('Issuer buttons open their matching dashboard when used inside Markets', async () => {
+void test('Issuer buttons open their matching dashboard when used inside Markets', async () => {
   const opened = [];
   const f = await marketFixture({ onIssuer: (issuer) => opened.push(issuer) });
   for (const name of ['Backpack', 'Ondo']) {
@@ -1039,7 +1055,7 @@ test('Issuer buttons open their matching dashboard when used inside Markets', as
   assert.deepEqual(opened, ['backpack', 'ondo']);
 });
 
-test('Markets sidebar resets every issuer dashboard to All markets and clears the stock deep link', async () => {
+void test('Markets sidebar resets every issuer dashboard to All markets and clears the stock deep link', async () => {
   for (const issuer of [
     'backpack',
     'xstocks',

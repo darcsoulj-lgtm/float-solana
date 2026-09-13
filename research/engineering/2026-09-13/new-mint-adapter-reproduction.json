@@ -1,0 +1,7 @@
+{
+  "mode": "actual bundled adapters with synthetic provider response",
+  "providerRequestedMint": true,
+  "providerReturnedPrice": 123,
+  "currentSymbolKeys": [],
+  "historicalSymbolKeys": []
+}

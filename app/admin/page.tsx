@@ -1,3 +1,4 @@
+import Link from '@/components/site-link';
 import { requireChatGPTUser } from '@/app/chatgpt-auth';
 import { actor } from '@/lib/server';
 import { OperationsWorkspace } from '@/components/operations-workspace';
@@ -14,7 +15,7 @@ export default async function Page() {
           Your signed-in account is not on the administrator list. Wallet
           membership does not grant publishing or moderation access.
         </p>
-        <a href="/">Return to the community →</a>
+        <Link href="/">Return to the community →</Link>
       </main>
     );
   return <OperationsWorkspace />;

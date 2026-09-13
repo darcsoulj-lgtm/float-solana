@@ -11,7 +11,7 @@ const root = new URL('../', import.meta.url).pathname;
 const { outputFiles } = await build({
   stdin: {
     contents:
-      "export * from './lib/backpack-registry'; export {TOKENS} from './lib/tokens'; export {marketTokens,mergeMarketPages,parseListings} from './lib/market-data'; export {issuerDashboard} from './lib/issuer-dashboard'; export {trackedValuation} from './lib/token-observation';",
+      "export * from './lib/backpack-registry'; export {parsePrices, fetchPrices, fetchHistoricalPrices} from './lib/market-data'; export {detectHoldings} from './lib/solana'; export {communityPostErrors} from './lib/community-post'; export {parseHeadlines, companyAliases} from './lib/holder-news'; export {headlineKeys} from './lib/headline-cache'; export {TOKENS} from './lib/tokens'; export {marketTokens,mergeMarketPages,parseListings} from './lib/market-data'; export {issuerDashboard} from './lib/issuer-dashboard'; export {trackedValuation} from './lib/token-observation';",
     resolveDir: root,
     loader: 'ts',
   },
@@ -83,7 +83,7 @@ function overview(registry) {
   };
 }
 
-test('Live-registry discovery verifies unseen mints then adds them without a source edit', async () => {
+void test('Live-registry discovery verifies unseen mints then adds them without a source edit', async () => {
   const f = fixture();
   let calls = 0;
   const additions = await api.discoverBackpackListings(
@@ -142,7 +142,7 @@ test('Live-registry discovery verifies unseen mints then adds them without a sou
   );
 });
 
-test('Registry ignores non-Solana, disabled, missing and ambiguous addresses', () => {
+void test('Registry ignores non-Solana, disabled, missing and ambiguous addresses', () => {
   const f = fixture();
   for (const mutate of [
     (a) => (a.tokens[0].blockchain = 'Ethereum'),
@@ -160,7 +160,7 @@ test('Registry ignores non-Solana, disabled, missing and ambiguous addresses', (
   assert.throws(() => api.backpackCandidates({}), /Invalid/);
 });
 
-test('Spoofed issuer, mint, ticker, decimals and non-mint accounts fail verification', () => {
+void test('Spoofed issuer, mint, ticker, decimals and non-mint accounts fail verification', () => {
   const f = fixture(),
     c = api.backpackCandidates([f.asset]);
   const changes = [
@@ -200,7 +200,7 @@ test('Spoofed issuer, mint, ticker, decimals and non-mint accounts fail verifica
   );
 });
 
-test('Repeated checks preserve ordering and do not duplicate, overwrite or reverify known identities', async () => {
+void test('Repeated checks preserve ordering and do not duplicate, overwrite or reverify known identities', async () => {
   const f = fixture(),
     previous = api.verifiedBackpackMints(
       api.backpackCandidates([f.asset]),
@@ -232,7 +232,7 @@ test('Repeated checks preserve ordering and do not duplicate, overwrite or rever
   );
 });
 
-test('Concurrent visitors share one durable refresh; empty/rate-limited sources retain verified additions', async () => {
+void test('Concurrent visitors share one durable refresh; empty/rate-limited sources retain verified additions', async () => {
   const { db, sql } = database(),
     f = fixture();
   let calls = 0;
@@ -294,4 +294,102 @@ test('Concurrent visitors share one durable refresh; empty/rate-limited sources 
     assert.equal(failed.additions.length, 1);
   }
   sql.close();
+});
+
+void test('New verified listings flow through live price adapters, wallet eligibility, discussions and company-matched news', async () => {
+  const f = fixture();
+  const additions = api.verifiedBackpackMints(
+    api.backpackCandidates([f.asset]),
+    f.chain,
+  );
+  const tokens = api.marketTokens(overview({ additions }));
+  const now = Date.now();
+  const fetchPrice = async (url) =>
+    Response.json({
+      coins: {
+        ['solana:' + f.mint]: {
+          price: 12,
+          timestamp:
+            (String(url).includes('/historical/') ? now - 86400000 : now) /
+            1000,
+          confidence: 1,
+        },
+      },
+    });
+  assert.equal((await api.fetchPrices(fetchPrice, tokens)).NEXT.price, 12);
+  assert.equal(
+    (await api.fetchHistoricalPrices(fetchPrice, tokens, now)).NEXT.price,
+    12,
+  );
+  const wallet = '11111111111111111111111111111111';
+  const holdings = await api.detectHoldings(
+    wallet,
+    undefined,
+    async (_url, options) => {
+      const request = JSON.parse(options.body);
+      if (request.method === 'getMultipleAccounts')
+        return Response.json(f.chain);
+      const program = request.params[1].programId;
+      return Response.json({
+        result: {
+          context: { slot: 123 },
+          value:
+            program === f.account.owner
+              ? [
+                  {
+                    account: {
+                      owner: program,
+                      data: {
+                        parsed: {
+                          type: 'account',
+                          info: {
+                            mint: f.mint,
+                            owner: wallet,
+                            state: 'initialized',
+                            tokenAmount: {
+                              amount: '1250000',
+                              decimals: 6,
+                              uiAmount: 1.25,
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                ]
+              : [],
+        },
+      });
+    },
+    true,
+    tokens,
+  );
+  assert.equal(holdings[0].symbol, 'NEXT');
+  assert.equal(holdings[0].rawAmount, '1250000');
+  assert.deepEqual(
+    api.communityPostErrors(
+      { topic: 'NEXT', title: 'Company update', body: '' },
+      tokens,
+    ),
+    {},
+  );
+  assert.ok(
+    api.communityPostErrors(
+      { topic: 'SPOOF', title: 'Company update', body: '' },
+      tokens,
+    ).topic,
+  );
+  assert.ok(api.headlineKeys('NEXT', tokens).length);
+  const xml = `<rss><item><title>Next Company announces results</title><pubDate>${new Date(now - 1000).toUTCString()}</pubDate><link>https://finance.yahoo.com/news/next-results</link></item></rss>`;
+  assert.equal(api.parseHeadlines(xml, 'NEXT', now, 'yahoo', tokens).length, 1);
+  assert.equal(
+    api.parseHeadlines(
+      xml.replace('Next Company', 'Unrelated Corporation'),
+      'NEXT',
+      now,
+      'yahoo',
+      tokens,
+    ).length,
+    0,
+  );
 });

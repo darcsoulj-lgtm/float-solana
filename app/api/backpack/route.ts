@@ -1,4 +1,9 @@
 import {
+  marketBatches,
+  readMarketBatch,
+  emptySource,
+} from '@/lib/market-service';
+import {
   backpackRegistry,
   registryTokens,
   tokenBatchKey,
@@ -6,13 +11,7 @@ import {
 import { waitUntil } from 'cloudflare:workers';
 import { db, runtime, rateLimit } from '@/lib/server';
 import { marketSnapshot } from '@/lib/market-cache';
-import {
-  fetchPrices,
-  fetchHistoricalPrices,
-  fetchCatalog,
-  type SourceResult,
-} from '@/lib/market-data';
-import { fetchSupplies } from '@/lib/token-supply';
+import { mergeMarketPages, fetchCatalog } from '@/lib/market-data';
 import {
   PUBLIC_BATCH_SIZE,
   fetchBackpackPools,
@@ -53,19 +52,23 @@ export async function GET(req: Request) {
     const snapshot = <T>(key: string, ttl: number, loader: () => Promise<T>) =>
       marketSnapshot(database, key, ttl, loader, waitUntil, Date.now(), 300000);
     const suffix = TOKEN_REVIEW_DATE + ':' + (await tokenBatchKey(tokens));
-    const [pools, prices, supplies, history, catalog] = await Promise.all([
+    const [pools, shared, catalog] = await Promise.all([
       snapshot('dex-pools-backpack-detail-v1:' + suffix, 240000, () =>
         fetchBackpackPools(tokens),
       ),
-      snapshot('backpack-public-prices-v1:' + suffix, 120000, () =>
-        fetchPrices(fetch, tokens),
-      ),
-      snapshot('backpack-public-supplies-v1:' + suffix, 120000, () =>
-        fetchSupplies(runtime().SOLANA_RPC_URL, fetch, tokens),
-      ),
-      snapshot('backpack-public-history-v1:' + suffix, 120000, () =>
-        fetchHistoricalPrices(fetch, tokens),
-      ),
+      Promise.all(
+        marketBatches(registryTokens(registry), tokens).map(
+          async (canonical) => ({
+            ...(await readMarketBatch(database, canonical, {
+              rpcUrl: runtime().SOLANA_RPC_URL,
+              defer: waitUntil,
+              pools: false,
+            })),
+            catalog: emptySource([]),
+            markets: emptySource({}),
+          }),
+        ),
+      ).then(mergeMarketPages),
       batch === 0
         ? snapshot(
             'backpack-catalog-v2:' +
@@ -82,8 +85,9 @@ export async function GET(req: Request) {
             error: null,
           }),
     ]);
+    const { prices, supplies, history } = shared;
     const pending = [pools, prices, supplies, history, catalog].some(
-      (s: SourceResult<unknown>) => s.refreshing,
+      (s) => s && 'refreshing' in s && s.refreshing,
     );
     // Fixed public market DTO: no account, wallet, membership, private balances,
     // credentials or authenticated response caching is shared with this route.

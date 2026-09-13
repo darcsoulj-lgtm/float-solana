@@ -2,25 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
 import { DatabaseSync } from 'node:sqlite';
-import ts from 'typescript';
-const raw = await readFile(
-  new URL('../lib/community-home.ts', import.meta.url),
-  'utf8',
+import { bundle } from './helpers/bundle.mjs';
+const { communityHome, readRooms } = await bundle(
+  "export * from './lib/community-home';export * from './lib/community-rooms';",
 );
-const output = ts.transpileModule(raw, {
-  compilerOptions: {
-    target: ts.ScriptTarget.ES2022,
-    module: ts.ModuleKind.CommonJS,
-  },
-}).outputText;
-const module = { exports: {} };
-new Function('require', 'module', 'exports', output)(
-  () => ({ TOPICS: [{ id: 'MU', label: 'Micron' }] }),
-  module,
-  module.exports,
-);
-const { communityHome } = module.exports;
-test('home loads in one database batch and isolates holdings, session and bookmarks', async () => {
+void test('home loads in one database batch and isolates holdings, session and bookmarks', async () => {
   const sql = new DatabaseSync(':memory:');
   try {
     const migrations = new URL('../drizzle/', import.meta.url);
@@ -42,6 +28,9 @@ test('home loads in one database batch and isolates holdings, session and bookma
       prepare(query) {
         const stmt = {
           query,
+          async all() {
+            return { results: sql.prepare(this.query).all(...this.args) };
+          },
           args: [],
           bind(...args) {
             this.args = args;
@@ -56,11 +45,69 @@ test('home loads in one database batch and isolates holdings, session and bookma
           const statement = sql.prepare(query);
           if (query.startsWith('SELECT'))
             return { results: statement.all(...args) };
-          statement.run(...args);
-          return { results: [] };
+          assert.fail('Home must be read-only: ' + query);
         });
       },
     };
+    sql.exec(
+      "INSERT INTO community_rooms(id,name,name_key,description,creator_id,created_at) VALUES('room-a','Alpha','alpha','Description','a',1)",
+    );
+    for (let i = 0; i < 120; i++)
+      sql
+        .prepare(
+          'INSERT INTO community_rooms(id,name,name_key,description,creator_id,created_at) VALUES(?,?,?,?,?,?)',
+        )
+        .run(
+          'room-' + i,
+          'Room ' + i,
+          'room ' + i,
+          'Description',
+          'a',
+          100 + i,
+        );
+    sql.exec(
+      "INSERT INTO community_threads(id,member_id,topic,title,body,created_at,updated_at) VALUES('count-test','a','room-a','Title','Body',1,1)",
+    );
+    const count = (id) =>
+      sql
+        .prepare('SELECT thread_count n FROM community_rooms WHERE id=?')
+        .get(id).n;
+    assert.equal(count('room-a'), 1);
+    sql.exec("UPDATE community_threads SET hidden=1 WHERE id='count-test'");
+    assert.equal(count('room-a'), 0);
+    sql.exec(
+      "UPDATE community_threads SET hidden=0,topic='room-1' WHERE id='count-test'",
+    );
+    assert.equal(count('room-a'), 0);
+    assert.equal(count('room-1'), 1);
+    sql.exec("DELETE FROM community_threads WHERE id='count-test'");
+    assert.equal(count('room-1'), 0);
+    const firstPage = await readRooms(database);
+    const secondPage = await readRooms(database, firstPage.nextCursor);
+    const thirdPage = await readRooms(database, secondPage.nextCursor);
+    assert.equal(firstPage.rooms.length, 50);
+    assert.equal(secondPage.rooms.length, 50);
+    assert.equal(thirdPage.rooms.length, 21);
+    assert.equal(thirdPage.nextCursor, null);
+    assert.equal(
+      new Set(
+        [...firstPage.rooms, ...secondPage.rooms, ...thirdPage.rooms].map(
+          (r) => r.id,
+        ),
+      ).size,
+      121,
+    );
+    assert.equal((await readRooms(database, '', 'Alpha')).rooms.length, 1);
+    assert.equal((await readRooms(database, '', '%')).rooms.length, 0);
+    await assert.rejects(readRooms(database, 'bad:cursor'));
+    const plan = sql
+      .prepare(
+        'EXPLAIN QUERY PLAN SELECT count(*) FROM community_threads WHERE topic=? AND hidden=0',
+      )
+      .all('MU');
+    assert.ok(
+      plan.some((row) => row.detail.includes('idx_community_threads_topic')),
+    );
     const a = await communityHome(database, 'a', 'sa');
     assert.equal(batches, 1);
     assert.deepEqual(

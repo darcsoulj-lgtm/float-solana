@@ -5,6 +5,17 @@ type CacheRow = {
   fetched_at: number;
   retry_after: number;
 };
+// Four observations for one canonical batch use one D1 read, not four trips.
+export async function marketCacheRows(db: D1Database, keys: readonly string[]) {
+  if (!keys.length) return new Map<string, CacheRow>();
+  const result = await db
+    .prepare(
+      `SELECT key,payload,fetched_at,retry_after FROM market_cache WHERE key IN (${keys.map(() => '?').join(',')})`,
+    )
+    .bind(...keys)
+    .all<CacheRow & { key: string }>();
+  return new Map(result.results.map((row) => [row.key, row]));
+}
 // HTTP reads must not wait for external providers. Keep the existing leased
 // refresh path for jobs and verification that actually require a fresh result.
 export async function marketSnapshot<T>(
@@ -15,13 +26,17 @@ export async function marketSnapshot<T>(
   defer: (work: Promise<unknown>) => void,
   now = Date.now(),
   maxAge = ttl,
+  savedRow?: CacheRow | null,
 ): Promise<SourceResult<T>> {
-  const row = await db
-    .prepare(
-      'SELECT payload,fetched_at,retry_after FROM market_cache WHERE key=?',
-    )
-    .bind(key)
-    .first<CacheRow>();
+  const row =
+    savedRow !== undefined
+      ? savedRow
+      : await db
+          .prepare(
+            'SELECT payload,fetched_at,retry_after FROM market_cache WHERE key=?',
+          )
+          .bind(key)
+          .first<CacheRow>();
   let data: T | null = null;
   try {
     data = row?.payload ? JSON.parse(row.payload) : null;
@@ -71,13 +86,17 @@ export async function cachedMarket<T>(
   ttl: number,
   loader: () => Promise<T>,
   now = Date.now(),
+  savedRow?: CacheRow | null,
 ): Promise<SourceResult<T>> {
-  const row = await db
-    .prepare(
-      'SELECT payload,fetched_at,retry_after FROM market_cache WHERE key=?',
-    )
-    .bind(key)
-    .first<CacheRow>();
+  const row =
+    savedRow !== undefined
+      ? savedRow
+      : await db
+          .prepare(
+            'SELECT payload,fetched_at,retry_after FROM market_cache WHERE key=?',
+          )
+          .bind(key)
+          .first<CacheRow>();
   let old: T | null = null;
   try {
     old = row?.payload ? JSON.parse(row.payload) : null;

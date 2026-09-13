@@ -1,4 +1,4 @@
-import { TOKENS } from './tokens';
+import { TOKENS, type StockToken } from './tokens';
 import { AppError, textValue } from './validation';
 
 export type EditorialItem = {
@@ -90,6 +90,7 @@ export function dateValue(value: unknown) {
 export function validateEditorial(
   b: Record<string, unknown>,
   now = Date.now(),
+  tokens: readonly StockToken[] = TOKENS,
 ) {
   if (b.kind !== 'news' && b.kind !== 'event')
     throw new AppError('Choose news or an event.');
@@ -99,7 +100,7 @@ export function validateEditorial(
     !Array.isArray(b.symbols) ||
     !b.symbols.length ||
     b.symbols.length > 10 ||
-    b.symbols.some((s) => !TOKENS.some((t) => t.symbol === s))
+    b.symbols.some((s) => !tokens.some((t) => t.symbol === s))
   )
     throw new AppError('Select 1–10 supported stocks.');
   if (b.certainty !== 'confirmed' && b.certainty !== 'estimated')

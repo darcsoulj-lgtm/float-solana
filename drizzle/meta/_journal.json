@@ -64,6 +64,20 @@
       "when": 1789184282057,
       "tag": "0008_hot_reavers",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1789291407174,
+      "tag": "0009_gray_ultimo",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1789292963696,
+      "tag": "0010_solid_lethal_legion",
+      "breakpoints": true
     }
   ]
 }

@@ -1,4 +1,5 @@
 'use client';
+import Link from '@/components/site-link';
 import { Fragment, useEffect, useRef, useState } from 'react';
 import {
   ArrowUpRight,
@@ -66,15 +67,17 @@ export function sortedIssuerRows(
 function TokenDetail({ row }: { row: Row }) {
   const [detail, setDetail] = useState<SourceResult<Pool[]> | null>(null);
   const [poolError, setPoolError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(row.token.issuer !== 'backpack');
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(timer);
+  }, []);
   useEffect(() => {
     // Backpack already loads per-token discovery. Other issuer overviews use
     // the shared batch cache, and expand discovery only for an opened stock.
     if (row.token.issuer === 'backpack') return;
     const controller = new AbortController();
-    setLoading(true);
-    setDetail(null);
-    setPoolError('');
     let timer: ReturnType<typeof setTimeout>;
     let attempts = 0;
     async function load() {
@@ -116,8 +119,8 @@ function TokenDetail({ row }: { row: Row }) {
     detail?.data &&
     !detail.stale &&
     detail.fetchedAt &&
-    Date.now() - detail.fetchedAt < 300000 &&
-    detail.fetchedAt <= Date.now() + 60000
+    now - detail.fetchedAt < 300000 &&
+    detail.fetchedAt <= now + 60000
       ? detail.data
       : row.pools;
   const circulation = row.circulation ?? row.lastCirculation;
@@ -186,11 +189,11 @@ function TokenDetail({ row }: { row: Row }) {
         <p className="bp-muted">Pool data is currently unavailable.</p>
       )}
       {loading || poolError || detail?.error ? (
-        <p className="bp-muted" role="status">
+        <output className="bp-muted">
           {loading
             ? 'Checking additional pools…'
             : poolError || 'Pool coverage is partial.'}
-        </p>
+        </output>
       ) : null}
       <details className="bp-row-source">
         <summary>Price & valuation</summary>
@@ -364,23 +367,16 @@ export function IssuerDashboardContent({
   error: string;
   onRefresh: () => void;
 }) {
-  const [query, setQuery] = useState(''),
+  const [initialStock] = useState(() =>
+    typeof window === 'undefined'
+      ? ''
+      : new URLSearchParams(window.location.search).get('stock') || '',
+  );
+  const [query, setQuery] = useState(initialStock),
     [sort, setSort] = useState<Sort>('dexVolume'),
     [ascending, setAscending] = useState(false),
     [page, setPage] = useState(0),
-    [selected, setSelected] = useState('');
-  useEffect(() => {
-    const symbol = new URLSearchParams(window.location.search).get('stock');
-    if (
-      symbol &&
-      issuerDashboard(data, issuer).rows.some(
-        (row) => row.token.symbol === symbol,
-      )
-    ) {
-      setQuery(symbol);
-      setSelected(symbol);
-    }
-  }, [issuer, data?.registry?.additions.length]);
+    [selected, setSelected] = useState(initialStock);
   const dashboard = issuerDashboard(data, issuer),
     rows = sortedIssuerRows(dashboard.rows, query, sort, ascending),
     pageCount = Math.max(1, Math.ceil(rows.length / 15));
@@ -417,9 +413,9 @@ export function IssuerDashboardContent({
           <p>Tokenized stocks on Solana</p>
         </div>
         {!embedded && (
-          <a className="bp-primary" href="/?join=1">
+          <Link className="bp-primary" href="/?join=1">
             Join the holder community <ArrowUpRight size={17} />
-          </a>
+          </Link>
         )}
       </div>
       <div className="bp-stats" aria-label={`${issuerName(issuer)} overview`}>
@@ -465,6 +461,7 @@ export function IssuerDashboardContent({
               <button
                 type="button"
                 key={r.token.symbol}
+                aria-label={`View ${r.token.symbol} details`}
                 onClick={() => {
                   setQuery(r.token.symbol);
                   setSelected(r.token.symbol);
@@ -524,7 +521,7 @@ export function IssuerDashboardContent({
             <RefreshCw size={17} className={busy ? 'bp-spinning' : ''} />
           </button>
         </div>
-        <div className="bp-status" role="status">
+        <output className="bp-status">
           {busy
             ? 'Updating…'
             : error ||
@@ -533,7 +530,7 @@ export function IssuerDashboardContent({
                 : 'Waiting for market data')}
           {data?.pools.error && !busy ? ' · Partial coverage' : ''}
           {data?.registry?.delayed ? ' · Listing updates delayed' : ''}
-        </div>
+        </output>
         <div className="bp-table-scroll">
           <table>
             <thead>
@@ -617,7 +614,7 @@ export function IssuerDashboardContent({
                   {selected === row.token.symbol ? (
                     <tr id={`detail-${row.token.symbol}`}>
                       <td colSpan={6}>
-                        <TokenDetail row={row} />
+                        <TokenDetail key={row.token.mint} row={row} />
                       </td>
                     </tr>
                   ) : null}
@@ -633,9 +630,9 @@ export function IssuerDashboardContent({
           </div>
         ) : null}
         <div className="bp-table-footer">
-          <a href="/tokens">
+          <Link href="/tokens">
             All tokenized stocks on Solana <ArrowUpRight size={14} />
-          </a>
+          </Link>
           <div>
             <button
               type="button"
@@ -738,7 +735,7 @@ export function IssuerDashboardContent({
           >
             DEX Screener documentation ↗
           </a>{' '}
-          · <a href="/tokens">Token registry ↗</a>
+          · <Link href="/tokens">Token registry ↗</Link>
         </div>
       </details>
       <p className="bp-independence">

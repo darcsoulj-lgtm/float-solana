@@ -1,0 +1,56 @@
+{
+  "date": "2026-09-13",
+  "metadata": {
+    "vulnerabilities": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 2,
+      "critical": 0
+    },
+    "dependencies": 510,
+    "devDependencies": 138,
+    "optionalDependencies": 209,
+    "totalDependencies": 759
+  },
+  "advisories": [
+    {
+      "module_name": "image-size",
+      "title": "image-size: ICNS parser allows denial of service through an infinite loop",
+      "severity": "high",
+      "url": "https://github.com/advisories/GHSA-w3rx-r6r6-pgpr",
+      "vulnerable_versions": "<=2.0.2",
+      "patched_versions": ">=2.0.3",
+      "findings": [
+        {
+          "version": "2.0.2",
+          "paths": [
+            ".>vinext>image-size"
+          ],
+          "dev": false,
+          "optional": false,
+          "bundled": false
+        }
+      ]
+    },
+    {
+      "module_name": "image-size",
+      "title": "image-size: JXL and HEIF parsers allow denial of service through infinite loops",
+      "severity": "high",
+      "url": "https://github.com/advisories/GHSA-5p2g-fcmc-qvqq",
+      "vulnerable_versions": "<=2.0.2",
+      "patched_versions": ">=2.0.3",
+      "findings": [
+        {
+          "version": "2.0.2",
+          "paths": [
+            ".>vinext>image-size"
+          ],
+          "dev": false,
+          "optional": false,
+          "bundled": false
+        }
+      ]
+    }
+  ]
+}

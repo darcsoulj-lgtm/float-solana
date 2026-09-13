@@ -154,7 +154,15 @@ export const communityThreads = sqliteTable(
     createdAt: integer('created_at').notNull(),
     updatedAt: integer('updated_at').notNull(),
   },
-  (t) => [index('idx_community_threads_feed').on(t.hidden, t.createdAt)],
+  (t) => [
+    index('idx_community_threads_feed').on(t.hidden, t.createdAt),
+    index('idx_community_threads_topic').on(
+      t.topic,
+      t.hidden,
+      t.createdAt,
+      t.id,
+    ),
+  ],
 );
 export const communityReplies = sqliteTable(
   'community_replies',
@@ -344,12 +352,16 @@ export const communityRooms = sqliteTable(
     name: text('name').notNull(),
     nameKey: text('name_key').notNull(),
     description: text('description').notNull(),
+    threadCount: integer('thread_count').notNull().default(0),
     creatorId: text('creator_id')
       .notNull()
       .references(() => communityMembers.id),
     createdAt: integer('created_at').notNull(),
   },
-  (t) => [uniqueIndex('idx_room_name').on(t.nameKey)],
+  (t) => [
+    uniqueIndex('idx_room_name').on(t.nameKey),
+    index('idx_room_created').on(t.createdAt, t.id),
+  ],
 );
 
 // Shared source cache with a bounded refresh lease; no user or wallet data.

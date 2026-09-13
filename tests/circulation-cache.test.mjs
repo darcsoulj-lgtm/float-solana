@@ -1,3 +1,4 @@
+import { compileFunction } from 'node:vm';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -59,7 +60,7 @@ function database() {
     },
   };
 }
-test('Interrupted pagination retains completed pages, retries the failed page, and atomically publishes a complete snapshot', async () => {
+void test('Interrupted pagination retains completed pages, retries the failed page, and atomically publishes a complete snapshot', async () => {
   const { raw, d1 } = database();
   let clock = Date.parse('2026-09-12T14:01:00Z');
   const original = Date.now;
@@ -116,7 +117,7 @@ test('Interrupted pagination retains completed pages, retries the failed page, a
     raw.close();
   }
 });
-test('Dated fallback survives page merging, stays labeled, and never enters strict current circulation totals', () => {
+void test('Dated fallback survives page merging, stays labeled, and never enters strict current circulation totals', () => {
   const now = Date.now(),
     source = (data) => ({
       data,
@@ -160,7 +161,7 @@ test('Dated fallback survives page merging, stays labeled, and never enters stri
     null,
   );
 });
-test('An invalid new generation never overwrites the previous complete snapshot', async () => {
+void test('An invalid new generation never overwrites the previous complete snapshot', async () => {
   const { raw, d1 } = database();
   const now = Date.now();
   raw
@@ -198,7 +199,7 @@ test('An invalid new generation never overwrites the previous complete snapshot'
   raw.close();
 });
 
-test('Wallet verification without checkbox still enforces challenge and signature checks', async () => {
+void test('Wallet verification without checkbox still enforces challenge and signature checks', async () => {
   const ts = require('typescript');
   let challenge = null,
     signatureCalls = 0;
@@ -219,6 +220,14 @@ test('Wallet verification without checkbox still enforces challenge and signatur
     },
   }).outputText;
   const dependencies = {
+    '@/lib/community-rooms': {},
+    '@/lib/request-body': { readBoundedText: async (req) => req.text() },
+    '@/lib/registry-server': {
+      verifiedRegistry: async () => ({
+        registry: { additions: [] },
+        tokens: [],
+      }),
+    },
     '@/lib/server': {
       rateLimit: async () => {},
       db: () => ({
@@ -233,11 +242,11 @@ test('Wallet verification without checkbox still enforces challenge and signatur
       },
     },
   };
-  const module = { exports: {} };
-  new Function('require', 'module', 'exports', output)(
+  const compiledModule = { exports: {} };
+  compileFunction(output, ['require', 'module', 'exports'])(
     (id) => dependencies[id] || {},
-    module,
-    module.exports,
+    compiledModule,
+    compiledModule.exports,
   );
   const req = () =>
     new Request('https://example.com/api/community/verify', {
@@ -248,12 +257,12 @@ test('Wallet verification without checkbox still enforces challenge and signatur
       },
       body: JSON.stringify({ challengeId: 'test', signature: [] }),
     });
-  const expired = await module.exports.GET(req());
+  const expired = await compiledModule.exports.GET(req());
   assert.equal(expired.status, 401);
   assert.match((await expired.json()).error, /expired/);
   assert.equal(signatureCalls, 0);
   challenge = { id: 'test', wallet: 'wallet', message: 'message' };
-  const badSignature = await module.exports.GET(req());
+  const badSignature = await compiledModule.exports.GET(req());
   assert.equal(badSignature.status, 401);
   assert.equal(signatureCalls, 1);
   assert.equal((await badSignature.json()).error, 'Invalid signature');

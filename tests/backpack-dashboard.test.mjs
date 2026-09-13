@@ -1,3 +1,4 @@
+import { compileFunction } from 'node:vm';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
@@ -42,7 +43,7 @@ const pool = (address, volume24h, liquidity) => ({
   url: 'https://dexscreener.com/solana/' + address,
   createdAt: now - 86400000,
 });
-test('Issuer aggregate counts shared pools once; token rows retain their own pool coverage', () => {
+void test('Issuer aggregate counts shared pools once; token rows retain their own pool coverage', () => {
   const d = blank();
   d.pools.data.MU = [pool('shared', 100, 50), pool('mu-only', 20, 10)];
   d.pools.data.SPCX = [pool('shared', 100, 50)];
@@ -56,14 +57,14 @@ test('Issuer aggregate counts shared pools once; token rows retain their own poo
   );
   assert.equal(result.recentPools.length, 2);
 });
-test('Unknown volume stays unknown; confirmed zero is zero', () => {
+void test('Unknown volume stays unknown; confirmed zero is zero', () => {
   const d = blank();
   assert.equal(api.backpackDashboard(d, now).volume, null);
   d.pools.data.MU = [pool('zero', 0, 0)];
   assert.equal(api.backpackDashboard(d, now).volume, 0);
   assert.equal(api.backpackDashboard(d, now).liquidity, 0);
 });
-test('Expired, stale and future-dated pools cannot enter public metrics', () => {
+void test('Expired, stale and future-dated pools cannot enter public metrics', () => {
   for (const mutate of [
     (d) => (d.pools.fetchedAt = now - 300001),
     (d) => (d.pools.stale = true),
@@ -75,7 +76,7 @@ test('Expired, stale and future-dated pools cannot enter public metrics', () => 
     assert.equal(api.backpackDashboard(d, now).volume, null);
   }
 });
-test('Other issuers cannot leak into Backpack-only totals', () => {
+void test('Other issuers cannot leak into Backpack-only totals', () => {
   const d = blank();
   d.pools.data.GOOGLon = [pool('ondo', 1e9, 1e9)];
   const result = api.backpackDashboard(d, now);
@@ -83,7 +84,7 @@ test('Other issuers cannot leak into Backpack-only totals', () => {
   assert.ok(result.rows.every((r) => r.token.issuer === 'backpack'));
   assert.equal(result.rows.length, 44);
 });
-test('Recent pools exclude old and future timestamps, without inventing stock listing dates', () => {
+void test('Recent pools exclude old and future timestamps, without inventing stock listing dates', () => {
   const d = blank();
   d.pools.data.MU = [
     { ...pool('old', 1, 1), createdAt: now - 31 * 86400000 },
@@ -95,7 +96,7 @@ test('Recent pools exclude old and future timestamps, without inventing stock li
     ['recent'],
   );
 });
-test('Minted values use compatible Solana supply and exclude missing or conflicting valuations', () => {
+void test('Minted values use compatible Solana supply and exclude missing or conflicting valuations', () => {
   const d = blank();
   d.supplies.data.MU = { supply: 10, valuationSafe: true };
   d.prices.data.MU = { price: 100, confidence: 1, timestamp: now };
@@ -104,7 +105,7 @@ test('Minted values use compatible Solana supply and exclude missing or conflict
   d.pools.data.MU[0].price = 200;
   assert.equal(api.backpackDashboard(d, now).mintedValue, null);
 });
-test('Per-token discovery stays bounded and uses exact mint endpoints', async () => {
+void test('Per-token discovery stays bounded and uses exact mint endpoints', async () => {
   let inflight = 0,
     max = 0;
   const urls = [];
@@ -130,7 +131,6 @@ test('Per-token discovery stays bounded and uses exact mint endpoints', async ()
 });
 // Compile the public route with explicit dependency stubs. Any accidental auth
 // import fails this harness; the output must remain public market data only.
-let called = 0;
 const routeBundle = await build({
   entryPoints: [root + 'app/api/backpack/route.ts'],
   bundle: true,
@@ -154,7 +154,7 @@ const routeBundle = await build({
               ? 'export const waitUntil=()=>{}'
               : args.path.endsWith('/server')
                 ? 'export const db=()=>({prepare:()=>({bind:()=>({first:async()=>null})})});export const runtime=()=>({SOLANA_RPC_URL:"https://private.example/key"});export const rateLimit=async()=>{}'
-                : 'export const marketSnapshot=async(db,key)=>({data:key.includes("verified-listings")?(globalThis.__floatRegistryTestAdditions??[]):key.includes("catalog")?[]:{},fetchedAt:123,stale:false,error:null});',
+                : 'export const marketCacheRows=async()=>new Map();export const cachedMarket=async()=>{throw Error("unexpected synchronous refresh")};export const marketSnapshot=async(db,key)=>({data:key.includes("verified-listings")?(globalThis.__floatRegistryTestAdditions??[]):key.includes("catalog")?[]:{},fetchedAt:123,stale:false,error:null});',
           loader: 'js',
         }));
       },
@@ -165,7 +165,7 @@ const route = await import(
   'data:text/javascript;base64,' +
     Buffer.from(routeBundle.outputFiles[0].text).toString('base64')
 );
-test('Public route works without a wallet and never exposes runtime credentials', async () => {
+void test('Public route works without a wallet and never exposes runtime credentials', async () => {
   const response = await route.GET(
     new Request('https://example.com/api/backpack?batch=0'),
   );
@@ -190,7 +190,7 @@ test('Public route works without a wallet and never exposes runtime credentials'
   assert.ok(!JSON.stringify(body).includes('private.example'));
   assert.equal(response.headers.get('set-cookie'), null);
 });
-test('Invalid public batch requests are rejected', async () => {
+void test('Invalid public batch requests are rejected', async () => {
   for (const value of ['-1', '5', '1.2', 'NaN', '99', '0x1'])
     assert.equal(
       (
@@ -215,13 +215,13 @@ const uiBundle = await build({
   external: ['react', 'react/jsx-runtime', 'lucide-react'],
 });
 const uiModule = { exports: {} };
-new Function('require', 'module', 'exports', uiBundle.outputFiles[0].text)(
+compileFunction(uiBundle.outputFiles[0].text, ['require', 'module', 'exports'])(
   require,
   uiModule,
   uiModule.exports,
 );
 const { sortedBackpackRows, BackpackDashboardPage } = uiModule.exports;
-test('Sort keeps unknown values last in either direction and search matches company names', () => {
+void test('Sort keeps unknown values last in either direction and search matches company names', () => {
   const d = blank();
   d.pools.data.MU = [pool('mu', 50, 100)];
   d.pools.data.SPCX = [pool('spcx', 100, 200)];
@@ -243,7 +243,7 @@ test('Sort keeps unknown values last in either direction and search matches comp
     0,
   );
 });
-test('Public initial render contains accessible search, sort and detail controls without requiring sign-in', () => {
+void test('Public initial render contains accessible search, sort and detail controls without requiring sign-in', () => {
   const React = require('react');
   const { renderToStaticMarkup } = require('react-dom/server');
   const html = renderToStaticMarkup(React.createElement(BackpackDashboardPage));
@@ -256,7 +256,7 @@ test('Public initial render contains accessible search, sort and detail controls
   assert.doesNotMatch(html, /Sign in to view|data-theme="light"/);
 });
 
-test('Embedded Backpack keeps dashboard controls without the public join prompt', () => {
+void test('Embedded Backpack keeps dashboard controls without the public join prompt', () => {
   const React = require('react');
   const { renderToStaticMarkup } = require('react-dom/server');
   const html = renderToStaticMarkup(
@@ -272,7 +272,7 @@ test('Embedded Backpack keeps dashboard controls without the public join prompt'
   assert.match(publicHtml, /Join the holder community/);
 });
 
-test('Every issuer uses isolated, deduplicated pool totals with unknown values preserved', () => {
+void test('Every issuer uses isolated, deduplicated pool totals with unknown values preserved', () => {
   for (const issuer of api.ISSUERS) {
     const d = blank();
     const tokens = api.TOKENS.filter((t) => t.issuer === issuer.id);
@@ -288,7 +288,7 @@ test('Every issuer uses isolated, deduplicated pool totals with unknown values p
     assert.equal(api.issuerDashboard(blank(), issuer.id, now).volume, null);
   }
 });
-test('xStocks dashboard never substitutes gross minted or global values for circulation', () => {
+void test('xStocks dashboard never substitutes gross minted or global values for circulation', () => {
   const token = api.TOKENS.find((t) => t.issuer === 'xstocks');
   const d = blank();
   d.supplies.data[token.symbol] = { supply: 1e9, valuationSafe: true };
@@ -312,7 +312,7 @@ test('xStocks dashboard never substitutes gross minted or global values for circ
   d.circulation.fetchedAt = now - 86400001;
   assert.equal(api.issuerDashboard(d, 'xstocks', now).value, null);
 });
-test('All issuer dashboards render the same metric controls and their own value basis', () => {
+void test('All issuer dashboards render the same metric controls and their own value basis', () => {
   const React = require('react');
   const { renderToStaticMarkup } = require('react-dom/server');
   for (const issuer of api.ISSUERS) {
@@ -345,7 +345,7 @@ test('All issuer dashboards render the same metric controls and their own value 
   }
 });
 
-test('Ondo limited pool coverage is visible alongside volume, not presented as issuer total', () => {
+void test('Ondo limited pool coverage is visible alongside volume, not presented as issuer total', () => {
   const React = require('react');
   const { renderToStaticMarkup } = require('react-dom/server');
   const data = blank();
@@ -365,7 +365,7 @@ test('Ondo limited pool coverage is visible alongside volume, not presented as i
   assert.match(html, /Volume source and coverage/);
 });
 
-test('Public dashboard grows beyond the original page count without a deploy', async () => {
+void test('Public dashboard grows beyond the original page count without a deploy', async () => {
   globalThis.__floatRegistryTestAdditions = Array.from(
     { length: 7 },
     (_, i) => ({

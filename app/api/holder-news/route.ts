@@ -1,3 +1,5 @@
+import { verifiedRegistry } from '@/lib/registry-server';
+import { readBoundedText } from '@/lib/request-body';
 import { communityMember } from '@/lib/community-server';
 import { db, rateLimit } from '@/lib/server';
 import {
@@ -16,6 +18,8 @@ const headers = { 'Cache-Control': 'private, no-store', Vary: 'Cookie' };
 async function handle(req: Request) {
   try {
     const member = await communityMember(req);
+    const { tokens } = await verifiedRegistry();
+    const keysFor = (symbol: string) => headlineKeys(symbol, tokens);
     const database = db(),
       now = Date.now();
     const held = await database
@@ -29,7 +33,7 @@ async function handle(req: Request) {
       if (req.headers.get('origin') !== new URL(req.url).origin)
         throw new AppError('A same-origin request is required.', 403);
       await rateLimit('news-refresh:' + member!.id, 12);
-      const body = await req.text();
+      const body = await readBoundedText(req, 200);
       if (body.length > 200) throw new AppError('Request too large.', 413);
       try {
         symbol = JSON.parse(body).symbol || 'all';
@@ -47,7 +51,7 @@ async function handle(req: Request) {
         { items: [], hasMore: false, lastReviewed: null },
         { headers },
       );
-    const keys = [...new Set(symbols.flatMap(headlineKeys))];
+    const keys = [...new Set(symbols.flatMap(keysFor))];
     const cached = await database
       .prepare(
         `SELECT key,payload,fetched_at,retry_after FROM market_cache WHERE key IN (SELECT value FROM json_each(?))`,
@@ -64,25 +68,25 @@ async function handle(req: Request) {
       const due = symbols
         .filter((s) =>
           headlinesDue(
-            headlineKeys(s).map((k) => byKey.get(k)),
+            keysFor(s).map((k) => byKey.get(k)),
             now,
           ),
         )
         .sort(
           (a, b) =>
-            (byKey.get(headlineKeys(a)[0])?.fetched_at || 0) -
-            (byKey.get(headlineKeys(b)[0])?.fetched_at || 0),
+            (byKey.get(keysFor(a)[0])?.fetched_at || 0) -
+            (byKey.get(keysFor(b)[0])?.fetched_at || 0),
         )
         .filter(
           (s, i, all) =>
-            all.findIndex(
-              (other) => headlineKeys(other)[0] === headlineKeys(s)[0],
-            ) === i,
+            all.findIndex((other) => keysFor(other)[0] === keysFor(s)[0]) === i,
         )
         .slice(0, 3);
       for (let i = 0; i < due.length; i += 3)
         await Promise.all(
-          due.slice(i, i + 3).map((s) => refreshHeadlineSources(database, s)),
+          due
+            .slice(i, i + 3)
+            .map((s) => refreshHeadlineSources(database, s, fetch, tokens)),
         );
       // Never delete recent cached headlines because an upstream request failed.
       await database
@@ -101,7 +105,7 @@ async function handle(req: Request) {
       unavailable = 0,
       pending = 0;
     for (const s of symbols) {
-      const rows = headlineKeys(s).map((k) => byKey.get(k));
+      const rows = keysFor(s).map((k) => byKey.get(k));
       const status = headlineStatus(rows, now);
       unavailable += Number(status.unavailable);
       pending += Number(status.pending);

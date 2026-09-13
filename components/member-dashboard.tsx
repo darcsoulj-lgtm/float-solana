@@ -1,4 +1,7 @@
 'use client';
+import { RoomDirectory } from './room-directory';
+import { useCommunityFeed } from '@/hooks/use-community-feed';
+import { registryTokens } from '@/lib/token-registry';
 import { FloatLogo } from './float-logo';
 import { HoldingsUpdateInfo } from './holdings-update-info';
 import { HolderTierBadge } from './holder-tier-badge';
@@ -27,7 +30,6 @@ import {
   ShieldCheck,
   LockKeyhole,
   LogOut,
-  Search,
   RefreshCw,
   MessageSquare,
   ArrowRight,
@@ -68,8 +70,6 @@ import { communityPostErrors, POST_LIMITS } from '@/lib/community-post';
 import {
   type CommunityStatus,
   type MemberHome,
-  type CommunityThread,
-  type ThreadPage,
   type CommunitySource,
 } from '@/lib/community-types';
 type View = MemberView;
@@ -152,48 +152,45 @@ export function MemberDashboard({
     return () => cancelAnimationFrame(frame);
   }, [viewKey]);
   const [data, setData] = useState<MemberHome | null>(null);
-  const [threads, setThreads] = useState<CommunityThread[]>([]);
-  const [cursor, setCursor] = useState<string | null>(null);
+  const tokens = registryTokens(data?.registry);
   const [error, setError] = useState('');
   const [homeError, setHomeError] = useState('');
-  const [feedError, setFeedError] = useState('');
   const [communityRevision, setCommunityRevision] = useState(0);
-  const feedCache = useRef(new Map<string, ThreadPage>());
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
   const [holdingsChecking, setHoldingsChecking] = useState(false);
   const [holdingsError, setHoldingsError] = useState('');
   const holdingsRequest = useRef<Promise<void> | null>(null);
   const lastHoldingsAttempt = useRef(0);
-  const syncHoldings = useCallback((force = false): Promise<void> => {
-    if (holdingsRequest.current) return holdingsRequest.current;
-    if (!force && Date.now() - lastHoldingsAttempt.current < 60000)
-      return Promise.resolve();
-    const first = lastHoldingsAttempt.current === 0;
-    lastHoldingsAttempt.current = Date.now();
-    setHoldingsChecking(true);
-    const request = api<{ checked: boolean }>('community/holdings-refresh', {
-      force: force || first,
-    })
-      .then((result) => {
-        if (result.checked) setHoldingsError('');
+  const syncHoldings = useCallback(
+    (force = false): Promise<void> => {
+      if (holdingsRequest.current) return holdingsRequest.current;
+      if (!force && Date.now() - lastHoldingsAttempt.current < 60000)
+        return Promise.resolve();
+      const first = lastHoldingsAttempt.current === 0;
+      lastHoldingsAttempt.current = Date.now();
+      setHoldingsChecking(true);
+      const request = api<{ checked: boolean }>('community/holdings-refresh', {
+        force: force || first,
       })
-      .catch((e) => {
-        setHoldingsError(
-          e.message + ' The last successful holdings check is shown below.',
-        );
-      })
-      .finally(() => {
-        holdingsRequest.current = null;
-        setHoldingsChecking(false);
-      });
-    holdingsRequest.current = request;
-    return request;
-  }, []);
-  const [loadedQuery, setLoadedQuery] = useState('');
-  const requestSequence = useRef(0);
+        .then((result) => {
+          if (result.checked) setHoldingsError('');
+        })
+        .catch((e) => {
+          setHoldingsError(
+            e.message + ' The last successful holdings check is shown below.',
+          );
+        })
+        .finally(() => {
+          holdingsRequest.current = null;
+          setHoldingsChecking(false);
+        });
+      holdingsRequest.current = request;
+      return request;
+    },
+    [setHoldingsError, setHoldingsChecking],
+  );
   const [signOut, setSignOut] = useState(false);
-  const [search, setSearch] = useState('');
   const [createRoom, setCreateRoom] = useState(false);
   const [compose, setCompose] = useState(false);
   const [draftTitle, setDraftTitle] = useState('');
@@ -205,11 +202,14 @@ export function MemberDashboard({
   const posting = useRef(false);
   const draftId = useId();
   const draftErrors = draftAttempted
-    ? communityPostErrors({
-        title: draftTitle,
-        body: draftBody,
-        topic: draftTopic,
-      })
+    ? communityPostErrors(
+        {
+          title: draftTitle,
+          body: draftBody,
+          topic: draftTopic,
+        },
+        tokens,
+      )
     : {};
   const [notifications, setNotifications] = useState(false);
   const [alias, setAlias] = useState(member.alias);
@@ -218,16 +218,25 @@ export function MemberDashboard({
   const [showValueBadge, setShowValueBadge] = useState(
     !!member.show_value_badge,
   );
-  const [holderTier, setHolderTier] = useState<HolderTierResult>({
+  const [tierResult, setHolderTier] = useState<
+    HolderTierResult & { holdingsKey?: string }
+  >({
     tier: null,
     expiresAt: 0,
   });
   const [badgeSymbol, setBadgeSymbol] = useState(member.qualifying_symbol);
   const [notifyReplies, setNotifyReplies] = useState(!!member.notify_replies);
   const query = `community/threads?topic=${encodeURIComponent(topic)}&feed=${feed}&thread=${encodeURIComponent(threadId)}`;
-  const loading = loadedQuery !== query;
+  const {
+    threads,
+    cursor,
+    error: feedError,
+    loading,
+    hasPage,
+    refresh: refreshFeed,
+    loadMore,
+  } = useCommunityFeed(query, view === 'home' || view === 'topics');
   const refresh = useCallback(async () => {
-    const sequence = ++requestSequence.current;
     await Promise.all([
       syncHoldings(true)
         .then(() => api<MemberHome>('community/home'))
@@ -235,18 +244,11 @@ export function MemberDashboard({
           setData(home);
           setHomeError('');
         }),
-      api<ThreadPage>(query).then((page) => {
-        if (sequence !== requestSequence.current) return;
-        feedCache.current.set(query, page);
-        setLoadedQuery(query);
-        setThreads(page.threads);
-        setCursor(page.nextCursor);
-        setFeedError('');
-      }),
+      refreshFeed(),
     ]);
     setCommunityRevision((n) => n + 1);
     setError('');
-  }, [query, syncHoldings]);
+  }, [syncHoldings, refreshFeed, setHomeError, setCommunityRevision, setError]);
   useEffect(() => {
     let active = true;
     void readThenRefresh({
@@ -265,36 +267,6 @@ export function MemberDashboard({
       active = false;
     };
   }, [syncHoldings]);
-  useEffect(() => {
-    if (view !== 'home' && view !== 'topics') return;
-    let active = true;
-    const sequence = ++requestSequence.current;
-    const cached = feedCache.current.get(query);
-    if (cached) {
-      setThreads(cached.threads);
-      setCursor(cached.nextCursor);
-      setLoadedQuery(query);
-    }
-    setFeedError('');
-    void api<ThreadPage>(query)
-      .then((page) => {
-        if (active && sequence === requestSequence.current) {
-          feedCache.current.set(query, page);
-          setThreads(page.threads);
-          setCursor(page.nextCursor);
-          setLoadedQuery(query);
-        }
-      })
-      .catch((e) => {
-        if (active && sequence === requestSequence.current) {
-          setFeedError(e.message);
-          setLoadedQuery(query);
-        }
-      });
-    return () => {
-      active = false;
-    };
-  }, [query, view]);
   const refreshWalletHoldings = useCallback(
     async (force = false) => {
       await syncHoldings(force);
@@ -345,13 +317,19 @@ export function MemberDashboard({
     url.hash = '';
     window.history.pushState(null, '', url.pathname + url.search);
   }
+  const holdingsKey = (data?.holdings ?? [])
+    .map((h) => `${h.symbol}:${h.raw_amount}:${h.verified_at}`)
+    .join('|');
+  const holderTier =
+    tierResult.holdingsKey === holdingsKey
+      ? tierResult
+      : { tier: null, expiresAt: 0 };
   useEffect(() => {
     let active = true;
-    setHolderTier({ tier: null, expiresAt: 0 });
-    if (data?.holdings.length) {
+    if (holdingsKey) {
       void api<HolderTierResult>('community/holder-tier', {})
         .then((result) => {
-          if (active) setHolderTier(result);
+          if (active) setHolderTier({ ...result, holdingsKey });
         })
         .catch(() => {
           /* A price outage must not block community access. */
@@ -360,7 +338,7 @@ export function MemberDashboard({
     return () => {
       active = false;
     };
-  }, [data?.holdings]);
+  }, [holdingsKey]);
   useEffect(() => {
     if (!holderTier.expiresAt) return;
     const timer = setTimeout(
@@ -381,7 +359,9 @@ export function MemberDashboard({
   ) {
     setDraftTitle(title);
     setDraftTopic(
-      selectedTopic === 'general' || rooms.some((r) => r.id === selectedTopic)
+      selectedTopic === 'general' ||
+        tokens.some((t) => t.symbol === selectedTopic) ||
+        rooms.some((r) => r.id === selectedTopic)
         ? selectedTopic
         : 'general',
     );
@@ -526,9 +506,9 @@ export function MemberDashboard({
               </div>
             )}
             {(view === 'home' || view === 'topics') && (
-              <div
+              <fieldset
                 className="feed-tabs discussion-views"
-                role="group"
+
                 aria-label="Discussions view"
               >
                 <button
@@ -543,7 +523,7 @@ export function MemberDashboard({
                 >
                   Rooms
                 </button>
-              </div>
+              </fieldset>
             )}
             {homeError && (
               <p className="inline-status" role="alert">
@@ -563,17 +543,15 @@ export function MemberDashboard({
               </div>
             )}
             {data && !data.holdingsRefreshAvailable && (
-              <div className="member-notice" role="status">
+              <output className="member-notice">
                 Your holdings are from an earlier verification.{' '}
                 <Button variant="ghost" onClick={renew}>
                   Verify wallet to update holdings
                 </Button>
-              </div>
+              </output>
             )}
             {holdingsError && view === 'markets' && (
-              <p className="member-error" role="status">
-                {holdingsError}
-              </p>
+              <output className="member-error">{holdingsError}</output>
             )}
             {notice && <output className="member-notice">{notice}</output>}
             {visited.has('overview') && (
@@ -582,9 +560,7 @@ export function MemberDashboard({
                   {data ? (
                     <Suspense
                       fallback={
-                        <p className="inline-status" role="status">
-                          Loading Home…
-                        </p>
+                        <output className="inline-status">Loading Home…</output>
                       }
                     >
                       <MemberHomePanel
@@ -618,9 +594,9 @@ export function MemberDashboard({
                       />
                     </Suspense>
                   ) : (
-                    <p className="inline-status" role="status">
+                    <output className="inline-status">
                       Loading your holdings…
-                    </p>
+                    </output>
                   )}
                 </MemberSectionBoundary>
               </Activity>
@@ -630,9 +606,9 @@ export function MemberDashboard({
                 <MemberSectionBoundary section="Markets">
                   <Suspense
                     fallback={
-                      <p className="inline-status" role="status">
+                      <output className="inline-status">
                         Loading markets…
-                      </p>
+                      </output>
                     }
                   >
                     <MemberMarkets
@@ -653,84 +629,27 @@ export function MemberDashboard({
                 >
                   <Plus size={17} /> Create a room
                 </Button>
-                <label className="member-search">
-                  <Search size={18} />
-                  <input
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Find a room"
-                    aria-label="Find a room"
-                  />
-                </label>
-                <div className="topic-directory room-directory">
-                  {rooms
-                    .filter((r) =>
-                      (r.name + ' ' + r.description)
-                        .toLowerCase()
-                        .includes(search.toLowerCase()),
-                    )
-                    .map((r) => (
-                      <article key={r.id}>
-                        <span className="ticker-tile">
-                          <MessageSquare size={22} />
-                        </span>
-                        <div>
-                          <button
-                            className="topic-title"
-                            onClick={() => openTopic(r.id)}
-                          >
-                            {r.name} <ArrowUpRight size={14} />
-                          </button>
-                          <p>{r.description}</p>
-                          <span>
-                            {r.thread_count}{' '}
-                            {r.thread_count === 1
-                              ? 'discussion'
-                              : 'discussions'}
-                          </span>
-                        </div>
-                        <Button
-                          variant={
-                            data?.follows.includes(r.id)
-                              ? 'secondary'
-                              : 'outline'
-                          }
-                          disabled={busy}
-                          onClick={() =>
-                            run(async () => {
-                              await api('community/follow', {
-                                symbol: r.id,
-                                follow: !data?.follows.includes(r.id),
-                              });
-                              await refresh();
-                            })
-                          }
-                        >
-                          {data?.follows.includes(r.id)
-                            ? 'Following'
-                            : 'Follow'}
-                        </Button>
-                      </article>
-                    ))}
-                </div>
-                {!data && <p className="member-empty">Loading rooms…</p>}
-                {data &&
-                  !rooms.some((r) =>
-                    (r.name + ' ' + r.description)
-                      .toLowerCase()
-                      .includes(search.toLowerCase()),
-                  ) && (
-                    <div className="member-empty">
-                      <h2>{search ? 'No matching rooms.' : 'No rooms yet.'}</h2>
-                      <p>Choose a name and give people a reason to join.</p>
-                      <Button
-                        variant="outline"
-                        onClick={() => setCreateRoom(true)}
-                      >
-                        Create a room
-                      </Button>
-                    </div>
-                  )}
+                <RoomDirectory
+                  follows={data?.follows ?? []}
+                  onCreate={() => setCreateRoom(true)}
+                  onOpen={(room) => {
+                    setData((previous) =>
+                      previous && !previous.rooms.some((r) => r.id === room.id)
+                        ? { ...previous, rooms: [...previous.rooms, room] }
+                        : previous,
+                    );
+                    openTopic(room.id);
+                  }}
+                  onFollow={(room) =>
+                    run(async () => {
+                      await api('community/follow', {
+                        symbol: room.id,
+                        follow: !data?.follows.includes(room.id),
+                      });
+                      await refresh();
+                    })
+                  }
+                />
               </>
             ) : view === 'profile' ? (
               <form
@@ -1002,7 +921,7 @@ export function MemberDashboard({
                     <button onClick={() => run(refresh)}>Retry</button>
                   </p>
                 )}
-                {feedError && !feedCache.current.has(query) ? null : loading ? (
+                {feedError && !hasPage ? null : loading ? (
                   <output className="member-loading">Opening your feed…</output>
                 ) : threads.length ? (
                   threads.map((t) => (
@@ -1064,11 +983,7 @@ export function MemberDashboard({
                     disabled={busy}
                     onClick={() =>
                       run(async () => {
-                        const page = await api<ThreadPage>(
-                          query + '&cursor=' + encodeURIComponent(cursor),
-                        );
-                        setThreads((t) => [...t, ...page.threads]);
-                        setCursor(page.nextCursor);
+                        await loadMore();
                       })
                     }
                   >
@@ -1141,9 +1056,7 @@ export function MemberDashboard({
                 <LockKeyhole size={14} aria-label="Private holdings" />
               </div>
               {holdingsError && (
-                <p role="status" className="context-caption">
-                  {holdingsError}
-                </p>
+                <output className="context-caption">{holdingsError}</output>
               )}
               {data && !data.holdingsRefreshAvailable && (
                 <p className="context-caption">
@@ -1286,7 +1199,7 @@ export function MemberDashboard({
                 body: draftBody,
                 topic: draftTopic,
               };
-              const errors = communityPostErrors(payload);
+              const errors = communityPostErrors(payload, tokens);
               const invalidField = errors.topic
                 ? 'topic'
                 : errors.title
@@ -1334,8 +1247,16 @@ export function MemberDashboard({
                 onChange={setDraftTopic}
                 items={[
                   { value: 'general', label: 'General' },
+                  ...tokens.map((t) => ({
+                    value: t.symbol,
+                    label: t.shortName + ' · ' + t.symbol,
+                  })),
                   ...rooms
-                    .filter((r) => r.id !== 'general')
+                    .filter(
+                      (r) =>
+                        r.id !== 'general' &&
+                        !tokens.some((t) => t.symbol === r.id),
+                    )
                     .map((r) => ({ value: r.id, label: r.name })),
                 ]}
               />

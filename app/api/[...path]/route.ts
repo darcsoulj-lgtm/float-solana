@@ -1,3 +1,4 @@
+import { readBoundedText } from '@/lib/request-body';
 import {
   actor,
   auditStatement,
@@ -43,7 +44,7 @@ async function handler(req: Request) {
         throw new AppError('A same-origin request is required.', 403);
       if (!req.headers.get('content-type')?.includes('application/json'))
         throw new AppError('Use a JSON request.', 415);
-      const raw = await req.text();
+      const raw = await readBoundedText(req, 24000);
       if (raw.length > 24000) throw new AppError('Request is too large.', 413);
       try {
         b = JSON.parse(raw);

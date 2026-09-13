@@ -1,3 +1,4 @@
+import { compileFunction } from 'node:vm';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
@@ -34,6 +35,14 @@ async function fixture() {
   let signedIn = true;
   const calls = [];
   const dependencies = {
+    '@/lib/community-rooms': {},
+    '@/lib/request-body': { readBoundedText: async (req) => req.text() },
+    '@/lib/registry-server': {
+      verifiedRegistry: async () => ({
+        registry: { additions: [] },
+        tokens: [],
+      }),
+    },
     '@/lib/community-home': {},
     '@/lib/holder-tier-server': {
       updateHolderTier: async (db, id) => {
@@ -79,17 +88,17 @@ async function fixture() {
       module: ts.ModuleKind.CommonJS,
     },
   }).outputText;
-  const module = { exports: {} };
-  new Function('require', 'module', 'exports', output)(
+  const compiledModule = { exports: {} };
+  compileFunction(output, ['require', 'module', 'exports'])(
     (id) => {
       if (!(id in dependencies)) throw Error(id);
       return dependencies[id];
     },
-    module,
-    module.exports,
+    compiledModule,
+    compiledModule.exports,
   );
   const post = (path, body, origin = 'https://test.local') =>
-    module.exports.POST(
+    compiledModule.exports.POST(
       new Request('https://test.local/api/community/' + path, {
         method: 'POST',
         headers: { Origin: origin, 'Content-Type': 'application/json' },
@@ -105,7 +114,7 @@ async function fixture() {
     },
   };
 }
-test('tier endpoint ignores client-supplied identity, total and tier', async () => {
+void test('tier endpoint ignores client-supplied identity, total and tier', async () => {
   const f = await fixture();
   const r = await f.post('holder-tier', {
     memberId: 'other-holder',
@@ -117,7 +126,7 @@ test('tier endpoint ignores client-supplied identity, total and tier', async () 
   assert.deepEqual(f.calls, ['verified-wallet-owner']);
   f.sqlite.close();
 });
-test('tier endpoint rejects unsigned and cross-origin requests', async () => {
+void test('tier endpoint rejects unsigned and cross-origin requests', async () => {
   const f = await fixture();
   assert.equal(
     (await f.post('holder-tier', {}, 'https://elsewhere.example')).status,
@@ -128,7 +137,7 @@ test('tier endpoint rejects unsigned and cross-origin requests', async () => {
   assert.equal(f.calls.length, 0);
   f.sqlite.close();
 });
-test('value badge preference persists, can be revoked, and rejects non-booleans', async () => {
+void test('value badge preference persists, can be revoked, and rejects non-booleans', async () => {
   const f = await fixture();
   const profile = { alias: 'Alice', bio: 'Hello', showBadge: false };
   assert.equal(

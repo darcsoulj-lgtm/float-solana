@@ -49,7 +49,7 @@ const data = {
   catalog: wrap([]),
 };
 
-test('Captured issuer circulation reconciles Solana separately from pre-mints and other chains', () => {
+void test('Captured issuer circulation reconciles Solana separately from pre-mints and other chains', () => {
   const c = api.circulatingCoverage(data, now, 'xstocks');
   assert.ok(c.valued.length > 800);
   assert.ok(Math.abs(c.total - 518557759.6) < 1);
@@ -62,7 +62,7 @@ test('Captured issuer circulation reconciles Solana separately from pre-mints an
   assert.ok(parsed.XIAOx.referencePriceUsd < 4);
   assert.equal(parsed.XIAOx.fxDate, '2026-09-11');
 });
-test('Gross mint values and global CMC metrics cannot leak into circulating totals', () => {
+void test('Gross mint values and global CMC metrics cannot leak into circulating totals', () => {
   const mixed = structuredClone(data);
   mixed.supplies.data.MU = { supply: 1e12, valuationSafe: true };
   mixed.prices.data.MU = { price: 1000, confidence: 1, timestamp: now };
@@ -74,7 +74,7 @@ test('Gross mint values and global CMC metrics cannot leak into circulating tota
   );
   assert.equal(api.circulatingCoverage(mixed, now, 'backpack').total, null);
 });
-test('Incomplete pages, duplicate symbols and GraphQL errors fail closed', () => {
+void test('Incomplete pages, duplicate symbols and GraphQL errors fail closed', () => {
   assert.throws(() => api.parseCirculationPages(pages.slice(1), fx));
   const duplicate = structuredClone(pages);
   duplicate[1].data.tokens.nodes[0] = duplicate[0].data.tokens.nodes[0];
@@ -83,7 +83,7 @@ test('Incomplete pages, duplicate symbols and GraphQL errors fail closed', () =>
   errors[0].errors = [{ message: 'source unavailable' }];
   assert.throws(() => api.parseCirculationPages(errors, fx));
 });
-test('Mismatched mint, negative supply and unknown currency cannot manufacture a value', () => {
+void test('Mismatched mint, negative supply and unknown currency cannot manufacture a value', () => {
   for (const mutate of [
     (n) =>
       (n.deployments.find((d) => d.network === 'Solana').address = 'svm:wrong'),
@@ -107,7 +107,7 @@ test('Mismatched mint, negative supply and unknown currency cannot manufacture a
   assert.equal(api.parseCirculationPages(pages, null).XIAOx.valueUsd, null);
   assert.ok(api.parseCirculationPages(pages, null).AAOIx.valueUsd > 0);
 });
-test('Expired FX and expired circulation remain unavailable, without renewed timestamps', () => {
+void test('Expired FX and expired circulation remain unavailable, without renewed timestamps', () => {
   assert.throws(() => api.parseReferenceFx(xml, now + 96 * 3600000));
   assert.throws(() => api.parseReferenceFx(xml, Date.parse('2026-09-10')));
   assert.equal(api.circulatingCoverage(data, now + 900000).total, null);
@@ -124,7 +124,7 @@ test('Expired FX and expired circulation remain unavailable, without renewed tim
     api.circulatingCoverage(data, now).total,
   );
 });
-test('Transport fetches bounded complete pages without credentials and honors failures', async () => {
+void test('Transport fetches bounded complete pages without credentials and honors failures', async () => {
   let active = 0,
     max = 0,
     calls = 0;
@@ -156,7 +156,7 @@ test('Transport fetches bounded complete pages without credentials and honors fa
   );
 });
 
-test('Other issuer estimates remain available with minted labels and never enter circulation totals', () => {
+void test('Other issuer estimates remain available with minted labels and never enter circulation totals', () => {
   const mixed = structuredClone(data);
   const examples = ['backpack', 'ondo', 'prestocks', 'tessera'].map(
     (issuer) => [issuer, api.TOKENS.find((t) => t.issuer === issuer).symbol],
@@ -204,7 +204,7 @@ test('Other issuer estimates remain available with minted labels and never enter
   assert.equal(api.issuerValuation(mixed, now, 'backpack').total, null);
 });
 
-test('Captured Solana observations restore all four non-xStocks issuer estimates', () => {
+void test('Captured Solana observations restore all four non-xStocks issuer estimates', () => {
   const capture = JSON.parse(
     fs.readFileSync(
       root + 'research/market-integrity/audit-2026-09-12.json',
@@ -243,7 +243,7 @@ test('Captured Solana observations restore all four non-xStocks issuer estimates
   assert.equal(api.issuerValuation(historical, at, 'xstocks').total, null);
 });
 
-test('Tracked estimate reconciles all five issuer cards without changing circulating totals', () => {
+void test('Tracked estimate reconciles all five issuer cards without changing circulating totals', () => {
   const mixed = structuredClone(data);
   for (const issuer of ['backpack', 'ondo', 'prestocks', 'tessera']) {
     const symbol = api.TOKENS.find((t) => t.issuer === issuer).symbol;

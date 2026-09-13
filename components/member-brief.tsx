@@ -16,7 +16,6 @@ import { SearchPicker } from './search-picker';
 import { UpcomingAgenda } from './upcoming-agenda';
 import { api } from '@/lib/client';
 import { readThenRefresh } from '@/lib/client-loading';
-import { TOKENS } from '@/lib/tokens';
 import {
   eventLabel,
   type BriefData,
@@ -155,6 +154,7 @@ export function MemberBrief({
     };
   }, []);
   const currentKey = useRef('');
+  const publishedKey = useRef('');
   useEffect(() => {
     if (!data?.pending) return;
     const timer = setTimeout(() => setRetry((v) => v + 1), 10000);
@@ -185,6 +185,7 @@ export function MemberBrief({
       publish: (feed) => {
         if (active) {
           setError('');
+          publishedKey.current = displayKey;
           setLoadedKey(displayKey);
           setData(feed);
         }
@@ -203,7 +204,7 @@ export function MemberBrief({
     }).catch((e) => {
       if (active) {
         setError(e.message);
-        if (loadedKey !== displayKey) setData(null);
+        if (publishedKey.current !== displayKey) setData(null);
         setLoadedKey(displayKey);
       }
     });
@@ -244,19 +245,14 @@ export function MemberBrief({
               onChange={onSymbolChange}
               items={[
                 { value: 'all', label: 'All holdings' },
-                ...TOKENS.filter((t) => holdings.includes(t.symbol)).map(
-                  (t) => ({
-                    value: t.symbol,
-                    label: t.symbol + ' · ' + t.shortName,
-                  }),
-                ),
+                ...holdings.map((symbol) => ({ value: symbol, label: symbol })),
               ]}
             />
           </div>
         )}
         {kind === 'news' && (
           <div className="news-update-status">
-            {updatesDelayed && <span role="status">Updates delayed</span>}
+            {updatesDelayed && <output>Updates delayed</output>}
             <MetricInfo label="News sources and updates">
               Headlines via Google News and Yahoo Finance. Last 7 days; checks
               every 15 minutes while open.

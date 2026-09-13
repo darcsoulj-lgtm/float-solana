@@ -202,13 +202,14 @@ export function parsePools(
 export function parsePrices(
   raw: unknown,
   now = Date.now(),
+  tokens: readonly StockToken[] = TOKENS,
 ): Record<string, TokenPrice> {
   const root = record(raw);
   if (!root.coins || typeof root.coins !== 'object')
     throw new Error('Invalid price response');
   const coins = record(root.coins),
     out: Record<string, TokenPrice> = {};
-  for (const token of TOKENS) {
+  for (const token of tokens) {
     const p = record(coins['solana:' + token.mint]),
       price = positive(p.price),
       seconds = positive(p.timestamp);
@@ -352,6 +353,8 @@ export async function fetchPrices(
         tokens.map((t) => 'solana:' + t.mint).join(','),
       fetcher,
     ),
+    Date.now(),
+    tokens,
   );
 }
 
@@ -384,6 +387,7 @@ export async function fetchHistoricalPrices(
       fetcher,
     ),
     now,
+    tokens,
   );
   return Object.fromEntries(
     Object.entries(parsed).filter(
@@ -393,7 +397,10 @@ export async function fetchHistoricalPrices(
 }
 
 // Token-level DEX volume from a single provider; never sum it with pool or CEX figures.
-export function parseTokenVolumes(raw: unknown): Record<string, TokenVolume> {
+export function parseTokenVolumes(
+  raw: unknown,
+  tokens: readonly StockToken[] = TOKENS,
+): Record<string, TokenVolume> {
   const data = record(raw).data;
   if (!Array.isArray(data)) throw new Error('Invalid token-volume response');
   const out: Record<string, TokenVolume> = {};
@@ -401,7 +408,7 @@ export function parseTokenVolumes(raw: unknown): Record<string, TokenVolume> {
   for (const item of data) {
     const row = record(item),
       attr = record(row.attributes);
-    const token = TOKENS.find((t) => t.mint === attr.address);
+    const token = tokens.find((t) => t.mint === attr.address);
     if (!token || row.type !== 'token' || row.id !== 'solana_' + token.mint)
       continue;
     if (seen.has(token.symbol))
@@ -454,7 +461,7 @@ export async function fetchTokenVolumes(
         fetcher,
       );
     }
-    Object.assign(result, parseTokenVolumes(data));
+    Object.assign(result, parseTokenVolumes(data, tokens));
   }
   if (!Object.keys(result).length)
     throw new Error('No verified token volumes returned');

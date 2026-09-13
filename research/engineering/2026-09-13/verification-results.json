@@ -1,0 +1,578 @@
+{
+  "date": "2026-09-13",
+  "commit": "4d0a19e4db579f8ff304fbb3915fcd48ba247d98",
+  "mode": "read-only audit; no production load or exploit requests",
+  "typecheck": {
+    "command": "tsc --noEmit",
+    "exitCode": 0
+  },
+  "tests": {
+    "command": "node --test tests/*.test.mjs",
+    "exitCode": 0,
+    "summary": [
+      "\u2139 tests 241",
+      "\u2139 suites 0",
+      "\u2139 pass 241",
+      "\u2139 fail 0",
+      "\u2139 cancelled 0",
+      "\u2139 skipped 0",
+      "\u2139 todo 0",
+      "\u2139 duration_ms 2306.7015"
+    ]
+  },
+  "lint": {
+    "command": "oxlint --format json",
+    "exitCode": 1,
+    "total": 318,
+    "byRule": {
+      "eslint(no-unused-vars)": 6,
+      "next(no-assign-module-variable)": 8,
+      "react(react-compiler)": 14,
+      "next(no-html-link-for-pages)": 6,
+      "jsx-a11y(prefer-tag-over-role)": 30,
+      "eslint(prefer-const)": 7,
+      "typescript(no-explicit-any)": 6,
+      "jsx-a11y(click-events-have-key-events)": 1,
+      "jsx-a11y(no-noninteractive-element-interactions)": 1,
+      "react-hooks(exhaustive-deps)": 2,
+      "jsx-a11y(control-has-associated-label)": 1,
+      "jsx-a11y(anchor-has-content)": 1,
+      "unicorn(prefer-string-starts-ends-with)": 1,
+      "jsx-a11y(role-has-required-aria-props)": 1,
+      "jsx-a11y(label-has-associated-control)": 1,
+      "typescript(restrict-template-expressions)": 3,
+      "typescript(no-floating-promises)": 215,
+      "typescript(no-implied-eval)": 10,
+      "typescript(unbound-method)": 3,
+      "typescript(require-array-sort-compare)": 1
+    },
+    "byArea": {
+      "scripts": 1,
+      "tests": 253,
+      "components": 58,
+      "lib": 3,
+      "app": 2,
+      "hooks": 1
+    }
+  },
+  "dependencyAudit": {
+    "command": "pnpm audit --json",
+    "exitCode": 1,
+    "metadata": {
+      "vulnerabilities": {
+        "info": 0,
+        "low": 3,
+        "moderate": 9,
+        "high": 11,
+        "critical": 0
+      },
+      "dependencies": 509,
+      "devDependencies": 189,
+      "optionalDependencies": 229,
+      "totalDependencies": 781
+    },
+    "advisories": [
+      {
+        "module_name": "esbuild",
+        "title": "esbuild enables any website to send any requests to the development server and read the response",
+        "severity": "moderate",
+        "url": "https://github.com/advisories/GHSA-67mh-4wv8-2f99",
+        "vulnerable_versions": "<=0.24.2",
+        "patched_versions": ">=0.24.3",
+        "findings": [
+          {
+            "version": "0.18.20",
+            "paths": [
+              ".>drizzle-kit>@esbuild-kit/esm-loader>@esbuild-kit/core-utils>esbuild"
+            ],
+            "dev": true,
+            "optional": false,
+            "bundled": false
+          }
+        ]
+      },
+      {
+        "module_name": "ws",
+        "title": "ws: Uninitialized memory disclosure",
+        "severity": "moderate",
+        "url": "https://github.com/advisories/GHSA-58qx-3vcg-4xpx",
+        "vulnerable_versions": ">=8.0.0 <8.20.1",
+        "patched_versions": ">=8.20.1",
+        "findings": [
+          {
+            "version": "8.18.0",
+            "paths": [
+              ".>@cloudflare/vite-plugin>miniflare>ws",
+              ".>@cloudflare/vite-plugin>wrangler>miniflare>ws",
+              ".>@cloudflare/vite-plugin>ws",
+              ".>wrangler>miniflare>ws"
+            ],
+            "dev": true,
+            "optional": false,
+            "bundled": false
+          }
+        ]
+      },
+      {
+        "module_name": "esbuild",
+        "title": "esbuild allows arbitrary file read when running the development server on Windows",
+        "severity": "low",
+        "url": "https://github.com/advisories/GHSA-g7r4-m6w7-qqqr",
+        "vulnerable_versions": ">=0.27.3 <0.28.1",
+        "patched_versions": ">=0.28.1",
+        "findings": [
+          {
+            "version": "0.27.3",
+            "paths": [
+              ".>@cloudflare/vite-plugin>wrangler>esbuild",
+              ".>wrangler>esbuild"
+            ],
+            "dev": true,
+            "optional": false,
+            "bundled": false
+          }
+        ]
+      },
+      {
+        "module_name": "vite",
+        "title": "launch-editor: NTLMv2 hash disclosure via UNC path handling on Windows",
+        "severity": "moderate",
+        "url": "https://github.com/advisories/GHSA-v6wh-96g9-6wx3",
+        "vulnerable_versions": ">=8.0.0 <=8.0.15",
+        "patched_versions": ">=8.0.16",
+        "findings": [
+          {
+            "version": "8.0.13",
+            "paths": [
+              ".>vinext>@vitejs/plugin-react>vite",
+              ".>vinext>vite",
+              ".>vinext>@vitejs/plugin-rsc>vite",
+              ".>vinext>@vitejs/plugin-rsc>vitefu>vite",
+              ".>@cloudflare/vite-plugin>vite",
+              ".>@openai/sites-vite-plugin>vite",
+              ".>@vitejs/plugin-react>vite",
+              ".>@vitejs/plugin-rsc>vite",
+              ".>@vitejs/plugin-rsc>vitefu>vite",
+              ".>vite"
+            ],
+            "dev": false,
+            "optional": false,
+            "bundled": false
+          }
+        ]
+      },
+      {
+        "module_name": "undici",
+        "title": "undici vulnerable to TLS certificate validation bypass via dropped requestTls in SOCKS5 ProxyAgent",
+        "severity": "high",
+        "url": "https://github.com/advisories/GHSA-vmh5-mc38-953g",
+        "vulnerable_versions": ">=7.23.0 <7.28.0",
+        "patched_versions": ">=7.28.0",
+        "findings": [
+          {
+            "version": "7.24.8",
+            "paths": [
+              ".>@cloudflare/vite-plugin>miniflare>undici",
+              ".>@cloudflare/vite-plugin>wrangler>miniflare>undici",
+              ".>wrangler>miniflare>undici"
+            ],
+            "dev": true,
+            "optional": false,
+            "bundled": false
+          }
+        ]
+      },
+      {
+        "module_name": "undici",
+        "title": "undici vulnerable to HTTP header injection via Set-Cookie percent-decoding",
+        "severity": "moderate",
+        "url": "https://github.com/advisories/GHSA-p88m-4jfj-68fv",
+        "vulnerable_versions": ">=7.0.0 <7.28.0",
+        "patched_versions": ">=7.28.0",
+        "findings": [
+          {
+            "version": "7.24.8",
+            "paths": [
+              ".>@cloudflare/vite-plugin>miniflare>undici",
+              ".>@cloudflare/vite-plugin>wrangler>miniflare>undici",
+              ".>wrangler>miniflare>undici"
+            ],
+            "dev": true,
+            "optional": false,
+            "bundled": false
+          }
+        ]
+      },
+      {
+        "module_name": "undici",
+        "title": "undici WebSocket client vulnerable to denial of service via fragment count bypass",
+        "severity": "high",
+        "url": "https://github.com/advisories/GHSA-vxpw-j846-p89q",
+        "vulnerable_versions": ">=7.0.0 <7.28.0",
+        "patched_versions": ">=7.28.0",
+        "findings": [
+          {
+            "version": "7.24.8",
+            "paths": [
+              ".>@cloudflare/vite-plugin>miniflare>undici",
+              ".>@cloudflare/vite-plugin>wrangler>miniflare>undici",
+              ".>wrangler>miniflare>undici"
+            ],
+            "dev": true,
+            "optional": false,
+            "bundled": false
+          }
+        ]
+      },
+      {
+        "module_name": "undici",
+        "title": "undici vulnerable to cross-origin request routing via SOCKS5 proxy pool reuse",
+        "severity": "high",
+        "url": "https://github.com/advisories/GHSA-hm92-r4w5-c3mj",
+        "vulnerable_versions": ">=7.23.0 <7.28.0",
+        "patched_versions": ">=7.28.0",
+        "findings": [
+          {
+            "version": "7.24.8",
+            "paths": [
+              ".>@cloudflare/vite-plugin>miniflare>undici",
+              ".>@cloudflare/vite-plugin>wrangler>miniflare>undici",
+              ".>wrangler>miniflare>undici"
+            ],
+            "dev": true,
+            "optional": false,
+            "bundled": false
+          }
+        ]
+      },
+      {
+        "module_name": "undici",
+        "title": "undici vulnerable to Set-Cookie SameSite attribute downgrade via permissive substring matching",
+        "severity": "low",
+        "url": "https://github.com/advisories/GHSA-g8m3-5g58-fq7m",
+        "vulnerable_versions": ">=7.0.0 <7.28.0",
+        "patched_versions": ">=7.28.0",
+        "findings": [
+          {
+            "version": "7.24.8",
+            "paths": [
+              ".>@cloudflare/vite-plugin>miniflare>undici",
+              ".>@cloudflare/vite-plugin>wrangler>miniflare>undici",
+              ".>wrangler>miniflare>undici"
+            ],
+            "dev": true,
+            "optional": false,
+            "bundled": false
+          }
+        ]
+      },
+      {
+        "module_name": "undici",
+        "title": "undici vulnerable to cross-user information disclosure via shared cache whitespace bypass",
+        "severity": "moderate",
+        "url": "https://github.com/advisories/GHSA-pr7r-676h-xcf6",
+        "vulnerable_versions": ">=7.0.0 <7.28.0",
+        "patched_versions": ">=7.28.0",
+        "findings": [
+          {
+            "version": "7.24.8",
+            "paths": [
+              ".>@cloudflare/vite-plugin>miniflare>undici",
+              ".>@cloudflare/vite-plugin>wrangler>miniflare>undici",
+              ".>wrangler>miniflare>undici"
+            ],
+            "dev": true,
+            "optional": false,
+            "bundled": false
+          }
+        ]
+      },
+      {
+        "module_name": "ws",
+        "title": "ws: Memory exhaustion DoS from tiny fragments and data chunks",
+        "severity": "high",
+        "url": "https://github.com/advisories/GHSA-96hv-2xvq-fx4p",
+        "vulnerable_versions": ">=8.0.0 <8.21.0",
+        "patched_versions": ">=8.21.0",
+        "findings": [
+          {
+            "version": "8.18.0",
+            "paths": [
+              ".>@cloudflare/vite-plugin>miniflare>ws",
+              ".>@cloudflare/vite-plugin>wrangler>miniflare>ws",
+              ".>@cloudflare/vite-plugin>ws",
+              ".>wrangler>miniflare>ws"
+            ],
+            "dev": true,
+            "optional": false,
+            "bundled": false
+          }
+        ]
+      },
+      {
+        "module_name": "vite",
+        "title": "vite: `server.fs.deny` bypass on Windows alternate paths",
+        "severity": "high",
+        "url": "https://github.com/advisories/GHSA-fx2h-pf6j-xcff",
+        "vulnerable_versions": ">=8.0.0 <=8.0.15",
+        "patched_versions": ">=8.0.16",
+        "findings": [
+          {
+            "version": "8.0.13",
+            "paths": [
+              ".>vinext>@vitejs/plugin-react>vite",
+              ".>vinext>vite",
+              ".>vinext>@vitejs/plugin-rsc>vite",
+              ".>vinext>@vitejs/plugin-rsc>vitefu>vite",
+              ".>@cloudflare/vite-plugin>vite",
+              ".>@openai/sites-vite-plugin>vite",
+              ".>@vitejs/plugin-react>vite",
+              ".>@vitejs/plugin-rsc>vite",
+              ".>@vitejs/plugin-rsc>vitefu>vite",
+              ".>vite"
+            ],
+            "dev": false,
+            "optional": false,
+            "bundled": false
+          }
+        ]
+      },
+      {
+        "module_name": "sharp",
+        "title": "sharp inherited vulnerabilities in libvips: CVE-2026-33327, CVE-2026-33328, CVE-2026-35590, CVE-2026-35591",
+        "severity": "high",
+        "url": "https://github.com/advisories/GHSA-f88m-g3jw-g9cj",
+        "vulnerable_versions": "<0.35.0",
+        "patched_versions": ">=0.35.0",
+        "findings": [
+          {
+            "version": "0.34.5",
+            "paths": [
+              ".>react-server-dom-webpack>webpack>minimizer-webpack-plugin>sharp",
+              ".>vinext>@vitejs/plugin-rsc>react-server-dom-webpack>webpack>minimizer-webpack-plugin>sharp",
+              ".>vinext>react-server-dom-webpack>webpack>minimizer-webpack-plugin>sharp",
+              ".>@cloudflare/vite-plugin>miniflare>sharp",
+              ".>@cloudflare/vite-plugin>wrangler>miniflare>sharp",
+              ".>@vitejs/plugin-rsc>react-server-dom-webpack>webpack>minimizer-webpack-plugin>sharp",
+              ".>wrangler>miniflare>sharp"
+            ],
+            "dev": false,
+            "optional": false,
+            "bundled": false
+          }
+        ]
+      },
+      {
+        "module_name": "react-server-dom-webpack",
+        "title": "react-server-dom: Denial of Service in Server Functions",
+        "severity": "high",
+        "url": "https://github.com/advisories/GHSA-wx67-qw84-cm4g",
+        "vulnerable_versions": ">=19.2.0 <19.2.8",
+        "patched_versions": ">=19.2.8",
+        "findings": [
+          {
+            "version": "19.2.6",
+            "paths": [
+              ".>react-server-dom-webpack",
+              ".>vinext>@vitejs/plugin-rsc>react-server-dom-webpack",
+              ".>vinext>react-server-dom-webpack",
+              ".>@vitejs/plugin-rsc>react-server-dom-webpack"
+            ],
+            "dev": false,
+            "optional": false,
+            "bundled": false
+          }
+        ]
+      },
+      {
+        "module_name": "undici",
+        "title": "undici vulnerable to downstream response desynchronization via retry interceptor",
+        "severity": "moderate",
+        "url": "https://github.com/advisories/GHSA-8xcm-r25x-g524",
+        "vulnerable_versions": ">=7.0.0 <7.29.0",
+        "patched_versions": ">=7.29.0",
+        "findings": [
+          {
+            "version": "7.24.8",
+            "paths": [
+              ".>@cloudflare/vite-plugin>miniflare>undici",
+              ".>@cloudflare/vite-plugin>wrangler>miniflare>undici",
+              ".>wrangler>miniflare>undici"
+            ],
+            "dev": true,
+            "optional": false,
+            "bundled": false
+          }
+        ]
+      },
+      {
+        "module_name": "undici",
+        "title": "undici vulnerable to cross-user information disclosure and parse-time crash via degenerate private cache directives",
+        "severity": "high",
+        "url": "https://github.com/advisories/GHSA-4cwx-7wf7-3272",
+        "vulnerable_versions": ">=7.0.0 <7.29.0",
+        "patched_versions": ">=7.29.0",
+        "findings": [
+          {
+            "version": "7.24.8",
+            "paths": [
+              ".>@cloudflare/vite-plugin>miniflare>undici",
+              ".>@cloudflare/vite-plugin>wrangler>miniflare>undici",
+              ".>wrangler>miniflare>undici"
+            ],
+            "dev": true,
+            "optional": false,
+            "bundled": false
+          }
+        ]
+      },
+      {
+        "module_name": "undici",
+        "title": "undici vulnerable to CRLF Injection via blob-like body 'type' property",
+        "severity": "moderate",
+        "url": "https://github.com/advisories/GHSA-m8rv-5g2x-5cg5",
+        "vulnerable_versions": ">=7.0.0 <7.29.0",
+        "patched_versions": ">=7.29.0",
+        "findings": [
+          {
+            "version": "7.24.8",
+            "paths": [
+              ".>@cloudflare/vite-plugin>miniflare>undici",
+              ".>@cloudflare/vite-plugin>wrangler>miniflare>undici",
+              ".>wrangler>miniflare>undici"
+            ],
+            "dev": true,
+            "optional": false,
+            "bundled": false
+          }
+        ]
+      },
+      {
+        "module_name": "undici",
+        "title": "undici vulnerable to cross-user information disclosure via whitespace around equals in Cache-Control directives",
+        "severity": "moderate",
+        "url": "https://github.com/advisories/GHSA-jr45-8vmc-qm54",
+        "vulnerable_versions": ">=7.0.0 <7.29.0",
+        "patched_versions": ">=7.29.0",
+        "findings": [
+          {
+            "version": "7.24.8",
+            "paths": [
+              ".>@cloudflare/vite-plugin>miniflare>undici",
+              ".>@cloudflare/vite-plugin>wrangler>miniflare>undici",
+              ".>wrangler>miniflare>undici"
+            ],
+            "dev": true,
+            "optional": false,
+            "bundled": false
+          }
+        ]
+      },
+      {
+        "module_name": "undici",
+        "title": "undici vulnerable to cookie attribute injection via unsanitized domain and unparsed setCookie fields",
+        "severity": "moderate",
+        "url": "https://github.com/advisories/GHSA-v3r7-h72x-cjcm",
+        "vulnerable_versions": ">=7.0.0 <7.29.0",
+        "patched_versions": ">=7.29.0",
+        "findings": [
+          {
+            "version": "7.24.8",
+            "paths": [
+              ".>@cloudflare/vite-plugin>miniflare>undici",
+              ".>@cloudflare/vite-plugin>wrangler>miniflare>undici",
+              ".>wrangler>miniflare>undici"
+            ],
+            "dev": true,
+            "optional": false,
+            "bundled": false
+          }
+        ]
+      },
+      {
+        "module_name": "undici",
+        "title": "undici vulnerable to HTTP response queue poisoning via keep-alive socket reuse",
+        "severity": "low",
+        "url": "https://github.com/advisories/GHSA-35p6-xmwp-9g52",
+        "vulnerable_versions": ">=7.0.0 <7.28.0",
+        "patched_versions": ">=7.28.0",
+        "findings": [
+          {
+            "version": "7.24.8",
+            "paths": [
+              ".>@cloudflare/vite-plugin>miniflare>undici",
+              ".>@cloudflare/vite-plugin>wrangler>miniflare>undici",
+              ".>wrangler>miniflare>undici"
+            ],
+            "dev": true,
+            "optional": false,
+            "bundled": false
+          }
+        ]
+      },
+      {
+        "module_name": "image-size",
+        "title": "image-size: ICNS parser allows denial of service through an infinite loop",
+        "severity": "high",
+        "url": "https://github.com/advisories/GHSA-w3rx-r6r6-pgpr",
+        "vulnerable_versions": "<=2.0.2",
+        "patched_versions": ">=2.0.3",
+        "findings": [
+          {
+            "version": "2.0.2",
+            "paths": [
+              ".>vinext>image-size"
+            ],
+            "dev": false,
+            "optional": false,
+            "bundled": false
+          }
+        ]
+      },
+      {
+        "module_name": "image-size",
+        "title": "image-size: JXL and HEIF parsers allow denial of service through infinite loops",
+        "severity": "high",
+        "url": "https://github.com/advisories/GHSA-5p2g-fcmc-qvqq",
+        "vulnerable_versions": "<=2.0.2",
+        "patched_versions": ">=2.0.3",
+        "findings": [
+          {
+            "version": "2.0.2",
+            "paths": [
+              ".>vinext>image-size"
+            ],
+            "dev": false,
+            "optional": false,
+            "bundled": false
+          }
+        ]
+      },
+      {
+        "module_name": "sharp",
+        "title": "sharp: Vulnerabilities in libheif: GHSA-g89c-p67h-r497 and GHSA-2jg2-4ch7-h545",
+        "severity": "high",
+        "url": "https://github.com/advisories/GHSA-rgj7-g3m4-5g8c",
+        "vulnerable_versions": "<0.35.4",
+        "patched_versions": ">=0.35.4",
+        "findings": [
+          {
+            "version": "0.34.5",
+            "paths": [
+              ".>react-server-dom-webpack>webpack>minimizer-webpack-plugin>sharp",
+              ".>vinext>@vitejs/plugin-rsc>react-server-dom-webpack>webpack>minimizer-webpack-plugin>sharp",
+              ".>vinext>react-server-dom-webpack>webpack>minimizer-webpack-plugin>sharp",
+              ".>@cloudflare/vite-plugin>miniflare>sharp",
+              ".>@cloudflare/vite-plugin>wrangler>miniflare>sharp",
+              ".>@vitejs/plugin-rsc>react-server-dom-webpack>webpack>minimizer-webpack-plugin>sharp",
+              ".>wrangler>miniflare>sharp"
+            ],
+            "dev": false,
+            "optional": false,
+            "bundled": false
+          }
+        ]
+      }
+    ]
+  }
+}

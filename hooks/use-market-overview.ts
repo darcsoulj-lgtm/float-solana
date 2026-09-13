@@ -3,7 +3,11 @@ import { registryTokens, type RegistryStatus } from '@/lib/token-registry';
 import { useEffect, useRef, useState } from 'react';
 import { api } from '@/lib/client';
 import { MARKET_BATCH_SIZE, type IssuerId } from '@/lib/tokens';
-import { mergeMarketPages, type MarketOverview } from '@/lib/market-data';
+import {
+  mergeMarketPages,
+  MARKET_REFRESH_MS,
+  type MarketOverview,
+} from '@/lib/market-data';
 
 // Public observations only: reuse snapshots between Home and Markets without
 // storing wallet balances, membership, or personal selections. Source timestamps
@@ -53,7 +57,7 @@ export function useMarketOverview(
         loading = false;
       }
       if (active)
-        timer = setTimeout(load, pending && attempts++ < 20 ? 3000 : 30000);
+        timer = setTimeout(load, pending && attempts++ < 20 ? 3000 : 120000);
     }
     const visible = () => {
       if (!document.hidden) {
@@ -91,8 +95,15 @@ export function useMarketOverview(
         .map((p) => p.registry)
         .filter((r): r is RegistryStatus => !!r)
         .sort((a, b) => b.additions.length - a.additions.length)[0];
+      let bootstrapPage: MarketOverview | undefined;
       try {
-        registry = await api<RegistryStatus>('token-registry');
+        const firstPage = await api<MarketOverview>('market-data?batch=0');
+        if (!active) return;
+        registry = firstPage.registry;
+        pages.current[0] = firstPage;
+        snapshots.set(0, firstPage);
+        setData(mergeMarketPages(pages.current.filter(Boolean)));
+        bootstrapPage = firstPage;
       } catch {
         /* Keep last verified registry on transport failure. */
       }
@@ -139,9 +150,11 @@ export function useMarketOverview(
             while (active && cursor < queue.length) {
               const batch = queue[cursor++];
               try {
-                const next = await api<MarketOverview>(
-                  'market-data?batch=' + batch,
-                );
+                const next =
+                  batch === 0 && bootstrapPage
+                    ? bootstrapPage
+                    : await api<MarketOverview>('market-data?batch=' + batch);
+                if (batch === 0) bootstrapPage = undefined;
                 if (!active) return;
                 if (
                   Object.values(next).some(
@@ -199,7 +212,7 @@ export function useMarketOverview(
     const visible = () => {
       if (document.visibilityState === 'visible') void load();
     };
-    const interval = setInterval(visible, 30000);
+    const interval = setInterval(visible, MARKET_REFRESH_MS);
     document.addEventListener('visibilitychange', visible);
     window.addEventListener('focus', visible);
     window.addEventListener('online', visible);

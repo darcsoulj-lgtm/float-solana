@@ -1,6 +1,7 @@
 import { db, digest } from './server';
 import { AppError, textValue } from './validation';
 import { type CommunityMember } from './community-types';
+import { TOKENS, type StockToken } from './tokens';
 import { communityPostErrors } from './community-post';
 export const MEMBERSHIP_MS = 24 * 60 * 60 * 1000;
 export function communityCookie(req: Request) {
@@ -33,8 +34,11 @@ export async function communityMember(req: Request, required = true) {
 export function sessionCookie(value: string, req: Request, clear = false) {
   return `hp_member=${value}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${clear ? 0 : 86400}${new URL(req.url).protocol === 'https:' ? '; Secure' : ''}`;
 }
-export function validateCommunityPost(b: Record<string, unknown>) {
-  const error = Object.values(communityPostErrors(b))[0];
+export function validateCommunityPost(
+  b: Record<string, unknown>,
+  tokens: readonly StockToken[] = TOKENS,
+) {
+  const error = Object.values(communityPostErrors(b, tokens))[0];
   if (error) throw new AppError(error);
   return {
     title: String(b.title).trim(),
@@ -46,7 +50,9 @@ export function validateAlias(value: unknown) {
   const alias = textValue(value, 3, 24, 'Display name');
   if (
     !/^[\p{L}\p{N} _.-]+$/u.test(alias) ||
-    /admin|moderator|holderpulse|float|backpack|support|staff|official/i.test(alias)
+    /admin|moderator|holderpulse|float|backpack|support|staff|official/i.test(
+      alias,
+    )
   )
     throw new AppError(
       'Use a personal display name without official or moderator titles.',

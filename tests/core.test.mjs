@@ -62,7 +62,7 @@ const { TOKENS, BACKPACK_TOKENS, TOKEN_PROGRAMS } = await import(
 const { communityPostErrors } = await import(
   pathToFileURL(dir + '/community-post.mjs')
 );
-test('Discussion validation identifies every invalid field before submission', () => {
+void test('Discussion validation identifies every invalid field before submission', () => {
   assert.deepEqual(
     Object.keys(communityPostErrors({ title: '', body: '', topic: 'all' })),
     ['topic', 'title'],
@@ -76,7 +76,7 @@ test('Discussion validation identifies every invalid field before submission', (
     {},
   );
 });
-test('Discussion validation uses trimmed lengths and accepts every available room', () => {
+void test('Discussion validation uses trimmed lengths and accepts every available room', () => {
   for (const topic of ['general', ...TOKENS.map((t) => t.symbol)])
     assert.deepEqual(
       communityPostErrors({ title: ' 12345 ', body: ' 1234567890 ', topic }),
@@ -102,11 +102,11 @@ const good = {
     { type: 'single', prompt: 'Which matters most?', options: ['A', 'B'] },
   ],
 };
-test('Valid survey is normalized and question IDs are server-owned', () => {
+void test('Valid survey is normalized and question IDs are server-owned', () => {
   const r = validateSurvey(good);
   assert.equal(r.questions[0].id, 'q1');
 });
-test('Reject arbitrary mints, unsupported symbols, invalid targets and duplicate options', () => {
+void test('Reject arbitrary mints, unsupported symbols, invalid targets and duplicate options', () => {
   for (const b of [
     { ...good, symbol: 'FAKE' },
     { ...good, target: NaN },
@@ -121,25 +121,25 @@ test('Reject arbitrary mints, unsupported symbols, invalid targets and duplicate
   ])
     assert.throws(() => validateSurvey(b));
 });
-test('Answers require exact questions and valid options', () => {
+void test('Answers require exact questions and valid options', () => {
   const q = validateSurvey(good).questions;
   assert.deepEqual(validateAnswers(q, { q1: 'A' }), { q1: 'A' });
   for (const a of [{}, { q1: 'C' }, { q1: 'A', fake: 'B' }])
     assert.throws(() => validateAnswers(q, a));
 });
-test('Integer cohorts preserve fractional holdings and boundaries', () => {
+void test('Integer cohorts preserve fractional holdings and boundaries', () => {
   assert.equal(cohortFor(1n, 6), 'Under 10 tokens');
   assert.equal(cohortFor(10000000n, 6), '10–99 tokens');
   assert.equal(cohortFor(100000000n, 6), '100+ tokens');
   assert.throws(() => cohortFor(0n, 6));
 });
-test('Researchers cannot self-publish or reopen closed studies', () => {
+void test('Researchers cannot self-publish or reopen closed studies', () => {
   assert.ok(canTransition('draft', 'pending', false));
   assert.ok(!canTransition('pending', 'active', false));
   assert.ok(canTransition('pending', 'active', true));
   assert.ok(!canTransition('closed', 'active', true));
 });
-test('Base58 wallet validation rejects malformed values', () => {
+void test('Base58 wallet validation rejects malformed values', () => {
   assert.equal(decodeBase58('11111111111111111111111111111111').length, 32);
   assert.throws(() => validWallet('not-a-wallet'));
   for (const t of TOKENS.filter((t) => t.mint))
@@ -159,7 +159,7 @@ function encode(b) {
   }
   return s;
 }
-test('Ed25519 signatures bind both message and wallet', async () => {
+void test('Ed25519 signatures bind both message and wallet', async () => {
   const pair = await crypto.subtle.generateKey('Ed25519', true, [
     'sign',
     'verify',
@@ -229,7 +229,7 @@ function mock(accounts, { program = TOKEN_PROGRAMS[1], error = false } = {}) {
   };
   return { fetcher, calls };
 }
-test('Finalized RPC aggregates all owned Token-2022 accounts with integer balances', async () => {
+void test('Finalized RPC aggregates all owned Token-2022 accounts with integer balances', async () => {
   const m = mock([{ amount: '9000000' }, { amount: '2000000' }]);
   const r = await verifyHolding(wallet, 'MU', 'https://rpc.test', m.fetcher);
   assert.equal(r.cohort, '10–99 tokens');
@@ -238,14 +238,14 @@ test('Finalized RPC aggregates all owned Token-2022 accounts with integer balanc
   assert.equal(m.calls[1].params[2].minContextSlot, 123);
   assert.ok(!('amount' in r));
 });
-test('Wrong owner or mint accounts do not qualify', async () => {
+void test('Wrong owner or mint accounts do not qualify', async () => {
   const m = mock([{ owner: TOKENS[1].mint }, { mint: TOKENS[1].mint }]);
   await assert.rejects(
     verifyHolding(wallet, 'MU', 'https://rpc.test', m.fetcher),
     /does not currently hold/,
   );
 });
-test('RPC and invalid program errors fail closed', async () => {
+void test('RPC and invalid program errors fail closed', async () => {
   for (const options of [{ error: true }, { program: 'fake' }]) {
     const m = mock([], options);
     await assert.rejects(
@@ -254,7 +254,7 @@ test('RPC and invalid program errors fail closed', async () => {
   }
 });
 
-test('Small-order public keys cannot authenticate with zero signatures', async () => {
+void test('Small-order public keys cannot authenticate with zero signatures', async () => {
   await assert.rejects(
     verifySignature(
       '11111111111111111111111111111111',
@@ -264,7 +264,7 @@ test('Small-order public keys cannot authenticate with zero signatures', async (
   );
 });
 
-test('Transient RPC errors retry once and recover', async () => {
+void test('Transient RPC errors retry once and recover', async () => {
   const good = mock([{ amount: '1' }]);
   let calls = 0;
   const fetcher = async (...args) =>
@@ -272,7 +272,7 @@ test('Transient RPC errors retry once and recover', async () => {
   await verifyHolding(wallet, 'MU', 'https://fixture.invalid', fetcher);
   assert.equal(calls, 3);
 });
-test('Provider authorization rejection is not described as busy or retried', async () => {
+void test('Provider authorization rejection is not described as busy or retried', async () => {
   let calls = 0;
   await assert.rejects(
     verifyHolding(wallet, 'MU', 'https://fixture.invalid', async () => {
@@ -283,7 +283,7 @@ test('Provider authorization rejection is not described as busy or retried', asy
   );
   assert.equal(calls, 1);
 });
-test('Malformed provider JSON fails with a controlled service error', async () => {
+void test('Malformed provider JSON fails with a controlled service error', async () => {
   await assert.rejects(
     verifyHolding(
       wallet,
@@ -295,7 +295,7 @@ test('Malformed provider JSON fails with a controlled service error', async () =
   );
 });
 
-test('Reviewed registry includes every enabled Solana security from the captured official source', async () => {
+void test('Reviewed registry includes every enabled Solana security from the captured official source', async () => {
   const evidence = JSON.parse(
     await readFile(
       new URL('../docs/token-registry-review.json', import.meta.url),
@@ -322,7 +322,7 @@ test('Reviewed registry includes every enabled Solana security from the captured
   }
   assert.ok(BACKPACK_TOKENS.find((t) => t.symbol === 'SPCX')?.mint);
 });
-test('Wallet client does not request transaction signing or sending', async () => {
+void test('Wallet client does not request transaction signing or sending', async () => {
   for (const file of ['community', 'participant']) {
     const source = await readFile(
       new URL('../components/' + file + '.tsx', import.meta.url),
@@ -336,7 +336,7 @@ test('Wallet client does not request transaction signing or sending', async () =
   }
 });
 
-test('Every supported stock verifies only against its exact registry mint', async () => {
+void test('Every supported stock verifies only against its exact registry mint', async () => {
   for (const token of TOKENS) {
     const fixture = mock([{ mint: token.mint, amount: '1' }]);
     await verifyHolding(
@@ -421,7 +421,7 @@ function discoveryMock({
     },
   };
 }
-test('Automatic discovery scans both programs and returns only verified supported symbols', async () => {
+void test('Automatic discovery scans both programs and returns only verified supported symbols', async () => {
   const fixture = discoveryMock({
     assets: [
       { mint: TOKENS[0].mint, amount: '1', program: TOKEN_PROGRAMS[0] },
@@ -436,10 +436,12 @@ test('Automatic discovery scans both programs and returns only verified supporte
     fixture.fetcher,
   );
   assert.deepEqual(
-    result.map((h) => h.symbol).sort(),
+    result
+      .map((h) => h.symbol)
+      .sort((a, b) => String(a).localeCompare(String(b))),
     TOKENS.slice(0, 2)
       .map((t) => t.symbol)
-      .sort(),
+      .sort((a, b) => String(a).localeCompare(String(b))),
   );
   assert.equal(fixture.calls.length, 3);
   assert.deepEqual(
@@ -447,14 +449,13 @@ test('Automatic discovery scans both programs and returns only verified supporte
     TOKEN_PROGRAMS,
   );
   assert.equal(fixture.calls[2].params[1].minContextSlot, 100);
-  assert.deepEqual(Object.keys(result[0]).sort(), [
-    'slot',
-    'symbol',
-    'verifiedAt',
-  ]);
+  assert.deepEqual(
+    Object.keys(result[0]).sort((a, b) => String(a).localeCompare(String(b))),
+    ['slot', 'symbol', 'verifiedAt'],
+  );
   assert.ok(!JSON.stringify(result).includes(wallet));
 });
-test('Discovery distinguishes a truly empty wallet from a failed or malformed program scan', async () => {
+void test('Discovery distinguishes a truly empty wallet from a failed or malformed program scan', async () => {
   const empty = discoveryMock({ assets: [] });
   assert.deepEqual(
     await detectHoldings(wallet, 'https://fixture.invalid', empty.fetcher),
@@ -472,7 +473,7 @@ test('Discovery distinguishes a truly empty wallet from a failed or malformed pr
     );
   }
 });
-test('Discovery fails closed on invalid mint, malformed amount, and account ownership mismatch', async () => {
+void test('Discovery fails closed on invalid mint, malformed amount, and account ownership mismatch', async () => {
   for (const options of [
     { invalidMint: true },
     { amountOverride: '-1' },
@@ -501,11 +502,11 @@ const { validateEditorial, canonicalSource, dateValue, eventLabel } =
 const { STARTER_CONTENT } = await import(
   pathToFileURL(dir + '/editorial-starter.mjs')
 );
-test('Reviewed starter stories and events satisfy the real publishing contract', () => {
+void test('Reviewed starter stories and events satisfy the real publishing contract', () => {
   for (const item of STARTER_CONTENT)
     assert.ok(validateEditorial(item, Date.parse('2026-09-11T00:00:00Z')));
 });
-test('Source normalization removes tracking and rejects unsafe links', () => {
+void test('Source normalization removes tracking and rejects unsafe links', () => {
   assert.equal(
     canonicalSource(
       'https://example.com/news/story?utm_a=1&utm_b=2&gclid=3#part',
@@ -520,7 +521,7 @@ test('Source normalization removes tracking and rejects unsafe links', () => {
   ])
     assert.throws(() => canonicalSource(url));
 });
-test('Editorial rules reject invalid dates, unsupported tags and ambiguous timestamps', () => {
+void test('Editorial rules reject invalid dates, unsupported tags and ambiguous timestamps', () => {
   for (const day of ['2026-02-30', '2026-13-01', 'yesterday'])
     assert.throws(() => dateValue(day));
   for (const changes of [
@@ -537,7 +538,7 @@ test('Editorial rules reject invalid dates, unsupported tags and ambiguous times
       validateEditorial({ ...STARTER_CONTENT[0], ...changes }),
     );
 });
-test('Calendar times convert across days; date-only events do not shift', () => {
+void test('Calendar times convert across days; date-only events do not shift', () => {
   const timed = {
     event_at: Date.parse('2026-09-30T20:30:00Z'),
     event_date: '2026-09-30',
@@ -555,7 +556,7 @@ test('Calendar times convert across days; date-only events do not shift', () => 
 const { fetchNewsDrafts, persistNewsDrafts } = await import(
   pathToFileURL(dir + '/news-provider.mjs')
 );
-test('News adapter requires credentials and a reviewed stock mapping without making requests', async () => {
+void test('News adapter requires credentials and a reviewed stock mapping without making requests', async () => {
   const unreachable = () => {
     throw new Error('Must not fetch');
   };
@@ -568,7 +569,7 @@ test('News adapter requires credentials and a reviewed stock mapping without mak
     /reviewed/,
   );
 });
-test('News adapter keeps exact ticker matches, original links and publication dates', async () => {
+void test('News adapter keeps exact ticker matches, original links and publication dates', async () => {
   const now = Date.parse('2026-09-11T00:00:00Z');
   const story = {
     id: 123,
@@ -602,7 +603,7 @@ test('News adapter keeps exact ticker matches, original links and publication da
     },
   ]);
 });
-test('Provider failures are actionable and never expose the API key', async () => {
+void test('Provider failures are actionable and never expose the API key', async () => {
   await assert.rejects(
     fetchNewsDrafts('secret-fixture', 'MU', async () => {
       throw new Error('secret-fixture');
@@ -624,7 +625,7 @@ test('Provider failures are actionable and never expose the API key', async () =
     /unexpected/,
   );
 });
-test('Editorial sources reject homepages and generic company news indexes', () => {
+void test('Editorial sources reject homepages and generic company news indexes', () => {
   for (const path of [
     '/',
     '/default.aspx',
@@ -638,7 +639,7 @@ test('Editorial sources reject homepages and generic company news indexes', () =
     );
 });
 
-test('Imported drafts persist idempotently and preserve reviewed or archived records', async () => {
+void test('Imported drafts persist idempotently and preserve reviewed or archived records', async () => {
   const { DatabaseSync } = await import('node:sqlite');
   const database = new DatabaseSync(':memory:');
   database.exec(
@@ -719,7 +720,7 @@ test('Imported drafts persist idempotently and preserve reviewed or archived rec
   database.close();
 });
 
-test('One-character discussions and title-only discussions are allowed', () => {
+void test('One-character discussions and title-only discussions are allowed', () => {
   assert.deepEqual(
     communityPostErrors({ title: '?', body: '', topic: 'general' }),
     {},
@@ -729,7 +730,7 @@ test('One-character discussions and title-only discussions are allowed', () => {
     {},
   );
 });
-test('Exact token formatting handles issuer multipliers and future changes', () => {
+void test('Exact token formatting handles issuer multipliers and future changes', () => {
   assert.equal(displayTokenAmount('25000000', 6, []), '25');
   assert.equal(
     displayTokenAmount('18446744073709551615', 6, []),
@@ -757,7 +758,7 @@ test('Exact token formatting handles issuer multipliers and future changes', () 
 });
 const { parseHeadlines, fetchHeadlines, companyAliases, NEWS_WINDOW_MS } =
   await import(pathToFileURL(dir + '/holder-news.mjs'));
-test('Headline parsing rejects stale, future, unrelated and unsafe stories and deduplicates links', () => {
+void test('Headline parsing rejects stale, future, unrelated and unsafe stories and deduplicates links', () => {
   const now = Date.parse('2026-09-11T12:00:00Z');
   const item = (
     title,
@@ -790,7 +791,7 @@ test('Headline parsing rejects stale, future, unrelated and unsafe stories and d
     0,
   );
 });
-test('Every supported token receives an automatic company-matched feed candidate', async () => {
+void test('Every supported token receives an automatic company-matched feed candidate', async () => {
   for (const t of TOKENS) {
     let called = false;
     const now = Date.now();
@@ -818,7 +819,7 @@ test('Every supported token receives an automatic company-matched feed candidate
     assert.equal(rows.length, 1, t.symbol);
   }
 });
-test('Headline transport rejects redirects and upstream failures without following links', async () => {
+void test('Headline transport rejects redirects and upstream failures without following links', async () => {
   for (const status of [301, 302, 307, 403, 429, 503]) {
     let calls = 0;
     await assert.rejects(
@@ -835,7 +836,7 @@ test('Headline transport rejects redirects and upstream failures without followi
     assert.equal(calls, 1);
   }
 });
-test('Captured live feeds contain directly matched news for MU, SPCX and newly added stocks', async () => {
+void test('Captured live feeds contain directly matched news for MU, SPCX and newly added stocks', async () => {
   for (const [symbol, file] of [
     ['MU', 'mu'],
     ['SPCX', 'SPCX'],
@@ -857,7 +858,7 @@ test('Captured live feeds contain directly matched news for MU, SPCX and newly a
   }
 });
 
-test('Headline rate limits retain the provider retry delay for the shared cache', async () => {
+void test('Headline rate limits retain the provider retry delay for the shared cache', async () => {
   await assert.rejects(
     fetchHeadlines(
       'MU',
@@ -871,7 +872,7 @@ test('Headline rate limits retain the provider retry delay for the shared cache'
   );
 });
 
-test('Profile JPEG validation accepts a real small image and rejects fake or oversized content', async () => {
+void test('Profile JPEG validation accepts a real small image and rejects fake or oversized content', async () => {
   const { validAvatarJpeg } = await import(
     pathToFileURL(dir + '/avatar-image.mjs')
   );
@@ -888,7 +889,7 @@ test('Profile JPEG validation accepts a real small image and rejects fake or ove
   assert.equal(validAvatarJpeg(fake), false);
 });
 
-test('Multi-issuer registry keeps exact mints unique and existing Backpack identities stable', () => {
+void test('Multi-issuer registry keeps exact mints unique and existing Backpack identities stable', () => {
   assert.equal(TOKENS.length, new Set(TOKENS.map((t) => t.mint)).size);
   assert.equal(TOKENS.length, new Set(TOKENS.map((t) => t.symbol)).size);
   for (const symbol of ['MU', 'MUx', 'MUon']) {
@@ -908,7 +909,7 @@ test('Multi-issuer registry keeps exact mints unique and existing Backpack ident
     ),
   );
 });
-test('Mixed-issuer wallet with over 100 holdings validates every mint in bounded RPC requests', async () => {
+void test('Mixed-issuer wallet with over 100 holdings validates every mint in bounded RPC requests', async () => {
   const selected = [
     ...TOKENS.filter((t) => t.issuer === 'backpack').slice(0, 2),
     ...TOKENS.filter((t) => t.issuer === 'ondo').slice(0, 55),
@@ -927,8 +928,12 @@ test('Mixed-issuer wallet with over 100 holdings validates every mint in bounded
     fixture.fetcher,
   );
   assert.deepEqual(
-    result.map((h) => h.symbol).sort(),
-    selected.map((t) => t.symbol).sort(),
+    result
+      .map((h) => h.symbol)
+      .sort((a, b) => String(a).localeCompare(String(b))),
+    selected
+      .map((t) => t.symbol)
+      .sort((a, b) => String(a).localeCompare(String(b))),
   );
   const checks = fixture.calls.filter(
     (c) => c.method === 'getMultipleAccounts',
@@ -943,7 +948,7 @@ test('Mixed-issuer wallet with over 100 holdings validates every mint in bounded
 const { fetchGoogleHeadlines } = await import(
   pathToFileURL(dir + '/holder-news.mjs')
 );
-test('Google headlines use actual publisher, retain specific links, and exclude ticker collisions', async () => {
+void test('Google headlines use actual publisher, retain specific links, and exclude ticker collisions', async () => {
   const now = Date.now();
   let query = '';
   const items = await fetchGoogleHeadlines(

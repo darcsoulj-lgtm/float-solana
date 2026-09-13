@@ -12,7 +12,6 @@ export function HolderTierBadge({
 }) {
   const [now, setNow] = useState(Date.now);
   useEffect(() => {
-    setNow(Date.now());
     if (!expiresAt) return;
     const timer = setTimeout(
       () => setNow(Date.now()),

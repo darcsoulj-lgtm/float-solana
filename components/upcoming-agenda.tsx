@@ -148,21 +148,19 @@ export function UpcomingAgenda({
         </button>
       </header>
       {current?.error && items.length > 0 && (
-        <p className="agenda-status" role="status">
+        <output className="agenda-status">
           {current.error} Showing saved events.{' '}
           <button onClick={() => setRetry((n) => n + 1)}>Retry</button>
-        </p>
+        </output>
       )}
       <div id={id} aria-busy={!current}>
         {!current ? (
-          <p className="agenda-status" role="status">
-            Loading events…
-          </p>
+          <output className="agenda-status">Loading events…</output>
         ) : current.error && !items.length ? (
-          <p className="agenda-status" role="status">
+          <output className="agenda-status">
             {current.error}{' '}
             <button onClick={() => setRetry((n) => n + 1)}>Retry</button>
-          </p>
+          </output>
         ) : !items.length ? (
           <p className="agenda-status">
             No upcoming events for these holdings.
@@ -170,9 +168,9 @@ export function UpcomingAgenda({
         ) : expanded ? (
           <>
             {current.error && (
-              <p role="status" className="agenda-status">
+              <output className="agenda-status">
                 {current.error} Showing saved events.
-              </p>
+              </output>
             )}
             <p className="agenda-timezone">Times in your timezone</p>
             {groupAgendaEvents(items).map((group) => (

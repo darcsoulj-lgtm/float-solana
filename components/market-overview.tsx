@@ -101,7 +101,6 @@ export function MarketOverviewPanel({
   const bookReason =
     bookSymbol === selected ? bookMessage : 'Loading order book…';
   useEffect(() => {
-    setNow(Date.now());
     const timer = setInterval(() => setNow(Date.now()), 10000);
     return () => clearInterval(timer);
   }, []);
@@ -801,6 +800,7 @@ export function MarketOverviewPanel({
             <input
               type="checkbox"
               role="switch"
+              aria-checked={onlyHoldings}
               checked={onlyHoldings}
               onChange={(e) => {
                 setOnlyHoldings(e.target.checked);

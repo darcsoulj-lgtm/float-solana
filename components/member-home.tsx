@@ -37,7 +37,6 @@ export function MemberHomePanel({
   const [retry, setRetry] = useState(0);
   const holdingsKey = holdings.join('|');
   useEffect(() => {
-    setNow(Date.now());
     const timer = setInterval(() => setNow(Date.now()), 30000);
     return () => clearInterval(timer);
   }, []);
@@ -81,9 +80,7 @@ export function MemberHomePanel({
         />
         <div className="home-portfolio-footer">
           {error ? (
-            <span role="status">
-              Prices could not update. Saved quotes may be dated.
-            </span>
+            <output>Prices could not update. Saved quotes may be dated.</output>
           ) : (
             <span />
           )}
@@ -121,15 +118,13 @@ export function MemberHomePanel({
           </button>
         </div>
         {threadError && (
-          <p className="inline-status" role="status">
+          <output className="inline-status">
             {threadError}{' '}
             <button onClick={() => setRetry((n) => n + 1)}>Retry</button>
-          </p>
+          </output>
         )}
         {!threads && !threadError ? (
-          <p className="inline-status" role="status">
-            Loading discussions…
-          </p>
+          <output className="inline-status">Loading discussions…</output>
         ) : threads?.threads.length ? (
           <div className="home-thread-list">
             {threads.threads.slice(0, 3).map((t) => (

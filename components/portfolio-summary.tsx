@@ -134,7 +134,6 @@ export function PortfolioSummary({
           <div className="allocation-ring">
             <svg
               viewBox="0 0 180 180"
-              role="img"
               aria-label={
                 allocation
                   ? 'Portfolio allocation by estimated value; percentages are listed beside each holding'

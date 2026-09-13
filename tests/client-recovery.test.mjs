@@ -1,3 +1,4 @@
+import { compileFunction } from 'node:vm';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
@@ -29,7 +30,7 @@ const { loadClientModule, clientFault } = await import(
   'data:text/javascript;base64,' + Buffer.from(compiled).toString('base64')
 );
 
-test('Transient module downloads retry twice without reloading the document', async () => {
+void test('Transient module downloads retry twice without reloading the document', async () => {
   let calls = 0;
   const delays = [];
   const value = await loadClientModule(
@@ -45,7 +46,7 @@ test('Transient module downloads retry twice without reloading the document', as
   assert.equal(value.default, 'loaded');
   assert.deepEqual(delays, [400, 1200]);
 });
-test('Persistent module failures terminate and programming errors are never retried', async () => {
+void test('Persistent module failures terminate and programming errors are never retried', async () => {
   for (const [message, expected] of [
     ['Importing a module script failed', 3],
     ['Cannot read properties of undefined', 1],
@@ -64,7 +65,7 @@ test('Persistent module failures terminate and programming errors are never retr
     assert.equal(calls, expected);
   }
 });
-test('Client diagnostics exclude messages, page URLs, queries and personal content', () => {
+void test('Client diagnostics exclude messages, page URLs, queries and personal content', () => {
   const e = new Error(
     'Failed to fetch dynamically imported module: https://example.com/_next/static/chunks/market-ABC.js?wallet=private',
   );
@@ -86,7 +87,7 @@ test('Client diagnostics exclude messages, page URLs, queries and personal conte
     '418',
   );
 });
-test('Releases preserve complete previous JS/CSS graphs, never old HTML or manifests, and prune history', async () => {
+void test('Releases preserve complete previous JS/CSS graphs, never old HTML or manifests, and prune history', async () => {
   const root = await mkdtemp(join(tmpdir(), 'float-assets-'));
   const out = join(root, 'dist'),
     cache = join(root, 'cache');
@@ -145,22 +146,75 @@ test('Releases preserve complete previous JS/CSS graphs, never old HTML or manif
   }
 });
 
-test('Diagnostic endpoint rejects cross-origin and oversized input and logs only allowed fields', async () => {
-  const raw = await readFile(new URL('../app/api/client-error/route.ts', import.meta.url), 'utf8');
-  const compiled = ts.transpileModule(raw, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText;
-  const module = { exports: {} };
-  new Function('require', 'module', 'exports', compiled)(() => ({ rateLimit: async () => {} }), module, module.exports);
-  const request = (body, origin = 'https://float.example') => new Request('https://float.example/api/client-error', { method: 'POST', headers: { origin, 'content-type': 'application/json' }, body: JSON.stringify(body) });
-  const valid = { section: 'Markets', kind: 'module', code: null, assets: ['/_next/static/chunks/market-ABC.js'] };
-  const old = console.error, logs = [];
+void test('Diagnostic endpoint rejects cross-origin and oversized input and logs only allowed fields', async () => {
+  const raw = await readFile(
+    new URL('../app/api/client-error/route.ts', import.meta.url),
+    'utf8',
+  );
+  const compiled = ts.transpileModule(raw, {
+    compilerOptions: {
+      target: ts.ScriptTarget.ES2022,
+      module: ts.ModuleKind.CommonJS,
+    },
+  }).outputText;
+  const compiledModule = { exports: {} };
+  compileFunction(compiled, ['require', 'module', 'exports'])(
+    () => ({ rateLimit: async () => {} }),
+    compiledModule,
+    compiledModule.exports,
+  );
+  const request = (body, origin = 'https://float.example') =>
+    new Request('https://float.example/api/client-error', {
+      method: 'POST',
+      headers: { origin, 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+  const valid = {
+    section: 'Markets',
+    kind: 'module',
+    code: null,
+    assets: ['/_next/static/chunks/market-ABC.js'],
+  };
+  const old = console.error,
+    logs = [];
   console.error = (...args) => logs.push(args);
   try {
-    assert.equal((await module.exports.POST(request(valid, 'https://other.example'))).status, 403);
-    assert.equal((await module.exports.POST(request({ ...valid, assets: ['/private/wallet'] }))).status, 400);
-    assert.equal((await module.exports.POST(request({ ...valid, unused: 'x'.repeat(3000) }))).status, 413);
+    assert.equal(
+      (
+        await compiledModule.exports.POST(
+          request(valid, 'https://other.example'),
+        )
+      ).status,
+      403,
+    );
+    assert.equal(
+      (
+        await compiledModule.exports.POST(
+          request({ ...valid, assets: ['/private/wallet'] }),
+        )
+      ).status,
+      400,
+    );
+    assert.equal(
+      (
+        await compiledModule.exports.POST(
+          request({ ...valid, unused: 'x'.repeat(3000) }),
+        )
+      ).status,
+      413,
+    );
     assert.equal(logs.length, 0);
-    assert.equal((await module.exports.POST(request({ ...valid, privateData: 'never log this' }))).status, 204);
+    assert.equal(
+      (
+        await compiledModule.exports.POST(
+          request({ ...valid, privateData: 'never log this' }),
+        )
+      ).status,
+      204,
+    );
     assert.equal(logs.length, 1);
     assert.doesNotMatch(JSON.stringify(logs), /privateData|never log/);
-  } finally { console.error = old; }
+  } finally {
+    console.error = old;
+  }
 });

@@ -1,17 +1,10 @@
 import { calculateHolderTier, type HolderTierResult } from './holder-tier';
 import type { Holding } from './community-types';
-import { TOKENS, TOKEN_REVIEW_DATE, MARKET_BATCH_SIZE } from './tokens';
+import { registryTokens, type RegistryStatus } from './token-registry';
+import { marketBatches, readMarketBatch, emptySource } from './market-service';
 import { cachedMarket } from './market-cache';
-import {
-  MARKET_REFRESH_MS,
-  POOL_REFRESH_MS,
-  fetchPools,
-  fetchPrices,
-  mergeMarketPages,
-  type MarketOverview,
-} from './market-data';
+import { mergeMarketPages, type MarketOverview } from './market-data';
 import { CMC_REFRESH_MS, fetchTokenMarkets } from './cmc-data';
-import { fetchSupplies } from './token-supply';
 
 // A newer verified snapshot must always win over a slow price request.
 export const TIER_WRITE_SQL = `UPDATE community_members SET value_tier=?,value_tier_expires_at=?
@@ -25,6 +18,7 @@ export async function updateHolderTier(
   memberId: string,
   rpcUrl?: string,
   cmcKey?: string,
+  registry?: RegistryStatus,
 ): Promise<HolderTierResult> {
   const unavailable: HolderTierResult = { tier: null, expiresAt: 0 };
   const holdings = (
@@ -42,64 +36,36 @@ export async function updateHolderTier(
     holdings.every((h) => h.verified_at === snapshot) &&
     Date.now() - snapshot < 180000
   ) {
-    const batches = [
-      ...new Set(
-        holdings.map((h) =>
-          Math.floor(
-            TOKENS.findIndex((t) => t.symbol === h.symbol) / MARKET_BATCH_SIZE,
-          ),
-        ),
-      ),
-    ].filter((n) => n >= 0);
-    const marketsRequest = cachedMarket(
-      database,
-      'cmc-tokens-v2',
-      CMC_REFRESH_MS,
-      () => fetchTokenMarkets(cmcKey),
+    const all = registryTokens(registry);
+    const held = new Set(holdings.map((h) => h.symbol));
+    const batches = marketBatches(
+      all,
+      all.filter((t) => held.has(t.symbol)),
     );
+    const marketsRequest = batches.length
+      ? cachedMarket(database, 'cmc-tokens-v2', CMC_REFRESH_MS, () =>
+          fetchTokenMarkets(cmcKey),
+        )
+      : Promise.resolve(emptySource({}));
     const pages: MarketOverview[] = [];
     // Bound upstream fan-out; use the same shared caches as Markets.
     for (let i = 0; i < batches.length; i += 2) {
       pages.push(
         ...(await Promise.all(
           batches.slice(i, i + 2).map(async (batch) => {
-            const tokens = TOKENS.slice(
-              batch * MARKET_BATCH_SIZE,
-              (batch + 1) * MARKET_BATCH_SIZE,
-            );
-            const suffix = TOKEN_REVIEW_DATE + ':' + batch;
-            const [pools, prices, supplies, markets] = await Promise.all([
-              cachedMarket(
-                database,
-                'dex-pools-v4:' + suffix,
-                POOL_REFRESH_MS,
-                () => fetchPools(fetch, tokens),
-              ),
-              cachedMarket(
-                database,
-                'llama-prices-v3:' + suffix,
-                MARKET_REFRESH_MS,
-                () => fetchPrices(fetch, tokens),
-              ),
-              cachedMarket(
-                database,
-                'solana-supplies-v4:' + suffix,
-                MARKET_REFRESH_MS,
-                () => fetchSupplies(rpcUrl, fetch, tokens),
-              ),
+            const [observations, markets] = await Promise.all([
+              readMarketBatch(database, batch, {
+                rpcUrl,
+                pools: false,
+                history: false,
+              }),
               marketsRequest,
             ]);
             return {
-              pools,
-              prices,
-              supplies,
+              ...observations,
               markets,
-              catalog: {
-                data: null,
-                fetchedAt: null,
-                stale: true,
-                error: null,
-              },
+              registry,
+              catalog: emptySource([]),
             };
           }),
         )),

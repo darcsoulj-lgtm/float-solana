@@ -6,7 +6,7 @@ import {
   fetchHeadlines,
   type Headline,
 } from './holder-news';
-import { TOKENS } from './tokens';
+import { TOKENS, type StockToken } from './tokens';
 
 export type HeadlineCacheRow = {
   key: string;
@@ -14,8 +14,11 @@ export type HeadlineCacheRow = {
   fetched_at: number;
   retry_after: number;
 };
-export function headlineKeys(symbol: string) {
-  const token = TOKENS.find((t) => t.symbol === symbol);
+export function headlineKeys(
+  symbol: string,
+  tokens: readonly StockToken[] = TOKENS,
+) {
+  const token = tokens.find((t) => t.symbol === symbol);
   if (!token) throw Error('Unsupported stock');
   return [
     'headlines-google-v1:' + token.underlyingSymbol,
@@ -79,8 +82,9 @@ export async function refreshHeadlineSources(
   database: D1Database,
   symbol: string,
   fetcher: typeof fetch = fetch,
+  tokens: readonly StockToken[] = TOKENS,
 ) {
-  const [google, yahoo] = headlineKeys(symbol);
+  const [google, yahoo] = headlineKeys(symbol, tokens);
   const load = async (key: string, provider: () => Promise<Headline[]>) => {
     const previous = await database
       .prepare(
@@ -108,10 +112,10 @@ export async function refreshHeadlineSources(
     });
   };
   const primary = await load(google, () =>
-    fetchGoogleHeadlines(symbol, fetcher),
+    fetchGoogleHeadlines(symbol, fetcher, Date.now(), tokens),
   );
   if (!primary.stale && primary.data?.length) return;
-  await load(yahoo, () => fetchHeadlines(symbol, fetcher));
+  await load(yahoo, () => fetchHeadlines(symbol, fetcher, Date.now(), tokens));
 }
 
 export function headlineIdentity(item: Pick<Headline, 'publisher' | 'title'>) {

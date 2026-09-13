@@ -406,7 +406,7 @@ try {
   assert.ok(
     !(await call('threads?feed=personal')).d.threads.some((x) => x.id === t.id),
   );
-  let feed = (await call('threads?topic=SPCX')).d;
+  const feed = (await call('threads?topic=SPCX')).d;
 
   assert.ok(feed.threads.some((x) => x.id === t.id && x.badge === 'MU'));
   assert.ok(!JSON.stringify(feed).includes(wallet));
@@ -432,9 +432,7 @@ try {
   // Separate member: bookmarks and preferences must not leak across sessions.
   const secondChallenge = (await call('challenge', { wallet: secondWallet })).d;
   assert.equal(secondChallenge.signInInput, undefined);
-  assert.ok(
-    secondChallenge.message.startsWith('Float community membership\n'),
-  );
+  assert.ok(secondChallenge.message.startsWith('Float community membership\n'));
   checks += 2;
   const secondLogin = await call('verify', {
     challengeId: secondChallenge.id,
@@ -504,7 +502,7 @@ try {
     reason: 'Local moderation test report',
   });
   await call('moderation', undefined, { status: 401 });
-  let mod = (await call('moderation', undefined, { auth: true })).d;
+  const mod = (await call('moderation', undefined, { auth: true })).d;
   const report = mod.reports.find((x) => x.target_id === t.id);
   assert.ok(report);
   checks++;

@@ -214,6 +214,7 @@
   color: inherit;
 }
 .bp-status {
+  display: block;
   padding: 0 24px 18px;
   color: var(--muted-foreground);
   font-size: 11px;
@@ -483,6 +484,9 @@
 }
 .bp-muted {
   color: var(--muted-foreground);
+}
+output.bp-muted {
+  display: block;
 }
 .bp-spinning {
   animation: bp-spin 1.5s linear infinite;

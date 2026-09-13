@@ -24,7 +24,7 @@ export function communitySignInInput(
     domain: url.host,
     address,
     statement:
-      'Sign in to Float for 24-hour community access. Keep this wallet address for this session to refresh supported holdings. No transaction or transfer is authorized.',
+      'Sign in to Float for 24-hour community access. Keep this wallet address for this session and store supported balances privately to show your portfolio and verify access. No transaction or transfer is authorized.',
     uri: url.origin,
     version: '1',
     chainId: 'solana:mainnet',

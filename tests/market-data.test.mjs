@@ -1,3 +1,4 @@
+import { compileFunction } from 'node:vm';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, writeFile, mkdtemp } from 'node:fs/promises';
@@ -16,6 +17,8 @@ for (const file of [
   'token-observation',
   'holder-tier',
   'holder-tier-server',
+  'market-service',
+  'backpack-registry',
   'holder-news',
   'headline-cache',
 ]) {
@@ -31,7 +34,7 @@ for (const file of [
       },
     })
     .outputText.replace(
-      /from '\.\/(tokens|token-registry|market-data|market-cache|cmc-data|token-supply|token-observation|holder-tier|holder-news)'/g,
+      /from '\.\/(tokens|token-registry|market-service|backpack-registry|market-data|market-cache|cmc-data|token-supply|token-observation|holder-tier|holder-news)'/g,
       "from './$1.mjs'",
     );
   await writeFile(dir + '/' + file + '.mjs', out);
@@ -55,7 +58,7 @@ const {
 } = await import(pathToFileURL(dir + '/market-data.mjs'));
 const { cachedMarket } = await import(pathToFileURL(dir + '/market-cache.mjs'));
 const mint = TOKENS[0].mint;
-test('429 backoff honors Retry-After and defaults to five minutes', () => {
+void test('429 backoff honors Retry-After and defaults to five minutes', () => {
   assert.equal(
     new SourceHttpError(
       'api.geckoterminal.com',
@@ -71,7 +74,7 @@ test('429 backoff honors Retry-After and defaults to five minutes', () => {
     900000,
   );
 });
-test('Dedicated onchain credentials stay in the approved server header and never fall back on rejection', async () => {
+void test('Dedicated onchain credentials stay in the approved server header and never fall back on rejection', async () => {
   let count = 0;
   await assert.rejects(
     fetchTokenVolumes(async (url, options) => {
@@ -88,7 +91,7 @@ test('Dedicated onchain credentials stay in the approved server header and never
   );
   assert.equal(count, 1);
 });
-test('Upstream failures retain safe production diagnostics without leaking query values', async () => {
+void test('Upstream failures retain safe production diagnostics without leaking query values', async () => {
   await assert.rejects(
     publicJson(
       'https://api.geckoterminal.com/api/v2/test?key=private-value',
@@ -104,7 +107,7 @@ const fixture = async (name) =>
       'utf8',
     ),
   );
-test('Observed live Backpack registry matches the exact mint and excludes perpetual markets', async () => {
+void test('Observed live Backpack registry matches the exact mint and excludes perpetual markets', async () => {
   const listings = parseListings(
     await fixture('assets'),
     await fixture('markets'),
@@ -113,7 +116,7 @@ test('Observed live Backpack registry matches the exact mint and excludes perpet
   assert.equal(listings.find((t) => t.symbol === 'MU').spot, 'MU.US_USDC');
   assert.ok(listings.every((t) => !t.spot?.endsWith('PERP')));
 });
-test('Full September 11 audit covers every enabled security and validates all 41 finalized mints', async () => {
+void test('Full September 11 audit covers every enabled security and validates all 41 finalized mints', async () => {
   const audit = JSON.parse(
     await readFile(
       new URL('../research/token-audit/2026-09-11.json', import.meta.url),
@@ -176,7 +179,7 @@ test('Full September 11 audit covers every enabled security and validates all 41
     assert.ok(metadata.name.endsWith(' - Backpack Securities'));
   });
 });
-test('A matching ticker with a different mint never qualifies; duplicate registry matches fail closed', () => {
+void test('A matching ticker with a different mint never qualifies; duplicate registry matches fail closed', () => {
   const asset = {
     symbol: 'MU.US',
     tokens: [
@@ -187,7 +190,7 @@ test('A matching ticker with a different mint never qualifies; duplicate registr
   asset.tokens[0].contractAddress = mint;
   assert.deepEqual(parseListings([asset, asset], []), []);
 });
-test('Captured pool matches MU by mint, keeps DEX-only measurements and deduplicates pools', async () => {
+void test('Captured pool matches MU by mint, keeps DEX-only measurements and deduplicates pools', async () => {
   const input = await fixture('dex'),
     out = parsePools([...input, ...input]);
   assert.equal(out.MU.length, 1);
@@ -204,7 +207,7 @@ test('Captured pool matches MU by mint, keeps DEX-only measurements and deduplic
     0,
   );
 });
-test('Missing and malformed values remain unknown, not zero; genuine zero volume is retained', async () => {
+void test('Missing and malformed values remain unknown, not zero; genuine zero volume is retained', async () => {
   for (const x of [null, '', false, {}, NaN, Infinity])
     assert.equal(numeric(x), null);
   const [p] = await fixture('dex');
@@ -222,7 +225,7 @@ test('Missing and malformed values remain unknown, not zero; genuine zero volume
   assert.equal(out.price, null);
   assert.equal(out.change24h, null);
 });
-test('DefiLlama preserves the source timestamp and does not use the wrong mint or future data', () => {
+void test('DefiLlama preserves the source timestamp and does not use the wrong mint or future data', () => {
   const now = Date.now(),
     seconds = Math.floor(now / 1000) - 3600;
   const out = parsePrices(
@@ -252,7 +255,7 @@ test('DefiLlama preserves the source timestamp and does not use the wrong mint o
     {},
   );
 });
-test('Unsorted Backpack book levels produce correct spread and separate bid/ask depth', () => {
+void test('Unsorted Backpack book levels produce correct spread and separate bid/ask depth', () => {
   const now = Date.now(),
     book = parseBook(
       {
@@ -277,7 +280,7 @@ test('Unsorted Backpack book levels produce correct spread and separate bid/ask 
   assert.equal(book.timestamp, now);
   assert.ok(Math.abs(book.spreadBps - 99.502487562) < 0.00001);
 });
-test('Old, crossed, one-sided or invalid order books are never presented as fresh quotes', () => {
+void test('Old, crossed, one-sided or invalid order books are never presented as fresh quotes', () => {
   const now = Date.now(),
     base = {
       bids: [['100', '1']],
@@ -293,7 +296,7 @@ test('Old, crossed, one-sided or invalid order books are never presented as fres
   ])
     assert.throws(() => parseBook(raw, 'MU.US_USDC', now));
 });
-test('Public-source transport allows only fixed hosts and rejects redirects', async () => {
+void test('Public-source transport allows only fixed hosts and rejects redirects', async () => {
   await assert.rejects(
     publicJson('https://evil.invalid/api', () => assert.fail('must not fetch')),
   );
@@ -312,7 +315,7 @@ test('Public-source transport allows only fixed hosts and rejects redirects', as
     ),
   );
 });
-test('Provider fetchers use documented batches and parse actual recorded responses', async () => {
+void test('Provider fetchers use documented batches and parse actual recorded responses', async () => {
   let calls = 0;
   const fetcher = async (u) => {
     calls++;
@@ -349,7 +352,7 @@ function cacheDb() {
     },
   };
 }
-test('Shared cache persists successful data and avoids redundant provider calls', async () => {
+void test('Shared cache persists successful data and avoids redundant provider calls', async () => {
   const { raw, d1 } = cacheDb();
   let calls = 0;
   const loader = async () => {
@@ -363,7 +366,7 @@ test('Shared cache persists successful data and avoids redundant provider calls'
   assert.equal(b.stale, false);
   raw.close();
 });
-test('Cache failure preserves old data and original time, backs off and marks it delayed', async () => {
+void test('Cache failure preserves old data and original time, backs off and marks it delayed', async () => {
   const { raw, d1 } = cacheDb();
   const old = Date.now() - 3600000;
   raw
@@ -382,7 +385,7 @@ test('Cache failure preserves old data and original time, backs off and marks it
   assert.deepEqual(b.data, { price: 42 });
   raw.close();
 });
-test('Provider backoff persists across requests and prevents early retries', async () => {
+void test('Provider backoff persists across requests and prevents early retries', async () => {
   const { raw, d1 } = cacheDb();
   const started = Date.now();
   await cachedMarket(d1, 'limited', 120000, async () => {
@@ -406,7 +409,7 @@ test('Provider backoff persists across requests and prevents early retries', asy
   assert.equal(result.stale, true);
   raw.close();
 });
-test('Concurrent refresh lease prevents duplicate loads; empty cache is unavailable rather than fake data', async () => {
+void test('Concurrent refresh lease prevents duplicate loads; empty cache is unavailable rather than fake data', async () => {
   const { raw, d1 } = cacheDb();
   raw
     .prepare('INSERT INTO market_cache VALUES (?,NULL,0,?)')
@@ -428,7 +431,7 @@ const {
 } = await import(pathToFileURL(dir + '/cmc-data.mjs'));
 const cmc = await fixture('cmc-quotes-all');
 const fixtureNow = Date.parse(cmc.status.timestamp);
-test('CMC detail volume uses only the explicit DEX field, preserving zero and rejecting unavailable data', () => {
+void test('CMC detail volume uses only the explicit DEX field, preserving zero and rejecting unavailable data', () => {
   for (const value of [1234, 0, null, -1, '', 'NaN', undefined]) {
     const payload = structuredClone(cmc);
     const row = payload.data.find((r) => r.id === 40817);
@@ -455,7 +458,7 @@ test('CMC detail volume uses only the explicit DEX field, preserving zero and re
     );
   }
 });
-test('CMC live fixture matches six supported Solana mints and retains original timestamps', () => {
+void test('CMC live fixture matches six supported Solana mints and retains original timestamps', () => {
   const rows = parseTokenMarkets(cmc, fixtureNow);
   assert.equal(Object.keys(rows).length, 6);
   assert.equal(rows.MU.id, 40817);
@@ -465,7 +468,7 @@ test('CMC live fixture matches six supported Solana mints and retains original t
   assert.ok(rows.MU.timestamp <= fixtureNow);
   assert.equal(rows.NKE, undefined);
 });
-test('CMC rejects wrong mint, wrong chain, crossed IDs and duplicate token results', () => {
+void test('CMC rejects wrong mint, wrong chain, crossed IDs and duplicate token results', () => {
   const mu = cmc.data.find((r) => r.id === 40817);
   const base = { ...cmc, data: [mu] };
   for (const bad of [
@@ -480,7 +483,7 @@ test('CMC rejects wrong mint, wrong chain, crossed IDs and duplicate token resul
     parseTokenMarkets({ ...base, data: [mu, mu] }, fixtureNow),
   );
 });
-test('CMC rejects error envelopes, malformed times and unsafe links', () => {
+void test('CMC rejects error envelopes, malformed times and unsafe links', () => {
   const mu = cmc.data.find((r) => r.id === 40817);
   for (const raw of [
     { ...cmc, status: { error_code: 429 } },
@@ -503,7 +506,7 @@ test('CMC rejects error envelopes, malformed times and unsafe links', () => {
   ])
     assert.throws(() => parseTokenMarkets(raw, fixtureNow));
 });
-test('Missing CMC supply, cap and volume are unknown; genuine zero volume is retained', () => {
+void test('Missing CMC supply, cap and volume are unknown; genuine zero volume is retained', () => {
   const mu = cmc.data.find((r) => r.id === 40817);
   const raw = {
     ...cmc,
@@ -525,7 +528,7 @@ test('Missing CMC supply, cap and volume are unknown; genuine zero volume is ret
   assert.equal(covered.volume24h, 0);
   assert.equal(covered.volumeCount, 1);
 });
-test('Ecosystem totals exclude stale observations and report each metric coverage separately', () => {
+void test('Ecosystem totals exclude stale observations and report each metric coverage separately', () => {
   const rows = parseTokenMarkets(cmc, fixtureNow);
   const old = { ...rows.MU, timestamp: fixtureNow - 900001 };
   assert.equal(freshTokenMarket(old, fixtureNow), undefined);
@@ -534,7 +537,7 @@ test('Ecosystem totals exclude stale observations and report each metric coverag
   assert.equal(covered.marketCap, rows.SKHY.marketCap);
   assert.equal(marketCoverage(null).marketCap, null);
 });
-test('CMC fetch uses batched IDs, public endpoint and no secret header by default', async () => {
+void test('CMC fetch uses batched IDs, public endpoint and no secret header by default', async () => {
   const result = await fetchTokenMarkets(undefined, async (url, options) => {
     const u = new URL(url);
     assert.equal(u.origin, 'https://pro-api.coinmarketcap.com');
@@ -546,7 +549,7 @@ test('CMC fetch uses batched IDs, public endpoint and no secret header by defaul
   });
   assert.ok(result.MU);
 });
-test('Optional CMC credential stays in a server header; redirects and rate limits fail safely', async () => {
+void test('Optional CMC credential stays in a server header; redirects and rate limits fail safely', async () => {
   await fetchTokenMarkets('test-secret', async (url, options) => {
     assert.equal(new URL(url).pathname, '/v3/cryptocurrency/quotes/latest');
     assert.equal(String(url).includes('test-secret'), false);
@@ -559,7 +562,7 @@ test('Optional CMC credential stays in a server header; redirects and rate limit
     );
 });
 
-test('Unreported zero capitalization and supply are not presented as established zero value', () => {
+void test('Unreported zero capitalization and supply are not presented as established zero value', () => {
   const rows = parseTokenMarkets(cmc, fixtureNow);
   assert.equal(rows.AMC.supply, null);
   assert.equal(rows.AMC.marketCap, null);
@@ -591,7 +594,7 @@ const supplyFixture = () => ({
     })),
   },
 });
-test('Supply checks every allowlisted mint in bounded batches, validating program, precision and complete response', async () => {
+void test('Supply checks every allowlisted mint in bounded batches, validating program, precision and complete response', async () => {
   const raw = supplyFixture();
   const rows = parseSupplies(raw);
   assert.equal(Object.keys(rows).length, TOKENS.length);
@@ -645,7 +648,7 @@ const source = (data, now) => ({
   stale: false,
   error: null,
 });
-test('TTWO without CMC gets pool price, change, volume and chain supply; value is separately calculated', () => {
+void test('TTWO without CMC gets pool price, change, volume and chain supply; value is separately calculated', () => {
   const now = Date.now();
   const data = {
     supplies: source(parseSupplies(supplyFixture(), now), now),
@@ -673,7 +676,7 @@ test('TTWO without CMC gets pool price, change, volume and chain supply; value i
   assert.equal(tokenObservation(data, 'TTWO', now).price, null);
   assert.equal(issuedCoverage(data, now).total, null);
 });
-test('Stale supply or prices never produce a current valuation; timestamped DefiLlama fallback is bounded', () => {
+void test('Stale supply or prices never produce a current valuation; timestamped DefiLlama fallback is bounded', () => {
   const now = Date.now();
   const data = {
     supplies: source(parseSupplies(supplyFixture(), now), now),
@@ -694,7 +697,7 @@ test('Stale supply or prices never produce a current valuation; timestamped Defi
   assert.equal(tokenObservation(data, 'TTWO', now).price, null);
   assert.equal(issuedCoverage(null, now).total, null);
 });
-test('CMC circulating market cap never replaces total issued value or leaks into supply', () => {
+void test('CMC circulating market cap never replaces total issued value or leaks into supply', () => {
   const now = fixtureNow,
     markets = parseTokenMarkets(cmc, now);
   const data = {
@@ -710,7 +713,7 @@ test('CMC circulating market cap never replaces total issued value or leaks into
   assert.notEqual(row.supply.supply, markets.MU.supply);
 });
 
-test('Token-level volume covers all 41 captured Backpack mints and includes GRND and BABA', async () => {
+void test('Token-level volume covers all 41 captured Backpack mints and includes GRND and BABA', async () => {
   const captured = JSON.parse(
     await readFile(
       new URL('../research/volume-28/all-token-volumes.json', import.meta.url),
@@ -719,7 +722,7 @@ test('Token-level volume covers all 41 captured Backpack mints and includes GRND
   );
   const volumes = Object.assign(
     {},
-    ...captured.responses.map(parseTokenVolumes),
+    ...captured.responses.map((raw) => parseTokenVolumes(raw)),
   );
   assert.equal(Object.keys(volumes).length, 41);
   assert.ok(volumes.GRND.usd24h > 20_000_000);
@@ -730,7 +733,7 @@ test('Token-level volume covers all 41 captured Backpack mints and includes GRND
       BACKPACK_TOKENS.find((t) => t.symbol === symbol).mint,
     );
 });
-test('Volume parsing rejects wrong chain, fake mint, negative data and duplicates while preserving zero', () => {
+void test('Volume parsing rejects wrong chain, fake mint, negative data and duplicates while preserving zero', () => {
   const row = {
     id: 'solana_' + mint,
     type: 'token',
@@ -763,7 +766,7 @@ test('Volume parsing rejects wrong chain, fake mint, negative data and duplicate
   assert.throws(() => parseTokenVolumes({ data: [row, row] }), /Duplicate/);
   assert.throws(() => parseTokenVolumes({ data: null }), /Invalid/);
 });
-test('Both onchain transports parse all 41 mints in bounded batches', async () => {
+void test('Both onchain transports parse all 41 mints in bounded batches', async () => {
   const captured = JSON.parse(
     await readFile(
       new URL('../research/volume-28/all-token-volumes.json', import.meta.url),
@@ -792,7 +795,7 @@ test('Both onchain transports parse all 41 mints in bounded batches', async () =
     assert.equal(Object.keys(result).length, 41);
   }
 });
-test('Onchain volume stays separate from CMC/pool scope and never uses stale values', () => {
+void test('Onchain volume stays separate from CMC/pool scope and never uses stale values', () => {
   const now = Date.now();
   const data = {
     markets: source({}, now),
@@ -808,7 +811,7 @@ test('Onchain volume stays separate from CMC/pool scope and never uses stale val
   assert.equal(tokenObservation(data, 'MU', now).onchainVolume24h, null);
 });
 
-test('Issuer totals partition one Solana total without merging wrappers or counting underlying market cap', () => {
+void test('Issuer totals partition one Solana total without merging wrappers or counting underlying market cap', () => {
   const now = Date.now(),
     chosen = ['MU', 'MUx', 'MUon'];
   const supplies = Object.fromEntries(
@@ -831,7 +834,7 @@ test('Issuer totals partition one Solana total without merging wrappers or count
   assert.equal(issuedCoverage(data, now).total, 60);
   assert.equal(issuedCoverage(data, now, 'ondo').total, null);
 });
-test('Adjusted mint units stay visible as supply but cannot produce an unverified valuation', () => {
+void test('Adjusted mint units stay visible as supply but cannot produce an unverified valuation', () => {
   const fixture = supplyFixture(),
     info =
       fixture.result.value[TOKENS.findIndex((t) => t.symbol === 'MUx')].data
@@ -852,7 +855,7 @@ test('Adjusted mint units stay visible as supply but cannot produce an unverifie
   info.extensions[0].state.newMultiplierEffectiveTimestamp = 0;
   assert.equal(parseSupplies(fixture).MUx.valuationSafe, false);
 });
-test('A failed issuer page never suppresses fresh data from another page', async () => {
+void test('A failed issuer page never suppresses fresh data from another page', async () => {
   const { mergeMarketPages } = await import(
     pathToFileURL(dir + '/market-data.mjs')
   );
@@ -875,7 +878,7 @@ test('A failed issuer page never suppresses fresh data from another page', async
   assert.ok(merged.pools.error);
 });
 
-test('Live GOOGLon supply agrees with the independent Solana indexer; adjusted units stay separate', async () => {
+void test('Live GOOGLon supply agrees with the independent Solana indexer; adjusted units stay separate', async () => {
   const audit = JSON.parse(
     await readFile(
       new URL(
@@ -909,7 +912,7 @@ test('Live GOOGLon supply agrees with the independent Solana indexer; adjusted u
   );
 });
 
-test('GOOGLon gains a same-source 24h change without using its illiquid pool price', async () => {
+void test('GOOGLon gains a same-source 24h change without using its illiquid pool price', async () => {
   const audit = JSON.parse(
     await readFile(
       new URL(
@@ -948,7 +951,7 @@ test('GOOGLon gains a same-source 24h change without using its illiquid pool pri
   );
 });
 
-test('Per-token pool endpoint restores multiple pools, deduplicates addresses, and never assigns a base price to the quote asset', async () => {
+void test('Per-token pool endpoint restores multiple pools, deduplicates addresses, and never assigns a base price to the quote asset', async () => {
   const { fetchTokenPools } = await import(
     pathToFileURL(dir + '/market-data.mjs')
   );
@@ -985,7 +988,7 @@ test('Per-token pool endpoint restores multiple pools, deduplicates addresses, a
   assert.equal(quote.liquidity, pair.liquidity.usd);
 });
 
-test('Old batches do not age out fresh prices and supply in another batch', async () => {
+void test('Old batches do not age out fresh prices and supply in another batch', async () => {
   const { mergeMarketPages } = await import(
     pathToFileURL(dir + '/market-data.mjs')
   );
@@ -1008,7 +1011,7 @@ test('Old batches do not age out fresh prices and supply in another batch', asyn
   assert.equal(tokenObservation(merged, 'SPCX', now).issuedValue, 20);
 });
 
-test('Low-confidence prices and stale historical sources cannot manufacture a daily change', () => {
+void test('Low-confidence prices and stale historical sources cannot manufacture a daily change', () => {
   const now = Date.now();
   const data = {
     markets: source({}, now),
@@ -1027,7 +1030,7 @@ test('Low-confidence prices and stale historical sources cannot manufacture a da
   assert.equal(tokenObservation(data, 'MU', now).change24h, null);
 });
 
-test('Divergent quote units never enter issuer valuation totals; adjustment windows suppress unconfirmed returns', () => {
+void test('Divergent quote units never enter issuer valuation totals; adjustment windows suppress unconfirmed returns', () => {
   const now = Date.now();
   const data = {
     markets: source({}, now),
@@ -1054,7 +1057,7 @@ const { calculateHolderTier, tierForValue } = await import(
 const { TIER_WRITE_SQL } = await import(
   pathToFileURL(dir + '/holder-tier-server.mjs')
 );
-test('holder tiers cover each boundary and never rank zero or invalid values', () => {
+void test('holder tiers cover each boundary and never rank zero or invalid values', () => {
   for (const [value, tier] of [
     [0, null],
     [-1, null],
@@ -1100,7 +1103,7 @@ function tierFixture() {
     },
   };
 }
-test('holder tier uses verified raw units, prices all holdings and bounds expiry', () => {
+void test('holder tier uses verified raw units, prices all holdings and bounds expiry', () => {
   const { now, holdings, data } = tierFixture();
   assert.deepEqual(calculateHolderTier(holdings, data, now), {
     tier: 'gold',
@@ -1111,7 +1114,7 @@ test('holder tier uses verified raw units, prices all holdings and bounds expiry
   holdings.push({ ...holdings[0], symbol: 'SPCX' });
   assert.equal(calculateHolderTier(holdings, data, now).tier, null);
 });
-test('holder tier fails closed for stale, conflicting, ambiguous and pool-only valuations', () => {
+void test('holder tier fails closed for stale, conflicting, ambiguous and pool-only valuations', () => {
   const changes = [
     (f) => (f.holdings[0].verified_at -= 180000),
     (f) => (f.holdings[0].verified_at += 10000),
@@ -1137,7 +1140,7 @@ test('holder tier fails closed for stale, conflicting, ambiguous and pool-only v
     assert.equal(calculateHolderTier(f.holdings, f.data, f.now).tier, null);
   }
 });
-test('tier migration preserves users, defaults private, and rejects writes for changed snapshots', async () => {
+void test('tier migration preserves users, defaults private, and rejects writes for changed snapshots', async () => {
   const db = new DatabaseSync(':memory:');
   db.exec(
     "CREATE TABLE community_members (id TEXT PRIMARY KEY, suspended INTEGER, verified_until INTEGER); CREATE TABLE community_holdings (member_id TEXT,symbol TEXT,verified_at INTEGER); INSERT INTO community_members VALUES ('a',0,9999999999999); INSERT INTO community_holdings VALUES ('a','MU',1000)",
@@ -1162,7 +1165,7 @@ test('tier migration preserves users, defaults private, and rejects writes for c
   assert.equal(write.get('diamond', 5000, 'a', 1000, 2, 2000), undefined);
   db.close();
 });
-test('public author queries reveal tiers only with opt-in, fresh verification and fresh tier', async () => {
+void test('public author queries reveal tiers only with opt-in, fresh verification and fresh tier', async () => {
   const raw = await readFile(
     new URL('../lib/community-server.ts', import.meta.url),
     'utf8',
@@ -1241,10 +1244,10 @@ function newsXml(provider, title = 'Micron latest headline') {
       : 'https://finance.yahoo.com/news/micron-story';
   return `<rss><item><title>${title}${provider === 'google' ? ' - Reuters' : ''}</title><pubDate>${new Date(Date.now() - 10000).toUTCString()}</pubDate><link>${link}</link>${provider === 'google' ? '<source url="https://reuters.com">Reuters</source>' : ''}</item></rss>`;
 }
-test('Google recovers headlines despite Yahoo cooldown, then shares the successful cache', async () => {
+void test('Google recovers headlines despite Yahoo cooldown, then shares the successful cache', async () => {
   const f = newsDatabase(),
     keys = headlines.headlineKeys('MU');
-  let calls = [];
+  const calls = [];
   f.sql
     .prepare('INSERT INTO market_cache VALUES (?,NULL,0,?)')
     .run(keys[1], Date.now() + 600000);
@@ -1264,10 +1267,10 @@ test('Google recovers headlines despite Yahoo cooldown, then shares the successf
   assert.equal(headlines.headlinesDue(keys.map(f.row)), false);
   f.sql.close();
 });
-test('Yahoo fallback works when Google fails and both provider Retry-After windows are honored', async () => {
+void test('Yahoo fallback works when Google fails and both provider Retry-After windows are honored', async () => {
   const f = newsDatabase(),
     keys = headlines.headlineKeys('MU');
-  let calls = [];
+  const calls = [];
   await headlines.refreshHeadlineSources(f.db, 'MU', async (url) => {
     const host = new URL(url).hostname;
     calls.push(host);
@@ -1285,7 +1288,7 @@ test('Yahoo fallback works when Google fails and both provider Retry-After windo
   assert.equal(headlines.cachedHeadlines(f.row(keys[1])).length, 1);
   f.sql.close();
 });
-test('both-provider failure retains cached headlines and reports unavailable rather than empty success', async () => {
+void test('both-provider failure retains cached headlines and reports unavailable rather than empty success', async () => {
   const f = newsDatabase(),
     keys = headlines.headlineKeys('MU');
   const old = [
@@ -1315,7 +1318,7 @@ test('both-provider failure retains cached headlines and reports unavailable rat
   assert.equal(headlines.headlinesDue(keys.map(f.row)), false);
   f.sql.close();
 });
-test('shorter successful feeds retain seven-day history, and invalid caches never report healthy', async () => {
+void test('shorter successful feeds retain seven-day history, and invalid caches never report healthy', async () => {
   const f = newsDatabase(),
     keys = headlines.headlineKeys('MU');
   const old = [
@@ -1349,7 +1352,7 @@ test('shorter successful feeds retain seven-day history, and invalid caches neve
   f.sql.close();
 });
 
-test('holder news route returns cached MU and SPCX stories with pagination and holdings isolation', async () => {
+void test('holder news route returns cached MU and SPCX stories with pagination and holdings isolation', async () => {
   const f = newsDatabase();
   f.sql.exec(
     "CREATE TABLE community_holdings(member_id TEXT,symbol TEXT); INSERT INTO community_holdings VALUES('owner','MU'),('owner','SPCX'),('other','SKHY')",
@@ -1379,6 +1382,13 @@ test('holder news route returns cached MU and SPCX stories with pagination and h
   }
   let signedIn = true;
   const deps = {
+    '@/lib/registry-server': {
+      verifiedRegistry: async () => ({
+        registry: { additions: [] },
+        tokens: TOKENS,
+      }),
+    },
+    '@/lib/request-body': { readBoundedText: async (req) => req.text() },
     '@/lib/community-server': {
       communityMember: async () => {
         if (!signedIn) throw new AppError('Sign in', 401);
@@ -1409,17 +1419,17 @@ test('holder news route returns cached MU and SPCX stories with pagination and h
       module: ts.ModuleKind.CommonJS,
     },
   }).outputText;
-  const module = { exports: {} };
-  new Function('require', 'module', 'exports', output)(
+  const compiledModule = { exports: {} };
+  compileFunction(output, ['require', 'module', 'exports'])(
     (id) => {
       assert.ok(id in deps, id);
       return deps[id];
     },
-    module,
-    module.exports,
+    compiledModule,
+    compiledModule.exports,
   );
   const get = (query) =>
-    module.exports.GET(
+    compiledModule.exports.GET(
       new Request('https://test.local/api/holder-news' + query),
     );
   const first = await (await get('')).json();
@@ -1467,7 +1477,7 @@ test('holder news route returns cached MU and SPCX stories with pagination and h
   f.sql.close();
 });
 
-test('market snapshots return before a blocked provider and concurrent readers share one refresh', async () => {
+void test('market snapshots return before a blocked provider and concurrent readers share one refresh', async () => {
   const { marketSnapshot } = await import(
     pathToFileURL(dir + '/market-cache.mjs')
   );
@@ -1521,7 +1531,7 @@ test('market snapshots return before a blocked provider and concurrent readers s
     f.sql.close();
   }
 });
-test('snapshot failure preserves stale data and respects the provider cooldown', async () => {
+void test('snapshot failure preserves stale data and respects the provider cooldown', async () => {
   const { marketSnapshot } = await import(
     pathToFileURL(dir + '/market-cache.mjs')
   );
@@ -1550,7 +1560,7 @@ test('snapshot failure preserves stale data and respects the provider cooldown',
   f.sql.close();
 });
 
-test('refreshing market snapshots retain valid observations without resetting their age', async () => {
+void test('refreshing market snapshots retain valid observations without resetting their age', async () => {
   const { marketSnapshot } = await import(
     pathToFileURL(dir + '/market-cache.mjs')
   );
@@ -1610,7 +1620,7 @@ test('refreshing market snapshots retain valid observations without resetting th
   }
 });
 
-test('DEX rate-limit cooldown is shared across batches and token detail lookups', async () => {
+void test('DEX rate-limit cooldown is shared across batches and token detail lookups', async () => {
   const f = newsDatabase();
   let requests = 0;
   try {
@@ -1634,7 +1644,7 @@ test('DEX rate-limit cooldown is shared across batches and token detail lookups'
   }
 });
 
-test('coverage explains every excluded listing without overlap or zero filling', () => {
+void test('coverage explains every excluded listing without overlap or zero filling', () => {
   const now = Date.now(),
     data = {
       markets: source({}, now),
@@ -1660,7 +1670,7 @@ test('coverage explains every excluded listing without overlap or zero filling',
   );
 });
 
-test('Dated references recover estimates with original timestamps, without pretending to be live', () => {
+void test('Dated references recover estimates with original timestamps, without pretending to be live', () => {
   const now = Date.now(),
     at = now - 3 * 3600000;
   const data = {
@@ -1702,7 +1712,7 @@ test('Dated references recover estimates with original timestamps, without prete
   assert.equal(tokenObservation(data, 'MUx', now).price, null);
 });
 
-test('Dated prices cannot qualify a holder ranking even with fresh holdings and supply', () => {
+void test('Dated prices cannot qualify a holder ranking even with fresh holdings and supply', () => {
   const now = Date.now();
   const data = {
     markets: source({}, now),
@@ -1719,7 +1729,7 @@ test('Dated prices cannot qualify a holder ranking even with fresh holdings and 
   assert.equal(calculateHolderTier(holdings, data, now).tier, null);
 });
 
-test('Syndication matching keeps different stories, days and generic headlines separate', () => {
+void test('Syndication matching keeps different stories, days and generic headlines separate', () => {
   const base = {
     publisher: 'Yahoo Finance',
     title: 'SpaceX To Get Weighting Boost In Nasdaq 100 After Rebalance',
@@ -1760,7 +1770,7 @@ test('Syndication matching keeps different stories, days and generic headlines s
   );
 });
 
-test('September 13 listings match the full enabled registry and verified finalized mints', async () => {
+void test('September 13 listings match the full enabled registry and verified finalized mints', async () => {
   const audit = JSON.parse(
     await readFile(
       new URL('../research/token-audit/2026-09-13.json', import.meta.url),

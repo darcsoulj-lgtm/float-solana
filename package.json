@@ -7,19 +7,20 @@
   },
   "scripts": {
     "dev": "vinext dev",
-    "build": "vinext build",
+    "build": "node scripts/verify-release.mjs",
     "start": "wrangler dev --config dist/server/wrangler.json",
     "lint": "oxlint",
     "format": "oxfmt",
     "db:generate": "drizzle-kit generate",
-    "test": "node --test tests/core.test.mjs tests/wallet-provider.test.mjs tests/market-data.test.mjs tests/market-stock-row.test.mjs tests/dashboard-presentation.test.mjs tests/holder-tier-api.test.mjs tests/client-loading.test.mjs tests/community-home.test.mjs tests/client-recovery.test.mjs tests/token-registry.test.mjs",
+    "test": "node --test tests/*.test.mjs",
     "test:integration": "node tests/integration.mjs",
     "test:wallet": "node tests/verified-flow.mjs",
     "typecheck": "tsc --noEmit",
     "db:local": "wrangler d1 migrations apply DB --local --config wrangler.local.jsonc",
     "test:community": "node tests/community-flow.mjs",
     "test:markets": "node --test tests/market-data.test.mjs tests/market-stock-row.test.mjs",
-    "audit:tokens": "node scripts/audit-tokens.mjs"
+    "audit:tokens": "node scripts/audit-tokens.mjs",
+    "verify": "node scripts/verify-release.mjs"
   },
   "dependencies": {
     "@base-ui/react": "1.7.0",
@@ -34,11 +35,11 @@
     "embla-carousel-react": "8.5.2",
     "input-otp": "1.4.2",
     "lucide-react": "1.31.0",
-    "react": "19.2.6",
+    "react": "19.2.8",
     "react-day-picker": "9.8.1",
-    "react-dom": "19.2.6",
+    "react-dom": "19.2.8",
     "react-resizable-panels": "4.5.8",
-    "react-server-dom-webpack": "19.2.6",
+    "react-server-dom-webpack": "19.2.8",
     "recharts": "3.8.0",
     "shadcn": "4.18.0",
     "tailwind-merge": "3.6.0",
@@ -61,7 +62,7 @@
     "oxlint-tsgolint": "7.0.2001",
     "tailwindcss": "4.2.1",
     "typescript": "5.9.3",
-    "vite": "8.0.13",
+    "vite": "8.0.16",
     "wrangler": "4.92.0"
   },
   "type": "module"

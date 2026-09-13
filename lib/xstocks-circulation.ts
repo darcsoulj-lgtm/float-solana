@@ -13,9 +13,9 @@ export type IssuerCirculation = {
   fxDate: string | null;
 };
 export type ReferenceFx = { hkdUsd: number; date: string };
-const record = (v: unknown): Record<string, any> =>
+const record = (v: unknown): Record<string, unknown> =>
   v && typeof v === 'object' && !Array.isArray(v)
-    ? (v as Record<string, any>)
+    ? (v as Record<string, unknown>)
     : {};
 function amount(v: unknown): number | null {
   if (
@@ -100,6 +100,7 @@ export function parseCirculationPages(
     if (
       (root.errors && (!Array.isArray(root.errors) || root.errors.length)) ||
       !Array.isArray(tokens.nodes) ||
+      typeof page.totalNodes !== 'number' ||
       !Number.isInteger(page.totalNodes) ||
       page.totalNodes < 1 ||
       page.totalPages !== rawPages.length ||
@@ -123,7 +124,12 @@ export function parseCirculationPages(
       const d = deployments[0];
       if (d.address !== 'svm:' + token.mint && d.address !== token.mint)
         continue;
-      if (!Number.isInteger(d.decimals) || d.decimals < 0 || d.decimals > 18)
+      if (
+        typeof d.decimals !== 'number' ||
+        !Number.isInteger(d.decimals) ||
+        d.decimals < 0 ||
+        d.decimals > 18
+      )
         continue;
       const rawSupply = amount(d.circulatingSupply),
         rawTotal = amount(d.totalSupply);
@@ -216,8 +222,15 @@ export async function fetchXstocksCirculation(
       }
     })(),
   ]);
-  const count = record(record(record(first).data).tokens).page?.totalPages;
-  if (!Number.isInteger(count) || count < 1 || count > 20)
+  const count = record(
+    record(record(record(first).data).tokens).page,
+  ).totalPages;
+  if (
+    typeof count !== 'number' ||
+    !Number.isInteger(count) ||
+    count < 1 ||
+    count > 20
+  )
     throw new Error('Invalid issuer pagination');
   const pages = [first];
   for (let i = 1; i < count; i += 3)

@@ -1,0 +1,95 @@
+{
+  "mode": "isolated-local-worker-real-auth-routes-D1-simulated-500ms-429-providers",
+  "workloads": [
+    {
+      "name": "authenticated-home-news-rooms",
+      "concurrent": 10,
+      "requests": 30,
+      "journeyMs": {
+        "p50": 42.55587499999092,
+        "p95": 42.669332999998005,
+        "p99": 42.669332999998005,
+        "max": 42.669332999998005
+      },
+      "d1": {
+        "statements": 170,
+        "rowsRead": 1278,
+        "rowsWritten": 20
+      },
+      "providerCalls": 0
+    },
+    {
+      "name": "authenticated-home-news-rooms",
+      "concurrent": 25,
+      "requests": 75,
+      "journeyMs": {
+        "p50": 71.70904100000189,
+        "p95": 78.2301670000088,
+        "p99": 78.25408500000049,
+        "max": 78.25408500000049
+      },
+      "d1": {
+        "statements": 425,
+        "rowsRead": 3208,
+        "rowsWritten": 40
+      },
+      "providerCalls": 0
+    },
+    {
+      "name": "authenticated-home-news-rooms",
+      "concurrent": 50,
+      "requests": 150,
+      "journeyMs": {
+        "p50": 140.01429099999223,
+        "p95": 153.65058299998782,
+        "p99": 153.6889580000061,
+        "max": 153.6889580000061
+      },
+      "d1": {
+        "statements": 850,
+        "rowsRead": 6423,
+        "rowsWritten": 75
+      },
+      "providerCalls": 0
+    },
+    {
+      "name": "cold-market-provider-outage",
+      "concurrent": 20,
+      "latencyMs": {
+        "p50": 47.888458000001265,
+        "p95": 47.950958000001265,
+        "p99": 47.95787500000006,
+        "max": 47.95787500000006
+      },
+      "d1": {
+        "statements": 198,
+        "rowsRead": 474,
+        "rowsWritten": 56
+      }
+    },
+    {
+      "name": "warm-market",
+      "concurrent": 50,
+      "latencyMs": {
+        "p50": 82.8325829999958,
+        "p95": 115.47095799999806,
+        "p99": 116.20487499999581,
+        "max": 116.20487499999581
+      },
+      "d1": {
+        "statements": 450,
+        "rowsRead": 1270,
+        "rowsWritten": 80
+      },
+      "providerCalls": 0
+    }
+  ],
+  "outageProviderCalls": 11,
+  "providerMaximumRequestsPerEndpoint": 1,
+  "security": {
+    "unsignedRejected": true,
+    "crossOriginRejected": true,
+    "streamedBodyBounded": true,
+    "privateMemberScopeVerified": true
+  }
+}

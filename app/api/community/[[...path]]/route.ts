@@ -1,3 +1,6 @@
+import { readRooms } from '@/lib/community-rooms';
+import { verifiedRegistry } from '@/lib/registry-server';
+import { readBoundedText } from '@/lib/request-body';
 import { communityHome } from '@/lib/community-home';
 import { updateHolderTier } from '@/lib/holder-tier-server';
 import { refreshHoldings } from '@/lib/holdings-refresh';
@@ -12,13 +15,13 @@ import {
 } from '@/lib/server';
 import { AppError, textValue } from '@/lib/validation';
 import { validWallet, verifySignature, detectHoldings } from '@/lib/solana';
-import { TOKENS } from '@/lib/tokens';
+
 import {
   communitySignInInput,
   communitySignInMessage,
 } from '@/lib/community-sign-in';
 import {
-  TOPICS,
+  communityTopics,
   type CommunityMember,
   type CommunityThread,
   type CommunityReply,
@@ -52,14 +55,15 @@ async function handler(req: Request) {
     const url = new URL(req.url),
       path = url.pathname.replace(/^\/api\/community\/?/, '').split('/'),
       post = req.method === 'POST';
+    let registryRead: ReturnType<typeof verifiedRegistry> | undefined;
+    const registry = () => (registryRead ??= verifiedRegistry());
     let b: Record<string, unknown> = {};
     if (post) {
       if (req.headers.get('origin') !== url.origin)
         throw new AppError('A same-origin request is required.', 403);
       if (!req.headers.get('content-type')?.includes('application/json'))
         throw new AppError('Use JSON.', 415);
-      const raw = await req.text();
-      if (raw.length > 12000) throw new AppError('Request is too large.', 413);
+      const raw = await readBoundedText(req, 32768);
       try {
         const parsed: unknown = JSON.parse(raw);
         if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed))
@@ -144,7 +148,13 @@ async function handler(req: Request) {
       const wallet = validWallet(textValue(b.wallet, 32, 44, 'Wallet'));
       await rateLimit('community-wallet:' + wallet, 5);
       await communityCleanup();
-      const holdings = await detectHoldings(wallet, runtime().SOLANA_RPC_URL);
+      const holdings = await detectHoldings(
+        wallet,
+        runtime().SOLANA_RPC_URL,
+        fetch,
+        false,
+        (await registry()).tokens,
+      );
       if (!holdings.length)
         throw new AppError(
           'No supported tokenized stocks were found in this wallet. Try another Solana account, or check the supported stocks list. No signature is needed.',
@@ -159,7 +169,7 @@ async function handler(req: Request) {
           : undefined;
       const message = signInInput
         ? communitySignInMessage(signInInput)
-        : `Float community membership\nOrigin: ${url.origin}\nWallet: ${wallet}\nAccess: All community topics\nNonce: ${id}\nExpires: ${new Date(expires).toISOString()}\nSign to prove control of this wallet and verify supported tokenized-equity holdings for 24-hour community access. Your wallet address is kept for this session to refresh supported holdings; balances are not saved. No transaction or asset transfer is authorized.`;
+        : `Float community membership\nOrigin: ${url.origin}\nWallet: ${wallet}\nAccess: All community topics\nNonce: ${id}\nExpires: ${new Date(expires).toISOString()}\nSign to prove control of this wallet and verify supported tokenized-equity holdings for 24-hour community access. Your wallet address is kept for this session to refresh supported holdings; supported balances are stored privately to show your portfolio and verify access. No transaction or asset transfer is authorized.`;
       await db()
         .prepare(
           'INSERT INTO community_challenges (id,wallet,symbol,message,expires_at,consumed) VALUES (?,?,?,?,?,0)',
@@ -205,6 +215,7 @@ async function handler(req: Request) {
         runtime().SOLANA_RPC_URL,
         fetch,
         true,
+        (await registry()).tokens,
       );
       if (!holdings.length)
         throw new AppError(
@@ -319,7 +330,7 @@ async function handler(req: Request) {
           sourceUrl.protocol !== 'https:' ||
           sourceUrl.username ||
           sourceUrl.password ||
-          !TOKENS.some((t) => t.symbol === b.symbol) ||
+          !(await registry()).tokens.some((t) => t.symbol === b.symbol) ||
           typeof b.active !== 'boolean'
         )
           throw new AppError(
@@ -419,6 +430,7 @@ async function handler(req: Request) {
           member!.id,
           runtime().SOLANA_RPC_URL,
           b.force === true,
+          (await registry()).tokens,
         ),
       );
     }
@@ -431,6 +443,17 @@ async function handler(req: Request) {
           member.id,
           runtime().SOLANA_RPC_URL,
           runtime().CMC_API_KEY,
+          (await registry()).registry,
+        ),
+      );
+    }
+    if (path[0] === 'rooms' && !post) {
+      await rateLimit('community-rooms:' + member.id, 60);
+      return json(
+        await readRooms(
+          db(),
+          url.searchParams.get('cursor') || '',
+          url.searchParams.get('q') || '',
         ),
       );
     }
@@ -447,7 +470,7 @@ async function handler(req: Request) {
         throw new AppError(
           'That name is reserved for the shared discussion feed.',
         );
-      const legacy = TOPICS.find(
+      const legacy = communityTopics((await registry()).tokens).find(
         (t) =>
           t.id.toLowerCase() === nameKey || t.label.toLowerCase() === nameKey,
       );
@@ -491,18 +514,19 @@ async function handler(req: Request) {
       return json({ id }, 201);
     }
     if (path[0] === 'home' && !post) {
-      return json(
-        await communityHome(
+      return json({
+        ...(await communityHome(
           db(),
           member.id,
           await digest(communityCookie(req)!),
-        ),
-      );
+        )),
+        registry: (await registry()).registry,
+      });
     }
     if (path[0] === 'follow' && post) {
       if (
         (b.symbol !== 'general' &&
-          !TOKENS.some((t) => t.symbol === b.symbol) &&
+          !(await registry()).tokens.some((t) => t.symbol === b.symbol) &&
           !(
             typeof b.symbol === 'string' &&
             (await db()
@@ -618,7 +642,7 @@ async function handler(req: Request) {
     }
     if (path[0] === 'threads' && !path[1]) {
       if (post) {
-        const p = validateCommunityPost(b);
+        const p = validateCommunityPost(b, (await registry()).tokens);
         if (
           p.topic.startsWith('room-') &&
           !(await db()
@@ -630,12 +654,32 @@ async function handler(req: Request) {
         await rateLimit('community-post:' + member.id, 3);
         const id = crypto.randomUUID(),
           now = Date.now();
-        await db()
-          .prepare(
-            'INSERT INTO community_threads (id,member_id,topic,title,body,hidden,created_at,updated_at) VALUES (?,?,?,?,?,0,?,?)',
-          )
-          .bind(id, member.id, p.topic, p.title, p.body, now, now)
-          .run();
+        const token = (await registry()).tokens.find(
+          (t) => t.symbol === p.topic,
+        );
+        await db().batch([
+          ...(!p.topic.startsWith('room-')
+            ? [
+                db()
+                  .prepare(
+                    'INSERT OR IGNORE INTO community_rooms(id,name,name_key,description,creator_id,created_at) VALUES(?,?,?,?,?,?)',
+                  )
+                  .bind(
+                    p.topic,
+                    token?.shortName || p.topic,
+                    'topic:' + p.topic.toLowerCase(),
+                    'Community discussions',
+                    member.id,
+                    now,
+                  ),
+              ]
+            : []),
+          db()
+            .prepare(
+              'INSERT INTO community_threads (id,member_id,topic,title,body,hidden,created_at,updated_at) VALUES (?,?,?,?,?,0,?,?)',
+            )
+            .bind(id, member.id, p.topic, p.title, p.body, now, now),
+        ]);
         return json({ id }, 201);
       }
       const topic = url.searchParams.get('topic') || 'all';
@@ -645,7 +689,9 @@ async function handler(req: Request) {
       const threadId = url.searchParams.get('thread') || '';
       if (threadId.length > 100) throw new AppError('Invalid discussion.');
       if (
-        !TOPICS.some((t) => t.id === topic) &&
+        !communityTopics((await registry()).tokens).some(
+          (t) => t.id === topic,
+        ) &&
         !(await db()
           .prepare('SELECT id FROM community_rooms WHERE id=?')
           .bind(topic)

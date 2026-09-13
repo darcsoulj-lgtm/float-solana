@@ -2,11 +2,11 @@
 
 The primary product is now a wallet-gated community. Read [COMMUNITY.md](COMMUNITY.md) for current behavior, operations, privacy and test coverage. The research documentation below describes retained legacy survey tools.
 
-The member home now includes **Your brief** and **Calendar**. Administrators publish sourced stories and events, manage reports and members, and inspect request counters at `/admin`. See [editorial operations](docs/EDITORIAL.md) for publishing instructions and coverage limitations. Legacy survey administration has moved to `/admin/research`.
+The member experience includes markets, discussions, news with upcoming events, and profiles. Administrators publish sourced stories and events, manage reports and members, and inspect request counters at `/admin`. See [editorial operations](docs/EDITORIAL.md) for publishing instructions and coverage limitations. Legacy survey administration has moved to `/admin/research`.
 
 # Float
 
-A persistent research application for verified tokenized-equity holder surveys. Built with React 19, Vinext, Cloudflare Workers, D1 SQLite, and platform-managed Sign in with ChatGPT. This is working application code, with explicit integration boundaries below.
+A community and market dashboard for holders of tokenized stocks on Solana, with retained legacy research tools. Built with React 19, Vinext, Cloudflare Workers and D1 SQLite. Holders sign in with a wallet; the administrative workspace uses platform-managed Sign in with ChatGPT. See the [September 13 engineering repair](docs/engineering-repair-2026-09-13.md) for architecture, measured checks and remaining limits.
 
 ## Run locally
 
@@ -48,11 +48,12 @@ See [the current member experience](docs/release-26-holder-experience.md) for da
 
 - `pnpm audit:tokens`: read-only live Backpack registry check before a release. Exits unsuccessfully if entries are missing, removed or mismatched. Review exact Solana mints before changing the allowlist; update the review date and evidence together. This is not a scheduled monitor.
 - `pnpm test:markets`: source parsing, coverage, supply validation and market-row selection regressions.
-- `pnpm test`: validation, strict signatures, small-order rejection, mint/program checks, account filtering, integer balances, RPC failure behavior.
+- `pnpm test`: discovers every `tests/*.test.mjs` regression suite, including validation, signatures, mint checks, market caches, listings, authorization and database behavior.
 - `pnpm test:integration`: local persistence, lifecycle, access boundaries, CSRF, demo isolation, commercial requests, server-rendered routes.
 - `node tests/authorization.mjs`: local researcher/admin/foreign-owner boundaries and forged-header rejection.
 - `pnpm test:wallet`: temporary local RPC fixture with genuine key generation/signatures; tests proof replay, fresh balance checks, duplicate wallets, analytics, reward refusal. Restores `.env` and `.dev.vars` afterward.
-- `pnpm typecheck` and `pnpm build`.
+- `pnpm build` (also `pnpm verify`): requires strict types, repository-wide lint and all regression suites to pass before producing the production build. A failed check stops the release build.
+- `node scripts/check-repair-runtime.mjs`: isolated Worker/D1 test with real application routes and sessions, synthetic users, and simulated slow/rate-limited providers. It does not load project secrets or contact providers. Reports latency, database work and request isolation. Local results do not establish regional production capacity.
 
 Integration tests require a running local server, applied migrations, and local admin configuration. They create only local test studies. Wallet tests never mint tokens, transact, or use a user's private keys. Do not run the fixture against a production database.
 
@@ -61,7 +62,6 @@ Integration tests require a running local server, applied migrations, and local 
 A successful mainnet holder submission from an actual funded user wallet has not been tested. A dedicated RPC URL, real wallet-browser compatibility testing, payment/subscription processing, USDC funding and payout worker, historical indexer, operator privacy procedures, monitoring, backups, and independent security review remain necessary before paid institutional operation. Mobile currently requires a compatible wallet browser; deep-link pairing is not included. The public site is an initial working release, not a claim of audited institutional readiness.
 
 Initial provisioning used a temporary fixed-data bootstrap route. That route has been removed from the published application; subsequent demo seeding is available only to signed-in administrators.
-
 
 ### Client release continuity
 
@@ -75,6 +75,8 @@ Backpack dashboard and all-market discovery now use a durable runtime registry, 
 
 A new candidate must have an enabled Solana address in Backpack's official assets endpoint and a finalized initialized mint with matching symbol, decimals, metadata mint, Backpack Securities name and pinned Backpack metadata authority. Duplicate identities, conflicting existing mints and non-Solana assets are rejected. New verified entries are appended in D1; provider errors retain the last-good list and honor retry delays. Market cache keys include the exact batch mints so new listings cannot inherit an older batch's data. Verification handles up to 80 new candidates per check and rotates large backlogs.
 
-This discovery currently covers Backpack. Other issuers retain their reviewed seed registries. It does not automatically grant community eligibility or change the wallet-verification allowlist; those use the separate reviewed membership registry. The public market listing is not an assertion that a token is available to every jurisdiction.
+This discovery currently covers Backpack. Other issuers retain their reviewed seed registries. The same server-validated registry now supplies market parsing, holdings verification, holder tiers, community topics and news matching. A discovered token can qualify a holder only after the existing signed-wallet and finalized ownership checks; client-supplied symbols never grant access. The public market listing is not an assertion that a token is available to every jurisdiction.
+
+Markets, the public Backpack dashboard and holder-tier valuation share canonical mint batches and the same price/supply/history cache entries. A warm batch reads its source snapshots in one database query. Normal market polling is every two minutes while a view is active; registry checks remain demand-driven every five minutes. Cache timestamps and delayed-source status remain visible. Full market summaries still load the tracked universe in bounded batches; a dedicated summary endpoint is a remaining scaling improvement.
 
 Backpack's official API docs also distinguish `source=Venue` trading statistics from `source=External` stock-market statistics. Neither is labeled total Solana DEX volume in Float.

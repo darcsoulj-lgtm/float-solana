@@ -1,3 +1,4 @@
+import { compileFunction } from 'node:vm';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
@@ -12,9 +13,12 @@ const output = ts.transpileModule(raw, {
     module: ts.ModuleKind.CommonJS,
   },
 }).outputText;
-const module = { exports: {} };
-new Function('module', 'exports', output)(module, module.exports);
-const { readThenRefresh } = module.exports;
+const compiledModule = { exports: {} };
+compileFunction(output, ['module', 'exports'])(
+  compiledModule,
+  compiledModule.exports,
+);
+const { readThenRefresh } = compiledModule.exports;
 const deferred = () => {
   let resolve;
   const promise = new Promise((r) => {
@@ -22,7 +26,7 @@ const deferred = () => {
   });
   return { promise, resolve };
 };
-test('saved headlines render before slow refresh finishes, then update in order', async () => {
+void test('saved headlines render before slow refresh finishes, then update in order', async () => {
   const refresh = deferred(),
     seen = [];
   let reads = 0;
@@ -37,7 +41,7 @@ test('saved headlines render before slow refresh finishes, then update in order'
   await run;
   assert.deepEqual(seen, ['saved', 'new']);
 });
-test('refresh failures retain usable content; first-read failures can recover', async () => {
+void test('refresh failures retain usable content; first-read failures can recover', async () => {
   const seen = [];
   let failures = 0;
   await readThenRefresh({
@@ -61,7 +65,7 @@ test('refresh failures retain usable content; first-read failures can recover', 
   });
   assert.deepEqual(seen, ['saved', 'recovered']);
 });
-test('a fast refresh cannot be overwritten by a late saved response', async () => {
+void test('a fast refresh cannot be overwritten by a late saved response', async () => {
   const saved = deferred(),
     seen = [];
   let reads = 0;

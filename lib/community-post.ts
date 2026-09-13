@@ -1,4 +1,5 @@
-import { TOPICS } from './community-types';
+import { communityTopics } from './community-types';
+import { TOKENS, type StockToken } from './tokens';
 
 export const POST_LIMITS = {
   title: { min: 1, max: 140 },
@@ -9,10 +10,13 @@ export type PostErrors = Partial<Record<'topic' | 'title' | 'body', string>>;
 // Shared by the form and server so whitespace and length rules cannot diverge.
 export function communityPostErrors(
   input: Record<string, unknown>,
+  tokens: readonly StockToken[] = TOKENS,
 ): PostErrors {
   const errors: PostErrors = {};
   if (
-    !TOPICS.some((topic) => topic.id !== 'all' && topic.id === input.topic) &&
+    !communityTopics(tokens).some(
+      (topic) => topic.id !== 'all' && topic.id === input.topic,
+    ) &&
     !(
       typeof input.topic === 'string' &&
       /^room-[a-f0-9-]{36}$/.test(input.topic)

@@ -1,3 +1,4 @@
+import { compileFunction } from 'node:vm';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
@@ -15,15 +16,15 @@ const { outputText } = ts.transpileModule(source, {
     jsx: ts.JsxEmit.ReactJSX,
   },
 });
-const module = { exports: {} };
-new Function('require', 'module', 'exports', outputText)(
+const compiledModule = { exports: {} };
+compileFunction(outputText, ['require', 'module', 'exports'])(
   require,
-  module,
-  module.exports,
+  compiledModule,
+  compiledModule.exports,
 );
-const { MarketStockRow } = module.exports;
+const { MarketStockRow } = compiledModule.exports;
 
-test('Clicking any SPCX metric cell reaches the row action and selects SPCX, not MU', () => {
+void test('Clicking any SPCX metric cell reaches the row action and selects SPCX, not MU', () => {
   let selected = 'MU';
   const row = MarketStockRow({
     symbol: 'SPCX',
@@ -41,7 +42,7 @@ test('Clicking any SPCX metric cell reaches the row action and selects SPCX, not
   assert.equal(selected, 'SPCX');
 });
 
-test('Stock-name activation stays keyboard accessible and prevents duplicate row activation', () => {
+void test('Stock-name activation stays keyboard accessible and prevents duplicate row activation', () => {
   const calls = [];
   const row = MarketStockRow({
     symbol: 'SPCX',

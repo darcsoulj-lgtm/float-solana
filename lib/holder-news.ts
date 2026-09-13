@@ -1,4 +1,4 @@
-import { TOKENS } from './tokens';
+import { TOKENS, type StockToken } from './tokens';
 import { SourceHttpError } from './market-data';
 export const NEWS_WINDOW_MS = 7 * 86400000;
 export const HEADLINE_REFRESH_MS = 15 * 60000;
@@ -33,8 +33,11 @@ const aliases: Record<string, string[]> = {
   TTWO: ['Take-Two'],
   UPS: ['United Parcel Service', 'UPS'],
 };
-export function companyAliases(symbol: string) {
-  const t = TOKENS.find((t) => t.symbol === symbol);
+export function companyAliases(
+  symbol: string,
+  tokens: readonly StockToken[] = TOKENS,
+) {
+  const t = tokens.find((t) => t.symbol === symbol);
   if (!t) throw Error('Unsupported stock');
   return (
     aliases[t.underlyingSymbol] ||
@@ -71,8 +74,12 @@ const decode = (s: string) =>
     )
     .replace(/<[^>]*>/g, '')
     .trim();
-export function matchesCompany(title: string, symbol: string) {
-  return companyAliases(symbol).some((a) =>
+export function matchesCompany(
+  title: string,
+  symbol: string,
+  tokens: readonly StockToken[] = TOKENS,
+) {
+  return companyAliases(symbol, tokens).some((a) =>
     new RegExp(
       '(^|[^a-z0-9])' +
         a.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') +
@@ -86,6 +93,7 @@ export function parseHeadlines(
   symbol: string,
   now = Date.now(),
   provider: 'yahoo' | 'google' = 'yahoo',
+  tokens: readonly StockToken[] = TOKENS,
 ): Headline[] {
   if (
     xml.length > 1000000 ||
@@ -114,7 +122,7 @@ export function parseHeadlines(
     if (
       !title ||
       title.length > 300 ||
-      !matchesCompany(title, symbol) ||
+      !matchesCompany(title, symbol, tokens) ||
       !Number.isFinite(published_at) ||
       published_at > now ||
       published_at < now - NEWS_WINDOW_MS
@@ -144,7 +152,7 @@ export function parseHeadlines(
       if (
         provider === 'google' &&
         (u.hostname !== 'news.google.com' ||
-          !/^\/rss\/articles\//.test(u.pathname) ||
+          !u.pathname.startsWith('/rss/articles/') ||
           !sourceName)
       )
         continue;
@@ -183,27 +191,29 @@ export async function fetchHeadlines(
   symbol: string,
   fetcher: typeof fetch = fetch,
   now = Date.now(),
+  tokens: readonly StockToken[] = TOKENS,
 ) {
-  companyAliases(symbol);
+  companyAliases(symbol, tokens);
   // Feed tickers are only candidates; every headline must still match the company.
   // Yahoo's SKHY feed covers the US listing and provides more direct company news.
-  const ticker = TOKENS.find(
-    (t) => t.symbol === symbol,
-  )!.underlyingSymbol.replace('/', '-');
+  const ticker = tokens
+    .find((t) => t.symbol === symbol)!
+    .underlyingSymbol.replace('/', '-');
   const url = new URL('https://feeds.finance.yahoo.com/rss/2.0/headline');
   url.search = new URLSearchParams({
     s: ticker,
     region: 'US',
     lang: 'en-US',
   }).toString();
-  return fetchHeadlineFeed(url, symbol, fetcher, now, 'yahoo');
+  return fetchHeadlineFeed(url, symbol, fetcher, now, 'yahoo', tokens);
 }
 export async function fetchGoogleHeadlines(
   symbol: string,
   fetcher: typeof fetch = fetch,
   now = Date.now(),
+  tokens: readonly StockToken[] = TOKENS,
 ) {
-  const names = [...new Set(companyAliases(symbol))];
+  const names = [...new Set(companyAliases(symbol, tokens))];
   const url = new URL('https://news.google.com/rss/search');
   url.search = new URLSearchParams({
     q:
@@ -214,7 +224,7 @@ export async function fetchGoogleHeadlines(
     gl: 'US',
     ceid: 'US:en',
   }).toString();
-  return fetchHeadlineFeed(url, symbol, fetcher, now, 'google');
+  return fetchHeadlineFeed(url, symbol, fetcher, now, 'google', tokens);
 }
 async function fetchHeadlineFeed(
   url: URL,
@@ -222,6 +232,7 @@ async function fetchHeadlineFeed(
   fetcher: typeof fetch,
   now: number,
   provider: 'yahoo' | 'google',
+  tokens: readonly StockToken[],
 ) {
   const r = await fetcher(url, {
     signal: AbortSignal.timeout(10000),
@@ -247,5 +258,5 @@ async function fetchHeadlineFeed(
     text += decoder.decode(part.value, { stream: true });
   }
   text += decoder.decode();
-  return parseHeadlines(text, symbol, now, provider);
+  return parseHeadlines(text, symbol, now, provider, tokens);
 }

@@ -1,7 +1,7 @@
 import type { Holding } from './community-types';
 import type { MarketOverview } from './market-data';
 import { tokenObservation } from './token-observation';
-import { TOKENS } from './tokens';
+import { marketTokens } from './market-data';
 
 export const HOLDER_TIERS = [
   { id: 'bronze', label: 'Bronze', minimum: 0, range: 'Under $100' },
@@ -33,7 +33,7 @@ export function calculateHolderTier(
   let expiresAt = now + 120000;
   for (const h of holdings) {
     if (
-      !TOKENS.some((t) => t.symbol === h.symbol) ||
+      !marketTokens(data).some((t) => t.symbol === h.symbol) ||
       !/^\d+$/.test(h.raw_amount || '') ||
       !Number.isInteger(h.decimals) ||
       h.decimals! < 0 ||

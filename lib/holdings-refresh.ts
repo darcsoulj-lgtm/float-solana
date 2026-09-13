@@ -1,3 +1,4 @@
+import { TOKENS, type StockToken } from './tokens';
 import { detectHoldings } from './solana';
 import { AppError } from './validation';
 
@@ -8,6 +9,7 @@ export async function refreshHoldings(
   memberId: string,
   rpcUrl?: string,
   force = false,
+  tokens: readonly StockToken[] = TOKENS,
 ) {
   const now = Date.now();
   const session = await db
@@ -27,7 +29,13 @@ export async function refreshHoldings(
     .first<{ wallet: string }>();
   if (!lease) return { needsVerification: false, checked: false };
   // An RPC failure leaves the previous list intact and propagates a visible error.
-  const holdings = await detectHoldings(lease.wallet, rpcUrl, fetch, true);
+  const holdings = await detectHoldings(
+    lease.wallet,
+    rpcUrl,
+    fetch,
+    true,
+    tokens,
+  );
   const guard =
     'EXISTS(SELECT 1 FROM community_sessions WHERE hash=? AND member_id=? AND holdings_refresh_at=? AND expires_at>?)';
   const args = [hash, memberId, now, Date.now()];

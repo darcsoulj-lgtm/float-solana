@@ -1,0 +1,1 @@
+{"mode":"local-workers-d1-simulated-1200ms-provider","blockingMs":1224,"snapshotConcurrentRequests":20,"snapshotP50Ms":24,"snapshotP95Ms":27,"snapshotMaxMs":38,"warmMs":8,"sharedProviderRefreshes":1}

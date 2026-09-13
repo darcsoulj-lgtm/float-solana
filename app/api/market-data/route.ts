@@ -1,3 +1,4 @@
+import { readMarketBatch } from '@/lib/market-service';
 import {
   backpackRegistry,
   registryTokens,
@@ -10,12 +11,8 @@ import { AppError } from '@/lib/validation';
 import { TOKEN_REVIEW_DATE, MARKET_BATCH_SIZE } from '@/lib/tokens';
 import {
   MARKET_REFRESH_MS,
-  POOL_REFRESH_MS,
   MARKET_MAX_AGE_MS,
   fetchCatalog,
-  fetchPools,
-  fetchPrices,
-  fetchHistoricalPrices,
   fetchTokenPools,
   parseBook,
   publicJson,
@@ -24,7 +21,6 @@ import { marketSnapshot } from '@/lib/market-cache';
 import { waitUntil } from 'cloudflare:workers';
 import { CIRCULATION_MAX_AGE_MS } from '@/lib/xstocks-circulation';
 import { circulationSnapshot } from '@/lib/circulation-cache';
-import { fetchSupplies } from '@/lib/token-supply';
 export const dynamic = 'force-dynamic';
 const json = (data: unknown, status = 200) =>
   Response.json(data, {
@@ -77,7 +73,6 @@ export async function GET(req: Request) {
       batch * MARKET_BATCH_SIZE,
       (batch + 1) * MARKET_BATCH_SIZE,
     );
-    const batchKey = TOKEN_REVIEW_DATE + ':' + (await tokenBatchKey(tokens));
     const backpackTokens = registryList.filter((t) => t.issuer === 'backpack');
     const poolSymbol = new URL(req.url).searchParams.get('pools');
     if (poolSymbol) {
@@ -127,42 +122,30 @@ export async function GET(req: Request) {
       );
       return json({ book, reason: null });
     }
-    const [pools, prices, markets, supplies, history, circulation] =
-      await Promise.all([
-        snapshot('dex-pools-v4:' + batchKey, POOL_REFRESH_MS, () =>
-          fetchPools(fetch, tokens),
-        ),
-        snapshot('llama-prices-v3:' + batchKey, MARKET_REFRESH_MS, () =>
-          fetchPrices(fetch, tokens),
-        ),
-        batch > 0
-          ? Promise.resolve({
-              data: {},
-              fetchedAt: null,
-              stale: false,
-              error: null,
-            })
-          : snapshot('cmc-tokens-v2', CMC_REFRESH_MS, () =>
-              fetchTokenMarkets(runtime().CMC_API_KEY),
-            ),
-        snapshot('solana-supplies-v4:' + batchKey, MARKET_REFRESH_MS, () =>
-          fetchSupplies(runtime().SOLANA_RPC_URL, fetch, tokens),
-        ),
-        snapshot('llama-history-v1:' + batchKey, MARKET_REFRESH_MS, () =>
-          fetchHistoricalPrices(fetch, tokens),
-        ),
-        batch === 0
-          ? circulationSnapshot(database, waitUntil)
-          : Promise.resolve(undefined),
-      ]);
+    const [observations, markets, circulation] = await Promise.all([
+      readMarketBatch(database, tokens, {
+        rpcUrl: runtime().SOLANA_RPC_URL,
+        defer: waitUntil,
+      }),
+      batch > 0
+        ? Promise.resolve({
+            data: {},
+            fetchedAt: null,
+            stale: false,
+            error: null,
+          })
+        : snapshot('cmc-tokens-v2', CMC_REFRESH_MS, () =>
+            fetchTokenMarkets(runtime().CMC_API_KEY),
+          ),
+      batch === 0
+        ? circulationSnapshot(database, waitUntil)
+        : Promise.resolve(undefined),
+    ]);
     const response = json({
       registry,
       catalog,
-      pools,
-      prices,
+      ...observations,
       markets,
-      supplies,
-      history,
       ...(circulation ? { circulation } : {}),
       batch,
       totalBatches: Math.ceil(registryList.length / MARKET_BATCH_SIZE),

@@ -75,7 +75,7 @@ try {
     assert.equal(response.status, 200);
     const result = await response.json();
     all.push(result);
-    const { data, ...summary } = result;
+    const { data: _data, ...summary } = result;
     console.log(JSON.stringify(summary));
   }
   fs.mkdirSync(root + 'research/multi-issuer', { recursive: true });

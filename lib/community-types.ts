@@ -1,12 +1,14 @@
-import { TOKENS } from './tokens';
-export const TOPICS = [
+import { TOKENS, type StockToken } from './tokens';
+import type { RegistryStatus } from './token-registry';
+export const communityTopics = (tokens: readonly StockToken[] = TOKENS) => [
   { id: 'all', label: 'All discussions' },
   { id: 'general', label: 'General' },
-  ...TOKENS.map((t) => ({
+  ...tokens.map((t) => ({
     id: t.symbol,
     label: t.symbol + ' · ' + t.shortName,
   })),
 ];
+export const TOPICS = communityTopics();
 export type CommunityMember = {
   id: string;
   alias: string;
@@ -112,6 +114,7 @@ export type CommunityRoom = {
   thread_count: number;
 };
 export type MemberHome = {
+  registry?: RegistryStatus;
   holdingsRefreshAvailable: boolean;
   rooms: CommunityRoom[];
   holdings: Holding[];

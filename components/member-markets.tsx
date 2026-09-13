@@ -41,9 +41,7 @@ export function MemberMarkets({
         <Activity mode={market === 'all' ? 'visible' : 'hidden'}>
           <Suspense
             fallback={
-              <p className="inline-status" role="status">
-                Loading markets…
-              </p>
+              <output className="inline-status">Loading markets…</output>
             }
           >
             <MarketOverviewPanel
@@ -62,9 +60,7 @@ export function MemberMarkets({
         >
           <Suspense
             fallback={
-              <p className="inline-status" role="status">
-                Loading {issuer.name}…
-              </p>
+              <output className="inline-status">Loading {issuer.name}…</output>
             }
           >
             <IssuerDashboardPage issuer={issuer.id} embedded />

@@ -152,7 +152,7 @@ function signInChallenge(p) {
   };
 }
 
-test('SIWS fields bind the server origin, account, mainnet, alphanumeric nonce and five-minute expiry', () => {
+void test('SIWS fields bind the server origin, account, mainnet, alphanumeric nonce and five-minute expiry', () => {
   const p = phantomFixture(),
     c = signInChallenge(p);
   assert.equal(c.input.domain, 'holderpulse.example');
@@ -168,7 +168,7 @@ test('SIWS fields bind the server origin, account, mainnet, alphanumeric nonce a
   assert.equal(c.message.at(-1), 'Z'.charCodeAt(0));
 });
 
-test('Phantom membership uses the distinct signIn operation even when generic signing fails', async () => {
+void test('Phantom membership uses the distinct signIn operation even when generic signing fails', async () => {
   const p = phantomFixture({ reject: true }),
     c = signInChallenge(p);
   const connection = routeWallet(
@@ -182,7 +182,7 @@ test('Phantom membership uses the distinct signIn operation even when generic si
   assert.deepEqual(p.calls, ['connect', 'signIn']);
 });
 
-test('Native Phantom SIWS accepts the SDK string-address response without an account field', async () => {
+void test('Native Phantom SIWS accepts the SDK string-address response without an account field', async () => {
   const p = phantomFixture({
       onSignIn(result) {
         assert.equal(result.account, undefined);
@@ -198,7 +198,7 @@ test('Native Phantom SIWS accepts the SDK string-address response without an acc
 });
 
 for (const value of [undefined, null, 123, [], {}]) {
-  test(`Native Phantom SIWS rejects malformed address ${JSON.stringify(value)}`, async () => {
+  void test(`Native Phantom SIWS rejects malformed address ${JSON.stringify(value)}`, async () => {
     const p = phantomFixture({
         onSignIn(result) {
           result.address = value;
@@ -215,7 +215,7 @@ for (const value of [undefined, null, 123, [], {}]) {
   });
 }
 
-test('A Wallet Standard account cannot substitute for the native Phantom address field', async () => {
+void test('A Wallet Standard account cannot substitute for the native Phantom address field', async () => {
   const p = phantomFixture({
       onSignIn(result) {
         result.account = { address: result.address.toString() };
@@ -231,18 +231,18 @@ test('A Wallet Standard account cannot substitute for the native Phantom address
   );
 });
 
-test('Missing or shared Phantom signIn stops before requesting another operation', async () => {
+void test('Missing or shared Phantom signIn stops before requesting another operation', async () => {
   for (const kind of ['missing', 'shared']) {
     const p = phantomFixture();
     if (kind === 'missing') delete p.provider.signIn;
-    else p.providers.backpack = { signIn: p.provider.signIn };
+    else p.providers.backpack = { signIn: Reflect.get(p.provider, 'signIn') };
     const connection = routeWallet('phantom', [], p.providers);
     assert.throws(() => connection.requireSignIn());
     assert.deepEqual(p.calls, []);
   }
 });
 
-test('Rejected SIWS never retries generic signing or another wallet', async () => {
+void test('Rejected SIWS never retries generic signing or another wallet', async () => {
   const p = phantomFixture({
       signInError: new Error('User rejected the request.'),
     }),
@@ -254,7 +254,7 @@ test('Rejected SIWS never retries generic signing or another wallet', async () =
 });
 
 for (const field of ['domain', 'nonce', 'expirationTime', 'address']) {
-  test(`SIWS rejects a changed ${field} rather than granting membership`, async () => {
+  void test(`SIWS rejects a changed ${field} rather than granting membership`, async () => {
     const p = phantomFixture(),
       c = signInChallenge(p);
     const connection = routeWallet('phantom', [], p.providers);
@@ -275,7 +275,7 @@ for (const kind of [
   'connection',
   'method',
 ]) {
-  test(`SIWS rejects a changed response ${kind}`, async () => {
+  void test(`SIWS rejects a changed response ${kind}`, async () => {
     const p = phantomFixture({
         onSignIn(result, provider) {
           if (kind === 'address')
@@ -303,7 +303,7 @@ for (const kind of [
   });
 }
 
-test('Phantom uses its dedicated request transport even when its standard signing wrapper routes to Backpack', async () => {
+void test('Phantom uses its dedicated request transport even when its standard signing wrapper routes to Backpack', async () => {
   const p = phantomFixture(),
     standard = fixture(),
     backpack = fixture('Backpack');
@@ -321,7 +321,7 @@ test('Phantom uses its dedicated request transport even when its standard signin
   assert.deepEqual(backpack.calls, []);
 });
 
-test('Missing native Phantom never falls back to a named registration or shared Backpack provider', () => {
+void test('Missing native Phantom never falls back to a named registration or shared Backpack provider', () => {
   const b = phantomFixture();
   assert.throws(
     () =>
@@ -335,19 +335,19 @@ test('Missing native Phantom never falls back to a named registration or shared 
 });
 
 for (const collision of ['isBackpack', 'sameObject', 'sameRequest']) {
-  test(`Phantom rejects ${collision} conflicts before opening a wallet`, () => {
+  void test(`Phantom rejects ${collision} conflicts before opening a wallet`, () => {
     const p = phantomFixture();
     if (collision === 'isBackpack') p.provider.isBackpack = true;
     if (collision === 'sameObject') p.providers.backpack = p.provider;
     if (collision === 'sameRequest')
-      p.providers.backpack = { request: p.provider.request };
+      p.providers.backpack = { request: Reflect.get(p.provider, 'request') };
     assert.throws(() => routeWallet('phantom', [], p.providers), /conflicts/);
     assert.deepEqual(p.calls, []);
   });
 }
 
 for (const representation of ['base58', 'serialized']) {
-  test(`Phantom validates a ${representation} JSON-RPC signature`, async () => {
+  void test(`Phantom validates a ${representation} JSON-RPC signature`, async () => {
     const p = phantomFixture({ [representation]: true }),
       c = routeWallet('phantom', [], p.providers);
     await c.connect();
@@ -356,7 +356,7 @@ for (const representation of ['base58', 'serialized']) {
 }
 
 for (const invalid of ['wrongMessage', 'wrongKey', 'wrongAddress']) {
-  test(`Phantom rejects ${invalid} from its dedicated request transport`, async () => {
+  void test(`Phantom rejects ${invalid} from its dedicated request transport`, async () => {
     const p = phantomFixture({ [invalid]: true }),
       c = routeWallet('phantom', [], p.providers);
     await c.connect();
@@ -367,7 +367,7 @@ for (const invalid of ['wrongMessage', 'wrongKey', 'wrongAddress']) {
   });
 }
 
-test('Phantom rejection never opens another wallet or retries another signing API', async () => {
+void test('Phantom rejection never opens another wallet or retries another signing API', async () => {
   const p = phantomFixture({ reject: true }),
     c = routeWallet('phantom', [], p.providers);
   await c.connect();
@@ -376,13 +376,13 @@ test('Phantom rejection never opens another wallet or retries another signing AP
 });
 
 for (const change of ['account', 'request', 'namespace']) {
-  test(`Phantom ${change} replacement after connect prevents signing`, async () => {
+  void test(`Phantom ${change} replacement after connect prevents signing`, async () => {
     const p = phantomFixture(),
       c = routeWallet('phantom', [], p.providers);
     await c.connect();
     if (change === 'account') p.provider.publicKey = phantomFixture().key;
     if (change === 'request')
-      p.provider.request = phantomFixture().provider.request;
+      p.provider.request = Reflect.get(phantomFixture().provider, 'request');
     if (change === 'namespace')
       p.providers.phantom.solana = phantomFixture().provider;
     assert.equal(c.accountUnchanged(), false);
@@ -391,7 +391,7 @@ for (const change of ['account', 'request', 'namespace']) {
   });
 }
 
-test('Phantom account changes during signing reject the result', async () => {
+void test('Phantom account changes during signing reject the result', async () => {
   const p = phantomFixture({
     duringSign(provider) {
       provider.publicKey = null;
@@ -402,7 +402,7 @@ test('Phantom account changes during signing reject the result', async () => {
   await assert.rejects(c.signMessage(message), /connection changed/);
 });
 
-test('Native Phantom detection works without a Wallet Standard registration', () => {
+void test('Native Phantom detection works without a Wallet Standard registration', () => {
   const p = phantomFixture();
   assert.equal(
     walletAvailability([], p.providers).find((w) => w.id === 'phantom').state,
@@ -410,7 +410,7 @@ test('Native Phantom detection works without a Wallet Standard registration', ()
   );
 });
 
-test('Native Phantom disconnect events invalidate the session and remove listeners on cleanup', async () => {
+void test('Native Phantom disconnect events invalidate the session and remove listeners on cleanup', async () => {
   const p = phantomFixture(),
     c = routeWallet('phantom', [], p.providers);
   await c.connect();
@@ -467,7 +467,7 @@ function fixture(name = 'Phantom', options = {}) {
   };
   return { wallet, account, calls };
 }
-test('Wallet Standard adapter separates named Solana accounts from other wallets and Sui', async () => {
+void test('Wallet Standard adapter separates named Solana accounts from other wallets and Sui', async () => {
   const p = fixture(),
     b = fixture('Backpack'),
     s = fixture();
@@ -479,7 +479,7 @@ test('Wallet Standard adapter separates named Solana accounts from other wallets
   assert.deepEqual(b.calls, []);
   assert.deepEqual(s.calls, []);
 });
-test('Every supported wallet connects and signs through its own account', async () => {
+void test('Every supported wallet connects and signs through its own account', async () => {
   for (const name of ['Phantom', 'Backpack', 'Solflare']) {
     const f = fixture(name);
     const c = selectedWallet(name.toLowerCase(), [f.wallet]);
@@ -488,7 +488,7 @@ test('Every supported wallet connects and signs through its own account', async 
     assert.deepEqual(f.calls, ['connect', 'sign']);
   }
 });
-test('Missing Phantom never opens Backpack', () => {
+void test('Missing Phantom never opens Backpack', () => {
   const b = fixture('Backpack');
   assert.throws(
     () => selectedWallet('phantom', [b.wallet]),
@@ -496,18 +496,18 @@ test('Missing Phantom never opens Backpack', () => {
   );
   assert.deepEqual(b.calls, []);
 });
-test('Duplicate Solana wallet names fail closed', () =>
+void test('Duplicate Solana wallet names fail closed', () =>
   assert.throws(
     () => selectedWallet('phantom', [fixture().wallet, fixture().wallet]),
     /More than one Phantom/,
   ));
-test('Unsupported wallet name and missing signing capability fail closed', () => {
+void test('Unsupported wallet name and missing signing capability fail closed', () => {
   assert.throws(() => selectedWallet('unknown', []), /Choose/);
   const p = fixture();
   delete p.wallet.features['solana:signMessage'];
   assert.throws(() => selectedWallet('phantom', [p.wallet]), /not available/);
 });
-test('Account switch before signing is caught before a request is sent', async () => {
+void test('Account switch before signing is caught before a request is sent', async () => {
   const p = fixture(),
     c = selectedWallet('phantom', [p.wallet]);
   await c.connect();
@@ -515,14 +515,14 @@ test('Account switch before signing is caught before a request is sent', async (
   await assert.rejects(c.signMessage(message), /account changed/);
   assert.deepEqual(p.calls, ['connect']);
 });
-test('Account switch while signing is rejected', async () => {
+void test('Account switch while signing is rejected', async () => {
   const p = fixture('Phantom', { changeAccount: true }),
     c = selectedWallet('phantom', [p.wallet]);
   await c.connect();
   await assert.rejects(c.signMessage(message), /account changed/);
 });
 for (const mode of ['wrongMessage', 'wrongKey'])
-  test('Rejects ' + mode + ' before submitting verification', async () => {
+  void test('Rejects ' + mode + ' before submitting verification', async () => {
     const p = fixture('Phantom', { [mode]: true }),
       c = selectedWallet('phantom', [p.wallet]);
     await c.connect();
@@ -531,7 +531,7 @@ for (const mode of ['wrongMessage', 'wrongKey'])
       /different account or message/,
     );
   });
-test('User rejection propagates without falling through to a second wallet', async () => {
+void test('User rejection propagates without falling through to a second wallet', async () => {
   const p = fixture(),
     b = fixture('Backpack');
   p.wallet.features['standard:connect'].connect = async () => {
@@ -543,7 +543,7 @@ test('User rejection propagates without falling through to a second wallet', asy
   );
   assert.deepEqual(b.calls, []);
 });
-test('Provider feature replacement after connecting cannot reroute signing', async () => {
+void test('Provider feature replacement after connecting cannot reroute signing', async () => {
   const p = fixture(),
     b = fixture('Backpack'),
     c = selectedWallet('phantom', [p.wallet, b.wallet]);
@@ -553,7 +553,7 @@ test('Provider feature replacement after connecting cannot reroute signing', asy
   await c.signMessage(message);
   assert.deepEqual(b.calls, []);
 });
-test('Both entry points use named-wallet selection without shared injected globals', async () => {
+void test('Both entry points use named-wallet selection without shared injected globals', async () => {
   for (const name of ['community', 'participant']) {
     const s = await readFile(
       new URL('../components/' + name + '.tsx', import.meta.url),
@@ -564,7 +564,7 @@ test('Both entry points use named-wallet selection without shared injected globa
   }
 });
 
-test('Equivalent refreshed account objects stay connected and use the current account for signing', async () => {
+void test('Equivalent refreshed account objects stay connected and use the current account for signing', async () => {
   const p = fixture(),
     c = selectedWallet('phantom', [p.wallet]);
   // A connect result can be an equivalent data object, not the same reference.
@@ -575,7 +575,7 @@ test('Equivalent refreshed account objects stay connected and use the current ac
   assert.equal((await c.signMessage(message)).length, 64);
 });
 
-test('Same address with a changed public key is rejected before signing', async () => {
+void test('Same address with a changed public key is rejected before signing', async () => {
   const p = fixture(),
     c = selectedWallet('phantom', [p.wallet]);
   await c.connect();
@@ -586,7 +586,7 @@ test('Same address with a changed public key is rejected before signing', async 
 });
 
 for (const shape of ['serialized', 'cross-realm']) {
-  test(`Accepts cryptographically valid ${shape} signature bytes`, async () => {
+  void test(`Accepts cryptographically valid ${shape} signature bytes`, async () => {
     const p = fixture();
     const feature = p.wallet.features['solana:signMessage'];
     const original = feature.signMessage;
@@ -612,7 +612,7 @@ for (const shape of ['serialized', 'cross-realm']) {
 }
 
 for (const bad of [-1, 256, 1.5, '1', null]) {
-  test(`Rejects malformed signature byte ${JSON.stringify(bad)}`, async () => {
+  void test(`Rejects malformed signature byte ${JSON.stringify(bad)}`, async () => {
     const p = fixture();
     p.wallet.features['solana:signMessage'].signMessage = async () => [
       { signedMessage: message, signature: [bad, ...Array(63).fill(0)] },
@@ -623,7 +623,7 @@ for (const bad of [-1, 256, 1.5, '1', null]) {
   });
 }
 
-test('Wallet picker requires native Phantom and detects missing capabilities on other wallets', () => {
+void test('Wallet picker requires native Phantom and detects missing capabilities on other wallets', () => {
   const phantom = fixture(),
     backpack = fixture('Backpack'),
     solflare = fixture('Solflare');
@@ -645,7 +645,7 @@ test('Wallet picker requires native Phantom and detects missing capabilities on 
   assert.deepEqual(backpack.calls, []);
 });
 
-test('Wallet account-change subscriptions invalidate the captured account and can be removed', async () => {
+void test('Wallet account-change subscriptions invalidate the captured account and can be removed', async () => {
   const p = fixture();
   let onChange,
     changed = 0,

@@ -1,44 +1,14 @@
-import { TOPICS } from './community-types';
+import { roomStatement, roomPage } from './community-rooms';
+import type { CommunityRoom } from './community-types';
 
 // Auth is enforced by the route. All private reads use its verified member ID.
-// One database batch avoids serial network trips; bootstrap writes precede reads.
+// One database batch avoids serial network trips; all statements are read-only.
 export async function communityHome(
   database: D1Database,
   memberId: string,
   sessionHash: string,
 ) {
-  const sources = [
-    [
-      'micron-ir',
-      'MU',
-      'Earnings, filings & investor updates',
-      'Micron',
-      'https://investors.micron.com/overview/default.aspx',
-    ],
-    [
-      'skhynix-news',
-      'SKHY',
-      'Inside the memory industry',
-      'SK hynix Newsroom',
-      'https://news.skhynix.com/en/',
-    ],
-    [
-      'nvidia-ir',
-      'NVDA',
-      'Results & company announcements',
-      'NVIDIA',
-      'https://investor.nvidia.com/home/default.aspx',
-    ],
-  ];
-
   const result = await database.batch<Record<string, unknown>>([
-    ...sources.map((source) =>
-      database
-        .prepare(
-          'INSERT OR IGNORE INTO community_sources (id,symbol,title,publisher,url,created_at) VALUES (?,?,?,?,?,?)',
-        )
-        .bind(...source, 1788994800000),
-    ),
     database
       .prepare(
         'SELECT symbol,verified_at,slot,raw_amount,decimals,ui_amount FROM community_holdings WHERE member_id=? ORDER BY symbol',
@@ -64,15 +34,18 @@ export async function communityHome(
         'SELECT 1 FROM community_sessions WHERE hash=? AND member_id=? AND wallet IS NOT NULL',
       )
       .bind(sessionHash, memberId),
-    database.prepare(
-      'SELECT r.id,r.name,r.description,(SELECT count(*) FROM community_threads WHERE topic=r.id AND hidden=0) thread_count FROM community_rooms r ORDER BY r.created_at DESC',
-    ),
-    database.prepare(
-      'SELECT topic,count(*) thread_count FROM community_threads WHERE hidden=0 AND topic NOT IN (SELECT id FROM community_rooms) GROUP BY topic',
-    ),
+    roomStatement(database),
+    database
+      .prepare(
+        `SELECT r.id,r.name,r.description,r.thread_count FROM community_rooms r JOIN community_follows f ON f.symbol=r.id WHERE f.member_id=? ORDER BY r.name`,
+      )
+      .bind(memberId),
   ]);
-  const [holdings, follows, links, notifications, session, rooms, legacy] =
-    result.slice(sources.length);
+  const [holdings, follows, links, notifications, session, rooms, followed] =
+    result;
+  const page = roomPage(
+    rooms.results as unknown as (CommunityRoom & { created_at: number })[],
+  );
   return {
     holdingsRefreshAvailable: !!session.results.length,
     holdings: holdings.results,
@@ -80,13 +53,12 @@ export async function communityHome(
     sources: links.results,
     notifications: notifications.results,
     rooms: [
-      ...rooms.results,
-      ...legacy.results.map((row) => ({
-        id: row.topic,
-        name: TOPICS.find((t) => t.id === row.topic)?.label || row.topic,
-        description: 'Community discussions',
-        thread_count: row.thread_count,
-      })),
+      ...new Map(
+        [
+          ...(followed.results as unknown as CommunityRoom[]),
+          ...page.rooms,
+        ].map((row) => [row.id, row]),
+      ).values(),
     ],
   };
 }

@@ -1,3 +1,4 @@
+import Link from '@/components/site-link';
 import { marketTokens } from '@/lib/market-data';
 import { MetricInfo } from './metric-info';
 import { ArrowUpRight } from 'lucide-react';
@@ -36,9 +37,9 @@ export function SolanaEcosystem({
     >
       <div className="ecosystem-heading">
         <h2>Tokenized Stocks on Solana</h2>
-        <a href="/tokens" className="market-chain">
+        <Link href="/tokens" className="market-chain">
           Coverage ↗
-        </a>
+        </Link>
       </div>
       <div className="ecosystem-stats">
         <div>
