@@ -5,6 +5,7 @@ import { HolderTierBadge } from './holder-tier-badge';
 import { HOLDER_TIERS, type HolderTierResult } from '@/lib/holder-tier';
 import {
   lazy,
+  Activity,
   Suspense,
   useCallback,
   useEffect,
@@ -15,9 +16,7 @@ import {
 import Link from './site-link';
 import {
   Home,
-  Backpack,
   ChartNoAxesCombined,
-  Newspaper,
   Compass,
   Bookmark,
   UserRound,
@@ -44,19 +43,23 @@ import {
 import { SearchPicker } from './search-picker';
 import { Thread } from './community-thread';
 import { RoomCreator } from './room-creator';
-const MarketOverviewPanel = lazy(() =>
-  import('./market-overview').then((module) => ({
-    default: module.MarketOverviewPanel,
+const MemberHomePanel = lazy(() =>
+  import('./member-home').then((module) => ({
+    default: module.MemberHomePanel,
   })),
 );
-const BackpackDashboardPage = lazy(() =>
-  import('./backpack-dashboard').then((module) => ({
-    default: module.BackpackDashboardPage,
+const MemberMarkets = lazy(() =>
+  import('./member-markets').then((module) => ({
+    default: module.MemberMarkets,
   })),
 );
+import {
+  memberLocation,
+  type MemberView,
+  type MarketView,
+} from '@/lib/member-navigation';
 import { ThemeToggle } from './theme-toggle';
 import { MemberAvatar, prepareAvatar } from './member-avatar';
-import { MemberBrief } from './member-brief';
 import { api } from '@/lib/client';
 import { readThenRefresh } from '@/lib/client-loading';
 import { communityPostErrors, POST_LIMITS } from '@/lib/community-post';
@@ -67,12 +70,11 @@ import {
   type ThreadPage,
   type CommunitySource,
 } from '@/lib/community-types';
-type View = 'backpack' | 'markets' | 'brief' | 'home' | 'topics' | 'profile';
+type View = MemberView;
 const destinations = [
-  { id: 'brief', label: 'News', icon: Newspaper },
+  { id: 'overview', label: 'Home', icon: Home },
+  { id: 'home', label: 'Discussions', icon: MessageSquare },
   { id: 'markets', label: 'Markets', icon: ChartNoAxesCombined },
-  { id: 'backpack', label: 'Backpack', icon: Backpack },
-  { id: 'home', label: 'Discussions', icon: Home },
   { id: 'profile', label: 'Profile', icon: UserRound },
 ] as const;
 export function MemberDashboard({
@@ -85,40 +87,76 @@ export function MemberDashboard({
   renew: () => void;
 }) {
   const member = status.member!;
-  const [view, setView] = useState<View>(() => {
-    const value =
-      typeof window !== 'undefined'
-        ? new URLSearchParams(window.location.search).get('view')
-        : null;
-    if (value === 'saved') return 'home';
-    if (value === 'calendar') return 'brief';
-    return value === 'topics' || destinations.some((d) => d.id === value)
-      ? (value as View)
-      : 'brief';
-  });
-  const [feed, setFeed] = useState(() => {
-    if (typeof window === 'undefined') return 'personal';
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('view') === 'saved') return 'saved';
-    const value = params.get('feed');
-    return value === 'saved' || value === 'all' ? value : 'personal';
-  });
+  const [initialLocation] = useState(() =>
+    memberLocation(typeof window === 'undefined' ? '' : window.location.search),
+  );
+  const [view, setView] = useState<View>(initialLocation.view);
+  const [market, setMarket] = useState<MarketView>(initialLocation.market);
+  const [feed, setFeed] = useState(initialLocation.feed);
+  const [topic, setTopic] = useState(() =>
+    typeof window === 'undefined'
+      ? 'all'
+      : new URLSearchParams(window.location.search).get('topic') || 'all',
+  );
+  const [coverageSymbol, setCoverageSymbol] = useState('all');
+  const [threadId, setThreadId] = useState(() =>
+    typeof window === 'undefined'
+      ? ''
+      : new URLSearchParams(window.location.search).get('thread') || '',
+  );
+  const [visited, setVisited] = useState<Set<View>>(() => new Set([view]));
+  const scrollPositions = useRef<Record<string, number>>({});
+  const viewKey = view + ':' + (view === 'markets' ? market : '');
+  if (!visited.has(view)) setVisited(new Set([...visited, view]));
   useEffect(() => {
     const url = new URL(window.location.href);
     if (url.searchParams.get('view') === 'calendar')
       url.searchParams.set('agenda', 'open');
     url.searchParams.set('view', view);
-    if (view === 'home') url.searchParams.set('feed', feed);
-    else url.searchParams.delete('feed');
+    if (view === 'markets' && market === 'backpack')
+      url.searchParams.set('issuer', market);
+    else url.searchParams.delete('issuer');
+    for (const [key, value] of [
+      ['feed', feed],
+      ['topic', topic],
+      ['thread', threadId],
+    ]) {
+      if (view === 'home' && value) url.searchParams.set(key, value);
+      else url.searchParams.delete(key);
+    }
     window.history.replaceState(null, '', url.pathname + url.search + url.hash);
-  }, [view, feed]);
-  const [topic, setTopic] = useState('all');
-  const [coverageSymbol, setCoverageSymbol] = useState('all');
-  const [threadId, setThreadId] = useState('');
+  }, [view, market, feed, topic, threadId]);
+  useEffect(() => {
+    const restore = () => {
+      scrollPositions.current[viewKey] = window.scrollY;
+      const next = memberLocation(window.location.search);
+      setView(next.view);
+      setMarket(next.market);
+      setFeed(next.feed);
+      const params = new URLSearchParams(window.location.search);
+      setTopic(params.get('topic') || 'all');
+      setThreadId(params.get('thread') || '');
+    };
+    window.addEventListener('popstate', restore);
+    return () => window.removeEventListener('popstate', restore);
+  }, [viewKey]);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() =>
+      window.scrollTo({
+        top: scrollPositions.current[viewKey] || 0,
+        behavior: 'instant',
+      }),
+    );
+    return () => cancelAnimationFrame(frame);
+  }, [viewKey]);
   const [data, setData] = useState<MemberHome | null>(null);
   const [threads, setThreads] = useState<CommunityThread[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const [homeError, setHomeError] = useState('');
+  const [feedError, setFeedError] = useState('');
+  const [communityRevision, setCommunityRevision] = useState(0);
+  const feedCache = useRef(new Map<string, ThreadPage>());
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
   const [holdingsChecking, setHoldingsChecking] = useState(false);
@@ -188,49 +226,73 @@ export function MemberDashboard({
   const loading = loadedQuery !== query;
   const refresh = useCallback(async () => {
     const sequence = ++requestSequence.current;
-    await syncHoldings(true);
-    const [home, page] = await Promise.all([
-      api<MemberHome>('community/home'),
-      api<ThreadPage>(query),
+    await Promise.all([
+      syncHoldings(true)
+        .then(() => api<MemberHome>('community/home'))
+        .then((home) => {
+          setData(home);
+          setHomeError('');
+        }),
+      api<ThreadPage>(query).then((page) => {
+        if (sequence !== requestSequence.current) return;
+        feedCache.current.set(query, page);
+        setLoadedQuery(query);
+        setThreads(page.threads);
+        setCursor(page.nextCursor);
+        setFeedError('');
+      }),
     ]);
-    if (sequence !== requestSequence.current) return;
-    setLoadedQuery(query);
-    setData(home);
-    setThreads(page.threads);
-    setCursor(page.nextCursor);
+    setCommunityRevision((n) => n + 1);
     setError('');
   }, [query, syncHoldings]);
   useEffect(() => {
     let active = true;
-    const sequence = ++requestSequence.current;
     void readThenRefresh({
-      read: () =>
-        Promise.all([
-          api<MemberHome>('community/home'),
-          api<ThreadPage>(query),
-        ]),
+      read: () => api<MemberHome>('community/home'),
       refresh: () => syncHoldings(),
-      publish: ([home, page]) => {
-        if (active && sequence === requestSequence.current) {
-          setError('');
+      publish: (home) => {
+        if (active) {
           setData(home);
+          setHomeError('');
+        }
+      },
+    }).catch((e) => {
+      if (active) setHomeError(e.message);
+    });
+    return () => {
+      active = false;
+    };
+  }, [syncHoldings]);
+  useEffect(() => {
+    if (view !== 'home' && view !== 'topics') return;
+    let active = true;
+    const sequence = ++requestSequence.current;
+    const cached = feedCache.current.get(query);
+    if (cached) {
+      setThreads(cached.threads);
+      setCursor(cached.nextCursor);
+      setLoadedQuery(query);
+    }
+    setFeedError('');
+    void api<ThreadPage>(query)
+      .then((page) => {
+        if (active && sequence === requestSequence.current) {
+          feedCache.current.set(query, page);
           setThreads(page.threads);
           setCursor(page.nextCursor);
           setLoadedQuery(query);
         }
-      },
-    })
-      .catch((e) => {
-        if (active && sequence === requestSequence.current) setError(e.message);
       })
-      .finally(() => {
-        if (active && sequence === requestSequence.current)
+      .catch((e) => {
+        if (active && sequence === requestSequence.current) {
+          setFeedError(e.message);
           setLoadedQuery(query);
+        }
       });
     return () => {
       active = false;
     };
-  }, [query, syncHoldings]);
+  }, [query, view]);
   const refreshWalletHoldings = useCallback(
     async (force = false) => {
       await syncHoldings(force);
@@ -266,15 +328,18 @@ export function MemberDashboard({
       setBusy(false);
     }
   }
-  function navigate(next: View) {
+  function navigate(next: View, nextMarket = market) {
+    scrollPositions.current[viewKey] = window.scrollY;
     setView(next);
-    setThreadId('');
-    setTopic('all');
+    setMarket(nextMarket);
     setNotice('');
     const url = new URL(window.location.href);
     url.searchParams.set('view', next);
+    if (next === 'markets' && nextMarket === 'backpack')
+      url.searchParams.set('issuer', 'backpack');
+    else url.searchParams.delete('issuer');
     url.hash = '';
-    window.history.replaceState(null, '', url.pathname + url.search);
+    window.history.pushState(null, '', url.pathname + url.search);
   }
   useEffect(() => {
     let active = true;
@@ -323,7 +388,7 @@ export function MemberDashboard({
     setError('');
   }
   function openTopic(symbol: string) {
-    setView('home');
+    navigate('home');
     setFeed('all');
     setTopic(symbol);
     setThreadId('');
@@ -344,7 +409,7 @@ export function MemberDashboard({
   );
   return (
     <div
-      className={`member-shell ${view === 'markets' || view === 'backpack' ? 'markets-view' : ''} ${view === 'brief' ? 'reading-view' : ''}`}
+      className={`member-shell ${view === 'markets' || view === 'overview' ? 'markets-view' : ''} ${view === 'overview' ? 'home-view' : ''}`}
     >
       <aside className="member-sidebar">
         <Link className="member-brand" href="/">
@@ -440,15 +505,13 @@ export function MemberDashboard({
         </div>
         <div className="member-columns">
           <section className="member-main">
-            {view !== 'markets' && view !== 'backpack' && (
+            {view !== 'markets' && view !== 'overview' && (
               <div className="member-page-heading">
                 <div>
                   <h1>
-                    {view === 'brief'
-                      ? 'Your news'
-                      : view === 'home' || view === 'topics'
-                        ? 'Discussions'
-                        : 'Profile'}
+                    {view === 'home' || view === 'topics'
+                      ? 'Discussions'
+                      : 'Profile'}
                   </h1>
                 </div>
                 {view === 'home' && (
@@ -478,6 +541,11 @@ export function MemberDashboard({
                 </button>
               </div>
             )}
+            {homeError && (
+              <p className="inline-status" role="alert">
+                {homeError} <button onClick={() => run(refresh)}>Retry</button>
+              </p>
+            )}
             {error && (
               <div className="member-error" role="alert">
                 {error}{' '}
@@ -504,36 +572,70 @@ export function MemberDashboard({
               </p>
             )}
             {notice && <output className="member-notice">{notice}</output>}
-            {view === 'markets' ? (
-              <>
+            {visited.has('overview') && (
+              <Activity mode={view === 'overview' ? 'visible' : 'hidden'}>
                 {data ? (
-                  <Suspense fallback={<p role="status">Loading markets…</p>}>
-                    <MarketOverviewPanel
-                      holdings={holdings.map((h) => h.symbol)}
+                  <Suspense
+                    fallback={
+                      <p className="inline-status" role="status">
+                        Loading Home…
+                      </p>
+                    }
+                  >
+                    <MemberHomePanel
+                      revision={communityRevision}
                       positions={holdings}
+                      symbol={held.has(coverageSymbol) ? coverageSymbol : 'all'}
+                      onSymbolChange={setCoverageSymbol}
+                      onDiscuss={(item) => {
+                        startDiscussion(
+                          item.title.slice(0, 140),
+                          item.symbols[0],
+                        );
+                        setDraftBody(`Source: ${item.url}\n\n`);
+                      }}
+                      onMarkets={() => navigate('markets', 'all')}
+                      onThread={(id) => {
+                        setThreadId(id);
+                        setFeed('all');
+                        setTopic('all');
+                        navigate('home');
+                      }}
+                      onDiscussions={() => {
+                        setFeed('all');
+                        setTopic('all');
+                        setThreadId('');
+                        navigate('home');
+                      }}
+                      onCreate={() => startDiscussion()}
                     />
                   </Suspense>
                 ) : (
-                  <p>Loading your holdings…</p>
+                  <p className="inline-status" role="status">
+                    Loading your holdings…
+                  </p>
                 )}
-              </>
-            ) : view === 'backpack' ? (
-              <Suspense fallback={<p role="status">Loading Backpack…</p>}>
-                <BackpackDashboardPage embedded />
-              </Suspense>
-            ) : view === 'brief' ? (
-              <MemberBrief
-                key={view}
-                kind="news"
-                holdings={holdings.map((h) => h.symbol)}
-                symbol={held.has(coverageSymbol) ? coverageSymbol : 'all'}
-                onSymbolChange={setCoverageSymbol}
-                onDiscuss={(item) => {
-                  startDiscussion(item.title.slice(0, 140), item.symbols[0]);
-                  setDraftBody(`Source: ${item.url}\n\nComment: `);
-                }}
-              />
-            ) : view === 'topics' ? (
+              </Activity>
+            )}
+            {visited.has('markets') && (
+              <Activity mode={view === 'markets' ? 'visible' : 'hidden'}>
+                <Suspense
+                  fallback={
+                    <p className="inline-status" role="status">
+                      Loading markets…
+                    </p>
+                  }
+                >
+                  <MemberMarkets
+                    positions={holdings}
+                    market={market}
+                    onMarketChange={(next) => navigate('markets', next)}
+                  />
+                </Suspense>
+              </Activity>
+            )}
+            {view === 'markets' || view === 'overview' ? null : view ===
+              'topics' ? (
               <>
                 <Button
                   className="room-create-button"
@@ -820,29 +922,6 @@ export function MemberDashboard({
               </form>
             ) : (
               <>
-                {view === 'home' && !threadId && (
-                  <article className="conversation-prompt">
-                    <span className="eyebrow">A QUESTION TO OPEN WITH</span>
-                    <h2>
-                      What would change your mind
-                      <br className="desktop-break" /> about a stock you hold?
-                    </h2>
-                    <div>
-                      <p>
-                        A useful conversation starts with a falsifiable idea.
-                      </p>
-                      <button
-                        onClick={() =>
-                          startDiscussion(
-                            'What would change your mind about a stock you hold?',
-                          )
-                        }
-                      >
-                        New discussion <ArrowRight size={17} />
-                      </button>
-                    </div>
-                  </article>
-                )}
                 <div className="member-feed-toolbar">
                   <div className="feed-tabs" aria-label="Feed filter">
                     {view === 'home' ? (
@@ -907,7 +986,13 @@ export function MemberDashboard({
                     <RefreshCw size={16} />
                   </Button>
                 </div>
-                {loading ? (
+                {feedError && (
+                  <p className="inline-status" role="alert">
+                    {feedError}{' '}
+                    <button onClick={() => run(refresh)}>Retry</button>
+                  </p>
+                )}
+                {feedError && !feedCache.current.has(query) ? null : loading ? (
                   <output className="member-loading">Opening your feed…</output>
                 ) : threads.length ? (
                   threads.map((t) => (
@@ -1210,7 +1295,8 @@ export function MemberDashboard({
                   'community/threads',
                   payload,
                 );
-                setView('home');
+                navigate('home');
+                setCommunityRevision((n) => n + 1);
                 setFeed('all');
                 setTopic(draftTopic);
                 setThreadId(result.id);

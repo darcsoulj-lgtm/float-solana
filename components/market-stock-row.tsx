@@ -24,8 +24,11 @@ export function MarketStockRow({
       <td>
         <button
           type="button"
+          id={`stock-trigger-${symbol}`}
           aria-label={`View ${symbol} details`}
           aria-pressed={selected}
+          aria-expanded={selected}
+          aria-controls={selected ? 'selected-stock-detail' : undefined}
           onClick={(event) => {
             event.stopPropagation();
             onSelect(symbol);

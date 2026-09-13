@@ -1,12 +1,13 @@
 'use client';
 import { MetricInfo } from './metric-info';
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import {
   ArrowUpRight,
   RefreshCw,
   ChevronLeft,
   ChevronRight,
   Copy,
+  X,
   Check,
 } from 'lucide-react';
 import { api } from '@/lib/client';
@@ -46,9 +47,13 @@ const pct = (n: number | null | undefined) =>
 export function MarketOverviewPanel({
   holdings,
   positions = [],
+  hidePortfolio = false,
+  onBackpack,
 }: {
   holdings: string[];
   positions?: Holding[];
+  hidePortfolio?: boolean;
+  onBackpack?: () => void;
 }) {
   const [onlyHoldings, setOnlyHoldings] = useState(false),
     [query, setQuery] = useState(''),
@@ -66,7 +71,13 @@ export function MarketOverviewPanel({
     symbol: string;
     source: SourceResult<Pool[]>;
   } | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
   const chooseIssuer = (id: IssuerId | 'all') => {
+    if (id === 'backpack' && onBackpack) {
+      onBackpack();
+      return;
+    }
+    setDetailOpen(false);
     setIssuer(id);
     setPage(0);
     setQuery('');
@@ -87,10 +98,12 @@ export function MarketOverviewPanel({
   const bookReason =
     bookSymbol === selected ? bookMessage : 'Loading order book…';
   useEffect(() => {
+    setNow(Date.now());
     const timer = setInterval(() => setNow(Date.now()), 10000);
     return () => clearInterval(timer);
   }, []);
   useEffect(() => {
+    if (!detailOpen) return;
     let active = true;
     const load = async () => {
       try {
@@ -119,9 +132,10 @@ export function MarketOverviewPanel({
       active = false;
       clearInterval(timer);
     };
-  }, [selected, refresh]);
+  }, [selected, refresh, detailOpen]);
   useEffect(() => {
     if (
+      !detailOpen ||
       TOKENS.find((t) => t.symbol === selected)?.issuer !== 'backpack' ||
       !data?.catalog.fetchedAt
     )
@@ -154,7 +168,7 @@ export function MarketOverviewPanel({
       active = false;
       clearInterval(id);
     };
-  }, [selected, refresh, data?.catalog.fetchedAt]);
+  }, [selected, refresh, detailOpen, data?.catalog.fetchedAt]);
   const maxPage = Math.max(0, Math.ceil(matches.length / 10) - 1),
     currentPage = Math.min(page, maxPage),
     rows = matches.slice(currentPage * 10, currentPage * 10 + 10);
@@ -191,9 +205,461 @@ export function MarketOverviewPanel({
         .map((r) => r.name)
         .join(', ')
     : '';
+  const stockDetail =
+    detailOpen && matches.length > 0 ? (
+      <section
+        className="market-detail"
+        id="selected-stock-detail"
+        aria-label={`${token.symbol} market details`}
+      >
+        <header>
+          <div>
+            <h2>
+              {token.symbol} <span>{token.shortName}</span>
+            </h2>
+          </div>
+          <span className="market-chain">
+            {issuerName(token.issuer)} · Solana
+          </span>
+          <Button
+            variant="ghost"
+            aria-label={`Close ${token.symbol} details`}
+            onClick={() => {
+              document.getElementById(`stock-trigger-${token.symbol}`)?.focus();
+              setDetailOpen(false);
+            }}
+          >
+            <X size={17} />
+          </Button>
+        </header>
+        <div
+          className={`market-metrics token-metrics ${observation.cmcDexVolume24h === null ? 'two-metrics' : ''}`}
+        >
+          <div>
+            <span>Token price</span>
+            <strong>{money(observation.price)}</strong>
+            {observation.priceDelayed && (
+              <small className="quote-age">
+                Last quote · {time(observation.priceTime)}
+              </small>
+            )}
+          </div>
+          <div>
+            <span
+              title={
+                observation.change24h === null
+                  ? observation.changeUnavailableReason
+                  : observation.changeSource
+              }
+            >
+              24h change
+            </span>
+            <strong
+              className={
+                (observation.change24h || 0) < 0
+                  ? 'market-negative'
+                  : 'market-positive'
+              }
+            >
+              {pct(observation.change24h)}
+            </strong>
+          </div>
+          {observation.cmcDexVolume24h !== null && (
+            <div>
+              <span title="CoinMarketCap-covered DEX trading. Coverage may differ from other platforms.">
+                DEX volume · 24h
+              </span>
+              <strong>{money(observation.cmcDexVolume24h, true)}</strong>
+            </div>
+          )}
+        </div>
+        <details className="market-methodology compact-sources">
+          <summary>Sources &amp; timestamps</summary>
+          <dl className="market-facts">
+            <div>
+              <dt>Token identity</dt>
+              <dd>
+                <a
+                  href={token.source}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {issuerName(token.issuer)} · Registry record ↗
+                </a>
+              </dd>
+            </div>
+            <div>
+              <dt>Price</dt>
+              <dd>
+                {observation.priceSource} · {time(observation.priceTime)}
+              </dd>
+            </div>
+            <div>
+              <dt>24h change</dt>
+              <dd>
+                {observation.change24h === null
+                  ? observation.changeUnavailableReason
+                  : observation.changeSource}
+                {observation.historyTime && (
+                  <>
+                    {' '}
+                    · {time(observation.historyTime)} to{' '}
+                    {time(observation.priceTime)}
+                  </>
+                )}
+              </dd>
+            </div>
+            {observation.circulation && (
+              <>
+                <div>
+                  <dt>Circulating supply · Solana</dt>
+                  <dd>
+                    {observation.circulation.circulatingSupply.toLocaleString(
+                      'en-US',
+                      { maximumFractionDigits: 5 },
+                    )}{' '}
+                    adjusted units
+                  </dd>
+                </div>
+                <div>
+                  <dt>Valuation reference</dt>
+                  <dd>
+                    {money(observation.circulation.referencePriceUsd)} ·{' '}
+                    <a
+                      href="https://defi.xstocks.fi"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      xStocks issuer data ↗
+                    </a>
+                    . Retrieved {time(observation.circulationTime)}; reference
+                    prices may be up to 72 hours old.
+                  </dd>
+                </div>
+                {observation.circulation.fxDate && (
+                  <div>
+                    <dt>FX conversion</dt>
+                    <dd>
+                      HKD to USD ·{' '}
+                      <a
+                        href="https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        ECB ↗
+                      </a>{' '}
+                      · {observation.circulation.fxDate}
+                    </dd>
+                  </div>
+                )}
+              </>
+            )}
+            <div>
+              <dt>Gross minted value · not AUM</dt>
+              <dd>
+                {money(observation.issuedValue, true)} · includes inventory;
+                token-price estimate
+              </dd>
+            </div>
+            {observation.cmcDexVolume24h !== null && observed && (
+              <div>
+                <dt>DEX volume · 24h</dt>
+                <dd>
+                  <a
+                    href={observed.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    CoinMarketCap ↗
+                  </a>{' '}
+                  · {time(observed.timestamp)}
+                </dd>
+              </div>
+            )}
+            <div>
+              <dt>Solana supply</dt>
+              <dd>
+                <a
+                  href={'https://explorer.solana.com/address/' + token.mint}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Mint account ↗
+                </a>{' '}
+                · {time(observation.supply?.timestamp)}. Unadjusted tokens;
+                excludes other chains.
+              </dd>
+            </div>
+            {observation.supply?.multiplier != null &&
+              observation.supply.multiplier !== 1 && (
+                <div>
+                  <dt>Adjusted display supply</dt>
+                  <dd>
+                    {observation.supply.uiSupply?.toLocaleString('en-US', {
+                      maximumFractionDigits: 6,
+                    })}{' '}
+                    · onchain multiplier ×{observation.supply.multiplier}.
+                    Display units differ from unadjusted tokens.
+                  </dd>
+                </div>
+              )}
+          </dl>
+          {observation.cmcDexVolume24h !== null && (
+            <p>
+              Rolling 24-hour volume across CMC-covered DEX markets. Updated
+              with the existing five-minute feed; coverage can differ from other
+              platforms.
+            </p>
+          )}
+        </details>
+        <div className="market-metrics token-metrics market-secondary-metrics">
+          <div>
+            <span title="Minted tokens on Solana, net of burns. Unadjusted for display multipliers; excludes other chains.">
+              Solana supply
+            </span>
+            <strong>
+              {observation.supply
+                ? new Intl.NumberFormat('en-US', {
+                    maximumFractionDigits: 4,
+                  }).format(observation.supply.supply)
+                : 'Not available'}
+            </strong>
+            <small>Unadjusted tokens · excludes other chains</small>
+          </div>
+          <div>
+            <span>
+              {tokenValuation(observation, token.issuer).label} · est.
+            </span>
+            <strong>
+              {money(tokenValuation(observation, token.issuer).value, true)}
+            </strong>
+            <small>
+              {token.issuer === 'xstocks'
+                ? 'Pre-minted inventory excluded'
+                : 'Includes minted inventory · not AUM'}
+            </small>
+          </div>
+          <div>
+            <span>Observed pool liquidity</span>
+            <strong>{money(poolLiquidity, true)}</strong>
+            <small>{pools.length} returned pools · partial coverage</small>
+          </div>
+        </div>
+        <p className="market-footnote market-source-line">
+          {token.issuer !== 'xstocks' &&
+            observation.priceConflict &&
+            'Price sources differ by more than 5%. Valuation is withheld pending reconciliation. '}
+          {token.issuer === 'xstocks'
+            ? 'Circulating value excludes pre-minted inventory. '
+            : 'Minted value includes all outstanding mint supply; circulating value is not yet verified. '}
+          Solana only. Not AUM or an executable quote.
+          {observation.priceSource === 'DEX pool' &&
+            ' Pool prices may move sharply when liquidity is thin.'}
+          {observation.valuationUnavailableReason === 'units' &&
+            ' Gross mint valuation is unavailable while token quote units are unconfirmed.'}
+          {observation.price === null &&
+            ' No recent price is available from the connected sources.'}
+        </p>
+        {observed && (
+          <details className="market-methodology market-cmc-detail">
+            <summary>
+              CoinMarketCap · circulating supply, market cap and longer-term
+              performance
+            </summary>
+            <dl className="market-facts">
+              <div>
+                <dt>Circulating token supply</dt>
+                <dd>
+                  {observed.supply == null
+                    ? 'Not reported'
+                    : observed.supply.toLocaleString()}
+                </dd>
+              </div>
+              <div>
+                <dt>Circulating token market cap</dt>
+                <dd>{money(observed.marketCap, true)}</dd>
+              </div>
+              <div>
+                <dt>7-day / 30-day change</dt>
+                <dd>
+                  {pct(observed.change7d)} / {pct(observed.change30d)}
+                </dd>
+              </div>
+            </dl>
+            <a href={observed.url} target="_blank" rel="noopener noreferrer">
+              CoinMarketCap · {time(observed.timestamp)} ↗
+            </a>
+          </details>
+        )}
+        {token.issuer === 'backpack' && (
+          <div className="market-detail-grid">
+            <section>
+              <h3>Trading availability</h3>
+              <dl className="market-facts">
+                <div>
+                  <dt>Deposits</dt>
+                  <dd>
+                    {data?.catalog.stale
+                      ? 'Unconfirmed'
+                      : listing
+                        ? listing.deposit
+                          ? 'Enabled'
+                          : 'Unavailable'
+                        : 'Not reported'}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Withdrawals</dt>
+                  <dd>
+                    {data?.catalog.stale
+                      ? 'Unconfirmed'
+                      : listing
+                        ? listing.withdraw
+                          ? 'Enabled'
+                          : 'Unavailable'
+                        : 'Not reported'}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Spot order book</dt>
+                  <dd>{listing?.spot ? listing.bookState : 'Not listed'}</dd>
+                </div>
+              </dl>
+              <p className="market-footnote">
+                Registry retrieved {time(data?.catalog.fetchedAt)}. Account and
+                regional eligibility still apply. An open book is not a promise
+                of execution.
+              </p>
+              <a
+                href="https://docs.backpack.exchange/#tag/Markets"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Backpack market documentation <ArrowUpRight size={14} />
+              </a>
+            </section>
+            <section>
+              <h3>Spot order book</h3>
+              {quote ? (
+                <>
+                  <dl className="market-facts">
+                    <div>
+                      <dt>Best bid / ask</dt>
+                      <dd>
+                        {money(quote.bid)} / {money(quote.ask)}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Spread</dt>
+                      <dd>{quote.spreadBps.toFixed(1)} bps</dd>
+                    </div>
+                    <div>
+                      <dt>Bid depth within 1%</dt>
+                      <dd>{money(quote.bidDepth1pct, true)}</dd>
+                    </div>
+                    <div>
+                      <dt>Ask depth within 1%</dt>
+                      <dd>{money(quote.askDepth1pct, true)}</dd>
+                    </div>
+                  </dl>
+                  <p className="market-footnote">
+                    Book time: {time(quote.timestamp)}. Refreshes every 30
+                    seconds. 100 bps = 1%. Spot depth excludes RFQ quotes;
+                    available liquidity can change.
+                  </p>
+                </>
+              ) : (
+                <p className="market-empty">
+                  {book?.stale
+                    ? 'No fresh order-book observation is available.'
+                    : bookReason || 'No order-book data available.'}
+                </p>
+              )}
+            </section>
+          </div>
+        )}
+        <section className="market-pools">
+          <h3>DEX pools</h3>
+          <div className="market-checks">
+            <span>
+              Top pool: <b>{money(top?.price)}</b> · {top?.dex || 'Not indexed'}
+            </span>
+            <span>
+              DefiLlama: <b>{money(reference?.price)}</b> ·{' '}
+              {time(reference?.timestamp)}
+              {reference &&
+              (now - reference.timestamp > 3600000 || data?.prices.stale)
+                ? ' · Older observation'
+                : ''}
+            </span>
+          </div>
+          <p className="market-footnote">
+            {pools.length} returned pools · {time(detailedPools?.fetchedAt)}
+            {detailedPools?.stale ? ' · Delayed' : ''}. DEX Screener may limit
+            results. Pool addresses are counted once, including pairs where this
+            token is on either side. Liquidity includes both assets in each
+            pool; excludes unreturned pools and RFQ.
+          </p>
+          {pools.slice(0, 5).map((p) => (
+            <a
+              key={p.address}
+              href={p.url}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <span>
+                <b>{p.dex}</b> {token.symbol} / {p.quote}
+              </span>
+              <span>{money(p.liquidity, true)} liquidity</span>
+              <ArrowUpRight size={15} />
+            </a>
+          ))}
+          {!pools.length && (
+            <p className="market-empty">
+              {detailedPools?.stale
+                ? 'Pool data is temporarily unavailable.'
+                : detailedPools
+                  ? 'No pools returned by DEX Screener. Other liquidity may exist.'
+                  : 'Loading pools…'}
+            </p>
+          )}
+          {pools.length > 5 && (
+            <p className="market-footnote">
+              Showing the five most liquid of {pools.length} observed pools.
+            </p>
+          )}
+        </section>
+        <div className="market-contract">
+          <span>Verified registry mint</span>
+          <a
+            href={'https://explorer.solana.com/address/' + token.mint}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {token.mint}
+          </a>
+          <Button
+            variant="ghost"
+            aria-label="Copy token mint"
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(token.mint);
+                setCopied(true);
+              } catch {
+                setCopied(false);
+              }
+            }}
+          >
+            {copied ? <Check size={16} /> : <Copy size={16} />}
+          </Button>
+        </div>
+      </section>
+    ) : null;
   return (
     <div className="market-overview">
-      <PortfolioSummary positions={positions} data={data} now={now} />
+      {!hidePortfolio && (
+        <PortfolioSummary positions={positions} data={data} now={now} />
+      )}
       <div className="market-toolbar">
         <details className="market-refresh-note">
           <summary>Auto-updating</summary>
@@ -228,13 +694,11 @@ export function MarketOverviewPanel({
         onIssuer={chooseIssuer}
         select={(symbol) => {
           setOnlyHoldings(false);
-          setQuery('');
+          setQuery(symbol);
           setPage(0);
           setSelected(symbol);
+          setDetailOpen(true);
           setCopied(false);
-          document
-            .getElementById('selected-stock-detail')
-            ?.scrollIntoView({ block: 'start' });
         }}
       />
       <fieldset className="issuer-filters" aria-label="Filter by issuer">
@@ -352,46 +816,55 @@ export function MarketOverviewPanel({
               const change = row.change24h;
               const valuation = tokenValuation(row, t.issuer);
               return (
-                <MarketStockRow
-                  key={t.symbol}
-                  symbol={t.symbol}
-                  name={t.shortName + ' · ' + issuerName(t.issuer)}
-                  selected={selected === t.symbol}
-                  held={holdings.includes(t.symbol)}
-                  onSelect={(symbol) => {
-                    setSelected(symbol);
-                    setCopied(false);
-                    document
-                      .getElementById('selected-stock-detail')
-                      ?.scrollIntoView({ block: 'start' });
-                  }}
-                >
-                  <td>
-                    {money(row.price)}
-                    {row.priceDelayed && (
-                      <small className="quote-age" title={time(row.priceTime)}>
-                        Last quote · {time(row.priceTime)}
-                      </small>
-                    )}
-                  </td>
-                  <td
-                    className={
-                      (change || 0) < 0 ? 'market-negative' : 'market-positive'
-                    }
+                <Fragment key={t.symbol}>
+                  <MarketStockRow
+                    symbol={t.symbol}
+                    name={t.shortName + ' · ' + issuerName(t.issuer)}
+                    selected={detailOpen && selection === t.symbol}
+                    held={holdings.includes(t.symbol)}
+                    onSelect={(symbol) => {
+                      setSelected(symbol);
+                      setCopied(false);
+                      setDetailOpen(!detailOpen || selection !== symbol);
+                    }}
                   >
-                    {pct(change)}
-                  </td>
-                  <td>
-                    {money(valuation.value, true)}
-                    {t.issuer === 'xstocks' &&
-                      !row.circulation &&
-                      row.lastCirculation && (
-                        <small className="quote-age">
-                          Last verified · {time(row.lastCirculationTime)}
+                    <td>
+                      {money(row.price)}
+                      {row.priceDelayed && (
+                        <small
+                          className="quote-age"
+                          title={time(row.priceTime)}
+                        >
+                          Last quote · {time(row.priceTime)}
                         </small>
                       )}
-                  </td>
-                </MarketStockRow>
+                    </td>
+                    <td
+                      className={
+                        (change || 0) < 0
+                          ? 'market-negative'
+                          : 'market-positive'
+                      }
+                    >
+                      {pct(change)}
+                    </td>
+                    <td>
+                      {money(valuation.value, true)}
+                      {t.issuer === 'xstocks' &&
+                        !row.circulation &&
+                        row.lastCirculation && (
+                          <small className="quote-age">
+                            Last verified · {time(row.lastCirculationTime)}
+                          </small>
+                        )}
+                    </td>
+                  </MarketStockRow>
+                  {detailOpen && selection === t.symbol && (
+                    <tr className="stock-detail-row">
+                      <td colSpan={4}>{stockDetail}</td>
+                    </tr>
+                  )}
+                </Fragment>
               );
             })}
           </tbody>
@@ -438,446 +911,6 @@ export function MarketOverviewPanel({
           </Button>
         </div>
       </div>
-      {matches.length > 0 && (
-        <section
-          className="market-detail"
-          id="selected-stock-detail"
-          aria-label={`${token.symbol} market details`}
-        >
-          <header>
-            <div>
-              <h2>
-                {token.symbol} <span>{token.shortName}</span>
-              </h2>
-            </div>
-            <span className="market-chain">
-              {issuerName(token.issuer)} · Solana
-            </span>
-          </header>
-          <div
-            className={`market-metrics token-metrics ${observation.cmcDexVolume24h === null ? 'two-metrics' : ''}`}
-          >
-            <div>
-              <span>Token price</span>
-              <strong>{money(observation.price)}</strong>
-              {observation.priceDelayed && (
-                <small className="quote-age">
-                  Last quote · {time(observation.priceTime)}
-                </small>
-              )}
-            </div>
-            <div>
-              <span
-                title={
-                  observation.change24h === null
-                    ? observation.changeUnavailableReason
-                    : observation.changeSource
-                }
-              >
-                24h change
-              </span>
-              <strong
-                className={
-                  (observation.change24h || 0) < 0
-                    ? 'market-negative'
-                    : 'market-positive'
-                }
-              >
-                {pct(observation.change24h)}
-              </strong>
-            </div>
-            {observation.cmcDexVolume24h !== null && (
-              <div>
-                <span title="CoinMarketCap-covered DEX trading. Coverage may differ from other platforms.">
-                  DEX volume · 24h
-                </span>
-                <strong>{money(observation.cmcDexVolume24h, true)}</strong>
-              </div>
-            )}
-          </div>
-          <details className="market-methodology compact-sources">
-            <summary>Sources &amp; timestamps</summary>
-            <dl className="market-facts">
-              <div>
-                <dt>Token identity</dt>
-                <dd>
-                  <a
-                    href={token.source}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {issuerName(token.issuer)} · Registry record ↗
-                  </a>
-                </dd>
-              </div>
-              <div>
-                <dt>Price</dt>
-                <dd>
-                  {observation.priceSource} · {time(observation.priceTime)}
-                </dd>
-              </div>
-              <div>
-                <dt>24h change</dt>
-                <dd>
-                  {observation.change24h === null
-                    ? observation.changeUnavailableReason
-                    : observation.changeSource}
-                  {observation.historyTime && (
-                    <>
-                      {' '}
-                      · {time(observation.historyTime)} to{' '}
-                      {time(observation.priceTime)}
-                    </>
-                  )}
-                </dd>
-              </div>
-              {observation.circulation && (
-                <>
-                  <div>
-                    <dt>Circulating supply · Solana</dt>
-                    <dd>
-                      {observation.circulation.circulatingSupply.toLocaleString(
-                        'en-US',
-                        { maximumFractionDigits: 5 },
-                      )}{' '}
-                      adjusted units
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Valuation reference</dt>
-                    <dd>
-                      {money(observation.circulation.referencePriceUsd)} ·{' '}
-                      <a
-                        href="https://defi.xstocks.fi"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        xStocks issuer data ↗
-                      </a>
-                      . Retrieved {time(observation.circulationTime)}; reference
-                      prices may be up to 72 hours old.
-                    </dd>
-                  </div>
-                  {observation.circulation.fxDate && (
-                    <div>
-                      <dt>FX conversion</dt>
-                      <dd>
-                        HKD to USD ·{' '}
-                        <a
-                          href="https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          ECB ↗
-                        </a>{' '}
-                        · {observation.circulation.fxDate}
-                      </dd>
-                    </div>
-                  )}
-                </>
-              )}
-              <div>
-                <dt>Gross minted value · not AUM</dt>
-                <dd>
-                  {money(observation.issuedValue, true)} · includes inventory;
-                  token-price estimate
-                </dd>
-              </div>
-              {observation.cmcDexVolume24h !== null && observed && (
-                <div>
-                  <dt>DEX volume · 24h</dt>
-                  <dd>
-                    <a
-                      href={observed.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      CoinMarketCap ↗
-                    </a>{' '}
-                    · {time(observed.timestamp)}
-                  </dd>
-                </div>
-              )}
-              <div>
-                <dt>Solana supply</dt>
-                <dd>
-                  <a
-                    href={'https://explorer.solana.com/address/' + token.mint}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Mint account ↗
-                  </a>{' '}
-                  · {time(observation.supply?.timestamp)}. Unadjusted tokens;
-                  excludes other chains.
-                </dd>
-              </div>
-              {observation.supply?.multiplier != null &&
-                observation.supply.multiplier !== 1 && (
-                  <div>
-                    <dt>Adjusted display supply</dt>
-                    <dd>
-                      {observation.supply.uiSupply?.toLocaleString('en-US', {
-                        maximumFractionDigits: 6,
-                      })}{' '}
-                      · onchain multiplier ×{observation.supply.multiplier}.
-                      Display units differ from unadjusted tokens.
-                    </dd>
-                  </div>
-                )}
-            </dl>
-            {observation.cmcDexVolume24h !== null && (
-              <p>
-                Rolling 24-hour volume across CMC-covered DEX markets. Updated
-                with the existing five-minute feed; coverage can differ from
-                other platforms.
-              </p>
-            )}
-          </details>
-          <div className="market-metrics token-metrics market-secondary-metrics">
-            <div>
-              <span title="Minted tokens on Solana, net of burns. Unadjusted for display multipliers; excludes other chains.">
-                Solana supply
-              </span>
-              <strong>
-                {observation.supply
-                  ? new Intl.NumberFormat('en-US', {
-                      maximumFractionDigits: 4,
-                    }).format(observation.supply.supply)
-                  : 'Not available'}
-              </strong>
-              <small>Unadjusted tokens · excludes other chains</small>
-            </div>
-            <div>
-              <span>
-                {tokenValuation(observation, token.issuer).label} · est.
-              </span>
-              <strong>
-                {money(tokenValuation(observation, token.issuer).value, true)}
-              </strong>
-              <small>
-                {token.issuer === 'xstocks'
-                  ? 'Pre-minted inventory excluded'
-                  : 'Includes minted inventory · not AUM'}
-              </small>
-            </div>
-            <div>
-              <span>Observed pool liquidity</span>
-              <strong>{money(poolLiquidity, true)}</strong>
-              <small>{pools.length} returned pools · partial coverage</small>
-            </div>
-          </div>
-          <p className="market-footnote market-source-line">
-            {token.issuer !== 'xstocks' &&
-              observation.priceConflict &&
-              'Price sources differ by more than 5%. Valuation is withheld pending reconciliation. '}
-            {token.issuer === 'xstocks'
-              ? 'Circulating value excludes pre-minted inventory. '
-              : 'Minted value includes all outstanding mint supply; circulating value is not yet verified. '}
-            Solana only. Not AUM or an executable quote.
-            {observation.priceSource === 'DEX pool' &&
-              ' Pool prices may move sharply when liquidity is thin.'}
-            {observation.valuationUnavailableReason === 'units' &&
-              ' Gross mint valuation is unavailable while token quote units are unconfirmed.'}
-            {observation.price === null &&
-              ' No recent price is available from the connected sources.'}
-          </p>
-          {observed && (
-            <details className="market-methodology market-cmc-detail">
-              <summary>
-                CoinMarketCap · circulating supply, market cap and longer-term
-                performance
-              </summary>
-              <dl className="market-facts">
-                <div>
-                  <dt>Circulating token supply</dt>
-                  <dd>
-                    {observed.supply == null
-                      ? 'Not reported'
-                      : observed.supply.toLocaleString()}
-                  </dd>
-                </div>
-                <div>
-                  <dt>Circulating token market cap</dt>
-                  <dd>{money(observed.marketCap, true)}</dd>
-                </div>
-                <div>
-                  <dt>7-day / 30-day change</dt>
-                  <dd>
-                    {pct(observed.change7d)} / {pct(observed.change30d)}
-                  </dd>
-                </div>
-              </dl>
-              <a href={observed.url} target="_blank" rel="noopener noreferrer">
-                CoinMarketCap · {time(observed.timestamp)} ↗
-              </a>
-            </details>
-          )}
-          {token.issuer === 'backpack' && (
-            <div className="market-detail-grid">
-              <section>
-                <h3>Trading availability</h3>
-                <dl className="market-facts">
-                  <div>
-                    <dt>Deposits</dt>
-                    <dd>
-                      {data?.catalog.stale
-                        ? 'Unconfirmed'
-                        : listing
-                          ? listing.deposit
-                            ? 'Enabled'
-                            : 'Unavailable'
-                          : 'Not reported'}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Withdrawals</dt>
-                    <dd>
-                      {data?.catalog.stale
-                        ? 'Unconfirmed'
-                        : listing
-                          ? listing.withdraw
-                            ? 'Enabled'
-                            : 'Unavailable'
-                          : 'Not reported'}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Spot order book</dt>
-                    <dd>{listing?.spot ? listing.bookState : 'Not listed'}</dd>
-                  </div>
-                </dl>
-                <p className="market-footnote">
-                  Registry retrieved {time(data?.catalog.fetchedAt)}. Account
-                  and regional eligibility still apply. An open book is not a
-                  promise of execution.
-                </p>
-                <a
-                  href="https://docs.backpack.exchange/#tag/Markets"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Backpack market documentation <ArrowUpRight size={14} />
-                </a>
-              </section>
-              <section>
-                <h3>Spot order book</h3>
-                {quote ? (
-                  <>
-                    <dl className="market-facts">
-                      <div>
-                        <dt>Best bid / ask</dt>
-                        <dd>
-                          {money(quote.bid)} / {money(quote.ask)}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt>Spread</dt>
-                        <dd>{quote.spreadBps.toFixed(1)} bps</dd>
-                      </div>
-                      <div>
-                        <dt>Bid depth within 1%</dt>
-                        <dd>{money(quote.bidDepth1pct, true)}</dd>
-                      </div>
-                      <div>
-                        <dt>Ask depth within 1%</dt>
-                        <dd>{money(quote.askDepth1pct, true)}</dd>
-                      </div>
-                    </dl>
-                    <p className="market-footnote">
-                      Book time: {time(quote.timestamp)}. Refreshes every 30
-                      seconds. 100 bps = 1%. Spot depth excludes RFQ quotes;
-                      available liquidity can change.
-                    </p>
-                  </>
-                ) : (
-                  <p className="market-empty">
-                    {book?.stale
-                      ? 'No fresh order-book observation is available.'
-                      : bookReason || 'No order-book data available.'}
-                  </p>
-                )}
-              </section>
-            </div>
-          )}
-          <section className="market-pools">
-            <h3>DEX pools</h3>
-            <div className="market-checks">
-              <span>
-                Top pool: <b>{money(top?.price)}</b> ·{' '}
-                {top?.dex || 'Not indexed'}
-              </span>
-              <span>
-                DefiLlama: <b>{money(reference?.price)}</b> ·{' '}
-                {time(reference?.timestamp)}
-                {reference &&
-                (now - reference.timestamp > 3600000 || data?.prices.stale)
-                  ? ' · Older observation'
-                  : ''}
-              </span>
-            </div>
-            <p className="market-footnote">
-              {pools.length} returned pools · {time(detailedPools?.fetchedAt)}
-              {detailedPools?.stale ? ' · Delayed' : ''}. DEX Screener may limit
-              results. Pool addresses are counted once, including pairs where
-              this token is on either side. Liquidity includes both assets in
-              each pool; excludes unreturned pools and RFQ.
-            </p>
-            {pools.slice(0, 5).map((p) => (
-              <a
-                key={p.address}
-                href={p.url}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <span>
-                  <b>{p.dex}</b> {token.symbol} / {p.quote}
-                </span>
-                <span>{money(p.liquidity, true)} liquidity</span>
-                <ArrowUpRight size={15} />
-              </a>
-            ))}
-            {!pools.length && (
-              <p className="market-empty">
-                {detailedPools?.stale
-                  ? 'Pool data is temporarily unavailable.'
-                  : detailedPools
-                    ? 'No pools returned by DEX Screener. Other liquidity may exist.'
-                    : 'Loading pools…'}
-              </p>
-            )}
-            {pools.length > 5 && (
-              <p className="market-footnote">
-                Showing the five most liquid of {pools.length} observed pools.
-              </p>
-            )}
-          </section>
-          <div className="market-contract">
-            <span>Verified registry mint</span>
-            <a
-              href={'https://explorer.solana.com/address/' + token.mint}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {token.mint}
-            </a>
-            <Button
-              variant="ghost"
-              aria-label="Copy token mint"
-              onClick={async () => {
-                try {
-                  await navigator.clipboard.writeText(token.mint);
-                  setCopied(true);
-                } catch {
-                  setCopied(false);
-                }
-              }}
-            >
-              {copied ? <Check size={16} /> : <Copy size={16} />}
-            </Button>
-          </div>
-        </section>
-      )}
       <p className="market-attribution">
         Data provided by{' '}
         <a

@@ -20,13 +20,26 @@ export function PortfolioSummary({
   positions,
   data,
   now,
+  compact = false,
+  onSelect,
 }: {
   positions: Holding[];
   data: MarketOverview | null;
   now: number;
+  compact?: boolean;
+  onSelect?: (symbol: string) => void;
 }) {
   const [hidden, setHidden] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  if (!positions.length)
+    return (
+      <section className="portfolio-summary" aria-label="Private portfolio">
+        <div className="portfolio-heading">
+          <h2>Portfolio</h2>
+        </div>
+        <p className="portfolio-notice">No tokenized stocks detected.</p>
+      </section>
+    );
   const rows = positions
     .map((p) => {
       const o = tokenObservation(data, p.symbol, now);
@@ -91,7 +104,10 @@ export function PortfolioSummary({
     });
   const visible = expanded ? rows : rows.slice(0, 5);
   return (
-    <section className="portfolio-summary" aria-label="Private portfolio">
+    <section
+      className={`portfolio-summary${compact ? ' portfolio-compact' : ''}`}
+      aria-label="Private portfolio"
+    >
       <div className="portfolio-heading">
         <div>
           <h2>Portfolio</h2>
@@ -196,7 +212,17 @@ export function PortfolioSummary({
                   aria-hidden="true"
                 />
                 <div className="position-asset">
-                  <strong>{r.symbol}</strong>
+                  {onSelect ? (
+                    <button
+                      type="button"
+                      onClick={() => onSelect(r.symbol)}
+                      aria-label={`News for ${r.symbol}`}
+                    >
+                      {r.symbol}
+                    </button>
+                  ) : (
+                    <strong>{r.symbol}</strong>
+                  )}
                   <span>
                     {hidden ? '••••' : displayQuantity(r.ui_amount)} tokens
                   </span>

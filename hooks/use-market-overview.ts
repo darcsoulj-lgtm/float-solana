@@ -4,16 +4,33 @@ import { api } from '@/lib/client';
 import { TOKENS, MARKET_BATCH_SIZE } from '@/lib/tokens';
 import { mergeMarketPages, type MarketOverview } from '@/lib/market-data';
 
+// Public observations only: reuse snapshots between Home and Markets without
+// storing wallet balances, membership, or personal selections. Source timestamps
+// remain intact, and tokenObservation still enforces age/valuation limits.
+const snapshots = new Map<number, MarketOverview>();
+function savedPages() {
+  const pages: MarketOverview[] = [];
+  for (const [batch, page] of snapshots) pages[batch] = page;
+  return pages;
+}
+
 // One owner for overview polling. No personal data is persisted or shared.
 // Public source snapshots are shared by the server, across all visitors.
-export function useMarketOverview(holdings: string[], refresh: number) {
-  const [data, setData] = useState<MarketOverview | null>(null);
+export function useMarketOverview(
+  holdings: string[],
+  refresh: number,
+  scope: 'all' | 'holdings' = 'all',
+) {
+  const [data, setData] = useState<MarketOverview | null>(() =>
+    snapshots.size ? mergeMarketPages(savedPages().filter(Boolean)) : null,
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const pages = useRef<MarketOverview[]>([]);
+  const pages = useRef<MarketOverview[]>(savedPages());
   const [circulation, setCirculation] =
     useState<MarketOverview['circulation']>();
   useEffect(() => {
+    if (scope === 'holdings') return;
     let active = true,
       attempts = 0;
     let timer: ReturnType<typeof setTimeout>;
@@ -50,7 +67,7 @@ export function useMarketOverview(holdings: string[], refresh: number) {
       clearTimeout(timer);
       document.removeEventListener('visibilitychange', visible);
     };
-  }, [refresh]);
+  }, [refresh, scope]);
   const holdingsKey = holdings.join('|');
   useEffect(() => {
     let active = true,
@@ -75,7 +92,9 @@ export function useMarketOverview(holdings: string[], refresh: number) {
     const batches = Array.from(
       { length: Math.ceil(TOKENS.length / MARKET_BATCH_SIZE) },
       (_, i) => i,
-    ).sort((a, b) => Number(owned.has(b)) - Number(owned.has(a)) || a - b);
+    )
+      .filter((batch) => scope === 'all' || owned.has(batch))
+      .sort((a, b) => Number(owned.has(b)) - Number(owned.has(a)) || a - b);
     async function load() {
       if (!active || loading || Date.now() - lastStarted < 15000) return;
       loading = true;
@@ -130,6 +149,7 @@ export function useMarketOverview(holdings: string[], refresh: number) {
                   }
                 }
                 pages.current[batch] = next;
+                snapshots.set(batch, next);
                 setData(mergeMarketPages(pages.current.filter(Boolean)));
               } catch {
                 failures++;
@@ -166,7 +186,7 @@ export function useMarketOverview(holdings: string[], refresh: number) {
       window.removeEventListener('focus', visible);
       window.removeEventListener('online', visible);
     };
-  }, [refresh, holdingsKey]);
+  }, [refresh, holdingsKey, scope]);
   const latestCirculation =
     circulation &&
     (circulation.fetchedAt ?? 0) >= (data?.circulation?.fetchedAt ?? 0)

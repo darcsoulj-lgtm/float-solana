@@ -74,7 +74,8 @@ export function UpcomingAgenda({
     .toISOString()
     .slice(0, 10);
   const key = `${filterKey}:${page}:${refresh}:${retry}:${today}`;
-  const current = result?.key === key ? result : null;
+  const displayKey = `${filterKey}:${page}:${today}`;
+  const current = result?.key === displayKey ? result : null;
   useEffect(() => {
     let active = true;
     void readThenRefresh({
@@ -84,15 +85,20 @@ export function UpcomingAgenda({
           `editorial/brief?kind=event&scope=personal&symbol=${encodeURIComponent(symbol)}&today=${today}&offset=${page * 20}`,
         ),
       publish: (data) => {
-        if (active) setResult({ key, data, error: '' });
+        if (active) setResult({ key: displayKey, data, error: '' });
       },
     }).catch(() => {
-      if (active) setResult({ key, data: null, error: 'Events unavailable.' });
+      if (active)
+        setResult((previous) => ({
+          key: displayKey,
+          data: previous?.key === displayKey ? previous.data : null,
+          error: 'Events could not update.',
+        }));
     });
     return () => {
       active = false;
     };
-  }, [key, symbol, today, page]);
+  }, [key, displayKey, symbol, today, page]);
   function toggle() {
     const next = !expanded;
     setExpanded(next);
@@ -141,12 +147,18 @@ export function UpcomingAgenda({
           {expanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
         </button>
       </header>
+      {current?.error && items.length > 0 && (
+        <p className="agenda-status" role="status">
+          {current.error} Showing saved events.{' '}
+          <button onClick={() => setRetry((n) => n + 1)}>Retry</button>
+        </p>
+      )}
       <div id={id} aria-busy={!current}>
         {!current ? (
           <p className="agenda-status" role="status">
             Loading events…
           </p>
-        ) : current.error ? (
+        ) : current.error && !items.length ? (
           <p className="agenda-status" role="status">
             {current.error}{' '}
             <button onClick={() => setRetry((n) => n + 1)}>Retry</button>
@@ -157,6 +169,11 @@ export function UpcomingAgenda({
           </p>
         ) : expanded ? (
           <>
+            {current.error && (
+              <p role="status" className="agenda-status">
+                {current.error} Showing saved events.
+              </p>
+            )}
             <p className="agenda-timezone">Times in your timezone</p>
             {groupAgendaEvents(items).map((group) => (
               <section className="agenda-day" key={group.key}>

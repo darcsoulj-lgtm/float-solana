@@ -10,6 +10,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
+import { MetricInfo } from './metric-info';
 import { Button } from './ui/button';
 import { SearchPicker } from './search-picker';
 import { UpcomingAgenda } from './upcoming-agenda';
@@ -115,7 +116,9 @@ export function MemberBrief({
   holdings,
   symbol,
   onSymbolChange,
+  compact = false,
 }: {
+  compact?: boolean;
   kind: 'news' | 'event';
   holdings: string[];
   symbol: string;
@@ -126,6 +129,7 @@ export function MemberBrief({
   const [error, setError] = useState(''),
     [retry, setRetry] = useState(0);
   const [loadedKey, setLoadedKey] = useState('');
+  const [expanded, setExpanded] = useState(false);
   const holdingsKey = holdings.join(',');
   const selectionKey = kind + ':' + symbol + ':' + holdingsKey;
   const [pagination, setPagination] = useState({ key: selectionKey, page: 0 });
@@ -195,6 +199,7 @@ export function MemberBrief({
     }).catch((e) => {
       if (active) {
         setError(e.message);
+        if (loadedKey !== displayKey) setData(null);
         setLoadedKey(displayKey);
       }
     });
@@ -203,7 +208,7 @@ export function MemberBrief({
     };
   }, [query, kind, symbol, requestKey, displayKey]);
   return (
-    <div className="holder-brief">
+    <div className={`holder-brief${compact ? ' brief-compact' : ''}`}>
       <div className="brief-toolbar">
         {holdings.length <= 6 ? (
           <fieldset
@@ -240,7 +245,13 @@ export function MemberBrief({
           </div>
         )}
         {kind === 'news' && (
-          <small className="brief-disclosure">Last 7 days</small>
+          <MetricInfo label="News sources and updates">
+            Headlines via Google News and Yahoo Finance. Last 7 days; checks
+            every 15 minutes while open.
+            {data?.lastReviewed
+              ? ` Last checked ${new Date(data.lastReviewed).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}.`
+              : ''}
+          </MetricInfo>
         )}
         <Button
           variant="ghost"
@@ -261,106 +272,140 @@ export function MemberBrief({
           refresh={retry}
         />
       )}
-      {!loading && error ? (
-        <div className="brief-empty" role="alert">
-          <p>{error}</p>
-          <Button onClick={() => setRetry((v) => v + 1)}>Try again</Button>
-        </div>
-      ) : loading || !data ? (
-        <output className="brief-loading" aria-label="Loading coverage">
-          <span />
-          <span />
-          <span />
-        </output>
-      ) : (
-        <>
-          {data.items.length ? (
-            <div className={kind === 'news' ? 'brief-stories' : 'brief-events'}>
-              {data.items.map((item) =>
-                kind === 'news' ? (
-                  <SourceCard key={item.id} item={item} onDiscuss={onDiscuss} />
-                ) : (
-                  <EventCard key={item.id} item={item} />
-                ),
-              )}
-            </div>
-          ) : (
-            <div className="brief-empty">
-              {kind === 'news' ? (
-                <Newspaper size={28} />
-              ) : (
-                <CalendarDays size={28} />
-              )}
-              <h2>
-                {kind === 'news'
-                  ? data.pending
-                    ? 'Loading news…'
-                    : data.unavailable
-                      ? 'News temporarily unavailable'
-                      : 'No recent headlines'
-                  : 'No upcoming events.'}
-              </h2>
-              <p>
-                {kind === 'news'
-                  ? data.pending
-                    ? 'Fetching headlines for your holdings.'
-                    : data.unavailable
-                      ? 'The news feed could not update. Try again shortly.'
-                      : 'No matching headlines in this feed from the last seven days.'
-                  : 'Events appear once a source is confirmed.'}
+      <div className="brief-results">
+        {!loading && error && !data?.items.length ? (
+          <div className="brief-empty" role="alert">
+            <p>{error}</p>
+            <Button onClick={() => setRetry((v) => v + 1)}>Try again</Button>
+          </div>
+        ) : loading || !data ? (
+          <output className="brief-loading" aria-label="Loading coverage">
+            <span />
+            <span />
+            <span />
+          </output>
+        ) : (
+          <>
+            {!loading && error && (
+              <p className="inline-status" role="status">
+                Couldn’t update news. Showing saved headlines.{' '}
+                <button onClick={() => setRetry((v) => v + 1)}>Retry</button>
               </p>
-              {kind === 'news' && !!data.unavailable && !data.pending && (
-                <Button
-                  variant="outline"
-                  onClick={() => setRetry((v) => v + 1)}
-                >
-                  Try again
-                </Button>
-              )}
-              {symbol !== 'all' && (
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    onSymbolChange('all');
-                  }}
-                >
-                  Show all my holdings
-                </Button>
-              )}
-            </div>
-          )}
-          {(data.hasMore || page > 0) && (
-            <div className="brief-pager">
-              <Button
-                variant="ghost"
-                disabled={page === 0}
-                aria-label="Newer news"
-                onClick={() => setPage((p) => p - 1)}
+            )}
+            {data.items.length ? (
+              <div
+                className={kind === 'news' ? 'brief-stories' : 'brief-events'}
               >
-                <ChevronLeft size={16} />
-              </Button>
-              <span>{page + 1}</span>
-              <Button
-                variant="ghost"
-                disabled={!data.hasMore}
-                aria-label="Older news"
-                onClick={() => setPage((p) => p + 1)}
+                {(compact && !expanded
+                  ? data.items.slice(0, 5)
+                  : data.items
+                ).map((item) =>
+                  kind === 'news' ? (
+                    <SourceCard
+                      key={item.id}
+                      item={item}
+                      onDiscuss={onDiscuss}
+                    />
+                  ) : (
+                    <EventCard key={item.id} item={item} />
+                  ),
+                )}
+              </div>
+            ) : (
+              <div className="brief-empty">
+                {kind === 'news' ? (
+                  <Newspaper size={28} />
+                ) : (
+                  <CalendarDays size={28} />
+                )}
+                <h2>
+                  {kind === 'news'
+                    ? data.pending
+                      ? 'Loading news…'
+                      : data.unavailable
+                        ? 'News temporarily unavailable'
+                        : 'No recent headlines'
+                    : 'No upcoming events.'}
+                </h2>
+                <p>
+                  {kind === 'news'
+                    ? data.pending
+                      ? 'Fetching headlines for your holdings.'
+                      : data.unavailable
+                        ? 'The news feed could not update. Try again shortly.'
+                        : 'No matching headlines in this feed from the last seven days.'
+                    : 'Events appear once a source is confirmed.'}
+                </p>
+                {kind === 'news' && !!data.unavailable && !data.pending && (
+                  <Button
+                    variant="outline"
+                    onClick={() => setRetry((v) => v + 1)}
+                  >
+                    Try again
+                  </Button>
+                )}
+                {symbol !== 'all' && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      onSymbolChange('all');
+                    }}
+                  >
+                    Show all my holdings
+                  </Button>
+                )}
+              </div>
+            )}
+            {compact && !expanded && data.items.length > 5 && (
+              <button
+                className="brief-expand"
+                onClick={() => setExpanded(true)}
               >
-                <ChevronRight size={16} />
-              </Button>
-            </div>
-          )}
-          <p className="brief-disclosure">
-            {kind === 'news'
-              ? 'Checks every 15 min while open. '
-              : 'Source-confirmed events. '}
-            {data.lastReviewed
-              ? `Checked ${new Date(data.lastReviewed).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}.`
-              : ''}
-            {data.notice && <output> {data.notice}</output>}
-          </p>
-        </>
-      )}
+                More headlines <ChevronRight size={15} />
+              </button>
+            )}
+            {compact && expanded && (
+              <button
+                className="brief-expand"
+                onClick={() => {
+                  setExpanded(false);
+                  setPage(() => 0);
+                }}
+              >
+                Show less
+              </button>
+            )}
+            {(!compact || expanded || data.items.length <= 5) &&
+              (data.hasMore || page > 0) && (
+                <div className="brief-pager">
+                  <Button
+                    variant="ghost"
+                    disabled={page === 0}
+                    aria-label="Newer news"
+                    onClick={() => setPage((p) => p - 1)}
+                  >
+                    <ChevronLeft size={16} />
+                  </Button>
+                  <span>{page + 1}</span>
+                  <Button
+                    variant="ghost"
+                    disabled={!data.hasMore}
+                    aria-label="Older news"
+                    onClick={() => setPage((p) => p + 1)}
+                  >
+                    <ChevronRight size={16} />
+                  </Button>
+                </div>
+              )}
+            {!!data.unavailable && (
+              <p className="inline-status" role="status">
+                Some holdings’ news could not update.{' '}
+                <button onClick={() => setRetry((v) => v + 1)}>Retry</button>
+              </p>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }

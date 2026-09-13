@@ -5,6 +5,7 @@ import './globals.css';
 import './backpack-theme.css';
 import './refinements.css';
 import './backpack-dashboard.css';
+import './member-experience.css';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { AgentTools } from '@/components/agent-tools';
 export const metadata: Metadata = {

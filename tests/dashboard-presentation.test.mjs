@@ -211,10 +211,29 @@ test('value badge renders a compact label, never an exact balance, and hides exp
   assert.doesNotMatch(expired, /Gold/);
   assert.match(expired, /Verified holder/);
 });
+const navSource = await readFile(
+  new URL('../lib/member-navigation.ts', import.meta.url),
+  'utf8',
+);
+const navModule = { exports: {} };
+new Function(
+  'module',
+  'exports',
+  ts.transpileModule(navSource, {
+    compilerOptions: {
+      module: ts.ModuleKind.CommonJS,
+      target: ts.ScriptTarget.ES2022,
+    },
+  }).outputText,
+)(navModule, navModule.exports);
+
 async function renderDashboard(search) {
   const Empty = () => null;
   const Wrap = ({ children }) => React.createElement('div', null, children);
   const { MemberDashboard } = await component('member-dashboard.tsx', {
+    '@/lib/member-navigation': navModule.exports,
+    './member-home': { MemberHomePanel: Empty },
+    './member-markets': { MemberMarkets: Empty },
     './site-link': { default: Wrap },
     './float-logo': { FloatLogo: Empty },
     './holdings-update-info': { HoldingsUpdateInfo: Empty },
@@ -290,11 +309,11 @@ test('Saved filter survives a fresh page load through its own URL', async () => 
   assert.match(html, /<button aria-pressed="true">[^]*?Saved<\/button>/);
 });
 
-test('old Calendar links open News and Calendar is absent from sidebar destinations', async () => {
+test('old Calendar links open Home and Calendar is absent from sidebar destinations', async () => {
   const html = await renderDashboard('?view=calendar');
-  assert.match(html, /<h1>Your news<\/h1>/);
+  assert.match(html, /member-shell markets-view home-view/);
   assert.doesNotMatch(html.split('</aside>')[0], />Calendar</);
-  for (const name of ['News', 'Markets', 'Discussions', 'Profile'])
+  for (const name of ['Home', 'Markets', 'Discussions', 'Profile'])
     assert.ok(html.split('</aside>')[0].includes(name));
 });
 
@@ -323,7 +342,7 @@ async function agendaFixture({
     agendaItem('two'),
     agendaItem('three', '2026-09-21'),
   ];
-  const key = `MU:MU:0:0:0:${localToday()}`;
+  const key = `MU:MU:0:${localToday()}`;
   const states = [
     expanded,
     { key: 'MU:MU', page: 0 },
@@ -562,6 +581,7 @@ test('News keeps its agenda visible when the headline request fails', async () =
     'Headline request failed',
     0,
     key,
+    false,
     { key: 'news:MU:MU', page: 0 },
     localToday(),
   ];
@@ -681,16 +701,197 @@ test('Ecosystem overview keeps numbers and one disclosure without duplicate issu
   assert.doesNotMatch(html, /issuer-comparison|issuer-card/);
 });
 
-test('Backpack is an active internal holder destination and preserves the member shell', async () => {
+test('Legacy Backpack links open Markets and preserve the four-item member shell', async () => {
   const html = await renderDashboard('?view=backpack');
   const nav = html.match(
     /<nav[^>]*aria-label="Member navigation"[^>]*>([\s\S]*?)<\/nav>/,
   )?.[1];
   assert.ok(nav);
-  assert.match(nav, /<button aria-current="page">[^]*?Backpack[^]*?<\/button>/);
+  assert.match(nav, /<button aria-current="page">[^]*?Markets[^]*?<\/button>/);
+  assert.equal((nav.match(/<button/g) || []).length, 4);
+  assert.doesNotMatch(nav, />Backpack</);
   assert.doesNotMatch(nav, /href="\/backpack"/);
   assert.match(html, /member-shell markets-view/);
   assert.match(html, /member-sidebar/);
-  assert.match(html, /Loading Backpack/);
+  assert.match(html, /Loading markets/);
   assert.doesNotMatch(html, /<h1>Profile/);
+});
+
+test('Legacy routes and direct issuer links resolve consistently', () => {
+  assert.equal(navModule.exports.memberLocation('').view, 'overview');
+  assert.equal(
+    navModule.exports.memberLocation('?view=brief').view,
+    'overview',
+  );
+  assert.equal(navModule.exports.memberLocation('?view=calendar').agenda, true);
+  assert.equal(navModule.exports.memberLocation('?view=saved').feed, 'saved');
+  assert.equal(
+    navModule.exports.memberLocation('?view=backpack').market,
+    'backpack',
+  );
+  assert.deepEqual(
+    navModule.exports.memberLocation('?view=markets&issuer=backpack'),
+    navModule.exports.memberLocation('?view=backpack'),
+  );
+});
+
+test('Home news starts with five headlines, expands on demand, and Discuss passes the exact source', async () => {
+  const items = Array.from({ length: 12 }, (_, i) => ({
+    id: 'n' + i,
+    title: 'Micron headline ' + i,
+    publisher: 'Publisher',
+    published_at: Date.now(),
+    url: 'https://example.com/news/' + i,
+    symbols: ['MU'],
+    kind: 'news',
+    coverage: 'direct',
+  }));
+  const key = 'holder-news?symbol=MU&offset=0&holdings=MU';
+  const states = [
+    { items, hasMore: true, lastReviewed: Date.now() },
+    '',
+    0,
+    key,
+    false,
+    { key: 'news:MU:MU', page: 0 },
+    localToday(),
+  ];
+  let index = 0;
+  const Wrap = ({ children, ...props }) =>
+    React.createElement('button', props, children);
+  const { MemberBrief, SourceCard } = await component('member-brief.tsx', {
+    react: {
+      ...React,
+      useState: () => {
+        const i = index++;
+        return [
+          states[i],
+          (update) => {
+            states[i] =
+              typeof update === 'function' ? update(states[i]) : update;
+          },
+        ];
+      },
+      useEffect: () => {},
+      useRef: () => ({ current: '' }),
+    },
+    './ui/button': { Button: Wrap },
+    './search-picker': { SearchPicker: () => null },
+    './upcoming-agenda': {
+      UpcomingAgenda: () =>
+        React.createElement('aside', null, 'Upcoming events'),
+    },
+    '@/lib/client': { api: () => {} },
+    '@/lib/tokens': { TOKENS: [] },
+    '@/lib/editorial': { eventLabel: () => '' },
+  });
+  let selected;
+  const render = () => {
+    index = 0;
+    return MemberBrief({
+      kind: 'news',
+      compact: true,
+      holdings: ['MU'],
+      symbol: 'MU',
+      onSymbolChange: () => {},
+      onDiscuss: (item) => {
+        selected = item;
+      },
+    });
+  };
+  let tree = render();
+  assert.equal(elements(tree, SourceCard).length, 5);
+  const source = elements(tree, SourceCard)[0];
+  source.props.onDiscuss(source.props.item);
+  assert.equal(selected.url, items[0].url);
+  findElement(
+    tree,
+    (e) => e.type === 'button' && e.props.className === 'brief-expand',
+  ).props.onClick();
+  tree = render();
+  assert.equal(elements(tree, SourceCard).length, 12);
+  assert.match(renderToStaticMarkup(tree), /Older news/);
+  assert.match(renderToStaticMarkup(tree), /Upcoming events/);
+});
+
+test('Home portfolio links filter the existing news area and market navigation stays explicit', async () => {
+  let selected,
+    markets = 0,
+    thread;
+  const positions = [holding('MU')];
+  const Portfolio = () => null;
+  const News = () => null;
+  const Empty = () => null;
+  const { MemberHomePanel } = await component('member-home.tsx', {
+    './portfolio-summary': { PortfolioSummary: Portfolio },
+    './member-brief': { MemberBrief: News },
+    '@/hooks/use-market-overview': {
+      useMarketOverview: (_holdings, _refresh, scope) => {
+        assert.equal(scope, 'holdings');
+        return { data: null, error: '' };
+      },
+    },
+    '@/lib/client': { api: Empty },
+    react: {
+      ...React,
+      useState: (initial) => [
+        typeof initial === 'function' ? initial() : initial,
+        () => {},
+      ],
+      useEffect: () => {},
+    },
+  });
+  const tree = MemberHomePanel({
+    positions,
+    revision: 0,
+    symbol: 'all',
+    onSymbolChange: (s) => {
+      selected = s;
+    },
+    onMarkets: () => markets++,
+    onDiscuss: Empty,
+    onThread: (id) => {
+      thread = id;
+    },
+    onDiscussions: Empty,
+    onCreate: Empty,
+  });
+  const prior = globalThis.document;
+  globalThis.document = { getElementById: () => ({ scrollIntoView() {} }) };
+  try {
+    elements(tree, Portfolio)[0].props.onSelect('MU');
+  } finally {
+    globalThis.document = prior;
+  }
+  assert.equal(selected, 'MU');
+  const html = renderToStaticMarkup(tree);
+  assert.match(html, /Latest news/);
+  assert.match(html, /Holder discussions/);
+  assert.match(html, /Explore markets/);
+  assert.doesNotMatch(html, /Backpack dashboard/);
+});
+
+test('Stock details expand under the selected row and collapse without navigating away', async () => {
+  const f = await marketFixture();
+  let tree = f.render();
+  assert.doesNotMatch(renderToStaticMarkup(tree), /id="selected-stock-detail"/);
+  const row = () =>
+    findElement(
+      tree,
+      (e) =>
+        e.props?.symbol === 'MU' && typeof e.props?.onSelect === 'function',
+    );
+  row().props.onSelect('MU');
+  tree = f.render();
+  const detail = findElement(
+    tree,
+    (e) => e.type === 'tr' && e.props.className === 'stock-detail-row',
+  );
+  assert.ok(detail);
+  assert.equal(detail.props.children.props.colSpan, 4);
+  assert.match(renderToStaticMarkup(detail), /id="selected-stock-detail"/);
+  assert.equal(row().props.selected, true);
+  row().props.onSelect('MU');
+  tree = f.render();
+  assert.doesNotMatch(renderToStaticMarkup(tree), /id="selected-stock-detail"/);
 });
