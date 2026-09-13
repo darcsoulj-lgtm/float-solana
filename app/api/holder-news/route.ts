@@ -1,7 +1,8 @@
 import { communityMember } from '@/lib/community-server';
 import { db, rateLimit } from '@/lib/server';
 import {
-  headlineIdentity,
+  headlineStoryIdentity,
+  preferHeadlineSource,
   headlineKeys,
   cachedHeadlines,
   headlineStatus,
@@ -111,11 +112,14 @@ async function handle(req: Request) {
         for (const n of headlines) {
           if (n.published_at < now - NEWS_WINDOW_MS || n.published_at > now)
             continue;
-          // The same publisher/title may arrive via a Google redirect and Yahoo URL.
-          const identity = headlineIdentity(n);
+          // Merge matching syndicated stories before pagination, across held symbols.
+          const identity = headlineStoryIdentity(n);
           const old = map.get(identity);
           map.set(identity, {
-            ...n,
+            ...(old &&
+            !preferHeadlineSource({ publisher: String(old.publisher) }, n)
+              ? old
+              : n),
             summary: '',
             kind: 'news',
             coverage: 'direct',
@@ -136,7 +140,17 @@ async function handle(req: Request) {
       .all<Record<string, unknown>>();
     for (const row of curated.results) {
       const n = editorialRow(row);
-      map.set(headlineIdentity(n), n as unknown as Record<string, unknown>);
+      const identity = headlineStoryIdentity(n);
+      const previous = map.get(identity);
+      map.set(identity, {
+        ...n,
+        symbols: [
+          ...new Set([
+            ...((previous?.symbols as string[]) || []),
+            ...n.symbols,
+          ]),
+        ],
+      } as unknown as Record<string, unknown>);
     }
     const items = [...map.values()].sort(
       (a, b) =>

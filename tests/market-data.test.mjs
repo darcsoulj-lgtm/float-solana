@@ -1421,6 +1421,34 @@ test('holder news route returns cached MU and SPCX stories with pagination and h
   const page2 = await (await get('?symbol=SPCX&offset=20')).json();
   assert.equal(page2.items.length, 5);
   assert.equal(page2.hasMore, false);
+  const title = 'SpaceX To Get Weighting Boost In Nasdaq 100 After Rebalance';
+  const copies = [
+    {
+      id: 'syndicated',
+      title,
+      publisher: 'Yahoo Finance',
+      url: 'https://finance.yahoo.com/news/spacex-rebalance',
+      published_at: now - 100,
+      symbols: ['SPCX'],
+    },
+    {
+      id: 'original',
+      title,
+      publisher: 'Bloomberg.com',
+      url: 'https://www.bloomberg.com/news/articles/spacex-rebalance',
+      published_at: now - 100,
+      symbols: ['SPCX'],
+    },
+  ];
+  f.sql
+    .prepare('UPDATE market_cache SET payload=? WHERE key=?')
+    .run(JSON.stringify(copies), headlines.headlineKeys('SPCX')[0]);
+  const deduplicated = await (await get('?symbol=SPCX')).json();
+  assert.equal(deduplicated.items.length, 1);
+  assert.equal(deduplicated.items[0].publisher, 'Bloomberg.com');
+  assert.equal(deduplicated.items[0].url, copies[1].url);
+  assert.equal(deduplicated.items[0].published_at, now - 100);
+  assert.equal(deduplicated.hasMore, false);
   assert.equal((await get('?symbol=SKHY')).status, 403);
   assert.equal((await get('?offset=-1')).status, 400);
   signedIn = false;
@@ -1678,4 +1706,45 @@ test('Dated prices cannot qualify a holder ranking even with fresh holdings and 
     { symbol: 'MU', raw_amount: '10000000', decimals: 6, verified_at: now },
   ];
   assert.equal(calculateHolderTier(holdings, data, now).tier, null);
+});
+
+test('Syndication matching keeps different stories, days and generic headlines separate', () => {
+  const base = {
+    publisher: 'Yahoo Finance',
+    title: 'SpaceX To Get Weighting Boost In Nasdaq 100 After Rebalance',
+    published_at: Date.UTC(2026, 8, 13, 3),
+  };
+  assert.equal(
+    headlines.headlineStoryIdentity(base),
+    headlines.headlineStoryIdentity({ ...base, publisher: 'Bloomberg.com' }),
+  );
+  assert.notEqual(
+    headlines.headlineStoryIdentity(base),
+    headlines.headlineStoryIdentity({
+      ...base,
+      published_at: base.published_at - 86400000,
+    }),
+  );
+  assert.notEqual(
+    headlines.headlineStoryIdentity(base),
+    headlines.headlineStoryIdentity({
+      ...base,
+      title: base.title + ' Updated outlook',
+    }),
+  );
+  assert.notEqual(
+    headlines.headlineStoryIdentity({ ...base, title: 'Market update' }),
+    headlines.headlineStoryIdentity({
+      ...base,
+      title: 'Market update',
+      publisher: 'Bloomberg.com',
+    }),
+  );
+  assert.equal(
+    headlines.preferHeadlineSource(
+      { publisher: 'Bloomberg.com' },
+      { publisher: 'Yahoo Finance' },
+    ),
+    false,
+  );
 });

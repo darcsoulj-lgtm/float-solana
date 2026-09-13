@@ -67,7 +67,11 @@ export function SourceCard({
       </div>
       <div className="brief-story-footer">
         {onDiscuss && (
-          <button onClick={() => onDiscuss(item)}>
+          <button
+            type="button"
+            aria-label={`Discuss: ${item.title}`}
+            onClick={() => onDiscuss(item)}
+          >
             <MessageSquare size={16} /> Discuss
           </button>
         )}

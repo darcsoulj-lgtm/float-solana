@@ -124,3 +124,24 @@ export function headlineIdentity(item: Pick<Headline, 'publisher' | 'title'>) {
       .replace(/[^\p{L}\p{N}]/gu, '')
   );
 }
+
+// Merge exact syndicated headlines on the same UTC day, not merely similar
+// stories. Short generic titles retain publisher identity to avoid collisions.
+export function headlineStoryIdentity(
+  item: Pick<Headline, 'publisher' | 'title' | 'published_at'>,
+) {
+  const title = item.title
+    .toLowerCase()
+    .normalize('NFKC')
+    .replace(/[^\p{L}\p{N}]/gu, '');
+  const day = Math.floor(item.published_at / 86400000);
+  return day + ':' + (title.length >= 40 ? title : headlineIdentity(item));
+}
+export function preferHeadlineSource(
+  previous: Pick<Headline, 'publisher'>,
+  incoming: Pick<Headline, 'publisher'>,
+) {
+  const syndicated = (name: string) =>
+    /^(yahoo(?: finance)?|google news|msn)(?:\.com)?$/i.test(name.trim());
+  return syndicated(previous.publisher) && !syndicated(incoming.publisher);
+}
