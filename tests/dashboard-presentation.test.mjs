@@ -217,6 +217,7 @@ const navSource = await readFile(
 );
 const navModule = { exports: {} };
 new Function(
+  'require',
   'module',
   'exports',
   ts.transpileModule(navSource, {
@@ -225,7 +226,18 @@ new Function(
       target: ts.ScriptTarget.ES2022,
     },
   }).outputText,
-)(navModule, navModule.exports);
+)(
+  (id) =>
+    id === './tokens'
+      ? {
+          ISSUERS: ['backpack', 'xstocks', 'ondo', 'prestocks', 'tessera'].map(
+            (id) => ({ id }),
+          ),
+        }
+      : require(id),
+  navModule,
+  navModule.exports,
+);
 
 async function renderDashboard(search) {
   const Empty = () => null;
@@ -439,7 +451,7 @@ test('agenda failures are explicit and longer agendas expose bounded pagination'
   );
 });
 
-async function marketFixture() {
+async function marketFixture(props = {}) {
   const states = [];
   let index = 0;
   const Empty = () => null;
@@ -542,7 +554,7 @@ async function marketFixture() {
     states,
     render: () => {
       index = 0;
-      return MarketOverviewPanel({ holdings: ['MU'], positions: [] });
+      return MarketOverviewPanel({ holdings: ['MU'], positions: [], ...props });
     },
   };
 }
@@ -894,4 +906,34 @@ test('Stock details expand under the selected row and collapse without navigatin
   row().props.onSelect('MU');
   tree = f.render();
   assert.doesNotMatch(renderToStaticMarkup(tree), /id="selected-stock-detail"/);
+});
+
+test('All issuer deep links resolve inside Markets and unknown issuers reset safely', () => {
+  for (const issuer of [
+    'backpack',
+    'xstocks',
+    'ondo',
+    'prestocks',
+    'tessera',
+  ]) {
+    const location = navModule.exports.memberLocation(
+      '?view=markets&issuer=' + issuer,
+    );
+    assert.equal(location.view, 'markets');
+    assert.equal(location.market, issuer);
+  }
+  assert.equal(
+    navModule.exports.memberLocation('?view=markets&issuer=invalid').market,
+    'all',
+  );
+});
+
+test('Issuer buttons open their matching dashboard when used inside Markets', async () => {
+  const opened = [];
+  const f = await marketFixture({onIssuer: (issuer) => opened.push(issuer)});
+  for (const name of ['Backpack', 'Ondo']) {
+    const tree = f.render();
+    findElement(tree, (e) => e.type === 'button' && e.props['aria-label'] === name).props.onClick();
+  }
+  assert.deepEqual(opened, ['backpack','ondo']);
 });

@@ -1,5 +1,6 @@
+import { ISSUERS, type IssuerId } from './tokens';
 export type MemberView = 'overview' | 'home' | 'topics' | 'markets' | 'profile';
-export type MarketView = 'all' | 'backpack';
+export type MarketView = 'all' | IssuerId;
 export function memberLocation(search: string) {
   const params = new URLSearchParams(search);
   const requested = params.get('view');
@@ -16,9 +17,10 @@ export function memberLocation(search: string) {
           : 'overview';
   return {
     view,
-    market: (requested === 'backpack' || params.get('issuer') === 'backpack'
+    market: (requested === 'backpack'
       ? 'backpack'
-      : 'all') as MarketView,
+      : (ISSUERS.find((issuer) => issuer.id === params.get('issuer'))?.id ??
+        'all')) as MarketView,
     feed:
       requested === 'saved'
         ? 'saved'

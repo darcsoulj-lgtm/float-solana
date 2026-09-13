@@ -48,12 +48,12 @@ export function MarketOverviewPanel({
   holdings,
   positions = [],
   hidePortfolio = false,
-  onBackpack,
+  onIssuer,
 }: {
   holdings: string[];
   positions?: Holding[];
   hidePortfolio?: boolean;
-  onBackpack?: () => void;
+  onIssuer?: (issuer: IssuerId) => void;
 }) {
   const [onlyHoldings, setOnlyHoldings] = useState(false),
     [query, setQuery] = useState(''),
@@ -73,8 +73,8 @@ export function MarketOverviewPanel({
   } | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const chooseIssuer = (id: IssuerId | 'all') => {
-    if (id === 'backpack' && onBackpack) {
-      onBackpack();
+    if (id !== 'all' && onIssuer) {
+      onIssuer(id);
       return;
     }
     setDetailOpen(false);

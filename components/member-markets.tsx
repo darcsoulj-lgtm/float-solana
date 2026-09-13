@@ -2,13 +2,14 @@
 import { Activity, lazy, Suspense, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import type { Holding } from '@/lib/community-types';
+import { ISSUERS } from '@/lib/tokens';
 import type { MarketView } from '@/lib/member-navigation';
 const MarketOverviewPanel = lazy(() =>
   import('./market-overview').then((m) => ({ default: m.MarketOverviewPanel })),
 );
-const BackpackDashboardPage = lazy(() =>
-  import('./backpack-dashboard').then((m) => ({
-    default: m.BackpackDashboardPage,
+const IssuerDashboardPage = lazy(() =>
+  import('./issuer-dashboard').then((m) => ({
+    default: m.IssuerDashboardPage,
   })),
 );
 export function MemberMarkets({
@@ -27,7 +28,7 @@ export function MemberMarkets({
   return (
     <div className="member-markets">
       {market === 'all' && <h1 className="sr-only">Markets</h1>}
-      {market === 'backpack' && (
+      {market !== 'all' && (
         <button className="market-back" onClick={() => onMarketChange('all')}>
           <ArrowLeft size={16} />
           All markets
@@ -46,24 +47,27 @@ export function MemberMarkets({
               holdings={positions.map((p) => p.symbol)}
               positions={positions}
               hidePortfolio
-              onBackpack={() => onMarketChange('backpack')}
+              onIssuer={onMarketChange}
             />
           </Suspense>
         </Activity>
       )}
-      {visited.has('backpack') && (
-        <Activity mode={market === 'backpack' ? 'visible' : 'hidden'}>
+      {ISSUERS.filter((issuer) => visited.has(issuer.id)).map((issuer) => (
+        <Activity
+          key={issuer.id}
+          mode={market === issuer.id ? 'visible' : 'hidden'}
+        >
           <Suspense
             fallback={
               <p className="inline-status" role="status">
-                Loading Backpack…
+                Loading {issuer.name}…
               </p>
             }
           >
-            <BackpackDashboardPage embedded />
+            <IssuerDashboardPage issuer={issuer.id} embedded />
           </Suspense>
         </Activity>
-      )}
+      ))}
     </div>
   );
 }

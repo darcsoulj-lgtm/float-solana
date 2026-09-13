@@ -113,7 +113,7 @@ export function MemberDashboard({
     if (url.searchParams.get('view') === 'calendar')
       url.searchParams.set('agenda', 'open');
     url.searchParams.set('view', view);
-    if (view === 'markets' && market === 'backpack')
+    if (view === 'markets' && market !== 'all')
       url.searchParams.set('issuer', market);
     else url.searchParams.delete('issuer');
     for (const [key, value] of [
@@ -335,8 +335,10 @@ export function MemberDashboard({
     setNotice('');
     const url = new URL(window.location.href);
     url.searchParams.set('view', next);
-    if (next === 'markets' && nextMarket === 'backpack')
-      url.searchParams.set('issuer', 'backpack');
+    if (next !== view || nextMarket !== market)
+      url.searchParams.delete('stock');
+    if (next === 'markets' && nextMarket !== 'all')
+      url.searchParams.set('issuer', nextMarket);
     else url.searchParams.delete('issuer');
     url.hash = '';
     window.history.pushState(null, '', url.pathname + url.search);

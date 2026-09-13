@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { api } from '@/lib/client';
-import { TOKENS, MARKET_BATCH_SIZE } from '@/lib/tokens';
+import { TOKENS, MARKET_BATCH_SIZE, type IssuerId } from '@/lib/tokens';
 import { mergeMarketPages, type MarketOverview } from '@/lib/market-data';
 
 // Public observations only: reuse snapshots between Home and Markets without
@@ -19,7 +19,7 @@ function savedPages() {
 export function useMarketOverview(
   holdings: string[],
   refresh: number,
-  scope: 'all' | 'holdings' = 'all',
+  scope: 'all' | 'holdings' | IssuerId = 'all',
 ) {
   const [data, setData] = useState<MarketOverview | null>(() =>
     snapshots.size ? mergeMarketPages(savedPages().filter(Boolean)) : null,
@@ -30,7 +30,7 @@ export function useMarketOverview(
   const [circulation, setCirculation] =
     useState<MarketOverview['circulation']>();
   useEffect(() => {
-    if (scope === 'holdings') return;
+    if (scope !== 'all' && scope !== 'xstocks') return;
     let active = true,
       attempts = 0;
     let timer: ReturnType<typeof setTimeout>;
@@ -93,7 +93,16 @@ export function useMarketOverview(
       { length: Math.ceil(TOKENS.length / MARKET_BATCH_SIZE) },
       (_, i) => i,
     )
-      .filter((batch) => scope === 'all' || owned.has(batch))
+      .filter(
+        (batch) =>
+          scope === 'all' ||
+          (scope === 'holdings'
+            ? owned.has(batch)
+            : TOKENS.slice(
+                batch * MARKET_BATCH_SIZE,
+                (batch + 1) * MARKET_BATCH_SIZE,
+              ).some((token) => token.issuer === scope)),
+      )
       .sort((a, b) => Number(owned.has(b)) - Number(owned.has(a)) || a - b);
     async function load() {
       if (!active || loading || Date.now() - lastStarted < 15000) return;

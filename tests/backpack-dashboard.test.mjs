@@ -9,7 +9,7 @@ const root = new URL('../', import.meta.url).pathname;
 const { outputFiles } = await build({
   stdin: {
     contents:
-      "export * from './lib/backpack-dashboard'; export {parsePools} from './lib/market-data';",
+      "export * from './lib/backpack-dashboard'; export {issuerDashboard} from './lib/issuer-dashboard'; export {TOKENS,ISSUERS} from './lib/tokens'; export {parsePools} from './lib/market-data';",
     resolveDir: root,
     loader: 'ts',
   },
@@ -201,7 +201,12 @@ test('Invalid public batch requests are rejected', async () => {
     );
 });
 const uiBundle = await build({
-  entryPoints: [root + 'components/backpack-dashboard.tsx'],
+  stdin: {
+    contents:
+      "export * from './components/backpack-dashboard'; export {IssuerDashboardContent} from './components/issuer-dashboard';",
+    resolveDir: root,
+    loader: 'tsx',
+  },
   bundle: true,
   platform: 'node',
   format: 'cjs',
@@ -264,4 +269,76 @@ test('Embedded Backpack keeps dashboard controls without the public join prompt'
     React.createElement(BackpackDashboardPage),
   );
   assert.match(publicHtml, /Join the holder community/);
+});
+
+test('Every issuer uses isolated, deduplicated pool totals with unknown values preserved', () => {
+  for (const issuer of api.ISSUERS) {
+    const d = blank();
+    const tokens = api.TOKENS.filter((t) => t.issuer === issuer.id);
+    d.pools.data[tokens[0].symbol] = [pool('shared', 125, 50)];
+    if (tokens[1]) d.pools.data[tokens[1].symbol] = [pool('shared', 125, 50)];
+    const other = api.TOKENS.find((t) => t.issuer !== issuer.id);
+    d.pools.data[other.symbol] = [pool('outside', 1e9, 1e9)];
+    const result = api.issuerDashboard(d, issuer.id, now);
+    assert.equal(result.rows.length, tokens.length);
+    assert.equal(result.volume, 125);
+    assert.equal(result.liquidity, 50);
+    assert.ok(result.rows.every((r) => r.token.issuer === issuer.id));
+    assert.equal(api.issuerDashboard(blank(), issuer.id, now).volume, null);
+  }
+});
+test('xStocks dashboard never substitutes gross minted or global values for circulation', () => {
+  const token = api.TOKENS.find((t) => t.issuer === 'xstocks');
+  const d = blank();
+  d.supplies.data[token.symbol] = { supply: 1e9, valuationSafe: true };
+  d.prices.data[token.symbol] = { price: 100, confidence: 1, timestamp: now };
+  assert.equal(api.issuerDashboard(d, 'xstocks', now).value, null);
+  d.circulation = source({
+    [token.symbol]: {
+      mint: token.mint,
+      circulatingSupply: 2,
+      totalSupply: 1e9,
+      referencePriceUsd: 110,
+      valueUsd: 220,
+    },
+  });
+  const result = api.issuerDashboard(d, 'xstocks', now);
+  assert.equal(result.value, 220);
+  assert.equal(result.mintedValue, null);
+  assert.equal(result.valueLabel, 'Circulating value');
+  d.circulation.fetchedAt = now - 3600000;
+  assert.equal(api.issuerDashboard(d, 'xstocks', now).delayed, true);
+  d.circulation.fetchedAt = now - 86400001;
+  assert.equal(api.issuerDashboard(d, 'xstocks', now).value, null);
+});
+test('All issuer dashboards render the same metric controls and their own value basis', () => {
+  const React = require('react');
+  const { renderToStaticMarkup } = require('react-dom/server');
+  for (const issuer of api.ISSUERS) {
+    const html = renderToStaticMarkup(
+      React.createElement(uiModule.exports.IssuerDashboardContent, {
+        issuer: issuer.id,
+        embedded: true,
+        data: blank(),
+        busy: false,
+        error: '',
+        onRefresh: () => {},
+      }),
+    );
+    assert.match(html, new RegExp(issuer.name + ' onchain'));
+    for (const label of [
+      'Tracked DEX volume',
+      'Tracked liquidity',
+      '24h change',
+      'Search stocks',
+      'Sources &amp; coverage',
+    ])
+      assert.ok(html.includes(label));
+    assert.ok(
+      html.includes(
+        issuer.id === 'xstocks' ? 'Circulating value' : 'Minted value',
+      ),
+    );
+    assert.doesNotMatch(html, /Join the holder community/);
+  }
 });
