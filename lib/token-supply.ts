@@ -1,3 +1,4 @@
+import { DEFAULT_SOLANA_RPC } from './solana-network';
 import { TOKENS, TOKEN_PROGRAMS, type StockToken } from './tokens';
 
 export type MintSupply = {
@@ -109,7 +110,7 @@ export function parseSupplies(
   return out;
 }
 export async function fetchSupplies(
-  rpcUrl = 'https://api.mainnet-beta.solana.com',
+  rpcUrl = DEFAULT_SOLANA_RPC,
   fetcher: typeof fetch = fetch,
   tokens: readonly StockToken[] = TOKENS,
 ) {

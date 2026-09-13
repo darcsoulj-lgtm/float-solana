@@ -1,3 +1,4 @@
+import { DEFAULT_SOLANA_RPC } from './solana-network';
 import { TOKENS, TOKEN_PROGRAMS, type StockToken } from './tokens';
 import { publicJson } from './market-data';
 import { marketSnapshot } from './market-cache';
@@ -118,7 +119,7 @@ export function verifiedBackpackMints(
 
 export async function discoverBackpackListings(
   previous: StockToken[],
-  rpc = 'https://api.mainnet-beta.solana.com',
+  rpc = DEFAULT_SOLANA_RPC,
   fetcher: typeof fetch = fetch,
   seeds: readonly StockToken[] = TOKENS,
 ): Promise<StockToken[]> {

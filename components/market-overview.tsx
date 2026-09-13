@@ -21,7 +21,11 @@ import { PortfolioSummary } from './portfolio-summary';
 import type { Holding } from '@/lib/community-types';
 import { MarketStockRow } from './market-stock-row';
 import { SolanaEcosystem } from './solana-ecosystem';
-import { tokenObservation, tokenValuation } from '@/lib/token-observation';
+import {
+  tokenObservation,
+  tokenValuation,
+  trackedValuation,
+} from '@/lib/token-observation';
 const money = (n: number | null | undefined, compact = false) =>
   n === null || n === undefined
     ? '—'
@@ -198,6 +202,7 @@ export function MarketOverviewPanel({
     book?.data && !book.stale && now - book.data.timestamp <= 120000
       ? book.data
       : null;
+  const issuerValues = trackedValuation(data, now);
   const sourceErrors = data
     ? [
         { name: 'CoinMarketCap', source: data.markets },
@@ -364,6 +369,22 @@ export function MarketOverviewPanel({
                 )}
               </>
             )}
+            {observation.valuationSource && (
+              <div>
+                <dt>Valuation snapshot</dt>
+                <dd>
+                  <a
+                    href="https://api.llama.fi/protocol/ondo-global-markets"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {observation.valuationSource} ↗
+                  </a>{' '}
+                  · {time(observation.valuationTime)}. Paired Solana supply and
+                  USD value; separate from the current price.
+                </dd>
+              </div>
+            )}
             <div>
               <dt>Gross minted value · not AUM</dt>
               <dd>
@@ -456,6 +477,7 @@ export function MarketOverviewPanel({
         </div>
         <p className="market-footnote market-source-line">
           {token.issuer !== 'xstocks' &&
+            !observation.valuationSource &&
             observation.priceConflict &&
             'Price sources differ by more than 5%. Valuation is withheld pending reconciliation. '}
           {token.issuer === 'xstocks'
@@ -731,7 +753,13 @@ export function MarketOverviewPanel({
                   <Check size={14} aria-hidden="true" />
                 </span>
                 <span className="issuer-filter-count">
-                  {count.toLocaleString()}
+                  {money(
+                    item.id === 'all'
+                      ? issuerValues.total
+                      : issuerValues.issuers.find((v) => v.id === item.id)
+                          ?.total,
+                    true,
+                  )}
                 </span>
               </button>
             );

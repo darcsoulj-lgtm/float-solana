@@ -576,6 +576,13 @@ async function marketFixture(props = {}, valuation = {}) {
         React.createElement('div', null, 'Market-wide totals'),
     },
     '@/lib/token-observation': {
+      trackedValuation: () => ({
+        total: 24000,
+        issuers: [
+          { id: 'backpack', total: 12000 },
+          { id: 'ondo', total: 12000 },
+        ],
+      }),
       issuerValuation: () => ({
         label: 'Minted value',
         basis: 'minted',
@@ -704,7 +711,7 @@ void test('compact issuer filters select and reset while the table prioritizes t
   );
   assert.doesNotMatch(
     renderToStaticMarkup(filters()),
-    /\$|Minted value|Circulating value/,
+    /Minted value|Circulating value/,
   );
   assert.match(renderToStaticMarkup(filters()), /title="1 tokenized stocks"/);
   const table = findElement(
@@ -789,7 +796,9 @@ void test('Ecosystem overview keeps valuation estimates and their caveats inside
   );
   assert.equal((html.match(/<details/g) || []).length, 1);
   const headline = html.split('<details')[0];
-  assert.doesNotMatch(headline, /\$|Tracked value|Mixed supply bases/);
+  assert.match(headline, /Tracked onchain value/);
+  assert.match(headline, /\$1.5K/);
+  assert.doesNotMatch(headline, /circulating market cap/);
   assert.match(headline, /Tokens/);
   assert.match(headline, /Underlying assets/);
   assert.doesNotMatch(html, /<details[^>]*\sopen(?:[ =>])/);
@@ -950,7 +959,7 @@ void test('Issuer filters remain usable when valuation data is delayed', async (
   assert.match(html, /Backpack/);
   assert.match(html, /Ondo/);
   assert.match(html, /issuer-filter-count/);
-  assert.doesNotMatch(html, /\$|Delayed|Minted|Circulating|Unavailable/);
+  assert.doesNotMatch(html, /Delayed|Minted|Circulating|Unavailable/);
 });
 
 void test('Home portfolio links filter the existing news area and market navigation stays explicit', async () => {

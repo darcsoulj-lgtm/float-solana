@@ -9,6 +9,7 @@ const require = createRequire(import.meta.url);
 const dir = await mkdtemp(tmpdir() + '/holderpulse-test-');
 for (const file of [
   'tokens',
+  'solana-network',
   'token-registry',
   'validation',
   'solana',
@@ -34,7 +35,7 @@ for (const file of [
       },
     })
     .outputText.replace(
-      /from '\.\/(stock-pools|tokens|token-registry|validation|community-types|community-post|editorial|editorial-starter|market-data)'/g,
+      /from '\.\/(solana-network|stock-pools|tokens|token-registry|validation|community-types|community-post|editorial|editorial-starter|market-data)'/g,
       "from './$1.mjs'",
     );
   await writeFile(

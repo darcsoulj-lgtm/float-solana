@@ -9,6 +9,7 @@ import { DatabaseSync } from 'node:sqlite';
 const dir = await mkdtemp(tmpdir() + '/hp-markets-');
 for (const file of [
   'tokens',
+  'solana-network',
   'token-registry',
   'market-data',
   'stock-pools',
@@ -16,6 +17,9 @@ for (const file of [
   'cmc-data',
   'token-supply',
   'token-observation',
+  'ondo-valuation',
+  'request-body',
+  'validation',
   'holder-tier',
   'holder-tier-server',
   'market-service',
@@ -35,7 +39,7 @@ for (const file of [
       },
     })
     .outputText.replace(
-      /from '\.\/(stock-pools|tokens|token-registry|market-service|backpack-registry|market-data|market-cache|cmc-data|token-supply|token-observation|holder-tier|holder-news)'/g,
+      /from '\.\/(solana-network|ondo-valuation|request-body|validation|stock-pools|tokens|token-registry|market-service|backpack-registry|market-data|market-cache|cmc-data|token-supply|token-observation|holder-tier|holder-news)'/g,
       "from './$1.mjs'",
     );
   await writeFile(dir + '/' + file + '.mjs', out);
@@ -827,10 +831,14 @@ void test('Issuer totals partition one Solana total without merging wrappers or 
     prices: source({}, now),
     markets: source({}, now),
   };
-  assert.equal(issuedCoverage(data, now).total, 120);
+  assert.equal(issuedCoverage(data, now).total, 60);
   assert.equal(issuedCoverage(data, now, 'backpack').total, 20);
   assert.equal(issuedCoverage(data, now, 'xstocks').total, 40);
-  assert.equal(issuedCoverage(data, now, 'ondo').total, 60);
+  assert.equal(
+    issuedCoverage(data, now, 'ondo').total,
+    null,
+    'Ondo requires a paired source valuation',
+  );
   data.supplies.data.MUon.valuationSafe = false;
   assert.equal(issuedCoverage(data, now).total, 60);
   assert.equal(issuedCoverage(data, now, 'ondo').total, null);

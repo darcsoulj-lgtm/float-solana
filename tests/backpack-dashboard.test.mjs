@@ -441,7 +441,7 @@ void test('xStocks dashboard never substitutes gross minted or global values for
   d.circulation.fetchedAt = now - 86400001;
   assert.equal(api.issuerDashboard(d, 'xstocks', now).value, null);
 });
-void test('Issuer dashboards prioritize trading metrics and retain valuation in collapsed coverage', () => {
+void test('Issuer dashboards place valuation before volume and liquidity, keeping counts by Stocks', () => {
   const React = require('react');
   const { renderToStaticMarkup } = require('react-dom/server');
   for (const issuer of api.ISSUERS) {
@@ -472,10 +472,13 @@ void test('Issuer dashboards prioritize trading metrics and retain valuation in 
     );
     const summary = html.split('<details class="bp-method"')[0];
     assert.doesNotMatch(summary, /Minted value/);
-    assert.match(
-      summary,
-      issuer.id === 'xstocks' ? /Circulating value/ : /Tracked on Solana/,
+    assert.ok(
+      summary.indexOf('Onchain value') < summary.indexOf('DEX pool volume'),
     );
+    assert.ok(
+      summary.indexOf('DEX pool volume') < summary.indexOf('Pool liquidity'),
+    );
+    assert.match(summary, /Stocks <span>/);
     assert.match(html.split('<details class="bp-method"')[1], /tokens valued/);
     assert.doesNotMatch(html, /Join the holder community/);
   }
@@ -497,7 +500,11 @@ void test('Ondo limited pool coverage is visible alongside volume, not presented
     }),
   );
   assert.match(html, /DEX pool volume/);
-  assert.match(html, /1 of 416 tokens · RFQ excluded/);
+  assert.ok(
+    html.includes(
+      `1 of ${api.TOKENS.filter((t) => t.issuer === 'ondo').length} tokens · RFQ excluded`,
+    ),
+  );
   assert.match(html, /Volume source and coverage/);
 });
 

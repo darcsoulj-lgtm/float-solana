@@ -1,3 +1,4 @@
+import { DEFAULT_SOLANA_RPC } from './solana-network';
 type ParsedInfo = {
   decimals: number;
   isInitialized?: boolean;
@@ -68,7 +69,7 @@ export async function verifySignature(
 export async function verifyHolding(
   wallet: string,
   symbol: string,
-  rpcUrl = 'https://api.mainnet-beta.solana.com',
+  rpcUrl = DEFAULT_SOLANA_RPC,
   fetcher: typeof fetch = fetch,
 ) {
   validWallet(wallet);
@@ -192,7 +193,7 @@ function rpcClient(rpcUrl: string, fetcher: typeof fetch) {
 /** Detect only registry-approved assets. Unrelated tokens never leave this function. */
 export async function detectHoldings(
   wallet: string,
-  rpcUrl = 'https://api.mainnet-beta.solana.com',
+  rpcUrl = DEFAULT_SOLANA_RPC,
   fetcher: typeof fetch = fetch,
   includeAmounts = false,
   tokens: readonly StockToken[] = TOKENS,

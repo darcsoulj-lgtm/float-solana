@@ -164,6 +164,24 @@ void test('Other issuer estimates remain available with minted labels and never 
   for (const [, symbol] of examples) {
     mixed.supplies.data[symbol] = { supply: 840, valuationSafe: true };
     mixed.prices.data[symbol] = { price: 100, confidence: 1, timestamp: now };
+    if (api.TOKENS.find((t) => t.symbol === symbol)?.issuer === 'ondo')
+      mixed.valuations = {
+        data: {
+          observedAt: now,
+          rows: {
+            [symbol]: {
+              mint: api.TOKENS.find((t) => t.symbol === symbol).mint,
+              supply: 840,
+              valueUsd: 84000,
+            },
+          },
+          excluded: [],
+          reportedTokens: 1,
+        },
+        fetchedAt: now,
+        stale: false,
+        error: null,
+      };
   }
   for (const [issuer, symbol] of examples) {
     const c = api.issuerValuation(mixed, now, issuer);
@@ -204,7 +222,7 @@ void test('Other issuer estimates remain available with minted labels and never 
   assert.equal(api.issuerValuation(mixed, now, 'backpack').total, null);
 });
 
-void test('Captured Solana observations restore all four non-xStocks issuer estimates', () => {
+void test('Legacy minted observations remain usable except Ondo which requires a paired valuation', () => {
   const capture = JSON.parse(
     fs.readFileSync(
       root + 'research/market-integrity/audit-2026-09-12.json',
@@ -230,7 +248,7 @@ void test('Captured Solana observations restore all four non-xStocks issuer esti
     if (row.supply) historical.supplies.data[row.symbol] = row.supply;
     if (row.llama) historical.prices.data[row.symbol] = row.llama;
   }
-  for (const issuer of ['backpack', 'ondo', 'prestocks', 'tessera']) {
+  for (const issuer of ['backpack', 'prestocks', 'tessera']) {
     const c = api.issuerValuation(historical, at, issuer);
     assert.ok(c.total > 0, issuer + ' retains a captured minted estimate');
     assert.equal(c.label, 'Minted value');
@@ -239,6 +257,7 @@ void test('Captured Solana observations restore all four non-xStocks issuer esti
       true,
     );
   }
+  assert.equal(api.issuerValuation(historical, at, 'ondo').total, null);
   assert.equal(api.circulatingCoverage(historical, at).total, null);
   assert.equal(api.issuerValuation(historical, at, 'xstocks').total, null);
 });
@@ -249,6 +268,24 @@ void test('Tracked estimate reconciles all five issuer cards without changing ci
     const symbol = api.TOKENS.find((t) => t.issuer === issuer).symbol;
     mixed.supplies.data[symbol] = { supply: 840, valuationSafe: true };
     mixed.prices.data[symbol] = { price: 100, confidence: 1, timestamp: now };
+    if (api.TOKENS.find((t) => t.symbol === symbol)?.issuer === 'ondo')
+      mixed.valuations = {
+        data: {
+          observedAt: now,
+          rows: {
+            [symbol]: {
+              mint: api.TOKENS.find((t) => t.symbol === symbol).mint,
+              supply: 840,
+              valueUsd: 84000,
+            },
+          },
+          excluded: [],
+          reportedTokens: 1,
+        },
+        fetchedAt: now,
+        stale: false,
+        error: null,
+      };
   }
   // Tempting but invalid xStocks gross fallback must never enter this total.
   mixed.supplies.data.AAOIx = { supply: 1e12, valuationSafe: true };
@@ -281,6 +318,12 @@ void test('Tracked estimate reconciles all five issuer cards without changing ci
     null,
   );
   mixed.supplies.stale = true;
+  assert.equal(
+    api.trackedValuation(mixed, now).total,
+    84000,
+    'Paired Ondo value is independent of the RPC supply cache',
+  );
+  mixed.valuations.stale = true;
   assert.equal(api.trackedValuation(mixed, now).total, null);
   assert.equal(api.trackedValuation(mixed, now).issuerCount, 0);
 });

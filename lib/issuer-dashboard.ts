@@ -67,7 +67,11 @@ export function issuerDashboard(
     delayed: rows.some(
       (r) =>
         r.value !== null &&
-        (issuer === 'xstocks' ? !r.circulation : r.priceDelayed),
+        (issuer === 'xstocks'
+          ? !r.circulation
+          : r.valuationTime
+            ? now - r.valuationTime > 3600000
+            : r.priceDelayed),
     ),
     valued: rows.filter((r) => r.value !== null).length,
     volumeCovered: rows.filter((r) => r.dexVolume !== null).length,

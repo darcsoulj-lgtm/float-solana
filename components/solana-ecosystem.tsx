@@ -42,6 +42,15 @@ export function SolanaEcosystem({
       </div>
       <div className="ecosystem-stats">
         <div>
+          <span>Tracked onchain value · est.</span>
+          <strong>{usd(coverage.total)}</strong>
+          <small>
+            {coverage.issuerCount} / {ISSUERS.length} issuers
+            {coverage.partial ? ' · Partial coverage' : ''}
+            {coverage.delayed ? ' · Includes dated values' : ''}
+          </small>
+        </div>
+        <div>
           <span>Tokens</span>
           <strong>{tokens.length.toLocaleString()}</strong>
           <small>{ISSUERS.length} issuers tracked</small>
@@ -66,10 +75,10 @@ export function SolanaEcosystem({
           {coverage.mixedBases && ' · Mixed supply bases'}
         </p>
         <p>
-          This estimate adds the available issuer values shown below. All
-          quantities are on Solana. Supply bases differ: it is not a uniform
-          measure of circulating value. Missing values are excluded, never
-          counted as zero.
+          This is the sum for Float’s tracked issuers, not the total Solana
+          market or a circulating market-cap measure. All quantities are on
+          Solana. Supply bases differ: it is not a uniform measure of
+          circulating value. Missing values are excluded, never counted as zero.
         </p>
         <div className="market-table-scroll">
           <table className="market-table">
@@ -114,10 +123,14 @@ export function SolanaEcosystem({
           are converted with dated ECB reference rates. Updated every 10
           minutes; reference prices may be up to 72 hours old. During an outage,
           the last verified circulation snapshot is shown with its original date
-          for up to 24 hours. No multiplier is applied twice. Other issuers use
-          price × Solana mint supply, subject to price freshness, unit and
-          conflict checks. Their minted estimates can include issuer inventory.
-          Adding them gives an estimated tracked value, not circulating AUM.
+          for up to 24 hours. No multiplier is applied twice. Ondo uses
+          DefiLlama’s paired Solana token supplies and USD valuations, with the
+          original snapshot timestamp (at most 36 hours old). This avoids mixing
+          raw token units with adjusted share prices. It includes supported
+          stocks and ETFs; cash tokens are excluded. Other issuers use price ×
+          Solana mint supply, subject to price freshness, unit and conflict
+          checks. Their minted estimates can include issuer inventory. Adding
+          them gives an estimated tracked value, not circulating AUM.
         </p>
         <h3>Largest tracked values</h3>
         {leaders.map((r) => (
@@ -149,6 +162,13 @@ export function SolanaEcosystem({
           issuer. Private-company products can provide indirect exposure.
         </p>
         <nav>
+          <a
+            href="https://api.llama.fi/protocol/ondo-global-markets"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Ondo valuation data ↗
+          </a>
           {ISSUERS.map((i) => (
             <a
               key={i.id}

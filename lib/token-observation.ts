@@ -2,7 +2,11 @@ import { poolMetrics } from './stock-pools';
 import { marketTokens } from './market-data';
 import { freshTokenMarket } from './cmc-data';
 import type { MarketOverview, SourceResult } from './market-data';
-import { ISSUERS, type IssuerId } from './tokens';
+import { ISSUERS, TOKENS, type IssuerId } from './tokens';
+import { ONDO_VALUE_MAX_AGE_MS } from './ondo-valuation';
+const ondoMints = new Map(
+  TOKENS.filter((t) => t.issuer === 'ondo').map((t) => [t.symbol, t.mint]),
+);
 
 function recent(
   source: SourceResult<unknown> | undefined,
@@ -27,6 +31,21 @@ export function tokenObservation(
   symbol: string,
   now = Date.now(),
 ) {
+  const valued = data?.valuations?.data;
+  const reported = valued?.rows[symbol];
+  const isOndo = ondoMints.has(symbol);
+  const issuerValue =
+    valued &&
+    reported &&
+    reported.mint === ondoMints.get(symbol) &&
+    !data?.valuations?.stale &&
+    valued.observedAt > 0 &&
+    valued.observedAt <= now + 60000 &&
+    now - valued.observedAt <= ONDO_VALUE_MAX_AGE_MS &&
+    Number.isFinite(reported.valueUsd) &&
+    reported.valueUsd >= 0
+      ? reported
+      : undefined;
   const cmc = data?.markets.stale
     ? undefined
     : freshTokenMarket(data?.markets.data?.[symbol], now);
@@ -109,17 +128,22 @@ export function tokenObservation(
     supply?.adjustmentAt &&
     selectedReference.timestamp < supply.adjustmentAt
   );
-  const valuationUnavailableReason = !supply
-    ? 'supply'
-    : price === null
-      ? 'price'
-      : supply.valuationSafe === false || quoteBeforeAdjustment
-        ? 'units'
-        : priceConflict
-          ? 'conflict'
-          : null;
-  const issuedValue =
-    supply && valuationUnavailableReason === null && price !== null
+  const valuationUnavailableReason = issuerValue
+    ? null
+    : isOndo
+      ? 'valuation'
+      : !supply
+        ? 'supply'
+        : price === null
+          ? 'price'
+          : supply.valuationSafe === false || quoteBeforeAdjustment
+            ? 'units'
+            : priceConflict
+              ? 'conflict'
+              : null;
+  const issuedValue = isOndo
+    ? (issuerValue?.valueUsd ?? null)
+    : supply && valuationUnavailableReason === null && price !== null
       ? supply.supply * price
       : null;
   const circulationTime =
@@ -148,6 +172,9 @@ export function tokenObservation(
     circulationTime: circulation ? circulationTime : null,
     circulatingValue,
     valuationUnavailableReason,
+    valuationSource: issuerValue ? 'DefiLlama · Ondo Global Markets' : null,
+    valuationTime: issuerValue ? valued!.observedAt : null,
+    valuationSupply: issuerValue?.supply,
     poolVolume24h: metrics.volume24h,
     cmcDexVolume24h: cmc?.dexVolume24h ?? null,
     onchainVolume24h: recent(data?.volumes, now, symbol)
@@ -211,7 +238,9 @@ export function issuedCoverage(
     total: valued.length
       ? valued.reduce((sum, r) => sum + r.issuedValue!, 0)
       : null,
-    datedCount: valued.filter((r) => r.priceDelayed).length,
+    datedCount: valued.filter((r) =>
+      r.valuationTime ? now - r.valuationTime > 3600000 : r.priceDelayed,
+    ).length,
     pricedCount: rows.filter((r) => r.price !== null).length,
     supplyCount: rows.filter((r) => r.supply !== undefined).length,
     missing: {
@@ -223,6 +252,9 @@ export function issuedCoverage(
         .length,
       conflict: rows.filter((r) => r.valuationUnavailableReason === 'conflict')
         .length,
+      valuation: rows.filter(
+        (r) => r.valuationUnavailableReason === 'valuation',
+      ).length,
     },
   };
 }
@@ -288,8 +320,19 @@ export function issuerValuation(
     : issuedCoverage(data, now, issuer);
   return {
     ...coverage,
-    delayed: 'delayed' in coverage ? coverage.delayed : false,
-    observedAt: 'observedAt' in coverage ? coverage.observedAt : null,
+    delayed: 'delayed' in coverage ? coverage.delayed : coverage.datedCount > 0,
+    observedAt:
+      'observedAt' in coverage
+        ? coverage.observedAt
+        : coverage.valued.some((r) => r.valuationTime || r.priceTime)
+          ? Math.min(
+              ...coverage.valued.flatMap((r) =>
+                r.valuationTime || r.priceTime
+                  ? [r.valuationTime ?? r.priceTime!]
+                  : [],
+              ),
+            )
+          : null,
     label: circulating ? 'Circulating value' : 'Minted value',
     basis: circulating ? 'circulating' : 'minted',
   };
@@ -325,7 +368,12 @@ export function trackedValuation(data: MarketOverview | null, now: number) {
     mixedBases: new Set(available.map((issuer) => issuer.basis)).size > 1,
     delayed: available.some(
       (issuer) =>
-        issuer.delayed || issuer.valued.some((row) => row.priceDelayed),
+        issuer.delayed ||
+        issuer.valued.some((row) =>
+          row.valuationTime
+            ? now - row.valuationTime > 3600000
+            : row.priceDelayed,
+        ),
     ),
   };
 }

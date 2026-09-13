@@ -1,7 +1,10 @@
 import { AppError } from './validation';
 
 // Count bytes before decoding or buffering. Content-Length alone is not trusted.
-export async function readBoundedText(req: Request, maxBytes: number) {
+export async function readBoundedText(
+  req: Pick<Request, 'headers' | 'body'>,
+  maxBytes: number,
+) {
   const declared = Number(req.headers.get('content-length'));
   if (Number.isFinite(declared) && declared > maxBytes)
     throw new AppError('Request is too large.', 413);

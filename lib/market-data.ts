@@ -3,6 +3,7 @@ import { registryTokens, type RegistryStatus } from './token-registry';
 import type { TokenMarket } from './cmc-data';
 import type { IssuerCirculation } from './xstocks-circulation';
 import type { MintSupply } from './token-supply';
+import type { OndoValueSnapshot } from './ondo-valuation';
 import {
   TOKENS,
   BACKPACK_TOKENS,
@@ -51,6 +52,7 @@ export type TokenPrice = {
 };
 export type TokenVolume = { usd24h: number; mint: string };
 export type MarketOverview = {
+  valuations?: SourceResult<OndoValueSnapshot>;
   registry?: RegistryStatus;
   totalBatches?: number;
   circulation?: SourceResult<Record<string, IssuerCirculation>>;

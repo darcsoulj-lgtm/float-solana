@@ -207,7 +207,7 @@ function TokenDetail({ row }: { row: Row }) {
   const supply =
     row.token.issuer === 'xstocks'
       ? circulation?.circulatingSupply
-      : row.supply?.supply;
+      : (row.valuationSupply ?? row.supply?.supply);
   return (
     <div className="bp-detail">
       <div className="bp-detail-head">
@@ -256,6 +256,9 @@ function TokenDetail({ row }: { row: Row }) {
       <details className="bp-row-source">
         <summary>Price & valuation</summary>
         <p>
+          {row.valuationSource && row.valuationTime
+            ? `${row.valuationSource} valuation as of ${new Date(row.valuationTime).toLocaleString()}. Supply and USD value come from the same snapshot; the current price above is a separate observation. `
+            : ''}
           Price: {row.priceSource}
           {row.priceTime
             ? ` · ${new Date(row.priceTime).toLocaleString()}`
@@ -268,7 +271,9 @@ function TokenDetail({ row }: { row: Row }) {
           {row.valuation.basis.includes('last verified')
             ? 'Circulation is delayed; showing the last verified observation.'
             : ''}{' '}
-          {row.priceConflict && row.token.issuer !== 'xstocks'
+          {row.priceConflict &&
+          !row.valuationSource &&
+          row.token.issuer !== 'xstocks'
             ? 'Conflicting prices: valuation withheld.'
             : ''}
         </p>
@@ -485,6 +490,24 @@ export function IssuerDashboardContent({
       <div className="bp-stats" aria-label={`${issuerName(issuer)} overview`}>
         <div>
           <span>
+            Onchain value · est.{' '}
+            <MetricInfo label="Onchain value source and coverage">
+              {issuer === 'xstocks'
+                ? 'Official Solana circulating supply × issuer reference price. Pre-minted inventory is excluded.'
+                : issuer === 'ondo'
+                  ? 'Solana issued-token values from DefiLlama’s Ondo Global Markets breakdown, using paired supplies and USD values. May include issuer inventory; not circulating market cap. Stocks and ETFs only.'
+                  : 'Solana mint supply × compatible token price. May include issuer inventory; not circulating market cap.'}{' '}
+              Missing valuations are excluded, never counted as zero.
+            </MetricInfo>
+          </span>
+          <strong>{dollars(dashboard.value)}</strong>
+          <small>
+            {dashboard.valued} of {dashboard.rows.length} valued
+            {dashboard.delayed ? ' · Includes dated values' : ''}
+          </small>
+        </div>
+        <div>
+          <span>
             DEX pool volume · 24h{' '}
             <MetricInfo label="Volume source and coverage">
               {POOL_SCOPE} DEX Screener pool trades only. Excludes RFQ trades,
@@ -505,24 +528,6 @@ export function IssuerDashboardContent({
           <span>Pool liquidity</span>
           <strong>{dollars(dashboard.liquidity)}</strong>
           <small>{dashboard.pools.length} unique trading pools</small>
-        </div>
-        <div>
-          {issuer === 'xstocks' ? (
-            <>
-              <span>Circulating value · est.</span>
-              <strong>{dollars(dashboard.value)}</strong>
-              <small>
-                {dashboard.valued} of {dashboard.rows.length} tokens valued
-                {dashboard.delayed ? ' · delayed' : ''}
-              </small>
-            </>
-          ) : (
-            <>
-              <span>Tokenized stocks</span>
-              <strong>{dashboard.rows.length.toLocaleString()}</strong>
-              <small>Tracked on Solana</small>
-            </>
-          )}
         </div>
       </div>
       {leaders.length > 0 ? (
@@ -765,6 +770,25 @@ export function IssuerDashboardContent({
       <details className="bp-method">
         <summary>Sources & coverage</summary>
         <div>
+          {issuer === 'ondo' && data?.valuations?.data && (
+            <p>
+              <a
+                href="https://api.llama.fi/protocol/ondo-global-markets"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                DefiLlama · Ondo Global Markets ↗
+              </a>{' '}
+              · Solana snapshot{' '}
+              {new Date(data.valuations.data.observedAt).toLocaleString()}. Only
+              supported stocks and ETFs are included. Source coverage:{' '}
+              {Object.keys(data.valuations.data.rows).length} valued;{' '}
+              {data.valuations.data.excluded.length} unsupported products
+              excluded. Refreshed every ten minutes while viewed; original
+              source timestamps are preserved. This is an issued-token
+              valuation, not verified circulating market cap.
+            </p>
+          )}
           <p>
             <strong>
               {dashboard.valueLabel} · est.: {dollars(dashboard.value)}

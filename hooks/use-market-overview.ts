@@ -34,6 +34,46 @@ export function useMarketOverview(
   const pages = useRef<MarketOverview[]>(savedPages());
   const [circulation, setCirculation] =
     useState<MarketOverview['circulation']>();
+  const [valuations, setValuations] = useState<MarketOverview['valuations']>();
+  useEffect(() => {
+    if (scope !== 'all' && scope !== 'ondo') return;
+    let active = true,
+      loading = false,
+      attempts = 0;
+    let timer: ReturnType<typeof setTimeout>;
+    async function load() {
+      if (!active || loading || document.hidden) return;
+      loading = true;
+      let pending = false;
+      try {
+        const result = await api<{
+          valuations: NonNullable<MarketOverview['valuations']>;
+        }>('issuer-values');
+        if (!active) return;
+        setValuations(result.valuations);
+        pending = !!result.valuations.refreshing;
+      } catch {
+        /* Preserve the original dated snapshot during transport failures. */
+      } finally {
+        loading = false;
+      }
+      if (active)
+        timer = setTimeout(load, pending && attempts++ < 6 ? 3000 : 600000);
+    }
+    const visible = () => {
+      if (!document.hidden) {
+        clearTimeout(timer);
+        void load();
+      }
+    };
+    void load();
+    document.addEventListener('visibilitychange', visible);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+      document.removeEventListener('visibilitychange', visible);
+    };
+  }, [refresh, scope]);
   useEffect(() => {
     if (scope !== 'all' && scope !== 'xstocks') return;
     let active = true,
@@ -232,7 +272,7 @@ export function useMarketOverview(
       ? circulation
       : data?.circulation;
   return {
-    data: data ? { ...data, circulation: latestCirculation } : data,
+    data: data ? { ...data, circulation: latestCirculation, valuations } : data,
     busy,
     error,
   };
