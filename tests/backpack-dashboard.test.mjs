@@ -144,7 +144,7 @@ const routeBundle = await build({
         b.onResolve(
           {
             filter:
-              /^(cloudflare:workers|@\/lib\/server|@\/lib\/market-cache)$/,
+              /^(cloudflare:workers|@\/lib\/server|@\/lib\/market-cache|\.\/market-cache)$/,
           },
           (args) => ({ path: args.path, namespace: 'stub' }),
         );
@@ -153,8 +153,8 @@ const routeBundle = await build({
             args.path === 'cloudflare:workers'
               ? 'export const waitUntil=()=>{}'
               : args.path.endsWith('/server')
-                ? 'export const db=()=>({});export const runtime=()=>({SOLANA_RPC_URL:"https://private.example/key"});export const rateLimit=async()=>{}'
-                : 'export const marketSnapshot=async(db,key)=>({data:key.includes("catalog")?[]:{},fetchedAt:123,stale:false,error:null});',
+                ? 'export const db=()=>({prepare:()=>({bind:()=>({first:async()=>null})})});export const runtime=()=>({SOLANA_RPC_URL:"https://private.example/key"});export const rateLimit=async()=>{}'
+                : 'export const marketSnapshot=async(db,key)=>({data:key.includes("verified-listings")?(globalThis.__floatRegistryTestAdditions??[]):key.includes("catalog")?[]:{},fetchedAt:123,stale:false,error:null});',
           loader: 'js',
         }));
       },
@@ -175,6 +175,7 @@ test('Public route works without a wallet and never exposes runtime credentials'
   assert.deepEqual(
     Object.keys(body).sort(),
     [
+      'registry',
       'batch',
       'catalog',
       'history',
@@ -362,4 +363,37 @@ test('Ondo limited pool coverage is visible alongside volume, not presented as i
   assert.match(html, /DEX pool volume/);
   assert.match(html, /1 of 416 tokens · RFQ excluded/);
   assert.match(html, /Volume source and coverage/);
+});
+
+test('Public dashboard grows beyond the original page count without a deploy', async () => {
+  globalThis.__floatRegistryTestAdditions = Array.from(
+    { length: 7 },
+    (_, i) => ({
+      symbol: 'NEXT' + i,
+      mint: 'NEXT' + String(i + 1) + 'FNGQmoBdXSRGKJ8tTu7uPDasw5JDcfMmWniNfow',
+      name: 'Next Company',
+      shortName: 'Next',
+      issuer: 'backpack',
+      underlyingSymbol: 'NEXT' + i,
+      source: 'https://api.backpack.exchange/api/v1/assets',
+    }),
+  );
+  try {
+    const first = await (
+      await route.GET(new Request('https://example.com/api/backpack?batch=0'))
+    ).json();
+    assert.equal(first.totalBatches, 6);
+    const extra = await route.GET(
+      new Request('https://example.com/api/backpack?batch=5'),
+    );
+    assert.equal(extra.status, 200);
+    assert.equal((await extra.json()).registry.additions.length, 7);
+    assert.equal(
+      (await route.GET(new Request('https://example.com/api/backpack?batch=6')))
+        .status,
+      400,
+    );
+  } finally {
+    delete globalThis.__floatRegistryTestAdditions;
+  }
 });

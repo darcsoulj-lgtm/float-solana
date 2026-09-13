@@ -9,6 +9,7 @@ const require = createRequire(import.meta.url);
 const dir = await mkdtemp(tmpdir() + '/holderpulse-test-');
 for (const file of [
   'tokens',
+  'token-registry',
   'validation',
   'solana',
   'community-types',
@@ -32,7 +33,7 @@ for (const file of [
       },
     })
     .outputText.replace(
-      /from '\.\/(tokens|validation|community-types|community-post|editorial|editorial-starter|market-data)'/g,
+      /from '\.\/(tokens|token-registry|validation|community-types|community-post|editorial|editorial-starter|market-data)'/g,
       "from './$1.mjs'",
     );
   await writeFile(
@@ -301,13 +302,15 @@ test('Reviewed registry includes every enabled Solana security from the captured
       'utf8',
     ),
   );
-  assert.equal(BACKPACK_TOKENS.length, 41);
+  assert.equal(BACKPACK_TOKENS.length, 44);
   assert.equal(
     new Set(BACKPACK_TOKENS.map((t) => t.mint)).size,
     BACKPACK_TOKENS.length,
   );
   assert.deepEqual(
-    BACKPACK_TOKENS.map((t) => [t.symbol, t.mint]),
+    BACKPACK_TOKENS.filter((t) =>
+      evidence.tokens.some((e) => e.mint === t.mint),
+    ).map((t) => [t.symbol, t.mint]),
     evidence.tokens.map((t) => [t.symbol, t.mint]),
   );
   for (const t of BACKPACK_TOKENS) {

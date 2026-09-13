@@ -1,6 +1,7 @@
+import { marketTokens } from './market-data';
 import { freshTokenMarket } from './cmc-data';
 import type { MarketOverview, SourceResult } from './market-data';
-import { TOKENS, ISSUERS, type IssuerId } from './tokens';
+import { ISSUERS, type IssuerId } from './tokens';
 
 function recent(
   source: SourceResult<unknown> | undefined,
@@ -200,9 +201,9 @@ export function issuedCoverage(
   now = Date.now(),
   issuer?: IssuerId,
 ) {
-  const rows = TOKENS.filter((t) => !issuer || t.issuer === issuer).map((t) =>
-    tokenObservation(data, t.symbol, now),
-  );
+  const rows = marketTokens(data)
+    .filter((t) => !issuer || t.issuer === issuer)
+    .map((t) => tokenObservation(data, t.symbol, now));
   const valued = rows.filter((r) => r.issuedValue !== null);
   return {
     rows,
@@ -234,7 +235,9 @@ export function circulatingCoverage(
   issuer?: IssuerId,
   allowLastKnown = false,
 ) {
-  const tokens = TOKENS.filter((t) => !issuer || t.issuer === issuer);
+  const tokens = marketTokens(data).filter(
+    (t) => !issuer || t.issuer === issuer,
+  );
   const rows = tokens.map((t) => {
     const row = tokenObservation(data, t.symbol, now);
     const delayed = allowLastKnown && !row.circulation && !!row.lastCirculation;

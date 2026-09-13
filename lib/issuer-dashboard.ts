@@ -1,4 +1,5 @@
-import { TOKENS, type IssuerId } from './tokens';
+import { marketTokens } from './market-data';
+import { type IssuerId } from './tokens';
 import { tokenObservation, tokenValuation } from './token-observation';
 import type { MarketOverview } from './market-data';
 
@@ -13,8 +14,9 @@ export function issuerDashboard(
   issuer: IssuerId,
   now = Date.now(),
 ) {
-  const rows = TOKENS.filter((token) => token.issuer === issuer).map(
-    (token) => {
+  const rows = marketTokens(data)
+    .filter((token) => token.issuer === issuer)
+    .map((token) => {
       const observation = tokenObservation(data, token.symbol, now);
       const poolTime =
         data?.pools.asOf?.[token.symbol] ?? data?.pools.fetchedAt ?? 0;
@@ -42,8 +44,7 @@ export function issuerDashboard(
           ? undefined
           : data?.catalog.data?.find((l) => l.symbol === token.symbol),
       };
-    },
-  );
+    });
   // A stock/stock pool may appear in both token rows. Count its volume and
   // reserves once at issuer level. Routed trades can still have multiple legs.
   const pools = [

@@ -1,8 +1,13 @@
+import {
+  backpackRegistry,
+  registryTokens,
+  tokenBatchKey,
+} from '@/lib/backpack-registry';
 import { communityMember } from '@/lib/community-server';
 import { CMC_REFRESH_MS, fetchTokenMarkets } from '@/lib/cmc-data';
 import { db, rateLimit, runtime } from '@/lib/server';
 import { AppError } from '@/lib/validation';
-import { TOKENS, TOKEN_REVIEW_DATE, MARKET_BATCH_SIZE } from '@/lib/tokens';
+import { TOKEN_REVIEW_DATE, MARKET_BATCH_SIZE } from '@/lib/tokens';
 import {
   MARKET_REFRESH_MS,
   POOL_REFRESH_MS,
@@ -36,6 +41,12 @@ export async function GET(req: Request) {
     const member = await communityMember(req);
     await rateLimit('market-data:' + member!.id, 120);
     const database = db();
+    const registry = await backpackRegistry(
+      database,
+      waitUntil,
+      runtime().SOLANA_RPC_URL,
+    );
+    const registryList = registryTokens(registry);
     const snapshot = <T>(key: string, ttl: number, loader: () => Promise<T>) =>
       marketSnapshot(
         database,
@@ -51,7 +62,7 @@ export async function GET(req: Request) {
             : Math.max(ttl, MARKET_MAX_AGE_MS),
       );
     const symbol = new URL(req.url).searchParams.get('symbol');
-    if (symbol && !TOKENS.some((t) => t.symbol === symbol))
+    if (symbol && !registryList.some((t) => t.symbol === symbol))
       throw new AppError('Unsupported stock.');
     const batchParam = new URL(req.url).searchParams.get('batch') || '0';
     const batch = Number(batchParam);
@@ -59,16 +70,18 @@ export async function GET(req: Request) {
       !/^\d+$/.test(batchParam) ||
       !Number.isSafeInteger(batch) ||
       batch < 0 ||
-      batch >= Math.ceil(TOKENS.length / MARKET_BATCH_SIZE)
+      batch >= Math.ceil(registryList.length / MARKET_BATCH_SIZE)
     )
       throw new AppError('Invalid market page.');
-    const tokens = TOKENS.slice(
+    const tokens = registryList.slice(
       batch * MARKET_BATCH_SIZE,
       (batch + 1) * MARKET_BATCH_SIZE,
     );
+    const batchKey = TOKEN_REVIEW_DATE + ':' + (await tokenBatchKey(tokens));
+    const backpackTokens = registryList.filter((t) => t.issuer === 'backpack');
     const poolSymbol = new URL(req.url).searchParams.get('pools');
     if (poolSymbol) {
-      const token = TOKENS.find((t) => t.symbol === poolSymbol);
+      const token = registryList.find((t) => t.symbol === poolSymbol);
       if (!token) throw new AppError('Unsupported stock.');
       const pools = await snapshot(
         'token-pairs-v1:' + token.mint,
@@ -79,16 +92,19 @@ export async function GET(req: Request) {
     }
     if (
       symbol &&
-      TOKENS.find((t) => t.symbol === symbol)!.issuer !== 'backpack'
+      registryList.find((t) => t.symbol === symbol)!.issuer !== 'backpack'
     )
       return json({ book: null, reason: 'See observed DEX pools below.' });
     const catalog =
       batch > 0 && !symbol
         ? { data: [], fetchedAt: null, stale: false, error: null }
         : await snapshot(
-            'backpack-catalog-v1:' + TOKEN_REVIEW_DATE,
+            'backpack-catalog-v2:' +
+              TOKEN_REVIEW_DATE +
+              ':' +
+              (await tokenBatchKey(backpackTokens)),
             300000,
-            () => fetchCatalog(),
+            () => fetchCatalog(fetch, backpackTokens),
           );
     if (symbol) {
       const listing = catalog.data?.find((l) => l.symbol === symbol);
@@ -113,15 +129,11 @@ export async function GET(req: Request) {
     }
     const [pools, prices, markets, supplies, history, circulation] =
       await Promise.all([
-        snapshot(
-          'dex-pools-v4:' + TOKEN_REVIEW_DATE + ':' + batch,
-          POOL_REFRESH_MS,
-          () => fetchPools(fetch, tokens),
+        snapshot('dex-pools-v4:' + batchKey, POOL_REFRESH_MS, () =>
+          fetchPools(fetch, tokens),
         ),
-        snapshot(
-          'llama-prices-v3:' + TOKEN_REVIEW_DATE + ':' + batch,
-          MARKET_REFRESH_MS,
-          () => fetchPrices(fetch, tokens),
+        snapshot('llama-prices-v3:' + batchKey, MARKET_REFRESH_MS, () =>
+          fetchPrices(fetch, tokens),
         ),
         batch > 0
           ? Promise.resolve({
@@ -133,21 +145,18 @@ export async function GET(req: Request) {
           : snapshot('cmc-tokens-v2', CMC_REFRESH_MS, () =>
               fetchTokenMarkets(runtime().CMC_API_KEY),
             ),
-        snapshot(
-          'solana-supplies-v4:' + TOKEN_REVIEW_DATE + ':' + batch,
-          MARKET_REFRESH_MS,
-          () => fetchSupplies(runtime().SOLANA_RPC_URL, fetch, tokens),
+        snapshot('solana-supplies-v4:' + batchKey, MARKET_REFRESH_MS, () =>
+          fetchSupplies(runtime().SOLANA_RPC_URL, fetch, tokens),
         ),
-        snapshot(
-          'llama-history-v1:' + TOKEN_REVIEW_DATE + ':' + batch,
-          MARKET_REFRESH_MS,
-          () => fetchHistoricalPrices(fetch, tokens),
+        snapshot('llama-history-v1:' + batchKey, MARKET_REFRESH_MS, () =>
+          fetchHistoricalPrices(fetch, tokens),
         ),
         batch === 0
           ? circulationSnapshot(database, waitUntil)
           : Promise.resolve(undefined),
       ]);
     const response = json({
+      registry,
       catalog,
       pools,
       prices,
@@ -156,7 +165,7 @@ export async function GET(req: Request) {
       history,
       ...(circulation ? { circulation } : {}),
       batch,
-      totalBatches: Math.ceil(TOKENS.length / MARKET_BATCH_SIZE),
+      totalBatches: Math.ceil(registryList.length / MARKET_BATCH_SIZE),
     });
     response.headers.set(
       'Server-Timing',

@@ -1,3 +1,4 @@
+import { registryTokens, type RegistryStatus } from './token-registry';
 import type { TokenMarket } from './cmc-data';
 import type { IssuerCirculation } from './xstocks-circulation';
 import type { MintSupply } from './token-supply';
@@ -47,6 +48,8 @@ export type TokenPrice = {
 };
 export type TokenVolume = { usd24h: number; mint: string };
 export type MarketOverview = {
+  registry?: RegistryStatus;
+  totalBatches?: number;
   circulation?: SourceResult<Record<string, IssuerCirculation>>;
   history?: SourceResult<Record<string, TokenPrice>>;
   volumes?: SourceResult<Record<string, TokenVolume>>;
@@ -87,10 +90,14 @@ const nonnegative = (x: unknown) => {
   const n = numeric(x);
   return n !== null && n >= 0 ? n : null;
 };
-export function parseListings(assets: unknown, markets: unknown): Listing[] {
+export function parseListings(
+  assets: unknown,
+  markets: unknown,
+  tokens: readonly { symbol: string; mint: string }[] = BACKPACK_TOKENS,
+): Listing[] {
   if (!Array.isArray(assets) || !Array.isArray(markets))
     throw new Error('Invalid registry response');
-  return BACKPACK_TOKENS.flatMap((token) => {
+  return tokens.flatMap((token) => {
     const matches = assets.filter((a) =>
       list(record(a).tokens).some(
         (t) =>
@@ -303,12 +310,15 @@ export async function publicJson(
   if (!r.ok) throw new SourceHttpError(u.hostname, r);
   return r.json();
 }
-export async function fetchCatalog(fetcher: typeof fetch = fetch) {
+export async function fetchCatalog(
+  fetcher: typeof fetch = fetch,
+  tokens: readonly { symbol: string; mint: string }[] = BACKPACK_TOKENS,
+) {
   const [a, m] = await Promise.all([
     publicJson('https://api.backpack.exchange/api/v1/assets', fetcher),
     publicJson('https://api.backpack.exchange/api/v1/markets', fetcher),
   ]);
-  return parseListings(a, m);
+  return parseListings(a, m, tokens);
 }
 export async function fetchPools(
   fetcher: typeof fetch = fetch,
@@ -489,6 +499,14 @@ export function mergeMarketPages(pages: MarketOverview[]): MarketOverview {
     )
     .sort((a, b) => b.fetchedAt! - a.fetchedAt!)[0];
   return {
+    registry: pages
+      .map((p) => p.registry)
+      .filter((r): r is RegistryStatus => !!r)
+      .sort(
+        (a, b) =>
+          b.additions.length - a.additions.length ||
+          (b.checkedAt ?? 0) - (a.checkedAt ?? 0),
+      )[0],
     catalog: pages.find((p) => p.catalog.fetchedAt)?.catalog || {
       data: null,
       fetchedAt: null,
@@ -513,3 +531,6 @@ export function mergeMarketPages(pages: MarketOverview[]): MarketOverview {
     history: combine(pages.flatMap((p) => (p.history ? [p.history] : []))),
   };
 }
+
+export const marketTokens = (data: MarketOverview | null) =>
+  registryTokens(data?.registry);

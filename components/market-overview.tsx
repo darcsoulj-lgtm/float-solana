@@ -1,4 +1,5 @@
 'use client';
+import { marketTokens } from '@/lib/market-data';
 import { MetricInfo } from './metric-info';
 import { Fragment, useEffect, useState } from 'react';
 import {
@@ -12,7 +13,7 @@ import {
 } from 'lucide-react';
 import { api } from '@/lib/client';
 import { useMarketOverview } from '@/hooks/use-market-overview';
-import { TOKENS, ISSUERS, issuerName, type IssuerId } from '@/lib/tokens';
+import { ISSUERS, issuerName, type IssuerId } from '@/lib/tokens';
 import { type Book, type Pool, type SourceResult } from '@/lib/market-data';
 import { Button } from './ui/button';
 import { PortfolioSummary } from './portfolio-summary';
@@ -63,6 +64,7 @@ export function MarketOverviewPanel({
     [refresh, setRefresh] = useState(0),
     [copied, setCopied] = useState(false);
   const { data, error, busy } = useMarketOverview(holdings, refresh);
+  const tokens = marketTokens(data);
   const [bookData, setBook] = useState<SourceResult<Book> | null>(null),
     [bookMessage, setBookReason] = useState('Loading order book…'),
     [bookSymbol, setBookSymbol] = useState(''),
@@ -82,7 +84,7 @@ export function MarketOverviewPanel({
     setPage(0);
     setQuery('');
   };
-  const matches = TOKENS.filter(
+  const matches = tokens.filter(
     (t) =>
       (!onlyHoldings || holdings.includes(t.symbol)) &&
       (issuer === 'all' || t.issuer === issuer) &&
@@ -94,6 +96,7 @@ export function MarketOverviewPanel({
     matches.find((t) => t.symbol === selection)?.symbol ||
     matches[0]?.symbol ||
     selection;
+  const selectedIssuer = tokens.find((t) => t.symbol === selected)?.issuer;
   const book = bookSymbol === selected ? bookData : null;
   const bookReason =
     bookSymbol === selected ? bookMessage : 'Loading order book…';
@@ -136,7 +139,7 @@ export function MarketOverviewPanel({
   useEffect(() => {
     if (
       !detailOpen ||
-      TOKENS.find((t) => t.symbol === selected)?.issuer !== 'backpack' ||
+      selectedIssuer !== 'backpack' ||
       !data?.catalog.fetchedAt
     )
       return;
@@ -168,11 +171,11 @@ export function MarketOverviewPanel({
       active = false;
       clearInterval(id);
     };
-  }, [selected, refresh, detailOpen, data?.catalog.fetchedAt]);
+  }, [selected, selectedIssuer, refresh, detailOpen, data?.catalog.fetchedAt]);
   const maxPage = Math.max(0, Math.ceil(matches.length / 10) - 1),
     currentPage = Math.min(page, maxPage),
     rows = matches.slice(currentPage * 10, currentPage * 10 + 10);
-  const token = TOKENS.find((t) => t.symbol === selected)!,
+  const token = tokens.find((t) => t.symbol === selected)!,
     listing = data?.catalog.data?.find((t) => t.symbol === selected),
     detailedPools = poolDetail?.symbol === selected ? poolDetail.source : null,
     pools = detailedPools?.data || [],
@@ -738,7 +741,7 @@ export function MarketOverviewPanel({
             All issuers
             <Check size={14} aria-hidden="true" />
           </span>
-          <strong>{TOKENS.length.toLocaleString()} tokens</strong>
+          <strong>{tokens.length.toLocaleString()} tokens</strong>
         </button>
         {ISSUERS.map((item) => {
           const c = issuerValuation(data, now, item.id);

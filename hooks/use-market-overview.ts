@@ -1,7 +1,8 @@
 'use client';
+import { registryTokens, type RegistryStatus } from '@/lib/token-registry';
 import { useEffect, useRef, useState } from 'react';
 import { api } from '@/lib/client';
-import { TOKENS, MARKET_BATCH_SIZE, type IssuerId } from '@/lib/tokens';
+import { MARKET_BATCH_SIZE, type IssuerId } from '@/lib/tokens';
 import { mergeMarketPages, type MarketOverview } from '@/lib/market-data';
 
 // Public observations only: reuse snapshots between Home and Markets without
@@ -80,37 +81,52 @@ export function useMarketOverview(
         wake = resolve;
         timer = setTimeout(resolve, 2000);
       });
-    const owned = new Set(
-      holdingsKey
-        .split('|')
-        .map((s) =>
-          Math.floor(
-            TOKENS.findIndex((t) => t.symbol === s) / MARKET_BATCH_SIZE,
-          ),
-        ),
-    );
-    const batches = Array.from(
-      { length: Math.ceil(TOKENS.length / MARKET_BATCH_SIZE) },
-      (_, i) => i,
-    )
-      .filter(
-        (batch) =>
-          scope === 'all' ||
-          (scope === 'holdings'
-            ? owned.has(batch)
-            : TOKENS.slice(
-                batch * MARKET_BATCH_SIZE,
-                (batch + 1) * MARKET_BATCH_SIZE,
-              ).some((token) => token.issuer === scope)),
-      )
-      .sort((a, b) => Number(owned.has(b)) - Number(owned.has(a)) || a - b);
     async function load() {
       if (!active || loading || Date.now() - lastStarted < 15000) return;
       loading = true;
       lastStarted = Date.now();
       setBusy(true);
+      let registry: RegistryStatus | undefined = pages.current
+        .filter(Boolean)
+        .map((p) => p.registry)
+        .filter((r): r is RegistryStatus => !!r)
+        .sort((a, b) => b.additions.length - a.additions.length)[0];
+      try {
+        registry = await api<RegistryStatus>('token-registry');
+      } catch {
+        /* Keep last verified registry on transport failure. */
+      }
+      if (!active) return;
+      const tokens = registryTokens(registry);
+      const owned = new Set(
+        holdingsKey
+          .split('|')
+          .map((s) =>
+            Math.floor(
+              tokens.findIndex((t) => t.symbol === s) / MARKET_BATCH_SIZE,
+            ),
+          ),
+      );
+      const batches = Array.from(
+        { length: Math.ceil(tokens.length / MARKET_BATCH_SIZE) },
+        (_, i) => i,
+      )
+        .filter(
+          (batch) =>
+            scope === 'all' ||
+            (scope === 'holdings'
+              ? owned.has(batch)
+              : tokens
+                  .slice(
+                    batch * MARKET_BATCH_SIZE,
+                    (batch + 1) * MARKET_BATCH_SIZE,
+                  )
+                  .some((token) => token.issuer === scope)),
+        )
+        .sort((a, b) => Number(owned.has(b)) - Number(owned.has(a)) || a - b);
       let pending = batches,
         failures = 0;
+
       try {
         // Subsequent reads check only sources still refreshing, not all tokens.
         for (let pass = 0; active && pending.length && pass < 3; pass++) {
@@ -157,6 +173,7 @@ export function useMarketOverview(
                     }
                   }
                 }
+                if (registry && !next.registry) next.registry = registry;
                 pages.current[batch] = next;
                 snapshots.set(batch, next);
                 setData(mergeMarketPages(pages.current.filter(Boolean)));

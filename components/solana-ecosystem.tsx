@@ -1,6 +1,7 @@
+import { marketTokens } from '@/lib/market-data';
 import { MetricInfo } from './metric-info';
 import { ArrowUpRight } from 'lucide-react';
-import { TOKENS, ISSUERS, type IssuerId } from '@/lib/tokens';
+import { ISSUERS, type IssuerId } from '@/lib/tokens';
 import { trackedValuation } from '@/lib/token-observation';
 import type { MarketOverview } from '@/lib/market-data';
 const usd = (n: number | null) =>
@@ -23,6 +24,7 @@ export function SolanaEcosystem({
   onIssuer: (id: IssuerId | 'all') => void;
   select: (symbol: string) => void;
 }) {
+  const tokens = marketTokens(data);
   const coverage = trackedValuation(data, now);
   const leaders = [...coverage.valued]
     .sort((a, b) => b.value! - a.value!)
@@ -67,14 +69,14 @@ export function SolanaEcosystem({
         </div>
         <div>
           <span>Tokens</span>
-          <strong>{TOKENS.length.toLocaleString()}</strong>
+          <strong>{tokens.length.toLocaleString()}</strong>
           <small>{ISSUERS.length} issuers tracked</small>
         </div>
         <div>
           <span>Underlying assets</span>
           <strong>
             {new Set(
-              TOKENS.map((t) => t.underlyingSymbol),
+              tokens.map((t) => t.underlyingSymbol),
             ).size.toLocaleString()}
           </strong>
           <small>Stocks, ETFs & private-company exposure</small>

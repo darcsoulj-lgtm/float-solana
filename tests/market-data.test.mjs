@@ -8,6 +8,7 @@ import { DatabaseSync } from 'node:sqlite';
 const dir = await mkdtemp(tmpdir() + '/hp-markets-');
 for (const file of [
   'tokens',
+  'token-registry',
   'market-data',
   'market-cache',
   'cmc-data',
@@ -30,7 +31,7 @@ for (const file of [
       },
     })
     .outputText.replace(
-      /from '\.\/(tokens|market-data|market-cache|cmc-data|token-supply|token-observation|holder-tier|holder-news)'/g,
+      /from '\.\/(tokens|token-registry|market-data|market-cache|cmc-data|token-supply|token-observation|holder-tier|holder-news)'/g,
       "from './$1.mjs'",
     );
   await writeFile(dir + '/' + file + '.mjs', out);

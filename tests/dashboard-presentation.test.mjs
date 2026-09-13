@@ -21,7 +21,12 @@ async function component(file, overrides) {
   const module = { exports: {} };
   new Function('require', 'module', 'exports', outputText)(
     (id) =>
-      overrides[id] ??
+      (id === '@/lib/market-data'
+        ? {
+            ...overrides[id],
+            marketTokens: () => overrides['@/lib/tokens']?.TOKENS ?? [],
+          }
+        : overrides[id]) ??
       (id === './metric-info'
         ? {
             MetricInfo: ({ label }) =>

@@ -1,3 +1,8 @@
+import {
+  backpackRegistry,
+  registryTokens,
+  tokenBatchKey,
+} from '@/lib/backpack-registry';
 import { waitUntil } from 'cloudflare:workers';
 import { db, runtime, rateLimit } from '@/lib/server';
 import { marketSnapshot } from '@/lib/market-cache';
@@ -9,9 +14,7 @@ import {
 } from '@/lib/market-data';
 import { fetchSupplies } from '@/lib/token-supply';
 import {
-  DASHBOARD_TOKENS,
   PUBLIC_BATCH_SIZE,
-  PUBLIC_BATCH_COUNT,
   fetchBackpackPools,
 } from '@/lib/backpack-dashboard';
 import { TOKEN_REVIEW_DATE } from '@/lib/tokens';
@@ -24,7 +27,7 @@ export async function GET(req: Request) {
     !/^\d+$/.test(batchText) ||
     !Number.isSafeInteger(batch) ||
     batch < 0 ||
-    batch >= PUBLIC_BATCH_COUNT
+    batch > 10000
   )
     return Response.json({ error: 'Invalid market page.' }, { status: 400 });
   try {
@@ -33,13 +36,23 @@ export async function GET(req: Request) {
       120,
     );
     const database = db();
-    const tokens = DASHBOARD_TOKENS.slice(
+    const registry = await backpackRegistry(
+      database,
+      waitUntil,
+      runtime().SOLANA_RPC_URL,
+    );
+    const dashboardTokens = registryTokens(registry).filter(
+      (t) => t.issuer === 'backpack',
+    );
+    const totalBatches = Math.ceil(dashboardTokens.length / PUBLIC_BATCH_SIZE);
+    if (batch >= totalBatches) throw new AppError('Invalid market page.');
+    const tokens = dashboardTokens.slice(
       batch * PUBLIC_BATCH_SIZE,
       (batch + 1) * PUBLIC_BATCH_SIZE,
     );
     const snapshot = <T>(key: string, ttl: number, loader: () => Promise<T>) =>
       marketSnapshot(database, key, ttl, loader, waitUntil, Date.now(), 300000);
-    const suffix = TOKEN_REVIEW_DATE + ':' + batch;
+    const suffix = TOKEN_REVIEW_DATE + ':' + (await tokenBatchKey(tokens));
     const [pools, prices, supplies, history, catalog] = await Promise.all([
       snapshot('dex-pools-backpack-detail-v1:' + suffix, 240000, () =>
         fetchBackpackPools(tokens),
@@ -54,8 +67,13 @@ export async function GET(req: Request) {
         fetchHistoricalPrices(fetch, tokens),
       ),
       batch === 0
-        ? snapshot('backpack-catalog-v1:' + TOKEN_REVIEW_DATE, 300000, () =>
-            fetchCatalog(),
+        ? snapshot(
+            'backpack-catalog-v2:' +
+              TOKEN_REVIEW_DATE +
+              ':' +
+              (await tokenBatchKey(dashboardTokens)),
+            300000,
+            () => fetchCatalog(fetch, dashboardTokens),
           )
         : Promise.resolve({
             data: [],
@@ -71,6 +89,7 @@ export async function GET(req: Request) {
     // credentials or authenticated response caching is shared with this route.
     return Response.json(
       {
+        registry,
         pools,
         prices,
         supplies,
@@ -78,7 +97,7 @@ export async function GET(req: Request) {
         catalog,
         markets: { data: {}, fetchedAt: null, stale: false, error: null },
         batch,
-        totalBatches: PUBLIC_BATCH_COUNT,
+        totalBatches,
       },
       {
         headers: {

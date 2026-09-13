@@ -68,3 +68,13 @@ Initial provisioning used a temporary fixed-data bootstrap route. That route has
 The Vite client build retains immutable JavaScript, CSS and related assets from the three preceding builds. Keep `.float-build-cache/client-assets/` (ignored) between release builds; a clean checkout has no previous assets to retain. Only manifest-referenced static files are carried forward, never old HTML, manifests, server code or configuration. The current build plus three prior dependency graphs are tested before packaging. Purge this cache and old build output when an urgent client security fix requires invalidating old code.
 
 Home and Markets have independent error boundaries. Module download failures retry twice; render errors are not automatically retried. Failures report only section, category, React error code and static chunk paths to the rate-limited, same-origin `/api/client-error` endpoint. Raw messages, page URLs, wallet identifiers and form contents are not sent. Inspect Sites Worker logs for `Client section failed` to diagnose a recurrence; source-refresh timeouts alone do not establish a client crash cause.
+
+### Automatic Backpack listings
+
+Backpack dashboard and all-market discovery now use a durable runtime registry, not only the seed snapshot. Public requests schedule a shared check every five minutes; an idle site catches up on the next visit. Existing pages poll and pick up new rows and page counts without a redeploy. No external scheduler or paid provider is required.
+
+A new candidate must have an enabled Solana address in Backpack's official assets endpoint and a finalized initialized mint with matching symbol, decimals, metadata mint, Backpack Securities name and pinned Backpack metadata authority. Duplicate identities, conflicting existing mints and non-Solana assets are rejected. New verified entries are appended in D1; provider errors retain the last-good list and honor retry delays. Market cache keys include the exact batch mints so new listings cannot inherit an older batch's data. Verification handles up to 80 new candidates per check and rotates large backlogs.
+
+This discovery currently covers Backpack. Other issuers retain their reviewed seed registries. It does not automatically grant community eligibility or change the wallet-verification allowlist; those use the separate reviewed membership registry. The public market listing is not an assertion that a token is available to every jurisdiction.
+
+Backpack's official API docs also distinguish `source=Venue` trading statistics from `source=External` stock-market statistics. Neither is labeled total Solana DEX volume in Float.

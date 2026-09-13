@@ -230,44 +230,60 @@ export function BackpackDashboardPage({
     let timer: ReturnType<typeof setTimeout>;
     let active = false;
     let attempts = 0;
+    let batchCount = PUBLIC_BATCH_COUNT;
     async function load() {
       if (active || document.hidden) return;
       active = true;
       setBusy(true);
       let failures = 0,
         pending = false;
-      await Promise.all(
-        Array.from({ length: PUBLIC_BATCH_COUNT }, async (_, batch) => {
-          try {
-            const response = await fetch(`/api/backpack?batch=${batch}`, {
-              signal: controller.signal,
-              credentials: 'omit',
-            });
-            if (!response.ok) throw new Error();
-            const next = (await response.json()) as MarketOverview;
-            if (
-              !next.pools ||
-              !next.prices ||
-              !next.supplies ||
-              !next.catalog ||
-              !next.markets
-            )
-              throw new Error();
-            pending ||= [
-              next.pools,
-              next.prices,
-              next.supplies,
-              next.history,
-              next.catalog,
-            ].some((s) => s?.refreshing);
-            pages.current.set(batch, next);
-            if (!controller.signal.aborted)
-              setData(mergeMarketPages([...pages.current.values()]));
-          } catch {
-            failures++;
-          }
-        }),
-      );
+      // Page zero advertises the current registry and page count. Fetch it first,
+      // then bound concurrent requests as the issuer grows.
+      async function loadPage(batch: number) {
+        try {
+          const response = await fetch(`/api/backpack?batch=${batch}`, {
+            signal: controller.signal,
+            credentials: 'omit',
+          });
+          if (!response.ok) throw new Error();
+          const next = (await response.json()) as MarketOverview;
+          if (
+            !next.pools ||
+            !next.prices ||
+            !next.supplies ||
+            !next.catalog ||
+            !next.markets
+          )
+            throw new Error();
+          if (
+            batch === 0 &&
+            Number.isSafeInteger(next.totalBatches) &&
+            next.totalBatches! > 0 &&
+            next.totalBatches! <= 10000
+          )
+            batchCount = next.totalBatches!;
+          pending ||= !!next.registry?.refreshing;
+          pending ||= [
+            next.pools,
+            next.prices,
+            next.supplies,
+            next.history,
+            next.catalog,
+          ].some((s) => s?.refreshing);
+          pages.current.set(batch, next);
+          if (!controller.signal.aborted)
+            setData(mergeMarketPages([...pages.current.values()]));
+        } catch {
+          failures++;
+        }
+      }
+      await loadPage(0);
+      let cursor = 1;
+      async function worker() {
+        while (!controller.signal.aborted && cursor < batchCount)
+          await loadPage(cursor++);
+      }
+      await Promise.all([worker(), worker()]);
       if (controller.signal.aborted) return;
       active = false;
       setBusy(false);
@@ -357,14 +373,14 @@ export function IssuerDashboardContent({
     const symbol = new URLSearchParams(window.location.search).get('stock');
     if (
       symbol &&
-      issuerDashboard(null, issuer).rows.some(
+      issuerDashboard(data, issuer).rows.some(
         (row) => row.token.symbol === symbol,
       )
     ) {
       setQuery(symbol);
       setSelected(symbol);
     }
-  }, [issuer]);
+  }, [issuer, data?.registry?.additions.length]);
   const dashboard = issuerDashboard(data, issuer),
     rows = sortedIssuerRows(dashboard.rows, query, sort, ascending),
     pageCount = Math.max(1, Math.ceil(rows.length / 15));
@@ -516,6 +532,7 @@ export function IssuerDashboardContent({
                 ? `Pools updated ${new Date(fetched).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · auto-updates`
                 : 'Waiting for market data')}
           {data?.pools.error && !busy ? ' · Partial coverage' : ''}
+          {data?.registry?.delayed ? ' · Listing updates delayed' : ''}
         </div>
         <div className="bp-table-scroll">
           <table>
@@ -677,6 +694,16 @@ export function IssuerDashboardContent({
       <details className="bp-method">
         <summary>Sources & coverage</summary>
         <div>
+          {issuer === 'backpack' && (
+            <p>
+              Listings are checked every five minutes while Float is in use. New
+              entries must match Backpack’s registry and verified Solana mint
+              metadata.{' '}
+              {data?.registry?.checkedAt
+                ? `Last checked ${new Date(data.registry.checkedAt).toLocaleString()}.`
+                : 'Checking the latest listings.'}
+            </p>
+          )}
           <p>
             DEX Screener supplies pool volume and liquidity. Each returned
             Solana pool is counted once in the overview, including pools shared
