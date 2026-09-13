@@ -1,3 +1,4 @@
+import { poolMetrics } from './stock-pools';
 import { marketTokens } from './market-data';
 import { freshTokenMarket } from './cmc-data';
 import type { MarketOverview, SourceResult } from './market-data';
@@ -138,7 +139,7 @@ export function tokenObservation(
       ? data?.circulation?.data?.[symbol]
       : undefined;
   const circulatingValue = circulation?.valueUsd ?? null;
-  const liquidityRows = pools.filter((p) => p.liquidity !== null);
+  const metrics = poolMetrics(pools);
   return {
     symbol,
     lastCirculation,
@@ -147,6 +148,7 @@ export function tokenObservation(
     circulationTime: circulation ? circulationTime : null,
     circulatingValue,
     valuationUnavailableReason,
+    poolVolume24h: metrics.volume24h,
     cmcDexVolume24h: cmc?.dexVolume24h ?? null,
     onchainVolume24h: recent(data?.volumes, now, symbol)
       ? (data?.volumes?.data?.[symbol]?.usd24h ?? null)
@@ -189,9 +191,7 @@ export function tokenObservation(
         : pools[0]?.volume24h != null
           ? 'Largest DEX pool'
           : 'Not reported',
-    liquidity: liquidityRows.length
-      ? liquidityRows.reduce((sum, p) => sum + p.liquidity!, 0)
-      : null,
+    liquidity: metrics.liquidity,
     issuedValue:
       issuedValue !== null && Number.isFinite(issuedValue) ? issuedValue : null,
   };

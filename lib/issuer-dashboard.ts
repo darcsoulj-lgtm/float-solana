@@ -1,3 +1,4 @@
+import { poolMetrics } from './stock-pools';
 import { marketTokens } from './market-data';
 import { type IssuerId } from './tokens';
 import { tokenObservation, tokenValuation } from './token-observation';
@@ -32,14 +33,15 @@ export function issuerDashboard(
           ).map((p) => [p.address, p]),
         ).values(),
       ];
+      const metrics = poolMetrics(pools);
       return {
         token,
         ...observation,
         valuation: tokenValuation(observation, issuer),
         value: tokenValuation(observation, issuer).value,
         pools,
-        dexVolume: sumKnown(pools.map((p) => p.volume24h)),
-        poolLiquidity: sumKnown(pools.map((p) => p.liquidity)),
+        dexVolume: metrics.volume24h,
+        poolLiquidity: metrics.liquidity,
         listing: data?.catalog.stale
           ? undefined
           : data?.catalog.data?.find((l) => l.symbol === token.symbol),
@@ -52,11 +54,12 @@ export function issuerDashboard(
       rows.flatMap((r) => r.pools.map((p) => [p.address, p] as const)),
     ).values(),
   ];
+  const metrics = poolMetrics(pools);
   return {
     rows,
     pools,
-    volume: sumKnown(pools.map((p) => p.volume24h)),
-    liquidity: sumKnown(pools.map((p) => p.liquidity)),
+    volume: metrics.volume24h,
+    liquidity: metrics.liquidity,
     mintedValue:
       issuer === 'xstocks' ? null : sumKnown(rows.map((r) => r.issuedValue)),
     value: sumKnown(rows.map((r) => r.value)),

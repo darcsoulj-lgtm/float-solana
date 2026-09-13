@@ -1,3 +1,4 @@
+import { POOL_POLICY_VERSION } from './stock-pools';
 import { cachedMarket, marketSnapshot, marketCacheRows } from './market-cache';
 import { tokenBatchKey } from './backpack-registry';
 import {
@@ -42,17 +43,19 @@ export async function readMarketBatch(
   tokens: readonly StockToken[],
   options: {
     rpcUrl?: string;
+    verifiedStocks?: readonly StockToken[];
     defer?: (work: Promise<unknown>) => void;
     pools?: boolean;
     history?: boolean;
   } = {},
 ) {
   const key = TOKEN_REVIEW_DATE + ':' + (await tokenBatchKey(tokens));
+  const poolPrefix = `dex-pools-${POOL_POLICY_VERSION}:`;
   const prefixes = [
     'llama-prices-v3:',
     'solana-supplies-v4:',
     ...(options.history === false ? [] : ['llama-history-v1:']),
-    ...(options.pools === false ? [] : ['dex-pools-v4:']),
+    ...(options.pools === false ? [] : [poolPrefix]),
   ];
   const saved = await marketCacheRows(
     database,
@@ -92,7 +95,9 @@ export async function readMarketBatch(
         ),
     options.pools === false
       ? emptySource({})
-      : read('dex-pools-v4:', POOL_REFRESH_MS, () => fetchPools(fetch, tokens)),
+      : read(poolPrefix, POOL_REFRESH_MS, () =>
+          fetchPools(fetch, tokens, options.verifiedStocks),
+        ),
   ]);
   return { prices, supplies, history, pools };
 }

@@ -1,3 +1,4 @@
+import { POOL_POLICY_VERSION } from '@/lib/stock-pools';
 import {
   marketBatches,
   readMarketBatch,
@@ -40,9 +41,8 @@ export async function GET(req: Request) {
       waitUntil,
       runtime().SOLANA_RPC_URL,
     );
-    const dashboardTokens = registryTokens(registry).filter(
-      (t) => t.issuer === 'backpack',
-    );
+    const registryList = registryTokens(registry);
+    const dashboardTokens = registryList.filter((t) => t.issuer === 'backpack');
     const totalBatches = Math.ceil(dashboardTokens.length / PUBLIC_BATCH_SIZE);
     if (batch >= totalBatches) throw new AppError('Invalid market page.');
     const tokens = dashboardTokens.slice(
@@ -53,21 +53,21 @@ export async function GET(req: Request) {
       marketSnapshot(database, key, ttl, loader, waitUntil, Date.now(), 300000);
     const suffix = TOKEN_REVIEW_DATE + ':' + (await tokenBatchKey(tokens));
     const [pools, shared, catalog] = await Promise.all([
-      snapshot('dex-pools-backpack-detail-v1:' + suffix, 240000, () =>
-        fetchBackpackPools(tokens),
+      snapshot(
+        `dex-pools-backpack-detail-${POOL_POLICY_VERSION}:` + suffix,
+        240000,
+        () => fetchBackpackPools(tokens, fetch, registryList),
       ),
       Promise.all(
-        marketBatches(registryTokens(registry), tokens).map(
-          async (canonical) => ({
-            ...(await readMarketBatch(database, canonical, {
-              rpcUrl: runtime().SOLANA_RPC_URL,
-              defer: waitUntil,
-              pools: false,
-            })),
-            catalog: emptySource([]),
-            markets: emptySource({}),
-          }),
-        ),
+        marketBatches(registryList, tokens).map(async (canonical) => ({
+          ...(await readMarketBatch(database, canonical, {
+            rpcUrl: runtime().SOLANA_RPC_URL,
+            defer: waitUntil,
+            pools: false,
+          })),
+          catalog: emptySource([]),
+          markets: emptySource({}),
+        })),
       ).then(mergeMarketPages),
       batch === 0
         ? snapshot(

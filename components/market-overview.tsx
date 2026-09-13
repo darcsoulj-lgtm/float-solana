@@ -1,4 +1,5 @@
 'use client';
+import { poolMetrics, POOL_SCOPE } from '@/lib/stock-pools';
 import { marketTokens } from '@/lib/market-data';
 import { MetricInfo } from './metric-info';
 import { Fragment, useEffect, useState } from 'react';
@@ -176,15 +177,22 @@ export function MarketOverviewPanel({
     pools = detailedPools?.data || [],
     top = pools.find((p) => p.price !== null),
     reference = data?.prices.data?.[selected];
-  const poolLiquidity =
+  const freshDetails =
     detailedPools &&
     !detailedPools.stale &&
     detailedPools.fetchedAt &&
     now - detailedPools.fetchedAt <= 300000 &&
-    pools.some((p) => p.liquidity !== null)
-      ? pools.reduce((sum, p) => sum + (p.liquidity ?? 0), 0)
-      : null;
+    detailedPools.fetchedAt <= now + 60000;
+  const detailMetrics = poolMetrics(freshDetails ? pools : []);
+  const poolLiquidity = detailMetrics.liquidity;
   const observation = tokenObservation(data, selected, now);
+  const detailVolume = detailedPools
+    ? detailMetrics.volume24h
+    : observation.poolVolume24h;
+  const volumeTime =
+    detailedPools?.fetchedAt ??
+    data?.pools.asOf?.[selected] ??
+    data?.pools.fetchedAt;
   const observed = observation.cmc;
   const quote =
     book?.data && !book.stale && now - book.data.timestamp <= 120000
@@ -235,7 +243,7 @@ export function MarketOverviewPanel({
           </div>
         </header>
         <div
-          className={`market-metrics token-metrics ${observation.cmcDexVolume24h === null ? 'two-metrics' : ''}`}
+          className={`market-metrics token-metrics ${detailVolume === null ? 'two-metrics' : ''}`}
         >
           <div>
             <span>Token price</span>
@@ -268,12 +276,10 @@ export function MarketOverviewPanel({
               {pct(observation.change24h)}
             </strong>
           </div>
-          {observation.cmcDexVolume24h !== null && (
+          {detailVolume !== null && (
             <div>
-              <span title="CoinMarketCap-covered DEX trading. Coverage may differ from other platforms.">
-                DEX volume · 24h
-              </span>
-              <strong>{money(observation.cmcDexVolume24h, true)}</strong>
+              <span title={POOL_SCOPE}>DEX volume · 24h</span>
+              <strong>{money(detailVolume, true)}</strong>
             </div>
           )}
         </div>
@@ -365,18 +371,18 @@ export function MarketOverviewPanel({
                 token-price estimate
               </dd>
             </div>
-            {observation.cmcDexVolume24h !== null && observed && (
+            {detailVolume !== null && (
               <div>
                 <dt>DEX volume · 24h</dt>
                 <dd>
                   <a
-                    href={observed.url}
+                    href={'https://dexscreener.com/solana/' + token.mint}
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    CoinMarketCap ↗
+                    DEX Screener ↗
                   </a>{' '}
-                  · {time(observed.timestamp)}
+                  · {time(volumeTime)}
                 </dd>
               </div>
             )}
@@ -408,11 +414,10 @@ export function MarketOverviewPanel({
                 </div>
               )}
           </dl>
-          {observation.cmcDexVolume24h !== null && (
+          {detailVolume !== null && (
             <p>
-              Rolling 24-hour volume across CMC-covered DEX markets. Updated
-              with the existing five-minute feed; coverage can differ from other
-              platforms.
+              {POOL_SCOPE} Volume sums eligible returned pools over 24 hours;
+              discovery is partial and excludes RFQ and centralized exchanges.
             </p>
           )}
         </details>
@@ -446,7 +451,7 @@ export function MarketOverviewPanel({
           <div>
             <span>Observed pool liquidity</span>
             <strong>{money(poolLiquidity, true)}</strong>
-            <small>{pools.length} returned pools · partial coverage</small>
+            <small>{pools.length} eligible pools · partial coverage</small>
           </div>
         </div>
         <p className="market-footnote market-source-line">
@@ -598,11 +603,11 @@ export function MarketOverviewPanel({
             </span>
           </div>
           <p className="market-footnote">
-            {pools.length} returned pools · {time(detailedPools?.fetchedAt)}
+            {pools.length} eligible pools · {time(detailedPools?.fetchedAt)}
             {detailedPools?.stale ? ' · Delayed' : ''}. DEX Screener may limit
-            results. Pool addresses are counted once, including pairs where this
-            token is on either side. Liquidity includes both assets in each
-            pool; excludes unreturned pools and RFQ.
+            results. {POOL_SCOPE} Pool addresses are counted once, including
+            pairs where this token is on either side. Liquidity includes both
+            assets in each pool; excludes unreturned pools and RFQ.
           </p>
           {pools.slice(0, 5).map((p) => (
             <a
@@ -623,7 +628,7 @@ export function MarketOverviewPanel({
               {detailedPools?.stale
                 ? 'Pool data is temporarily unavailable.'
                 : detailedPools
-                  ? 'No pools returned by DEX Screener. Other liquidity may exist.'
+                  ? 'No eligible pools returned by DEX Screener. Other liquidity may exist.'
                   : 'Loading pools…'}
             </p>
           )}
@@ -779,9 +784,8 @@ export function MarketOverviewPanel({
                 <span className="metric-label">
                   DEX volume · 24h
                   <MetricInfo label="About DEX volume">
-                    Rolling 24-hour trading across CoinMarketCap-covered DEX
-                    markets. Coverage varies by token. Missing values are not
-                    zero.
+                    {POOL_SCOPE} Volume sums eligible returned pools. Coverage
+                    is partial; missing values are not zero.
                   </MetricInfo>
                 </span>
               </th>
@@ -837,7 +841,7 @@ export function MarketOverviewPanel({
                     >
                       {pct(change)}
                     </td>
-                    <td>{money(row.cmcDexVolume24h, true)}</td>
+                    <td>{money(row.poolVolume24h, true)}</td>
                     <td>{money(row.liquidity, true)}</td>
                   </MarketStockRow>
                   {detailOpen && selection === t.symbol && (
@@ -863,10 +867,11 @@ export function MarketOverviewPanel({
           <p>
             Prices: CoinMarketCap, fresh DefiLlama, then DEX pool. Older
             DefiLlama references are labeled Last quote (up to 96 hours). DEX
-            volume: CoinMarketCap-covered DEX markets. Pool liquidity: observed
-            DEX Screener pools, with partial coverage. Missing data is shown as
-            —. Supply and valuation estimates are available in stock details and
-            Coverage &amp; methodology.
+            volume and liquidity: eligible DEX Screener pools, with partial
+            coverage.
+            {POOL_SCOPE} Missing data is shown as —. Supply and valuation
+            estimates are available in stock details and Coverage &amp;
+            methodology.
           </p>
         </details>
         <div>
@@ -947,9 +952,9 @@ export function MarketOverviewPanel({
           DefiLlama 24h changes compare prices for the same mint from the same
           source, with timestamps within 15 minutes of a 24-hour interval. We
           never combine a pool price with another provider’s historical price.
-          DEX liquidity sums unique returned pool addresses, including either
-          side of a pair. The provider may limit the returned set; this is not
-          total Solana liquidity or volume.
+          {POOL_SCOPE} DEX liquidity sums unique eligible returned pool
+          addresses, including either side of a pair. The provider may limit the
+          returned set; this is not total Solana liquidity or volume.
         </p>
         <p>
           Fetched timestamps show when we retrieved data. DEX Screener does not

@@ -1,3 +1,4 @@
+import { POOL_POLICY_VERSION } from '@/lib/stock-pools';
 import { readMarketBatch } from '@/lib/market-service';
 import {
   backpackRegistry,
@@ -79,9 +80,9 @@ export async function GET(req: Request) {
       const token = registryList.find((t) => t.symbol === poolSymbol);
       if (!token) throw new AppError('Unsupported stock.');
       const pools = await snapshot(
-        'token-pairs-v1:' + token.mint,
+        `token-pairs-${POOL_POLICY_VERSION}:` + token.mint,
         MARKET_REFRESH_MS,
-        () => fetchTokenPools(token),
+        () => fetchTokenPools(token, fetch, registryList),
       );
       return json({ pools });
     }
@@ -124,6 +125,7 @@ export async function GET(req: Request) {
     }
     const [observations, markets, circulation] = await Promise.all([
       readMarketBatch(database, tokens, {
+        verifiedStocks: registryList,
         rpcUrl: runtime().SOLANA_RPC_URL,
         defer: waitUntil,
       }),

@@ -11,6 +11,7 @@ for (const file of [
   'tokens',
   'token-registry',
   'market-data',
+  'stock-pools',
   'market-cache',
   'cmc-data',
   'token-supply',
@@ -34,7 +35,7 @@ for (const file of [
       },
     })
     .outputText.replace(
-      /from '\.\/(tokens|token-registry|market-service|backpack-registry|market-data|market-cache|cmc-data|token-supply|token-observation|holder-tier|holder-news)'/g,
+      /from '\.\/(stock-pools|tokens|token-registry|market-service|backpack-registry|market-data|market-cache|cmc-data|token-supply|token-observation|holder-tier|holder-news)'/g,
       "from './$1.mjs'",
     );
   await writeFile(dir + '/' + file + '.mjs', out);
@@ -975,8 +976,10 @@ void test('Per-token pool endpoint restores multiple pools, deduplicates address
   });
   assert.equal(
     pools.length,
-    new Set(sample.pairs.map((p) => p.pairAddress)).size,
+    9,
+    'Only nine captured MU pools have verified counterparties',
   );
+  assert.equal(new Set(pools.map((p) => p.address)).size, pools.length);
   assert.ok(pools.length > 1);
   const pair = structuredClone(sample.pairs[0]);
   pair.baseToken.address = TOKENS.find((t) => t.symbol === 'SPCX').mint;

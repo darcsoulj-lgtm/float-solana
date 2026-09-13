@@ -1,4 +1,5 @@
 'use client';
+import { POOL_SCOPE } from '@/lib/stock-pools';
 import Link from '@/components/site-link';
 import {
   Fragment,
@@ -116,7 +117,7 @@ export function TokenTradingPools({ pools }: { pools: Pool[] }) {
             </a>
           ))
         ) : (
-          <p className="bp-muted">Pool data is currently unavailable.</p>
+          <p className="bp-muted">No eligible pools available.</p>
         )}
       </div>
       {ranked.length > 3 && (
@@ -486,9 +487,9 @@ export function IssuerDashboardContent({
           <span>
             DEX pool volume · 24h{' '}
             <MetricInfo label="Volume source and coverage">
-              DEX Screener pool trades only. Excludes RFQ trades, direct issuer
-              trades and centralized exchanges. Pool discovery is partial; this
-              is not total issuer volume.{' '}
+              {POOL_SCOPE} DEX Screener pool trades only. Excludes RFQ trades,
+              direct issuer trades and centralized exchanges. Pool discovery is
+              partial; this is not total issuer volume.{' '}
               {issuer === 'xstocks'
                 ? 'The xStocks API supplies circulation and reference valuations, not this volume figure.'
                 : ''}
@@ -782,12 +783,12 @@ export function IssuerDashboardContent({
             </p>
           )}
           <p>
-            DEX Screener supplies pool volume and liquidity. Each returned
-            Solana pool is counted once in the overview, including pools shared
-            by two stocks. Coverage is partial; routed swaps can involve several
-            pool trades. RFQ trades, direct issuer trades and centralized
-            exchange trades are not included. These figures are not total issuer
-            trading volume.{' '}
+            {POOL_SCOPE} DEX Screener supplies pool volume and liquidity. Each
+            eligible returned Solana pool is counted once in the overview,
+            including pools shared by two stocks. Coverage is partial; routed
+            swaps can involve several pool trades. RFQ trades, direct issuer
+            trades and centralized exchange trades are not included. These
+            figures are not total issuer trading volume.{' '}
             {issuer !== 'backpack'
               ? 'The overview uses batch-discovered pools. Open a stock for additional per-token pool discovery; those details may have broader coverage than the overview.'
               : ''}

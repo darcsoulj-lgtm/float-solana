@@ -9,6 +9,7 @@ export const PUBLIC_BATCH_COUNT = Math.ceil(
 export async function fetchBackpackPools(
   tokens: typeof DASHBOARD_TOKENS,
   fetcher: typeof fetch = fetch,
+  verifiedStocks: readonly (typeof TOKENS)[number][] = TOKENS,
 ) {
   const out: Record<string, Pool[]> = {};
   // Full per-token discovery, not the batch endpoint's best-pool subset.
@@ -20,7 +21,11 @@ export async function fetchBackpackPools(
       tokens
         .slice(i, i + 3)
         .map(
-          async (t) => [t.symbol, await fetchTokenPools(t, bounded)] as const,
+          async (t) =>
+            [
+              t.symbol,
+              await fetchTokenPools(t, bounded, verifiedStocks),
+            ] as const,
         ),
     );
     for (const [symbol, pools] of rows) out[symbol] = pools;

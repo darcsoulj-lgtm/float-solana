@@ -4,6 +4,8 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import ts from 'typescript';
+import { bundle } from './helpers/bundle.mjs';
+const stockPools = await bundle("export * from './lib/stock-pools';");
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 const require = createRequire(import.meta.url);
@@ -48,18 +50,20 @@ async function component(file, overrides) {
                   marketTokens: () => overrides['@/lib/tokens']?.TOKENS ?? [],
                 }
               : overrides[id]) ??
-      (id === './metric-info'
-        ? {
-            MetricInfo: ({ label }) =>
-              React.createElement('button', { 'aria-label': label }),
-          }
-        : id === '@/lib/client-loading'
+      (id === '@/lib/stock-pools'
+        ? stockPools
+        : id === './metric-info'
           ? {
-              readThenRefresh: () => {
-                throw Error('Unexpected effect in static render test');
-              },
+              MetricInfo: ({ label }) =>
+                React.createElement('button', { 'aria-label': label }),
             }
-          : require(id)),
+          : id === '@/lib/client-loading'
+            ? {
+                readThenRefresh: () => {
+                  throw Error('Unexpected effect in static render test');
+                },
+              }
+            : require(id)),
     compiledModule,
     compiledModule.exports,
   );
@@ -591,6 +595,7 @@ async function marketFixture(props = {}, valuation = {}) {
         change24h: null,
         issuedValue: null,
         cmcDexVolume24h: null,
+        poolVolume24h: null,
         priceTime: null,
         supply: null,
       }),

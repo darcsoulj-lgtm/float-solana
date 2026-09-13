@@ -334,7 +334,7 @@ void test('Small and unavailable pool lists do not show an unnecessary disclosur
     );
     assert.equal((html.match(/class="bp-pool"/g) || []).length, count);
     assert.doesNotMatch(html, /View all pools|Show fewer pools/);
-    if (!count) assert.match(html, /Pool data is currently unavailable/);
+    if (!count) assert.match(html, /No eligible pools available/);
   }
 });
 void test('Issuer totals include pools beyond the three initially displayed', () => {

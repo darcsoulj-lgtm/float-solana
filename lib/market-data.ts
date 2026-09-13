@@ -1,3 +1,4 @@
+import { stockPoolPolicy } from './stock-pools';
 import { registryTokens, type RegistryStatus } from './token-registry';
 import type { TokenMarket } from './cmc-data';
 import type { IssuerCirculation } from './xstocks-circulation';
@@ -40,6 +41,8 @@ export type Pool = {
   volume24h: number | null;
   url: string;
   side?: 'base' | 'quote';
+  baseMint?: string;
+  quoteMint?: string;
 };
 export type TokenPrice = {
   price: number;
@@ -141,11 +144,13 @@ export function parseListings(
 export function parsePools(
   raw: unknown,
   tokens: readonly StockToken[] = TOKENS,
+  verifiedStocks: readonly StockToken[] = TOKENS,
 ): Record<string, Pool[]> {
   if (!Array.isArray(raw)) throw new Error('Invalid pool response');
   const result: Record<string, Pool[]> = Object.fromEntries(
     tokens.map((t) => [t.symbol, []]),
   );
+  const policy = stockPoolPolicy(verifiedStocks);
   const seen = new Set<string>();
   for (const value of raw) {
     const p = record(value),
@@ -163,7 +168,8 @@ export function parsePools(
       !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(quote.address) ||
       typeof p.pairAddress !== 'string' ||
       !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(p.pairAddress) ||
-      seen.has(p.pairAddress)
+      seen.has(p.pairAddress) ||
+      !policy.accepts(base.address, quote.address)
     )
       continue;
     if (typeof p.dexId !== 'string' || p.dexId.length > 40) continue;
@@ -182,10 +188,9 @@ export function parsePools(
             : null,
         address: p.pairAddress,
         dex: p.dexId,
-        quote:
-          typeof counterpart.symbol === 'string'
-            ? counterpart.symbol.slice(0, 16)
-            : 'Other',
+        quote: policy.symbol(counterpart.address as string),
+        baseMint: base.address,
+        quoteMint: quote.address,
         side: isBase ? 'base' : 'quote',
         price: isBase ? positive(p.priceUsd) : null,
         change24h: isBase ? numeric(record(p.priceChange).h24) : null,
@@ -324,6 +329,7 @@ export async function fetchCatalog(
 export async function fetchPools(
   fetcher: typeof fetch = fetch,
   tokens: readonly StockToken[] = TOKENS,
+  verifiedStocks: readonly StockToken[] = TOKENS,
 ) {
   const batches = [];
   for (let i = 0; i < tokens.length; i += 30)
@@ -341,7 +347,7 @@ export async function fetchPools(
   );
   if (data.some((x) => !Array.isArray(x)))
     throw new Error('Invalid pool response');
-  return parsePools(data.flat(), tokens);
+  return parsePools(data.flat(), tokens, verifiedStocks);
 }
 export async function fetchPrices(
   fetcher: typeof fetch = fetch,
@@ -363,12 +369,13 @@ export async function fetchPrices(
 export async function fetchTokenPools(
   token: StockToken,
   fetcher: typeof fetch = fetch,
+  verifiedStocks: readonly StockToken[] = TOKENS,
 ) {
   const raw = await publicJson(
     'https://api.dexscreener.com/token-pairs/v1/solana/' + token.mint,
     fetcher,
   );
-  return parsePools(raw, [token])[token.symbol];
+  return parsePools(raw, [token], verifiedStocks)[token.symbol];
 }
 
 export async function fetchHistoricalPrices(
