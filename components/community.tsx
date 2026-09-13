@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/dialog';
 import { WalletList } from './wallet-list';
 import { MemberDashboard } from './member-dashboard';
-import { api } from '@/lib/client';
+import { api, ApiError } from '@/lib/client';
 import type { CommunityStatus } from '@/lib/community-types';
 import type { CommunitySignInInput } from '@/lib/community-sign-in';
 import { selectedWallet, walletLabel } from '@/lib/wallet-provider';
@@ -27,6 +27,7 @@ export function Community() {
   const [status, setStatus] = useState<CommunityStatus | null>(null);
   const [error, setError] = useState('');
   const [joinError, setJoinError] = useState('');
+  const [showSupportedHelp, setShowSupportedHelp] = useState(false);
   const [busy, setBusy] = useState(false);
   const [join, setJoin] = useState(
     () =>
@@ -143,6 +144,7 @@ export function Community() {
     setProvider(providerName);
     setBusy(true);
     setJoinError('');
+    setShowSupportedHelp(false);
     setPending(null);
     const flowId = crypto.randomUUID();
     let phase = 'connect';
@@ -183,6 +185,9 @@ export function Community() {
       diagnostic(providerName, phase, 'failed', flowId);
       setStage('');
       setJoinError((e as Error).message);
+      setShowSupportedHelp(
+        e instanceof ApiError && e.code === 'NO_SUPPORTED_HOLDINGS',
+      );
     } finally {
       inFlight.current = false;
       setBusy(false);
@@ -278,9 +283,35 @@ export function Community() {
   const openJoin = () => {
     setPending(null);
     setJoinError('');
+    setShowSupportedHelp(false);
     setStage('');
     setJoin(true);
   };
+  // Unknown membership is not a signed-out session. Never show the visitor
+  // landing page while the first server check is pending or has failed.
+  if (status === null) {
+    return (
+      <section
+        className="community-entry"
+        aria-label="Opening Float"
+        aria-busy={!error}
+      >
+        <FloatLogo />
+        {error ? (
+          <>
+            <p role="alert">
+              We couldn’t check your session. Please try again.
+            </p>
+            <Button onClick={() => refresh().catch((e) => setError(e.message))}>
+              Retry
+            </Button>
+          </>
+        ) : (
+          <output>Opening Float…</output>
+        )}
+      </section>
+    );
+  }
   return (
     <>
       {status?.member ? (
@@ -477,9 +508,16 @@ export function Community() {
               {joinError}
             </p>
           )}
-          <Link className="join-help" href="/tokens">
-            Supported stocks →
-          </Link>
+          {showSupportedHelp && !pending && (
+            <Link
+              className="join-help"
+              href="/tokens"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              View eligible stocks <ArrowUpRight size={14} aria-hidden="true" />
+            </Link>
+          )}
         </DialogContent>
       </Dialog>
     </>

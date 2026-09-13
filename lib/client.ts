@@ -1,3 +1,14 @@
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+    public code?: string,
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
 export async function api<T = unknown>(
   path: string,
   body?: unknown,
@@ -19,13 +30,20 @@ export async function api<T = unknown>(
   )
     window.dispatchEvent(new Event('hp-session-expired'));
   if (!response.ok)
-    throw new Error(
+    throw new ApiError(
       data &&
         typeof data === 'object' &&
         'error' in data &&
         typeof data.error === 'string'
         ? data.error
         : 'Request failed.',
+      response.status,
+      data &&
+        typeof data === 'object' &&
+        'code' in data &&
+        typeof data.code === 'string'
+        ? data.code
+        : undefined,
     );
   return data as T;
 }

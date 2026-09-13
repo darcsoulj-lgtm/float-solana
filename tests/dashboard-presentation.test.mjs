@@ -323,6 +323,7 @@ async function renderDashboard(search, interact) {
   globalThis.window = {
     location: { search, href: 'https://example.com/' + search },
     scrollY: 0,
+    scrollTo: () => {},
     history: { pushState: (_, __, url) => pushed.push(url) },
   };
   try {
@@ -1105,4 +1106,142 @@ void test('Markets sidebar resets every issuer dashboard to All markets and clea
       },
     );
   }
+});
+
+void test('Member logo returns to Home in place and preserves native modified-link clicks', async () => {
+  await renderDashboard(
+    '?view=markets&issuer=ondo&stock=GOOGLon',
+    (tree, pushed) => {
+      const aside = elements(tree, 'aside')[0];
+      const logo = React.Children.toArray(aside.props.children).find(
+        (n) => n.props?.className === 'member-brand',
+      );
+      assert.equal(logo.props.href, '/?view=overview');
+      let prevented = 0;
+      const click = {
+        button: 0,
+        defaultPrevented: false,
+        preventDefault: () => prevented++,
+      };
+      for (const modifier of ['metaKey', 'ctrlKey', 'shiftKey', 'altKey'])
+        logo.props.onClick({ ...click, [modifier]: true });
+      logo.props.onClick({ ...click, button: 1 });
+      logo.props.onClick({ ...click, defaultPrevented: true });
+      assert.equal(prevented, 0);
+      assert.equal(pushed.length, 0);
+      logo.props.onClick(click);
+      assert.equal(prevented, 1);
+      assert.equal(pushed.length, 1);
+      const destination = new URL(pushed[0], 'https://example.com');
+      assert.equal(destination.searchParams.get('view'), 'overview');
+      assert.equal(destination.searchParams.has('issuer'), false);
+      assert.equal(destination.searchParams.has('stock'), false);
+    },
+  );
+});
+
+async function renderCommunity(
+  status,
+  error = '',
+  noHoldings = false,
+  pending = null,
+) {
+  let stateIndex = 0;
+  const states = [
+    status,
+    error,
+    noHoldings ? 'No supported holdings' : '',
+    noHoldings,
+    false,
+    true,
+    'phantom',
+    '',
+    pending,
+  ];
+  const Wrap = ({ children }) => React.createElement('div', null, children);
+  const { Community } = await component('community.tsx', {
+    react: {
+      ...React,
+      useState: (initial) => [
+        stateIndex < states.length
+          ? states[stateIndex++]
+          : typeof initial === 'function'
+            ? initial()
+            : initial,
+        () => {},
+      ],
+    },
+    './float-logo': {
+      FloatLogo: () => React.createElement('span', null, 'Float'),
+    },
+    'next/image': { default: Empty },
+    '@/components/ui/button': {
+      Button: ({ children, ...props }) =>
+        React.createElement('button', props, children),
+    },
+    '@/components/ui/dialog': {
+      Dialog: ({ open, children }) =>
+        open ? React.createElement('div', { role: 'dialog' }, children) : null,
+      DialogContent: Wrap,
+      DialogTitle: Wrap,
+      DialogDescription: Wrap,
+    },
+    './wallet-list': {
+      WalletList: () => React.createElement('div', null, 'Wallet choices'),
+    },
+    './member-dashboard': {
+      MemberDashboard: () => React.createElement('div', null, 'Member home'),
+    },
+    '@/lib/client': { api: () => {}, ApiError: Error },
+    '@/lib/wallet-provider': {
+      selectedWallet: () => {},
+      walletLabel: () => 'Phantom',
+    },
+  });
+  return renderToStaticMarkup(React.createElement(Community));
+}
+void test('Unknown and failed initial session checks never render the signed-out landing or wallet prompt', async () => {
+  for (const error of ['', 'Network unavailable']) {
+    const html = await renderCommunity(null, error);
+    assert.match(html, /community-entry/);
+    assert.doesNotMatch(
+      html,
+      /public-club|Member home|Connect wallet|role="dialog"/,
+    );
+    assert.match(html, error ? /Retry/ : /Opening Float/);
+  }
+  const visitor = await renderCommunity({ member: null });
+  assert.match(visitor, /public-club/);
+  assert.doesNotMatch(visitor, /Member home/);
+  const member = await renderCommunity({ member: { id: 'test-member' } });
+  assert.match(member, /Member home/);
+  assert.doesNotMatch(member, /public-club|community-entry/);
+});
+void test('Eligibility help appears only for a no-holdings result, not normal connect or sign steps', async () => {
+  const guest = { member: null };
+  const connect = await renderCommunity(guest);
+  assert.match(connect, /Wallet choices/);
+  assert.doesNotMatch(connect, /href="\/tokens"/);
+  const sign = await renderCommunity(guest, '', false, {
+    provider: 'phantom',
+    holdingCount: 1,
+  });
+  assert.match(sign, /Sign in Phantom/);
+  assert.doesNotMatch(sign, /href="\/tokens"/);
+  const missing = await renderCommunity(guest, '', true);
+  assert.match(missing, /View eligible stocks/);
+  assert.match(missing, /href="\/tokens" target="_blank"/);
+  const network = await renderCommunity(guest, 'Network unavailable');
+  assert.doesNotMatch(network, /href="\/tokens"/);
+});
+
+void test('Clicking the logo while already Home does not add duplicate history entries', async () => {
+  await renderDashboard('?view=overview', (tree, pushed) => {
+    const aside = elements(tree, 'aside')[0];
+    const logo = React.Children.toArray(aside.props.children).find(
+      (n) => n.props?.className === 'member-brand',
+    );
+    logo.props.onClick({ button: 0, preventDefault: () => {} });
+    assert.equal(pushed.length, 0);
+  });
 });

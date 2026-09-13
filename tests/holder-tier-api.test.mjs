@@ -32,7 +32,8 @@ async function fixture() {
       this.status = status;
     }
   }
-  let signedIn = true;
+  let signedIn = true,
+    providerDown = false;
   const calls = [];
   const dependencies = {
     '@/lib/community-rooms': {},
@@ -66,7 +67,13 @@ async function fixture() {
         return v;
       },
     },
-    '@/lib/solana': {},
+    '@/lib/solana': {
+      validWallet: (value) => value,
+      detectHoldings: async () => {
+        if (providerDown) throw new AppError('Provider unavailable', 503);
+        return [];
+      },
+    },
     '@/lib/tokens': {},
     '@/lib/community-sign-in': {},
     '@/lib/community-types': {},
@@ -75,6 +82,7 @@ async function fixture() {
         if (!signedIn) throw new AppError('Sign in', 401);
         return sqlite.prepare('SELECT * FROM community_members').get();
       },
+      communityCleanup: async () => {},
       validateAlias: (x) => x,
     },
   };
@@ -109,6 +117,9 @@ async function fixture() {
     sqlite,
     post,
     calls,
+    failProvider: () => {
+      providerDown = true;
+    },
     logout: () => {
       signedIn = false;
     },
@@ -166,4 +177,31 @@ void test('value badge preference persists, can be revoked, and rejects non-bool
     0,
   );
   f.sqlite.close();
+});
+
+void test('Empty-wallet challenge supplies eligibility help without requesting a signature', async () => {
+  const f = await fixture();
+  try {
+    const response = await f.post('challenge', {
+      wallet: '11111111111111111111111111111111',
+    });
+    assert.equal(response.status, 403);
+    assert.equal(response.headers.get('Cache-Control'), 'private, no-store');
+    const body = await response.json();
+    assert.equal(body.code, 'NO_SUPPORTED_HOLDINGS');
+    assert.equal(body.id, undefined);
+    assert.match(body.error, /No signature is needed/);
+    f.failProvider();
+    const outage = await f.post('challenge', {
+      wallet: '11111111111111111111111111111111',
+    });
+    assert.equal(outage.status, 503);
+    assert.equal(
+      (await outage.json()).code,
+      undefined,
+      'RPC outages are not interpreted as ineligible holdings',
+    );
+  } finally {
+    f.sqlite.close();
+  }
 });

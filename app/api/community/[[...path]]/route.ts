@@ -156,8 +156,12 @@ async function handler(req: Request) {
         (await registry()).tokens,
       );
       if (!holdings.length)
-        throw new AppError(
-          'No supported tokenized stocks were found in this wallet. Try another Solana account, or check the supported stocks list. No signature is needed.',
+        return json(
+          {
+            error:
+              'No supported tokenized stocks were found in this wallet. Try another Solana account, or view eligible stocks. No signature is needed.',
+            code: 'NO_SUPPORTED_HOLDINGS',
+          },
           403,
         );
       const id = crypto.randomUUID(),

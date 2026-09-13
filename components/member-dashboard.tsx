@@ -396,7 +396,27 @@ export function MemberDashboard({
       className={`member-shell ${view === 'markets' || view === 'overview' ? 'markets-view' : ''} ${view === 'overview' ? 'home-view' : ''}`}
     >
       <aside className="member-sidebar">
-        <Link className="member-brand" href="/">
+        <Link
+          className="member-brand"
+          href="/?view=overview"
+          onClick={(event) => {
+            // Keep ordinary Home navigation inside the verified member shell.
+            // Modified clicks retain the anchor's native new-tab behavior.
+            if (
+              event.defaultPrevented ||
+              event.button !== 0 ||
+              event.metaKey ||
+              event.ctrlKey ||
+              event.shiftKey ||
+              event.altKey
+            )
+              return;
+            event.preventDefault();
+            if (view !== 'overview') navigate('overview');
+            scrollPositions.current['overview:'] = 0;
+            window.scrollTo({ top: 0, behavior: 'instant' });
+          }}
+        >
           <FloatLogo />
         </Link>
         <div className="member-identity">
