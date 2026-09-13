@@ -11,7 +11,7 @@ const root = new URL('../', import.meta.url).pathname;
 const { outputFiles } = await build({
   stdin: {
     contents:
-      "export {TOKENS} from './lib/tokens'; export * from './lib/xstocks-circulation'; export {circulatingCoverage,tokenObservation,issuerValuation,tokenValuation} from './lib/token-observation'; export {mergeMarketPages} from './lib/market-data';",
+      "export {TOKENS} from './lib/tokens'; export * from './lib/xstocks-circulation'; export {circulatingCoverage,trackedValuation,tokenObservation,issuerValuation,tokenValuation} from './lib/token-observation'; export {mergeMarketPages} from './lib/market-data';",
     resolveDir: root,
     loader: 'ts',
   },
@@ -241,4 +241,46 @@ test('Captured Solana observations restore all four non-xStocks issuer estimates
   }
   assert.equal(api.circulatingCoverage(historical, at).total, null);
   assert.equal(api.issuerValuation(historical, at, 'xstocks').total, null);
+});
+
+test('Tracked estimate reconciles all five issuer cards without changing circulating totals', () => {
+  const mixed = structuredClone(data);
+  for (const issuer of ['backpack', 'ondo', 'prestocks', 'tessera']) {
+    const symbol = api.TOKENS.find((t) => t.issuer === issuer).symbol;
+    mixed.supplies.data[symbol] = { supply: 840, valuationSafe: true };
+    mixed.prices.data[symbol] = { price: 100, confidence: 1, timestamp: now };
+  }
+  // Tempting but invalid xStocks gross fallback must never enter this total.
+  mixed.supplies.data.AAOIx = { supply: 1e12, valuationSafe: true };
+  mixed.prices.data.AAOIx = { price: 100, confidence: 1, timestamp: now };
+  const c = api.trackedValuation(mixed, now);
+  assert.equal(c.issuerCount, 5);
+  assert.equal(c.mixedBases, true);
+  assert.equal(c.partial, true);
+  assert.equal(c.total, api.circulatingCoverage(data, now).total + 4 * 84000);
+  assert.equal(
+    c.total,
+    c.issuers.reduce((s, i) => s + (i.total ?? 0), 0),
+  );
+  assert.ok(
+    Math.abs(c.total - c.valued.reduce((s, r) => s + r.value, 0)) < 0.001,
+  );
+  assert.equal(
+    api.circulatingCoverage(mixed, now).total,
+    api.circulatingCoverage(data, now).total,
+  );
+  mixed.circulation.stale = true;
+  assert.equal(api.trackedValuation(mixed, now).delayed, true);
+  mixed.circulation.fetchedAt = now - 86400000;
+  const missingIssuer = api.trackedValuation(mixed, now);
+  assert.equal(missingIssuer.issuerCount, 4);
+  assert.equal(missingIssuer.total, 4 * 84000);
+  assert.equal(missingIssuer.mixedBases, false);
+  assert.equal(
+    missingIssuer.issuers.find((i) => i.id === 'xstocks').total,
+    null,
+  );
+  mixed.supplies.stale = true;
+  assert.equal(api.trackedValuation(mixed, now).total, null);
+  assert.equal(api.trackedValuation(mixed, now).issuerCount, 0);
 });

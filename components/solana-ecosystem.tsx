@@ -1,7 +1,7 @@
 import { MetricInfo } from './metric-info';
 import { ArrowUpRight } from 'lucide-react';
 import { TOKENS, ISSUERS, type IssuerId } from '@/lib/tokens';
-import { circulatingCoverage } from '@/lib/token-observation';
+import { trackedValuation } from '@/lib/token-observation';
 import type { MarketOverview } from '@/lib/market-data';
 const usd = (n: number | null) =>
   n === null
@@ -23,9 +23,9 @@ export function SolanaEcosystem({
   onIssuer: (id: IssuerId | 'all') => void;
   select: (symbol: string) => void;
 }) {
-  const coverage = circulatingCoverage(data, now, 'xstocks', true);
+  const coverage = trackedValuation(data, now);
   const leaders = [...coverage.valued]
-    .sort((a, b) => b.circulatingValue! - a.circulatingValue!)
+    .sort((a, b) => b.value! - a.value!)
     .slice(0, 5);
   return (
     <section
@@ -41,26 +41,17 @@ export function SolanaEcosystem({
       <div className="ecosystem-stats">
         <div>
           <span className="metric-label">
-            xStocks circulating value
-            <MetricInfo label="About xStocks circulating value">
-              xStocks circulation on Solana × issuer reference price. Pre-minted
-              inventory excluded. Other issuers use minted-value estimates and
-              are not included in this figure.
+            Tracked value · est.
+            <MetricInfo label="About the tracked Solana total">
+              Sum of the issuer estimates below, on Solana only. xStocks uses
+              circulation excluding pre-minted inventory; the other issuers use
+              minted supply and may include inventory. This mixed-basis estimate
+              is not circulating market cap or all-chain AUM. Missing values are
+              excluded. Details and dates are in Coverage &amp; methodology.
             </MetricInfo>
           </span>
           <strong>{usd(coverage.total)}</strong>
-          {coverage.delayed && (
-            <small>
-              Last verified{' '}
-              {new Date(coverage.observedAt!).toLocaleString(undefined, {
-                month: 'short',
-                day: 'numeric',
-                hour: 'numeric',
-                minute: '2-digit',
-              })}{' '}
-              · update delayed
-            </small>
-          )}
+          {coverage.delayed && <small>Includes delayed data</small>}
           {coverage.total === null && (
             <small>
               {data?.circulation?.refreshing
@@ -69,8 +60,9 @@ export function SolanaEcosystem({
             </small>
           )}
           <small>
-            Solana · {coverage.valued.length} / {coverage.rows.length} xStocks
-            valued
+            {coverage.issuerCount} / {ISSUERS.length} issuers
+            {coverage.partial && ' · Partial coverage'}
+            {coverage.mixedBases && ' · Mixed supply bases'}
           </small>
         </div>
         <div>
@@ -91,8 +83,10 @@ export function SolanaEcosystem({
       <details className="market-methodology coverage-diagnostics">
         <summary>Coverage &amp; methodology</summary>
         <p>
-          This headline covers xStocks on Solana only. Pre-minted inventory
-          excluded. Missing values are excluded, never counted as zero.
+          This estimate adds the available issuer values shown below. All
+          quantities are on Solana. Supply bases differ: it is not a uniform
+          measure of circulating value. Missing values are excluded, never
+          counted as zero.
         </p>
         <div className="market-table-scroll">
           <table className="market-table">
@@ -100,22 +94,31 @@ export function SolanaEcosystem({
             <thead>
               <tr>
                 <th>Issuer</th>
+                <th>Value</th>
+                <th>Basis</th>
                 <th>Valued</th>
-                <th>Supply unavailable</th>
-                <th>Price unavailable</th>
+                <th>Status</th>
               </tr>
             </thead>
             <tbody>
-              {ISSUERS.map((i) => {
-                const c = circulatingCoverage(data, now, i.id, true);
+              {coverage.issuers.map((c) => {
                 return (
-                  <tr key={i.id}>
-                    <th scope="row">{i.name}</th>
+                  <tr key={c.id}>
+                    <th scope="row">{c.name}</th>
+                    <td>{usd(c.total)}</td>
+                    <td>{c.label}</td>
                     <td>
                       {c.valued.length} / {c.rows.length}
                     </td>
-                    <td>{c.missing.supply}</td>
-                    <td>{c.missing.price}</td>
+                    <td>
+                      {c.total === null
+                        ? 'Unavailable'
+                        : c.delayed
+                          ? `Last verified ${new Date(c.observedAt!).toLocaleString()}`
+                          : c.valued.some((r) => r.priceDelayed)
+                            ? 'Includes dated reference prices'
+                            : 'Within freshness limits'}
+                    </td>
                   </tr>
                 );
               })}
@@ -128,12 +131,12 @@ export function SolanaEcosystem({
           are converted with dated ECB reference rates. Updated every 10
           minutes; reference prices may be up to 72 hours old. During an outage,
           the last verified circulation snapshot is shown with its original date
-          for up to 24 hours. No multiplier is applied twice. Other issuers show
-          separately labeled minted-value estimates in the issuer filters and
-          token table. Those estimates can include inventory and are never added
-          to this circulating total.
+          for up to 24 hours. No multiplier is applied twice. Other issuers use
+          price × Solana mint supply, subject to price freshness, unit and
+          conflict checks. Their minted estimates can include issuer inventory.
+          Adding them gives an estimated tracked value, not circulating AUM.
         </p>
-        <h3>Largest circulating values</h3>
+        <h3>Largest tracked values</h3>
         {leaders.map((r) => (
           <button
             key={r.symbol}
@@ -145,7 +148,7 @@ export function SolanaEcosystem({
             }}
           >
             <b>{r.symbol}</b>
-            <strong>{usd(r.circulatingValue)}</strong>
+            <strong>{usd(r.value)}</strong>
             <ArrowUpRight size={15} />
           </button>
         ))}

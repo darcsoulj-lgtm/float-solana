@@ -699,19 +699,50 @@ test('compact issuer value filters select and reset without duplicate cards', as
   assert.equal(button('All issuers').props['aria-pressed'], true);
 });
 
-test('Ecosystem overview keeps numbers and one disclosure without duplicate issuer cards', async () => {
+test('Ecosystem overview shows the combined estimate with scope and delay status', async () => {
+  const issuers = [
+    {
+      id: 'xstocks',
+      name: 'xStocks',
+      url: 'https://xstocks.fi',
+      label: 'Circulating value',
+      total: 1000,
+      rows: [{}],
+      valued: [{}],
+      delayed: true,
+      observedAt: 1,
+    },
+    {
+      id: 'backpack',
+      name: 'Backpack',
+      url: 'https://backpack.exchange',
+      label: 'Minted value',
+      total: 500,
+      rows: [{}, {}],
+      valued: [{}],
+    },
+  ];
   const { SolanaEcosystem } = await component('solana-ecosystem.tsx', {
     '@/lib/tokens': {
-      TOKENS: [{ symbol: 'MUx', underlyingSymbol: 'MU' }],
-      ISSUERS: [{ id: 'xstocks', name: 'xStocks', url: 'https://xstocks.fi' }],
+      TOKENS: [
+        { symbol: 'MUx', underlyingSymbol: 'MU' },
+        { symbol: 'MU', underlyingSymbol: 'MU' },
+      ],
+      ISSUERS: issuers,
     },
     '@/lib/token-observation': {
-      circulatingCoverage: () => ({
-        total: 1000,
-        rows: [{}],
-        valued: [{ symbol: 'MUx', circulatingValue: 1000 }],
-        issuerCount: 1,
-        missing: { supply: 0, price: 0, units: 0, conflict: 0 },
+      trackedValuation: () => ({
+        total: 1500,
+        issuers,
+        partial: true,
+        mixedBases: true,
+        delayed: true,
+        rows: [{}, {}, {}],
+        valued: [
+          { symbol: 'MUx', value: 1000 },
+          { symbol: 'MU', value: 500 },
+        ],
+        issuerCount: 2,
       }),
     },
   });
@@ -725,13 +756,16 @@ test('Ecosystem overview keeps numbers and one disclosure without duplicate issu
   );
   assert.equal((html.match(/<details/g) || []).length, 1);
   assert.match(html, /Coverage &amp; methodology/);
-  assert.match(html, /1 \/ 1 xStocks valued/);
-  assert.match(html, /xStocks circulating value/);
-  assert.doesNotMatch(html, /Tracked circulating value/);
-  assert.match(html, /Pre-minted inventory excluded/);
-  assert.doesNotMatch(html, /Partial issued value/);
-  assert.match(html, /\$1K/);
-  assert.doesNotMatch(html, /issuer-comparison|issuer-card/);
+  assert.match(html, /2 \/ 2 issuers/);
+  assert.match(html, /Tracked value · est./);
+  assert.match(html, /Mixed supply bases/);
+  assert.match(html, /Partial coverage/);
+  assert.match(html, /Includes delayed data/);
+  assert.match(html, /\$1.5K/);
+  assert.doesNotMatch(
+    html,
+    /xStocks circulating value|issuer-comparison|issuer-card/,
+  );
 });
 
 test('Legacy Backpack links open Markets and preserve the four-item member shell', async () => {

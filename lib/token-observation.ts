@@ -1,6 +1,6 @@
 import { freshTokenMarket } from './cmc-data';
 import type { MarketOverview, SourceResult } from './market-data';
-import { TOKENS, type IssuerId } from './tokens';
+import { TOKENS, ISSUERS, type IssuerId } from './tokens';
 
 function recent(
   source: SourceResult<unknown> | undefined,
@@ -289,6 +289,41 @@ export function issuerValuation(
     observedAt: 'observedAt' in coverage ? coverage.observedAt : null,
     label: circulating ? 'Circulating value' : 'Minted value',
     basis: circulating ? 'circulating' : 'minted',
+  };
+}
+
+// A sum of the displayed issuer estimates, NOT a circulating-market-cap series.
+// Preserve each issuer's basis and never replace xStocks net circulation with
+// gross inventory. Consumers must display partial coverage and mixed bases.
+export function trackedValuation(data: MarketOverview | null, now: number) {
+  const issuers = ISSUERS.map((issuer) => ({
+    ...issuer,
+    ...issuerValuation(data, now, issuer.id),
+  }));
+  const available = issuers.filter((issuer) => issuer.total !== null);
+  const rows = issuers.flatMap((issuer) =>
+    issuer.rows.map((row) => ({
+      symbol: row.symbol,
+      issuer: issuer.id,
+      value:
+        issuer.basis === 'circulating' ? row.circulatingValue : row.issuedValue,
+    })),
+  );
+  const valued = rows.filter((row) => row.value !== null);
+  return {
+    issuers,
+    rows,
+    valued,
+    total: available.length
+      ? available.reduce((sum, issuer) => sum + issuer.total!, 0)
+      : null,
+    issuerCount: available.length,
+    partial: valued.length < rows.length,
+    mixedBases: new Set(available.map((issuer) => issuer.basis)).size > 1,
+    delayed: available.some(
+      (issuer) =>
+        issuer.delayed || issuer.valued.some((row) => row.priceDelayed),
+    ),
   };
 }
 
