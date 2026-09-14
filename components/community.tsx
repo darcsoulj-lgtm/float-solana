@@ -541,7 +541,17 @@ export function Community() {
           <output aria-live="polite">{stage}</output>
           {joinError && (
             <p role="alert" className="error">
-              {joinError}
+              {showSupportedHelp ? (
+                <>
+                  <strong>
+                    No supported tokenized stocks found in this wallet.
+                  </strong>
+                  <br />
+                  Try another Solana wallet or view eligible stocks.
+                </>
+              ) : (
+                joinError
+              )}
             </p>
           )}
           {showSupportedHelp && !pending && (
@@ -551,7 +561,7 @@ export function Community() {
               target="_blank"
               rel="noopener noreferrer"
             >
-              View eligible stocks <ArrowUpRight size={14} aria-hidden="true" />
+              View eligible stocks →
             </Link>
           )}
         </DialogContent>

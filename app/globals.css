@@ -3246,6 +3246,14 @@ body:has(.community-entry) > footer {
   text-align: center;
 }
 .wallet-connect-dialog .join-help {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 1px solid #656772;
+  border-radius: 8px;
+  text-align: center;
   font-size: 13px;
 }
 .wallet-connect-dialog output {
