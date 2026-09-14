@@ -54,6 +54,7 @@ const {
   parseBook,
   publicJson,
   fetchCatalog,
+  fetchBackpackMarkets,
   fetchPools,
   fetchPrices,
   numeric,
@@ -120,6 +121,42 @@ void test('Observed live Backpack registry matches the exact mint and excludes p
   assert.ok(listings.length >= 39);
   assert.equal(listings.find((t) => t.symbol === 'MU').spot, 'MU.US_USDC');
   assert.ok(listings.every((t) => !t.spot?.endsWith('PERP')));
+});
+void test('Backpack ticker adapter keeps external reference data separate from venue volume', async () => {
+  const calls = [];
+  const rows = [
+    {
+      symbol: 'MU.US_USDC',
+      lastPrice: '75.25',
+      priceChangePercent: '1.5',
+      volume: '120',
+      quoteVolume: '9030',
+      trades: 12,
+    },
+  ];
+  const result = await fetchBackpackMarkets(
+    async (url) => {
+      calls.push(String(url));
+      return new Response(JSON.stringify(rows), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    },
+    [TOKENS.find((t) => t.symbol === 'MU')],
+  );
+  assert.equal(calls.length, 2);
+  assert.ok(calls.some((url) => url.includes('source=External')));
+  assert.ok(calls.some((url) => !url.includes('source=External')));
+  assert.deepEqual(result.MU, {
+    market: 'MU.US_USDC',
+    externalPrice: 75.25,
+    externalChange24h: 1.5,
+    externalVolume24h: 120,
+    externalQuoteVolume24h: 9030,
+    externalTrades: 12,
+    venueVolume24h: 120,
+    venueQuoteVolume24h: 9030,
+    venueTrades: 12,
+  });
 });
 void test('Full September 11 audit covers every enabled security and validates all 41 finalized mints', async () => {
   const audit = JSON.parse(

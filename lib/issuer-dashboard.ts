@@ -63,6 +63,10 @@ export function issuerDashboard(
     mintedValue:
       issuer === 'xstocks' ? null : sumKnown(rows.map((r) => r.issuedValue)),
     value: sumKnown(rows.map((r) => r.value)),
+    backpackVenueVolume: sumKnown(rows.map((r) => r.backpackVenueVolume24h)),
+    backpackVenueVolumeCovered: rows.filter(
+      (r) => r.backpackVenueVolume24h !== null,
+    ).length,
     valueLabel: issuer === 'xstocks' ? 'Circulating value' : 'Minted value',
     delayed: rows.some(
       (r) =>

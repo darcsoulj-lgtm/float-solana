@@ -211,6 +211,7 @@ export function MarketOverviewPanel({
         { name: 'DefiLlama', source: data.prices },
         { name: 'Solana supply', source: data.supplies },
         { name: 'xStocks circulation', source: data.circulation },
+        { name: 'Backpack ticker', source: data.backpack },
       ]
         .filter((r) => r.source?.stale || r.source?.error)
         .map((r) => r.name)
@@ -893,7 +894,8 @@ export function MarketOverviewPanel({
         <details className="market-methodology">
           <summary>Table sources</summary>
           <p>
-            Prices: CoinMarketCap, fresh DefiLlama, then DEX pool. Older
+            Backpack prices and 24h changes: official Backpack external ticker.
+            Other prices: CoinMarketCap, fresh DefiLlama, then DEX pool. Older
             DefiLlama references are labeled Last quote (up to 96 hours). DEX
             volume and liquidity: eligible DEX Screener pools, with partial
             coverage.
@@ -963,18 +965,20 @@ export function MarketOverviewPanel({
         <summary>Data sources & methodology</summary>
         <p>
           Price listings and reviewed registries are matched by exact Solana
-          mint, not ticker name. CoinMarketCap supplies aggregate token prices,
-          circulating supply, token market cap, volume and price changes. We
-          display observations no older than 15 minutes; missing listings use
-          separately labeled pool or onchain data where available. CMC market
-          cap measures circulating tokens at the provider’s price, not the
-          underlying company’s market cap. Without a CMC price, we prefer a
-          recent DefiLlama reference with confidence of at least 0.8; a single
-          DEX pool is the final fallback. Reference prices are not executable
-          quotes. Neither source proves backing or solvency. A difference above
-          5% between available price sources triggers a review flag and excludes
-          the token from valuation totals. This is our review threshold, not an
-          accuracy guarantee.
+          mint, not ticker name. Backpack-issued stocks use Backpack’s official
+          external ticker for price and 24-hour change; its venue ticker is kept
+          separate from DEX activity. CoinMarketCap supplies aggregate token
+          prices, circulating supply, token market cap, volume and price
+          changes. We display observations no older than 15 minutes; missing
+          listings use separately labeled pool or onchain data where available.
+          CMC market cap measures circulating tokens at the provider’s price,
+          not the underlying company’s market cap. Without a CMC price, we
+          prefer a recent DefiLlama reference with confidence of at least 0.8; a
+          single DEX pool is the final fallback. Reference prices are not
+          executable quotes. Neither source proves backing or solvency. A
+          difference above 5% between available price sources triggers a review
+          flag and excludes the token from valuation totals. This is our review
+          threshold, not an accuracy guarantee.
         </p>
         <p>
           DefiLlama 24h changes compare prices for the same mint from the same

@@ -31,6 +31,18 @@ export type Listing = {
   spot: string | null;
   bookState: string | null;
 };
+export const BACKPACK_TICKER_REFRESH_MS = 60000;
+export type BackpackMarket = {
+  market: string;
+  externalPrice: number | null;
+  externalChange24h: number | null;
+  externalVolume24h: number | null;
+  externalQuoteVolume24h: number | null;
+  externalTrades: number | null;
+  venueVolume24h: number | null;
+  venueQuoteVolume24h: number | null;
+  venueTrades: number | null;
+};
 export type Pool = {
   createdAt?: number | null;
   address: string;
@@ -60,6 +72,7 @@ export type MarketOverview = {
   volumes?: SourceResult<Record<string, TokenVolume>>;
   supplies: SourceResult<Record<string, MintSupply>>;
   markets: SourceResult<Record<string, TokenMarket>>;
+  backpack?: SourceResult<Record<string, BackpackMarket>>;
   catalog: SourceResult<Listing[]>;
   pools: SourceResult<Record<string, Pool[]>>;
   prices: SourceResult<Record<string, TokenPrice>>;
@@ -142,6 +155,89 @@ export function parseListings(
       },
     ];
   });
+}
+
+function tickerRows(raw: unknown) {
+  if (!Array.isArray(raw)) throw new Error('Invalid Backpack ticker response');
+  return raw.map(record).filter((row) => typeof row.symbol === 'string');
+}
+
+function tickerMap(
+  raw: unknown,
+  tokens: readonly StockToken[],
+): Record<
+  string,
+  {
+    market: string;
+    price: number | null;
+    change24h: number | null;
+    volume24h: number | null;
+    quoteVolume24h: number | null;
+    trades: number | null;
+  }
+> {
+  const result: Record<
+    string,
+    {
+      market: string;
+      price: number | null;
+      change24h: number | null;
+      volume24h: number | null;
+      quoteVolume24h: number | null;
+      trades: number | null;
+    }
+  > = {};
+  for (const row of tickerRows(raw)) {
+    const market = String(row.symbol),
+      base = market.split('_')[0]?.replace(/\.US$/, ''),
+      token = tokens.find((candidate) => candidate.symbol === base);
+    if (!token || result[token.symbol]) continue;
+    result[token.symbol] = {
+      market,
+      price: positive(row.lastPrice),
+      change24h: numeric(row.priceChangePercent),
+      volume24h: nonnegative(row.volume),
+      quoteVolume24h: nonnegative(row.quoteVolume),
+      trades: nonnegative(row.trades),
+    };
+  }
+  return result;
+}
+
+export async function fetchBackpackMarkets(
+  fetcher: typeof fetch = fetch,
+  tokens: readonly StockToken[] = BACKPACK_TOKENS,
+): Promise<Record<string, BackpackMarket>> {
+  const [external, venue] = await Promise.all([
+    publicJson(
+      'https://api.backpack.exchange/api/v1/tickers?interval=1d&source=External',
+      fetcher,
+    ),
+    publicJson(
+      'https://api.backpack.exchange/api/v1/tickers?interval=1d',
+      fetcher,
+    ),
+  ]);
+  const externalRows = tickerMap(external, tokens),
+    venueRows = tickerMap(venue, tokens),
+    out: Record<string, BackpackMarket> = {};
+  for (const token of tokens) {
+    const e = externalRows[token.symbol],
+      v = venueRows[token.symbol];
+    if (!e && !v) continue;
+    out[token.symbol] = {
+      market: e?.market || v?.market || `${token.symbol}.US_USDC`,
+      externalPrice: e?.price ?? null,
+      externalChange24h: e?.change24h ?? null,
+      externalVolume24h: e?.volume24h ?? null,
+      externalQuoteVolume24h: e?.quoteVolume24h ?? null,
+      externalTrades: e?.trades ?? null,
+      venueVolume24h: v?.volume24h ?? null,
+      venueQuoteVolume24h: v?.quoteVolume24h ?? null,
+      venueTrades: v?.trades ?? null,
+    };
+  }
+  return out;
 }
 export function parsePools(
   raw: unknown,
@@ -530,6 +626,7 @@ export function mergeMarketPages(pages: MarketOverview[]): MarketOverview {
       error: null,
     },
     markets: combine(pages.map((p) => p.markets)),
+    backpack: pages.find((p) => p.backpack)?.backpack,
     prices: combine(pages.map((p) => p.prices)),
     pools: combine(pages.map((p) => p.pools)),
     supplies: combine(pages.map((p) => p.supplies)),

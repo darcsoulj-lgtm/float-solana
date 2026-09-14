@@ -34,6 +34,11 @@ export function tokenObservation(
   const valued = data?.valuations?.data;
   const reported = valued?.rows[symbol];
   const isOndo = ondoMints.has(symbol);
+  const token = TOKENS.find((candidate) => candidate.symbol === symbol);
+  const backpackMarket =
+    token?.issuer === 'backpack' && recent(data?.backpack, now, symbol)
+      ? data?.backpack?.data?.[symbol]
+      : undefined;
   const issuerValue =
     valued &&
     reported &&
@@ -78,15 +83,22 @@ export function tokenObservation(
     cmc?.price == null &&
     !!selectedReference &&
     now - selectedReference.timestamp > 900000;
-  const price = cmc?.price ?? selectedReference?.price ?? top?.price ?? null;
+  const price =
+    backpackMarket?.externalPrice ??
+    cmc?.price ??
+    selectedReference?.price ??
+    top?.price ??
+    null;
   const priceSource =
-    cmc?.price != null
-      ? 'CoinMarketCap'
-      : selectedReference
-        ? 'DefiLlama'
-        : top?.price != null
-          ? 'DEX pool'
-          : 'Unavailable';
+    backpackMarket?.externalPrice != null
+      ? 'Backpack · external'
+      : cmc?.price != null
+        ? 'CoinMarketCap'
+        : selectedReference
+          ? 'DefiLlama'
+          : top?.price != null
+            ? 'DEX pool'
+            : 'Unavailable';
   const history = recent(data?.history, now, symbol)
     ? data?.history?.data?.[symbol]
     : undefined;
@@ -110,11 +122,12 @@ export function tokenObservation(
       ? (freshReference.price / history.price - 1) * 100
       : null;
   const change24h =
-    cmc?.price != null
+    backpackMarket?.externalChange24h ??
+    (cmc?.price != null
       ? cmc.change24h
       : selectedReference
         ? referenceChange
-        : (top?.change24h ?? null);
+        : (top?.change24h ?? null));
   // Do not average incompatible prices. Five percent is a review threshold,
   // not a guarantee that smaller differences are accurate.
   const comparedPrices = [cmc?.price, freshReference?.price, top?.price].filter(
@@ -181,6 +194,10 @@ export function tokenObservation(
       ? (data?.volumes?.data?.[symbol]?.usd24h ?? null)
       : null,
     onchainVolumeTime: data?.volumes?.fetchedAt ?? null,
+    backpackMarket,
+    backpackMarketTime: data?.backpack?.fetchedAt ?? null,
+    backpackVenueVolume24h: backpackMarket?.venueVolume24h ?? null,
+    backpackExternalVolume24h: backpackMarket?.externalVolume24h ?? null,
     cmc,
     top,
     supply,
@@ -189,21 +206,25 @@ export function tokenObservation(
     priceDelayed,
     priceConflict,
     priceTime:
-      cmc?.price != null
-        ? cmc.timestamp
-        : selectedReference
-          ? selectedReference.timestamp
-          : (data?.pools?.asOf?.[symbol] ?? data?.pools?.fetchedAt),
+      backpackMarket?.externalPrice != null
+        ? (data?.backpack?.fetchedAt ?? null)
+        : cmc?.price != null
+          ? cmc.timestamp
+          : selectedReference
+            ? selectedReference.timestamp
+            : (data?.pools?.asOf?.[symbol] ?? data?.pools?.fetchedAt),
     change24h:
       change24h !== null && Number.isFinite(change24h) ? change24h : null,
     changeSource:
-      cmc?.price != null
-        ? 'CoinMarketCap'
-        : selectedReference
-          ? 'DefiLlama · calculated'
-          : top
-            ? 'Single DEX pool'
-            : 'Unavailable',
+      backpackMarket?.externalChange24h != null
+        ? 'Backpack · external'
+        : cmc?.price != null
+          ? 'CoinMarketCap'
+          : selectedReference
+            ? 'DefiLlama · calculated'
+            : top
+              ? 'Single DEX pool'
+              : 'Unavailable',
     historyTime:
       selectedReference && referenceChange !== null ? history?.timestamp : null,
     changeUnavailableReason: priceDelayed
@@ -211,6 +232,9 @@ export function tokenObservation(
       : adjustmentInWindow
         ? 'A display-unit adjustment falls within this period; comparable history is unconfirmed.'
         : 'No comparable 24-hour history from the selected price source.',
+    // Keep the generic volume field tied to the existing CMC/DEX coverage.
+    // Backpack's external ticker volume is provider-derived reference activity
+    // and must not be presented as Solana or venue trading volume.
     volume24h: cmc?.volume24h ?? pools[0]?.volume24h ?? null,
     volumeSource:
       cmc?.volume24h != null

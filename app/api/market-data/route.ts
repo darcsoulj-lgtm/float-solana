@@ -14,6 +14,8 @@ import {
   MARKET_REFRESH_MS,
   MARKET_MAX_AGE_MS,
   fetchCatalog,
+  fetchBackpackMarkets,
+  BACKPACK_TICKER_REFRESH_MS,
   fetchTokenPools,
   parseBook,
   publicJson,
@@ -75,6 +77,8 @@ export async function GET(req: Request) {
       (batch + 1) * MARKET_BATCH_SIZE,
     );
     const backpackTokens = registryList.filter((t) => t.issuer === 'backpack');
+    const backpackTickerKey =
+      'backpack-tickers-v1:' + (await tokenBatchKey(backpackTokens));
     const poolSymbol = new URL(req.url).searchParams.get('pools');
     if (poolSymbol) {
       const token = registryList.find((t) => t.symbol === poolSymbol);
@@ -123,7 +127,7 @@ export async function GET(req: Request) {
       );
       return json({ book, reason: null });
     }
-    const [observations, markets, circulation] = await Promise.all([
+    const [observations, markets, circulation, backpack] = await Promise.all([
       readMarketBatch(database, tokens, {
         verifiedStocks: registryList,
         rpcUrl: runtime().SOLANA_RPC_URL,
@@ -142,12 +146,18 @@ export async function GET(req: Request) {
       batch === 0
         ? circulationSnapshot(database, waitUntil)
         : Promise.resolve(undefined),
+      batch === 0
+        ? snapshot(backpackTickerKey, BACKPACK_TICKER_REFRESH_MS, () =>
+            fetchBackpackMarkets(fetch, backpackTokens),
+          )
+        : Promise.resolve(undefined),
     ]);
     const response = json({
       registry,
       catalog,
       ...observations,
       markets,
+      ...(backpack ? { backpack } : {}),
       ...(circulation ? { circulation } : {}),
       batch,
       totalBatches: Math.ceil(registryList.length / MARKET_BATCH_SIZE),

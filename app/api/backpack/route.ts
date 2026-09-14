@@ -12,7 +12,12 @@ import {
 import { waitUntil } from 'cloudflare:workers';
 import { db, runtime, rateLimit } from '@/lib/server';
 import { marketSnapshot } from '@/lib/market-cache';
-import { mergeMarketPages, fetchCatalog } from '@/lib/market-data';
+import {
+  mergeMarketPages,
+  fetchCatalog,
+  fetchBackpackMarkets,
+  BACKPACK_TICKER_REFRESH_MS,
+} from '@/lib/market-data';
 import {
   PUBLIC_BATCH_SIZE,
   fetchBackpackPools,
@@ -52,7 +57,7 @@ export async function GET(req: Request) {
     const snapshot = <T>(key: string, ttl: number, loader: () => Promise<T>) =>
       marketSnapshot(database, key, ttl, loader, waitUntil, Date.now(), 300000);
     const suffix = TOKEN_REVIEW_DATE + ':' + (await tokenBatchKey(tokens));
-    const [pools, shared, catalog] = await Promise.all([
+    const [pools, shared, catalog, backpack] = await Promise.all([
       snapshot(
         `dex-pools-backpack-detail-${POOL_POLICY_VERSION}:` + suffix,
         240000,
@@ -84,9 +89,21 @@ export async function GET(req: Request) {
             stale: false,
             error: null,
           }),
+      batch === 0
+        ? snapshot(
+            'backpack-tickers-v1:' + (await tokenBatchKey(dashboardTokens)),
+            BACKPACK_TICKER_REFRESH_MS,
+            () => fetchBackpackMarkets(fetch, dashboardTokens),
+          )
+        : Promise.resolve({
+            data: {},
+            fetchedAt: null,
+            stale: false,
+            error: null,
+          }),
     ]);
     const { prices, supplies, history } = shared;
-    const pending = [pools, prices, supplies, history, catalog].some(
+    const pending = [pools, prices, supplies, history, catalog, backpack].some(
       (s) => s && 'refreshing' in s && s.refreshing,
     );
     // Fixed public market DTO: no account, wallet, membership, private balances,
@@ -99,6 +116,7 @@ export async function GET(req: Request) {
         supplies,
         history,
         catalog,
+        backpack,
         markets: { data: {}, fetchedAt: null, stale: false, error: null },
         batch,
         totalBatches,

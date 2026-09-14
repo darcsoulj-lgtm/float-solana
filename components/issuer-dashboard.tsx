@@ -508,20 +508,29 @@ export function IssuerDashboardContent({
         </div>
         <div>
           <span>
-            DEX pool volume · 24h{' '}
+            {issuer === 'backpack'
+              ? 'Backpack venue volume · 24h'
+              : 'DEX pool volume · 24h'}{' '}
             <MetricInfo label="Volume source and coverage">
-              {POOL_SCOPE} DEX Screener pool trades only. Excludes RFQ trades,
-              direct issuer trades and centralized exchanges. Pool discovery is
-              partial; this is not total issuer volume.{' '}
+              {issuer === 'backpack'
+                ? 'Backpack venue ticker volume from the official API. It covers Backpack activity only; Solana DEX and RFQ activity are separate.'
+                : `${POOL_SCOPE} DEX Screener pool trades only. Excludes RFQ trades, direct issuer trades and centralized exchanges. Pool discovery is partial; this is not total issuer volume.`}{' '}
               {issuer === 'xstocks'
                 ? 'The xStocks API supplies circulation and reference valuations, not this volume figure.'
                 : ''}
             </MetricInfo>
           </span>
-          <strong>{dollars(dashboard.volume)}</strong>
+          <strong>
+            {dollars(
+              issuer === 'backpack'
+                ? dashboard.backpackVenueVolume
+                : dashboard.volume,
+            )}
+          </strong>
           <small>
-            {dashboard.volumeCovered} of {dashboard.rows.length} tokens · RFQ
-            excluded
+            {issuer === 'backpack'
+              ? `${dashboard.backpackVenueVolumeCovered} of ${dashboard.rows.length} tokens · venue only`
+              : `${dashboard.volumeCovered} of ${dashboard.rows.length} tokens · RFQ excluded`}
           </small>
         </div>
         <div>
@@ -821,6 +830,9 @@ export function IssuerDashboardContent({
             Solana RPC supplies minted quantities. CoinMarketCap, where covered,
             supplies prices and changes. DefiLlama provides reference prices; a
             pool price is used when needed.{' '}
+            {issuer === 'backpack'
+              ? 'Backpack supplies the official venue ticker price, 24-hour change, and venue volume for Backpack-issued stocks.'
+              : ''}{' '}
             {issuer === 'xstocks'
               ? 'Value uses the official xStocks API for Solana circulating supply and issuer reference prices. Pre-minted inventory and other chains are excluded. Last verified circulation may be retained for up to 24 hours and is marked delayed.'
               : 'Minted value may include issuer inventory and must not be read as circulating market cap or assets under management.'}{' '}
