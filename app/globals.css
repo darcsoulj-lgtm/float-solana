@@ -1659,25 +1659,37 @@ body:has(.community-entry) > footer {
 }
 .preview-layout {
   display: grid;
-  grid-template-columns: 200px 1fr 230px;
-  min-height: 330px;
+  grid-template-columns: 208px minmax(0, 1fr);
+  min-height: 380px;
   background: var(--hp-bg-fffefa, #fffefa);
 }
 .preview-nav {
   background: var(--hp-bg-ededed, #ededed);
-  padding: 28px;
+  border-right: 1px solid var(--hp-edge-e1e1e1, #e1e1e1);
+  padding: 27px 22px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 8px;
   font-size: 14px;
   color: var(--hp-ink-6d6d6d, #6d6d6d);
 }
-.preview-nav .preview-monogram {
-  font-size: 32px;
-  font-weight: 700;
-  letter-spacing: -4px;
+.preview-member {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 23px 4px 10px;
+  color: var(--hp-ink-777777, #777777);
+  font-size: 11px;
+}
+.preview-avatar {
+  display: grid;
+  place-items: center;
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  background: var(--hp-bg-e3e3e3, #e3e3e3);
   color: var(--hp-ink-4b4b4b, #4b4b4b);
-  line-height: 1;
+  font-weight: 650;
 }
 .preview-nav strong {
   font-family: var(--font-geist-sans);
@@ -1685,50 +1697,113 @@ body:has(.community-entry) > footer {
   font-weight: 400;
   line-height: 1.15;
   color: var(--hp-ink-3c3c3c, #3c3c3c);
-  margin: 8px 0 15px;
+  margin: 0 0 14px;
+}
+.preview-nav > span:not(.preview-avatar) {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 10px;
+  border-radius: 5px;
+  font-size: 12px;
+}
+.preview-nav > span:not(.preview-avatar) svg {
+  flex-shrink: 0;
 }
 .preview-nav .selected {
+  background: var(--hp-bg-dfe5e5, #dfe5e5);
   color: var(--hp-ink-4b4b4b, #4b4b4b);
   font-weight: 600;
 }
+.preview-workspace {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.preview-topbar {
+  min-height: 51px;
+  padding: 0 25px;
+  border-bottom: 1px solid var(--hp-edge-e3e3e3, #e3e3e3);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--hp-ink-555555, #555555);
+  font-size: 11px;
+}
+.preview-topbar em {
+  color: var(--hp-ink-979797, #979797);
+  font-style: normal;
+  margin-left: 6px;
+}
+.preview-topbar span:last-child {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--hp-ink-7d7d7d, #7d7d7d);
+  font-size: 10px;
+}
+.preview-content {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 190px;
+}
 .preview-main {
-  padding: 45px 38px;
+  padding: 35px 34px;
 }
 .preview-main h2 {
-  font: 36px/1.13 var(--font-geist-sans);
+  font: 31px/1.13 var(--font-geist-sans);
   letter-spacing: -1px;
   margin: 14px 0;
 }
 .preview-main p {
-  font-size: 15px;
+  font-size: 14px;
+  line-height: 1.55;
   color: var(--hp-ink-6e6e6e, #6e6e6e);
-  max-width: 410px;
+  max-width: 360px;
 }
-.preview-tags {
-  display: flex;
-  flex-wrap: wrap;
+.preview-modules {
+  display: grid;
   gap: 8px;
   margin-top: 24px;
 }
-.preview-tags span {
-  font-size: 11px;
-  padding: 4px 9px;
+.preview-modules > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 13px;
   border: 1px solid var(--hp-edge-dddddd, #dddddd);
-  border-radius: 4px;
+  border-radius: 5px;
+  background: var(--hp-bg-fdfdfd, #fdfdfd);
+}
+.preview-modules span {
+  color: var(--hp-ink-777777, #777777);
+  font-size: 11px;
+}
+.preview-modules strong {
+  color: var(--hp-ink-4b4b4b, #4b4b4b);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: right;
 }
 .preview-note {
-  align-self: center;
-  padding: 20px 30px 20px 0;
+  align-self: stretch;
+  padding: 35px 22px;
+  border-left: 1px solid var(--hp-edge-e3e3e3, #e3e3e3);
+  background: var(--hp-bg-fdfdfd, #fdfdfd);
 }
 .preview-note svg {
   color: var(--hp-ink-797979, #797979);
 }
 .preview-note h3 {
-  font: 24px/1.2 var(--font-geist-sans);
+  font: 20px/1.2 var(--font-geist-sans);
   margin: 16px 0;
 }
 .preview-note p {
-  font-size: 14px;
+  font-size: 12px;
+  line-height: 1.55;
   color: var(--hp-ink-6e6e6e, #6e6e6e);
 }
 .join-steps {
@@ -2717,6 +2792,9 @@ body:has(.community-entry) > footer {
   }
   .preview-nav {
     padding: 24px;
+  }
+  .preview-content {
+    grid-template-columns: 1fr;
   }
   .preview-note {
     display: none;

@@ -62,7 +62,7 @@ export default function Page() {
         <p>
           Member discussions require an active verified session. Other members
           see your alias, contributions, and any stock or value badges you
-          choose to show. Public visitors see an illustrative preview with no
+          choose to show. Public visitors see the dashboard layout with no
           member data. Your full holdings list, followed topics, saved items,
           and notifications are returned only to your own active session.
           Administrators can review content, reports, and member records.

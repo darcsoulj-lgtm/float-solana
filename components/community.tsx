@@ -5,10 +5,14 @@ import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ArrowUpRight,
+  ChartNoAxesCombined,
+  Home,
+  MessageSquare,
   ShieldCheck,
   LockKeyhole,
   ScanLine,
   MessagesSquare,
+  UserRound,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -341,7 +345,7 @@ export function Community() {
               <Button onClick={openJoin}>
                 Connect wallet <ArrowUpRight size={18} />
               </Button>
-              <a href="#inside">Preview ↓</a>
+              <a href="#inside">See inside ↓</a>
             </div>
             {error && (
               <div className="club-error" role="alert">
@@ -358,42 +362,76 @@ export function Community() {
           <section
             className="public-preview"
             id="inside"
-            aria-label="Illustrative member home preview"
+            aria-label="Member dashboard"
           >
             <div className="preview-label">
-              <span>MEMBER PREVIEW</span>
+              <span>MEMBER DASHBOARD</span>
               <span>
-                <LockKeyhole size={13} /> Illustrative preview
+                <LockKeyhole size={13} /> Holders only
               </span>
             </div>
             <div className="preview-layout">
               <div className="preview-nav">
                 <FloatLogo small />
-                <strong>Your dashboard</strong>
-                <span className="selected">⌂ &nbsp; Home</span>
-                <span>◎ &nbsp; Channels</span>
-                <span>♧ &nbsp; Profile</span>
-              </div>
-              <div className="preview-main">
-                <span className="eyebrow">VERIFIED MEMBERS</span>
-                <h2>News. Markets. Discussions.</h2>
-                <p>
-                  News for your holdings. Market data for each token. Curated
-                  channels for every conversation.
-                </p>
-                <div className="preview-tags">
-                  <span>MU</span>
-                  <span>SKHY</span>
-                  <span>SPCX</span>
-                  <span>+ curated channels</span>
+                <div className="preview-member">
+                  <span className="preview-avatar">F</span>
+                  <span>Verified holder</span>
                 </div>
+                <strong>Your dashboard</strong>
+                <span className="selected">
+                  <Home size={14} /> Home
+                </span>
+                <span>
+                  <MessageSquare size={14} /> Discussions
+                </span>
+                <span>
+                  <ChartNoAxesCombined size={14} /> Markets
+                </span>
+                <span>
+                  <UserRound size={14} /> Profile
+                </span>
               </div>
-              <div className="preview-note">
-                <ShieldCheck size={25} />
-                <h3>Private holdings</h3>
-                <p>
-                  Holdings are detected automatically. Balances stay private.
-                </p>
+              <div className="preview-workspace">
+                <div className="preview-topbar">
+                  <span>
+                    Float <em>/ Home</em>
+                  </span>
+                  <span>
+                    <LockKeyhole size={12} /> Holders only
+                  </span>
+                </div>
+                <div className="preview-content">
+                  <div className="preview-main">
+                    <span className="eyebrow">HOME</span>
+                    <h2>News for your holdings.</h2>
+                    <p>
+                      See your portfolio, the latest news, and holder
+                      discussions in one place.
+                    </p>
+                    <div className="preview-modules">
+                      <div>
+                        <span>Portfolio</span>
+                        <strong>Your verified holdings</strong>
+                      </div>
+                      <div>
+                        <span>Latest news</span>
+                        <strong>Your holdings · 7 days</strong>
+                      </div>
+                      <div>
+                        <span>Holder discussions</span>
+                        <strong>Member-created rooms</strong>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="preview-note">
+                    <ShieldCheck size={25} />
+                    <h3>Private holdings</h3>
+                    <p>
+                      Holdings are detected automatically. Balances stay
+                      private.
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           </section>
