@@ -1374,6 +1374,24 @@ void test('both-provider failure retains cached headlines and reports unavailabl
   assert.equal(headlines.headlinesDue(keys.map(f.row)), false);
   f.sql.close();
 });
+void test('headline provider cooldown is shared across symbols after a 429', async () => {
+  const f = newsDatabase();
+  let requests = 0;
+  const failing = async () => {
+    requests++;
+    return new Response(null, {
+      status: 429,
+      headers: { 'Retry-After': '600' },
+    });
+  };
+  await headlines.refreshHeadlineSources(f.db, 'MU', failing);
+  assert.equal(requests, 2);
+  await headlines.refreshHeadlineSources(f.db, 'SPCX', failing);
+  assert.equal(requests, 2);
+  assert.ok(f.row('provider-cooldown:google-news').retry_after > Date.now());
+  assert.ok(f.row('provider-cooldown:yahoo-news').retry_after > Date.now());
+  f.sql.close();
+});
 void test('shorter successful feeds retain seven-day history, and invalid caches never report healthy', async () => {
   const f = newsDatabase(),
     keys = headlines.headlineKeys('MU');

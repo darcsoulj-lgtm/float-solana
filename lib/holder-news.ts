@@ -239,7 +239,11 @@ async function fetchHeadlineFeed(
     // Cloudflare Workers rejects redirect:'error' before issuing a request.
     // Manual mode plus the status check rejects redirects without following them.
     redirect: 'manual',
-    headers: { Accept: 'application/rss+xml, application/xml' },
+    headers: {
+      Accept: 'application/rss+xml, application/xml;q=0.9',
+      'Accept-Language': 'en-US,en;q=0.8',
+      'User-Agent': 'Float/1.0 (+https://float-solana.darcsoulj.workers.dev)',
+    },
   });
   if (!r.ok) throw new SourceHttpError(url.hostname, r);
   const reader = r.body?.getReader();

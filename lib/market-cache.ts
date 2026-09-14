@@ -116,7 +116,11 @@ export async function cachedMarket<T>(
   const cooldownKey =
     key.startsWith('dex-pools-') || key.startsWith('token-pairs-')
       ? 'provider-cooldown:dexscreener'
-      : null;
+      : key.startsWith('headlines-google-v1:')
+        ? 'provider-cooldown:google-news'
+        : key.startsWith('headlines-v2:')
+          ? 'provider-cooldown:yahoo-news'
+          : null;
   if (cooldownKey) {
     const cooldown = await db
       .prepare('SELECT retry_after FROM market_cache WHERE key=?')

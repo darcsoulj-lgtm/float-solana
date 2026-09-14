@@ -82,12 +82,11 @@ async function handle(req: Request) {
             all.findIndex((other) => keysFor(other)[0] === keysFor(s)[0]) === i,
         )
         .slice(0, 3);
-      for (let i = 0; i < due.length; i += 3)
-        await Promise.all(
-          due
-            .slice(i, i + 3)
-            .map((s) => refreshHeadlineSources(database, s, fetch, tokens)),
-        );
+      // Provider feeds share rate limits across symbols. Refresh sequentially so
+      // the first 429 establishes a provider-wide cooldown before the next
+      // holding is considered. This avoids a cold cache creating a burst.
+      for (const s of due)
+        await refreshHeadlineSources(database, s, fetch, tokens);
       // Never delete recent cached headlines because an upstream request failed.
       await database
         .prepare(
