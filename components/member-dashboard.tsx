@@ -56,6 +56,12 @@ const MemberMarkets = lazy(() =>
     default: module.MemberMarkets,
   })),
 );
+// Warm the Markets screen chunks before navigation so the first click can
+// render while the API request is in flight instead of waiting on imports.
+const preloadMarkets = () => {
+  void loadClientModule(() => import('./member-markets')).catch(() => {});
+  void loadClientModule(() => import('./market-overview')).catch(() => {});
+};
 import {
   memberLocation,
   type MemberView,
@@ -289,6 +295,16 @@ export function MemberDashboard({
       window.removeEventListener('online', update);
     };
   }, [refreshWalletHoldings]);
+  useEffect(() => {
+    // Most users visit Markets during the same session. Use idle time to
+    // fetch its chunks without competing with the initial holdings request.
+    const connection = (
+      navigator as Navigator & { connection?: { saveData?: boolean } }
+    ).connection;
+    if (connection?.saveData) return;
+    const timer = window.setTimeout(preloadMarkets, 1500);
+    return () => window.clearTimeout(timer);
+  }, []);
   async function run(action: () => Promise<void>) {
     setBusy(true);
     setError('');
@@ -442,6 +458,8 @@ export function MemberDashboard({
               aria-current={
                 (view === 'topics' ? 'home' : view) === id ? 'page' : undefined
               }
+              onPointerEnter={id === 'markets' ? preloadMarkets : undefined}
+              onFocus={id === 'markets' ? preloadMarkets : undefined}
               onClick={() => navigate(id, id === 'markets' ? 'all' : market)}
             >
               <Icon size={19} />
