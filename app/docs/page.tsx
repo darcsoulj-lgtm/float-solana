@@ -10,8 +10,8 @@ export default function Page() {
           transaction or transfer is required.
         </p>
         <p>
-          Use a desktop wallet extension or compatible wallet browser. Mobile
-          deep-link pairing is not supported.
+          On mobile, choosing a wallet opens this page in that wallet’s browser.
+          On desktop, use a browser with the wallet extension enabled.
         </p>
       </section>
       <section className="panel">

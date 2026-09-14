@@ -337,6 +337,7 @@ try {
   assert.equal(posted[0].id, t.id);
   assert.equal(posted[0].title, '?');
   assert.equal(posted[0].body, '');
+  assert.equal(posted[0].badge, 'MU');
   assert.ok(!JSON.stringify(posted).includes('raw_amount'));
   assert.ok(!JSON.stringify(posted).includes('ui_amount'));
   await editorialFlow(base, cookie);

@@ -26,10 +26,12 @@ function discussionTime(timestamp: number) {
 export function Thread({
   thread: t,
   memberId,
+  memberBadge,
   refresh,
 }: {
   thread: CommunityThread;
   memberId: string;
+  memberBadge: string | null;
   refresh: () => Promise<void>;
 }) {
   const [open, setOpen] = useState(false),
@@ -148,7 +150,11 @@ export function Thread({
               <div className="reply-content">
                 <div className="reply-author">
                   <strong>{r.alias}</strong>
-                  {r.badge && <span className="pill">{r.badge} holder</span>}
+                  {(r.member_id === memberId ? memberBadge : r.badge) && (
+                    <span className="pill">
+                      {r.member_id === memberId ? memberBadge : r.badge} holder
+                    </span>
+                  )}
                   {r.value_tier && (
                     <HolderTierBadge
                       tier={r.value_tier}

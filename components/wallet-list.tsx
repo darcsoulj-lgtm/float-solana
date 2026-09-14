@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { ArrowUpRight, ChevronRight, LoaderCircle } from 'lucide-react';
 import { Button } from './ui/button';
 import { walletAvailability, subscribeWallets } from '@/lib/wallet-provider';
+import { isMobileBrowser, walletBrowserLink } from '@/lib/wallet-browser-link';
 const labels = {
   phantom: 'Phantom',
   backpack: 'Backpack',
@@ -57,6 +58,16 @@ export function WalletList({
             onClick={() => {
               const latest = walletAvailability().find((w) => w.id === id);
               if (latest?.state !== 'detected') {
+                const mobile = isMobileBrowser(
+                  navigator.userAgent,
+                  navigator.platform,
+                  navigator.maxTouchPoints,
+                );
+                const walletUrl = walletBrowserLink(id, window.location.href);
+                if (mobile && walletUrl) {
+                  window.location.assign(walletUrl);
+                  return;
+                }
                 setHelp(id);
                 return;
               }
@@ -89,10 +100,9 @@ export function WalletList({
             {labels[help as keyof typeof labels]} isn’t ready in this browser.
           </strong>
           <p>
-            Open this site in Chrome with the{' '}
+            On desktop, open this site in a browser with the{' '}
             {labels[help as keyof typeof labels]} extension enabled, or in that
-            wallet’s mobile browser. An app’s built-in browser may not have
-            access to your extensions.
+            wallet’s mobile browser.
           </p>
           <a href={websites[help]} target="_blank" rel="noopener noreferrer">
             Get {labels[help as keyof typeof labels]} <ArrowUpRight size={15} />
