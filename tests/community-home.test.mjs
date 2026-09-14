@@ -116,6 +116,8 @@ void test('home loads in one database batch and isolates holdings, session and b
     );
     assert.equal(a.sources.length, 3);
     assert.equal(a.holdingsRefreshAvailable, true);
+    assert.equal(a.rooms.length, 8);
+    assert.ok(a.rooms.every((room) => room.id.startsWith('channel-')));
     sql.exec(
       "INSERT INTO community_bookmarks(member_id,target_type,target_id,created_at) VALUES('a','source','micron-ir',1)",
     );

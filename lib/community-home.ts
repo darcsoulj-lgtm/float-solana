@@ -1,4 +1,3 @@
-import { roomStatement, roomPage } from './community-rooms';
 import { COMMUNITY_CHANNELS, type CommunityRoom } from './community-types';
 
 // Auth is enforced by the route. All private reads use its verified member ID.
@@ -34,35 +33,17 @@ export async function communityHome(
         'SELECT 1 FROM community_sessions WHERE hash=? AND member_id=? AND wallet IS NOT NULL',
       )
       .bind(sessionHash, memberId),
-    roomStatement(database),
-    database
-      .prepare(
-        `SELECT r.id,r.name,r.description,r.thread_count FROM community_rooms r JOIN community_follows f ON f.symbol=r.id WHERE f.member_id=? ORDER BY r.name`,
-      )
-      .bind(memberId),
   ]);
-  const [holdings, follows, links, notifications, session, rooms, followed] =
-    result;
-  const page = roomPage(
-    rooms.results as unknown as (CommunityRoom & { created_at: number })[],
-  );
+  const [holdings, follows, links, notifications, session] = result;
   return {
     holdingsRefreshAvailable: !!session.results.length,
     holdings: holdings.results,
     follows: follows.results.map((row) => row.symbol),
     sources: links.results,
     notifications: notifications.results,
-    rooms: [
-      ...COMMUNITY_CHANNELS.map((channel) => ({
-        ...channel,
-        thread_count: 0,
-      })),
-      ...new Map(
-        [
-          ...(followed.results as unknown as CommunityRoom[]),
-          ...page.rooms,
-        ].map((row) => [row.id, row]),
-      ).values(),
-    ],
+    rooms: COMMUNITY_CHANNELS.map((channel) => ({
+      ...channel,
+      thread_count: 0,
+    })) as CommunityRoom[],
   };
 }
