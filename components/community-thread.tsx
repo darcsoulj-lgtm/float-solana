@@ -12,6 +12,17 @@ import {
 } from '@/components/ui/dialog';
 import { api } from '@/lib/client';
 import type { CommunityThread, ReplyPage } from '@/lib/community-types';
+
+function discussionTime(timestamp: number) {
+  return new Date(timestamp).toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
 export function Thread({
   thread: t,
   memberId,
@@ -72,8 +83,7 @@ export function Thread({
           />
         )}
         <span>
-          {t.room_name || t.topic} ·{' '}
-          {new Date(t.created_at).toLocaleDateString()}
+          {t.room_name || t.topic} · {discussionTime(t.created_at)}
         </span>
       </div>
       <h3>{t.title}</h3>
@@ -144,6 +154,7 @@ export function Thread({
                     expiresAt={r.value_tier_expires_at}
                   />
                 )}
+                <span>{discussionTime(r.created_at)}</span>
               </div>
               <p style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
                 {r.body}
