@@ -22,6 +22,7 @@ import {
 } from '@/lib/community-sign-in';
 import {
   communityTopics,
+  COMMUNITY_CHANNELS,
   type CommunityMember,
   type CommunityThread,
   type CommunityReply,
@@ -462,61 +463,29 @@ async function handler(req: Request) {
       );
     }
     if (path[0] === 'rooms' && post) {
-      const name = textValue(b.name, 3, 60, 'Room name')
-        .normalize('NFKC')
-        .replace(/\s+/g, ' ')
-        .trim();
-      const description = textValue(b.description, 10, 240, 'Description');
-      if (name.length < 3 || /[\p{Cc}\p{Cf}]/u.test(name))
-        throw new AppError('Use a readable room name of 3–60 characters.');
-      const nameKey = name.toLowerCase();
-      if (['all', 'general', 'all discussions'].includes(nameKey))
-        throw new AppError(
-          'That name is reserved for the shared discussion feed.',
-        );
-      const legacy = communityTopics((await registry()).tokens).find(
-        (t) =>
-          t.id.toLowerCase() === nameKey || t.label.toLowerCase() === nameKey,
-      );
-      if (
-        legacy &&
-        (await db()
-          .prepare(
-            'SELECT 1 FROM community_threads WHERE topic=? AND hidden=0 LIMIT 1',
-          )
-          .bind(legacy.id)
-          .first())
-      )
-        throw new AppError(
-          'That room already has discussions. Find it in Rooms.',
-          409,
-        );
-      await rateLimit('community-room:' + member.id, 3);
-      const id = 'room-' + crypto.randomUUID();
-      try {
-        await db().batch([
-          db()
-            .prepare(
-              'INSERT INTO community_rooms (id,name,name_key,description,creator_id,created_at) VALUES (?,?,?,?,?,?)',
-            )
-            .bind(id, name, nameKey, description, member.id, Date.now()),
-          db()
-            .prepare(
-              'INSERT INTO community_follows (member_id,symbol) VALUES (?,?)',
-            )
-            .bind(member.id, id),
-          auditStatement(member.id, 'community:create-room', id),
-        ]);
-      } catch (e) {
-        if (e instanceof Error && /UNIQUE constraint/.test(e.message))
-          throw new AppError(
-            'A room with that name already exists. Find it in Rooms.',
-            409,
-          );
-        throw e;
-      }
-      return json({ id }, 201);
+      throw new AppError('Only Float can create channels.', 403);
     }
+    if (path[0] === 'channels' && !post) {
+      await rateLimit('community-channels:' + member.id, 60);
+      const counts = (
+        await db()
+          .prepare(
+            'SELECT topic,COUNT(*) thread_count FROM community_threads WHERE hidden=0 GROUP BY topic',
+          )
+          .all<{ topic: string; thread_count: number }>()
+      ).results;
+      const countByTopic = new Map(
+        counts.map((row) => [row.topic, Number(row.thread_count)]),
+      );
+      return json({
+        channels: COMMUNITY_CHANNELS.map((channel) => ({
+          ...channel,
+          thread_count: countByTopic.get(channel.id) || 0,
+        })),
+      });
+    }
+    if (path[0] === 'channels' && post)
+      throw new AppError('Channels are curated by Float.', 403);
     if (path[0] === 'home' && !post) {
       return json({
         ...(await communityHome(
@@ -530,6 +499,10 @@ async function handler(req: Request) {
     if (path[0] === 'follow' && post) {
       if (
         (b.symbol !== 'general' &&
+          !(
+            typeof b.symbol === 'string' &&
+            COMMUNITY_CHANNELS.some((channel) => channel.id === b.symbol)
+          ) &&
           !(await registry()).tokens.some((t) => t.symbol === b.symbol) &&
           !(
             typeof b.symbol === 'string' &&
@@ -662,7 +635,8 @@ async function handler(req: Request) {
           (t) => t.symbol === p.topic,
         );
         await db().batch([
-          ...(!p.topic.startsWith('room-')
+          ...(!p.topic.startsWith('room-') &&
+          !COMMUNITY_CHANNELS.some((channel) => channel.id === p.topic)
             ? [
                 db()
                   .prepare(
@@ -732,7 +706,14 @@ async function handler(req: Request) {
           .all<CommunityThread>()
       ).results;
       return json({
-        threads: rows.slice(0, 30),
+        threads: rows.slice(0, 30).map((row) => ({
+          ...row,
+          room_name:
+            row.room_name ||
+            COMMUNITY_CHANNELS.find((channel) => channel.id === row.topic)
+              ?.name ||
+            row.room_name,
+        })),
         nextCursor:
           rows.length > 30 ? rows[29].created_at + ':' + rows[29].id : null,
       });

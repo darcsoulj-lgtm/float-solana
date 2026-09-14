@@ -44,7 +44,6 @@ import {
 } from './ui/dialog';
 import { SearchPicker } from './search-picker';
 import { Thread } from './community-thread';
-import { RoomCreator } from './room-creator';
 import { MemberSectionBoundary } from './member-section-boundary';
 import { loadClientModule } from '@/lib/client-module';
 const MemberHomePanel = lazy(() =>
@@ -71,6 +70,7 @@ import {
   type CommunityStatus,
   type MemberHome,
   type CommunitySource,
+  COMMUNITY_CHANNELS,
 } from '@/lib/community-types';
 type View = MemberView;
 const destinations = [
@@ -191,7 +191,6 @@ export function MemberDashboard({
     [setHoldingsError, setHoldingsChecking],
   );
   const [signOut, setSignOut] = useState(false);
-  const [createRoom, setCreateRoom] = useState(false);
   const [compose, setCompose] = useState(false);
   const [draftTitle, setDraftTitle] = useState('');
   const [draftTopic, setDraftTopic] = useState('general');
@@ -348,7 +347,10 @@ export function MemberDashboard({
     return () => clearTimeout(timer);
   }, [holderTier.expiresAt]);
   const rooms = data?.rooms || [];
-  const roomName = (id: string) => rooms.find((r) => r.id === id)?.name || id;
+  const roomName = (id: string) =>
+    rooms.find((r) => r.id === id)?.name ||
+    COMMUNITY_CHANNELS.find((channel) => channel.id === id)?.name ||
+    id;
   const holdings = data?.holdings || [];
   const held = new Set(holdings.map((h) => h.symbol));
   const relevant = new Set([...held, ...(data?.follows || [])]);
@@ -361,7 +363,8 @@ export function MemberDashboard({
     setDraftTopic(
       selectedTopic === 'general' ||
         tokens.some((t) => t.symbol === selectedTopic) ||
-        rooms.some((r) => r.id === selectedTopic)
+        rooms.some((r) => r.id === selectedTopic) ||
+        COMMUNITY_CHANNELS.some((channel) => channel.id === selectedTopic)
         ? selectedTopic
         : 'general',
     );
@@ -541,7 +544,7 @@ export function MemberDashboard({
                   aria-pressed={view === 'topics'}
                   onClick={() => navigate('topics')}
                 >
-                  Rooms
+                  Channels
                 </button>
               </fieldset>
             )}
@@ -643,15 +646,8 @@ export function MemberDashboard({
             {view === 'markets' || view === 'overview' ? null : view ===
               'topics' ? (
               <>
-                <Button
-                  className="room-create-button"
-                  onClick={() => setCreateRoom(true)}
-                >
-                  <Plus size={17} /> Create a room
-                </Button>
                 <RoomDirectory
                   follows={data?.follows ?? []}
-                  onCreate={() => setCreateRoom(true)}
                   onOpen={(room) => {
                     setData((previous) =>
                       previous && !previous.rooms.some((r) => r.id === room.id)
@@ -1143,13 +1139,13 @@ export function MemberDashboard({
                     ))}
                 </div>
               ) : (
-                <p>No followed rooms.</p>
+                <p>No followed channels.</p>
               )}
               <button
                 className="text-action"
                 onClick={() => navigate('topics')}
               >
-                Browse rooms <ArrowRight size={14} />
+                Browse channels <ArrowRight size={14} />
               </button>
             </section>
             <div className="context-principle">
@@ -1184,16 +1180,6 @@ export function MemberDashboard({
           </Button>
         </DialogContent>
       </Dialog>
-      {createRoom && (
-        <RoomCreator
-          onClose={() => setCreateRoom(false)}
-          onCreated={async (id) => {
-            setCreateRoom(false);
-            openTopic(id);
-            setNotice('Room created. Start the first discussion.');
-          }}
-        />
-      )}
       <Dialog
         open={compose}
         onOpenChange={(v) => {
@@ -1258,26 +1244,23 @@ export function MemberDashboard({
             }}
           >
             <div className="discussion-field">
-              <label htmlFor={`${draftId}-topic`}>Room</label>
+              <label htmlFor={`${draftId}-topic`}>Channel</label>
               <SearchPicker
                 inputId={`${draftId}-topic`}
-                label="Discussion room"
+                label="Discussion channel"
                 disabled={draftPosting}
                 value={draftTopic}
                 onChange={setDraftTopic}
                 items={[
+                  ...COMMUNITY_CHANNELS.map((channel) => ({
+                    value: channel.id,
+                    label: channel.name,
+                  })),
                   { value: 'general', label: 'General' },
                   ...tokens.map((t) => ({
                     value: t.symbol,
                     label: t.shortName + ' · ' + t.symbol,
                   })),
-                  ...rooms
-                    .filter(
-                      (r) =>
-                        r.id !== 'general' &&
-                        !tokens.some((t) => t.symbol === r.id),
-                    )
-                    .map((r) => ({ value: r.id, label: r.name })),
                 ]}
               />
               {draftErrors.topic && (

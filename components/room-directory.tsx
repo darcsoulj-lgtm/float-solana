@@ -4,24 +4,22 @@ import { ArrowUpRight, MessageSquare, Search } from 'lucide-react';
 import { Button } from './ui/button';
 import { api } from '@/lib/client';
 import type { CommunityRoom } from '@/lib/community-types';
-import type { RoomPage } from '@/lib/community-rooms';
+type ChannelPage = { channels: CommunityRoom[] };
 
 export function RoomDirectory({
   follows,
   onOpen,
   onFollow,
-  onCreate,
 }: {
   follows: string[];
   onOpen: (room: CommunityRoom) => void;
   onFollow: (room: CommunityRoom) => Promise<void>;
-  onCreate: () => void;
 }) {
   const [query, setQuery] = useState('');
   const [revision, setRevision] = useState(0);
   const [result, setResult] = useState<{
     query: string;
-    page: RoomPage | null;
+    page: ChannelPage | null;
     error: string;
   } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -29,7 +27,7 @@ export function RoomDirectory({
     let active = true;
     const timer = setTimeout(
       () => {
-        void api<RoomPage>('community/rooms?q=' + encodeURIComponent(query))
+        void api<ChannelPage>('community/channels')
           .then((page) => {
             if (active) setResult({ query, page, error: '' });
           })
@@ -45,38 +43,14 @@ export function RoomDirectory({
     };
   }, [query, revision]);
   const current = result?.query === query ? result : null;
-  async function more() {
-    if (!current?.page?.nextCursor || busy) return;
-    setBusy(true);
-    try {
-      const page = await api<RoomPage>(
-        'community/rooms?q=' +
-          encodeURIComponent(query) +
-          '&cursor=' +
-          encodeURIComponent(current.page.nextCursor),
-      );
-      setResult((previous) =>
-        previous?.query === query && previous.page
-          ? {
-              ...previous,
-              error: '',
-              page: {
-                rooms: [...previous.page.rooms, ...page.rooms],
-                nextCursor: page.nextCursor,
-              },
-            }
-          : previous,
-      );
-    } catch (error) {
-      setResult((previous) =>
-        previous?.query === query
-          ? { ...previous, error: (error as Error).message }
-          : previous,
-      );
-    } finally {
-      setBusy(false);
-    }
-  }
+  const visibleChannels = (current?.page?.channels || []).filter((room) => {
+    const term = query.trim().toLowerCase();
+    return (
+      !term ||
+      room.name.toLowerCase().includes(term) ||
+      room.description.toLowerCase().includes(term)
+    );
+  });
   return (
     <>
       <label className="member-search">
@@ -85,11 +59,11 @@ export function RoomDirectory({
           value={query}
           maxLength={60}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Find a room"
-          aria-label="Find a room"
+          placeholder="Find a channel"
+          aria-label="Find a channel"
         />
       </label>
-      {!current && <output className="member-empty">Loading rooms…</output>}
+      {!current && <output className="member-empty">Loading channels…</output>}
       {current?.error && (
         <p className="inline-status" role="alert">
           {current.error}{' '}
@@ -97,7 +71,7 @@ export function RoomDirectory({
         </p>
       )}
       <div className="topic-directory room-directory">
-        {current?.page?.rooms.map((room) => (
+        {visibleChannels.map((room) => (
           <article key={room.id}>
             <span className="ticker-tile">
               <MessageSquare size={22} />
@@ -129,23 +103,10 @@ export function RoomDirectory({
           </article>
         ))}
       </div>
-      {current?.page?.nextCursor && (
-        <Button
-          variant="outline"
-          className="load-more"
-          disabled={busy}
-          onClick={more}
-        >
-          More rooms
-        </Button>
-      )}
-      {current?.page && !current.page.rooms.length && (
+      {current?.page && !visibleChannels.length && (
         <div className="member-empty">
-          <h2>{query ? 'No matching rooms.' : 'No rooms yet.'}</h2>
-          <p>Choose a name and give people a reason to join.</p>
-          <Button variant="outline" onClick={onCreate}>
-            Create a room
-          </Button>
+          <h2>{query ? 'No matching channels.' : 'No channels yet.'}</h2>
+          <p>Float curates channels so every conversation has a useful home.</p>
         </div>
       )}
     </>

@@ -1,5 +1,5 @@
 import { roomStatement, roomPage } from './community-rooms';
-import type { CommunityRoom } from './community-types';
+import { COMMUNITY_CHANNELS, type CommunityRoom } from './community-types';
 
 // Auth is enforced by the route. All private reads use its verified member ID.
 // One database batch avoids serial network trips; all statements are read-only.
@@ -53,6 +53,10 @@ export async function communityHome(
     sources: links.results,
     notifications: notifications.results,
     rooms: [
+      ...COMMUNITY_CHANNELS.map((channel) => ({
+        ...channel,
+        thread_count: 0,
+      })),
       ...new Map(
         [
           ...(followed.results as unknown as CommunityRoom[]),

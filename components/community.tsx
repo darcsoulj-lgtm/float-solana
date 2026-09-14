@@ -371,21 +371,21 @@ export function Community() {
                 <FloatLogo small />
                 <strong>Your dashboard</strong>
                 <span className="selected">⌂ &nbsp; Home</span>
-                <span>◎ &nbsp; Topics</span>
+                <span>◎ &nbsp; Channels</span>
                 <span>♧ &nbsp; Profile</span>
               </div>
               <div className="preview-main">
                 <span className="eyebrow">VERIFIED MEMBERS</span>
                 <h2>News. Markets. Discussions.</h2>
                 <p>
-                  News for your holdings. Market data for each token. Rooms
-                  created by members.
+                  News for your holdings. Market data for each token. Curated
+                  channels for every conversation.
                 </p>
                 <div className="preview-tags">
                   <span>MU</span>
                   <span>SKHY</span>
                   <span>SPCX</span>
-                  <span>+ member-created rooms</span>
+                  <span>+ curated channels</span>
                 </div>
               </div>
               <div className="preview-note">
@@ -414,7 +414,7 @@ export function Community() {
               <MessagesSquare size={24} />
               <span>03 / JOIN IN</span>
               <h3>Join</h3>
-              <p>One supported holding gives access to every room.</p>
+              <p>One supported holding gives access to every channel.</p>
             </div>
           </section>
         </div>
@@ -435,7 +435,7 @@ export function Community() {
             </DialogTitle>
             <DialogDescription>
               We detect your holdings. Any supported token gives access to all
-              rooms.
+              channels.
             </DialogDescription>
           </div>
           {pending ? (

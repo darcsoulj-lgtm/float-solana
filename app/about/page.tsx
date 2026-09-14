@@ -6,7 +6,7 @@ export default function Page() {
         <h2>For Solana tokenized stock holders</h2>
         <p>
           Float brings together company news, token market data and member
-          discussions. One verified holding gives access to every room.
+          discussions. One verified holding gives access to every channel.
         </p>
       </section>
       <section className="panel">

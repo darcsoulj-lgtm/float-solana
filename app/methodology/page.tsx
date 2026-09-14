@@ -8,7 +8,7 @@ export default function Page() {
         <h2>Eligibility</h2>
         <p>
           Hold any of the {TOKENS.length} supported stock or ETF tokens in a
-          Solana wallet you control. One holding gives access to every room.
+          Solana wallet you control. One holding gives access to every channel.
           Exchange balances and perpetual positions do not qualify.{' '}
           <Link href="/tokens">Supported tokens</Link>.
         </p>
@@ -45,8 +45,8 @@ export default function Page() {
       <section className="panel">
         <h2>Holder tiers</h2>
         <p>
-          Tiers use the estimated USD value of supported tokenized stocks in your
-          verified wallet: Bronze under $100; Silver $100–$999; Gold
+          Tiers use the estimated USD value of supported tokenized stocks in
+          your verified wallet: Bronze under $100; Silver $100–$999; Gold
           $1,000–$9,999; Platinum $10,000–$99,999; Diamond $100,000 or more.
         </p>
         <p>

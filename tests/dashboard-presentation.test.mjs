@@ -317,6 +317,12 @@ async function renderDashboard(search, interact) {
       communityPostErrors: () => ({}),
       POST_LIMITS: { title: { max: 200 }, body: { max: 50000 } },
     },
+    '@/lib/community-types': {
+      COMMUNITY_CHANNELS: [
+        { id: 'channel-market-talk', name: 'Market Talk' },
+        { id: 'channel-technology', name: 'Technology' },
+      ],
+    },
   });
   const previous = globalThis.window;
   const pushed = [];

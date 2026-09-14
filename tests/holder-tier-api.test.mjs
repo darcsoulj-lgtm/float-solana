@@ -205,3 +205,17 @@ void test('Empty-wallet challenge supplies eligibility help without requesting a
     f.sqlite.close();
   }
 });
+
+void test('Member room creation is blocked because channels are curated', async () => {
+  const f = await fixture();
+  try {
+    const response = await f.post('rooms', {
+      name: 'My room',
+      description: 'A member-created room',
+    });
+    assert.equal(response.status, 403);
+    assert.match((await response.json()).error, /curated|Float/i);
+  } finally {
+    f.sqlite.close();
+  }
+});

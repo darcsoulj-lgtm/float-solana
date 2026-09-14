@@ -17,8 +17,8 @@ export default function Page() {
       <section className="panel">
         <h2>Participate</h2>
         <p>
-          Join or create rooms, post discussions and reply. All verified members
-          can access every room. Save posts and sources for later.
+          Browse curated channels, post discussions and reply. All verified
+          members can access every channel. Save posts and sources for later.
         </p>
         <p>
           Set your display name, optional token badge and reply notifications in

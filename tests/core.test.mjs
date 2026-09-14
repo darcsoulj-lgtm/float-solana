@@ -79,7 +79,12 @@ void test('Discussion validation identifies every invalid field before submissio
   );
 });
 void test('Discussion validation uses trimmed lengths and accepts every available room', () => {
-  for (const topic of ['general', ...TOKENS.map((t) => t.symbol)])
+  for (const topic of [
+    'general',
+    'channel-market-talk',
+    'channel-technology',
+    ...TOKENS.map((t) => t.symbol),
+  ])
     assert.deepEqual(
       communityPostErrors({ title: ' 12345 ', body: ' 1234567890 ', topic }),
       {},

@@ -4,10 +4,10 @@ export default function Page() {
   return (
     <div className="page">
       <p className="eyebrow">SUPPORTED TOKENS</p>
-      <h1>One holding. Every room.</h1>
+      <h1>One holding. Every channel.</h1>
       <p>
-        {TOKENS.length.toLocaleString()} Solana tokenized stocks. Registry review:{' '}
-        {TOKEN_REVIEW_DATE}.
+        {TOKENS.length.toLocaleString()} Solana tokenized stocks. Registry
+        review: {TOKEN_REVIEW_DATE}.
       </p>
       <details className="market-methodology">
         <summary>Coverage & verification</summary>

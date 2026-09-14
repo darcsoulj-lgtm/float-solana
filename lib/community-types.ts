@@ -1,8 +1,54 @@
 import { TOKENS, type StockToken } from './tokens';
 import type { RegistryStatus } from './token-registry';
+export const COMMUNITY_CHANNELS = [
+  {
+    id: 'channel-market-talk',
+    name: 'Market Talk',
+    description: 'Market moves, the economy, portfolios and investing.',
+  },
+  {
+    id: 'channel-technology',
+    name: 'Technology',
+    description: 'AI, semiconductors, software, cloud and hardware.',
+  },
+  {
+    id: 'channel-finance-real-estate',
+    name: 'Finance & Real Estate',
+    description: 'Banks, payments, insurance, brokers, property and REITs.',
+  },
+  {
+    id: 'channel-energy-materials',
+    name: 'Energy & Materials',
+    description: 'Energy, utilities, renewables, metals and mining.',
+  },
+  {
+    id: 'channel-healthcare',
+    name: 'Healthcare',
+    description: 'Biotech, pharmaceuticals, devices and health services.',
+  },
+  {
+    id: 'channel-consumer-media',
+    name: 'Consumer & Media',
+    description: 'Retail, food, travel, cars, entertainment and gaming.',
+  },
+  {
+    id: 'channel-industrials-space',
+    name: 'Industrials & Space',
+    description: 'Manufacturing, infrastructure, transport and aerospace.',
+  },
+  {
+    id: 'channel-onchain-stocks',
+    name: 'Onchain Stocks',
+    description: 'Issuers, token rights, custody, minting and redemption.',
+  },
+] as const;
 export const communityTopics = (tokens: readonly StockToken[] = TOKENS) => [
   { id: 'all', label: 'All discussions' },
   { id: 'general', label: 'General' },
+  ...COMMUNITY_CHANNELS.map((channel) => ({
+    id: channel.id,
+    label: channel.name,
+  })),
   ...tokens.map((t) => ({
     id: t.symbol,
     label: t.symbol + ' · ' + t.shortName,
