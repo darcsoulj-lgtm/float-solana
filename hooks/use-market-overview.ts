@@ -2,6 +2,10 @@
 import { registryTokens, type RegistryStatus } from '@/lib/token-registry';
 import { useEffect, useRef, useState } from 'react';
 import { api } from '@/lib/client';
+import {
+  retainRefreshingSources,
+  MARKET_RECHECK_DELAYS,
+} from '@/lib/market-refresh';
 import { MARKET_BATCH_SIZE, type IssuerId } from '@/lib/tokens';
 import {
   mergeMarketPages,
@@ -120,10 +124,10 @@ export function useMarketOverview(
       lastStarted = 0;
     let timer: ReturnType<typeof setTimeout> | undefined;
     let wake: (() => void) | undefined;
-    const pause = () =>
+    const pause = (delay: number) =>
       new Promise<void>((resolve) => {
         wake = resolve;
-        timer = setTimeout(resolve, 2000);
+        timer = setTimeout(resolve, delay);
       });
     async function load() {
       if (!active || loading || Date.now() - lastStarted < 15000) return;
@@ -180,8 +184,12 @@ export function useMarketOverview(
 
       try {
         // Subsequent reads check only sources still refreshing, not all tokens.
-        for (let pass = 0; active && pending.length && pass < 3; pass++) {
-          if (pass) await pause();
+        for (
+          let pass = 0;
+          active && pending.length && pass <= MARKET_RECHECK_DELAYS.length;
+          pass++
+        ) {
+          if (pass) await pause(MARKET_RECHECK_DELAYS[pass - 1]);
           if (!active || document.visibilityState !== 'visible') break;
           const queue = pending;
           pending = [];
@@ -206,26 +214,7 @@ export function useMarketOverview(
                   )
                 )
                   pending.push(batch);
-                // Keep an already-rendered observation during refresh. Original
-                // timestamps remain; valuation code still enforces its age limit.
-                const previous = pages.current[batch];
-                if (previous) {
-                  for (const key of [
-                    'catalog',
-                    'prices',
-                    'markets',
-                    'supplies',
-                    'pools',
-                    'history',
-                    'circulation',
-                  ] as const) {
-                    if (next[key]?.refreshing && previous[key]?.data) {
-                      Object.assign(next, {
-                        [key]: { ...previous[key], refreshing: true },
-                      });
-                    }
-                  }
-                }
+                retainRefreshingSources(next, pages.current[batch]);
                 if (registry && !next.registry) next.registry = registry;
                 pages.current[batch] = next;
                 snapshots.set(batch, next);
