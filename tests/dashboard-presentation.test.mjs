@@ -6,6 +6,7 @@ import { createRequire } from 'node:module';
 import ts from 'typescript';
 import { bundle } from './helpers/bundle.mjs';
 const stockPools = await bundle("export * from './lib/stock-pools';");
+const communityTypes = await bundle("export * from './lib/community-types';");
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 const require = createRequire(import.meta.url);
@@ -268,16 +269,22 @@ compileFunction(
 );
 
 async function renderDashboard(search, interact) {
+  const state = [];
+  let stateIndex = 0;
   const Wrap = ({ children }) => React.createElement('div', null, children);
   const { MemberDashboard } = await component('member-dashboard.tsx', {
     ...(interact
       ? {
           react: {
             ...React,
-            useState: (initial) => [
-              typeof initial === 'function' ? initial() : initial,
-              () => {},
-            ],
+            useState: (initial) => {
+              const index = stateIndex++;
+              if (!(index in state))
+                state[index] = typeof initial === 'function' ? initial() : initial;
+              return [state[index], (value) => {
+                state[index] = typeof value === 'function' ? value(state[index]) : value;
+              }];
+            },
             useEffect: () => {},
             useRef: (initial) => ({ current: initial }),
             useCallback: (fn) => fn,
@@ -317,12 +324,8 @@ async function renderDashboard(search, interact) {
       communityPostErrors: () => ({}),
       POST_LIMITS: { title: { max: 200 }, body: { max: 50000 } },
     },
-    '@/lib/community-types': {
-      COMMUNITY_CHANNELS: [
-        { id: 'channel-market-talk', name: 'Market Talk' },
-        { id: 'channel-technology', name: 'Technology' },
-      ],
-    },
+    '@/lib/community-types': communityTypes,
+    '@/lib/tokens': { TOKENS: [{ symbol: 'MU', shortName: 'Micron', issuer: 'backpack' }] },
   });
   const previous = globalThis.window;
   const pushed = [];
@@ -350,13 +353,39 @@ async function renderDashboard(search, interact) {
       refreshStatus: async () => {},
       renew: () => {},
     };
-    if (interact) return interact(MemberDashboard(props), pushed);
+    if (interact) {
+      const render = () => {
+        stateIndex = 0;
+        return MemberDashboard(props);
+      };
+      return interact(render(), pushed, render);
+    }
     return renderToStaticMarkup(React.createElement(MemberDashboard, props));
   } finally {
     if (previous === undefined) delete globalThis.window;
     else globalThis.window = previous;
   }
 }
+void test('discussion composer offers only the eight curated channels and normalizes legacy topics', async () => {
+  const expected = communityTypes.COMMUNITY_CHANNELS.map(({ id, name }) => ({ value: id, label: name }));
+  assert.equal(expected.length, 8);
+  for (const topic of ['all', 'general', 'MU', 'old-room', ...expected.map(({ value }) => value)]) {
+    await renderDashboard('?view=home&topic=' + topic, (tree, _pushed, render) => {
+      const create = findElement(tree, (e) =>
+        typeof e.props?.onClick === 'function' &&
+        React.Children.toArray(e.props.children).includes(' New discussion'));
+      assert.ok(create, 'New discussion action exists');
+      create.props.onClick();
+      const picker = findElement(render(), (e) => e.props?.label === 'Discussion channel');
+      assert.deepEqual(picker.props.items, expected);
+      assert.equal(picker.props.value, expected.some((item) => item.value === topic) ? topic : expected[0].value);
+      assert.equal(picker.props.placeholder, 'Search channels…');
+      assert.equal(picker.props.emptyMessage, 'No matching channel.');
+      picker.props.onChange(expected[4].value);
+      assert.equal(findElement(render(), (e) => e.props?.label === 'Discussion channel').props.value, expected[4].value);
+    });
+  }
+});
 void test('old Saved links open Discussions with Saved selected, not a separate destination', async () => {
   const html = await renderDashboard('?view=saved');
   assert.match(html, /<h1>Discussions<\/h1>/);

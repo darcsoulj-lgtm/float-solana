@@ -199,7 +199,7 @@ export function MemberDashboard({
   const [signOut, setSignOut] = useState(false);
   const [compose, setCompose] = useState(false);
   const [draftTitle, setDraftTitle] = useState('');
-  const [draftTopic, setDraftTopic] = useState('general');
+  const [draftTopic, setDraftTopic] = useState<string>(COMMUNITY_CHANNELS[0].id);
   const [draftBody, setDraftBody] = useState('');
   const [draftAttempted, setDraftAttempted] = useState(false);
   const [draftError, setDraftError] = useState('');
@@ -373,16 +373,13 @@ export function MemberDashboard({
   const unread = data?.notifications.filter((n) => !n.read).length || 0;
   function startDiscussion(
     title = '',
-    selectedTopic = topic === 'all' ? 'general' : topic,
+    selectedTopic = topic,
   ) {
     setDraftTitle(title);
     setDraftTopic(
-      selectedTopic === 'general' ||
-        tokens.some((t) => t.symbol === selectedTopic) ||
-        rooms.some((r) => r.id === selectedTopic) ||
-        COMMUNITY_CHANNELS.some((channel) => channel.id === selectedTopic)
+      COMMUNITY_CHANNELS.some((channel) => channel.id === selectedTopic)
         ? selectedTopic
-        : 'general',
+        : COMMUNITY_CHANNELS[0].id,
     );
     setDraftBody('');
     setDraftAttempted(false);
@@ -1266,20 +1263,15 @@ export function MemberDashboard({
               <SearchPicker
                 inputId={`${draftId}-topic`}
                 label="Discussion channel"
+                placeholder="Search channels…"
+                emptyMessage="No matching channel."
                 disabled={draftPosting}
                 value={draftTopic}
                 onChange={setDraftTopic}
-                items={[
-                  ...COMMUNITY_CHANNELS.map((channel) => ({
-                    value: channel.id,
-                    label: channel.name,
-                  })),
-                  { value: 'general', label: 'General' },
-                  ...tokens.map((t) => ({
-                    value: t.symbol,
-                    label: t.shortName + ' · ' + t.symbol,
-                  })),
-                ]}
+                items={COMMUNITY_CHANNELS.map((channel) => ({
+                  value: channel.id,
+                  label: channel.name,
+                }))}
               />
               {draftErrors.topic && (
                 <p className="field-error" role="alert">

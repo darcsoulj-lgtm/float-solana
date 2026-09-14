@@ -16,6 +16,8 @@ export function SearchPicker({
   label,
   inputId,
   disabled = false,
+  placeholder = 'Search by ticker or company…',
+  emptyMessage = 'No matching stock.',
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -23,6 +25,8 @@ export function SearchPicker({
   label: string;
   inputId?: string;
   disabled?: boolean;
+  placeholder?: string;
+  emptyMessage?: string;
 }) {
   const anchor = useRef<HTMLDivElement>(null);
   return (
@@ -40,10 +44,10 @@ export function SearchPicker({
         <ComboboxInput
           id={inputId}
           aria-label={label}
-          placeholder="Search by ticker or company…"
+          placeholder={placeholder}
         />
         <ComboboxContent className="search-picker-menu" anchor={anchor}>
-          <ComboboxEmpty>No matching stock.</ComboboxEmpty>
+          <ComboboxEmpty>{emptyMessage}</ComboboxEmpty>
           <ComboboxList>
             {(item: Item) => (
               <ComboboxItem key={item.value} value={item}>
