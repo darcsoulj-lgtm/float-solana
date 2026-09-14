@@ -1,7 +1,7 @@
 'use client';
 import { HolderTierBadge } from './holder-tier-badge';
 import { MemberAvatar } from './member-avatar';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Bookmark } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -39,9 +39,22 @@ export function Thread({
       setBusy(false);
     }
   }
-  async function replies() {
+  const replies = useCallback(async () => {
     setPage(await api<ReplyPage>('community/threads/' + t.id + '/replies'));
-  }
+  }, [t.id]);
+  useEffect(() => {
+    if (!open) return;
+    const poll = () => {
+      if (document.visibilityState === 'visible')
+        void replies().catch((e) => setError((e as Error).message));
+    };
+    const timer = window.setInterval(poll, 10000);
+    document.addEventListener('visibilitychange', poll);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', poll);
+    };
+  }, [open, replies]);
   return (
     <article className="thread-post" id={'thread-' + t.id}>
       <div className="thread-meta">

@@ -29,8 +29,18 @@ export function useCommunityFeed(query: string, active: boolean) {
     void refresh().catch(() => {
       /* The error belongs to this filter's state. */
     });
+    const poll = () => {
+      if (document.visibilityState === 'visible')
+        void refresh().catch(() => {
+          /* Keep the last usable feed when a background poll fails. */
+        });
+    };
+    const timer = window.setInterval(poll, 15000);
+    document.addEventListener('visibilitychange', poll);
     const requests = sequence.current;
     return () => {
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', poll);
       requests.value++;
     };
   }, [active, refresh]);
