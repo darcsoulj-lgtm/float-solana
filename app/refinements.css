@@ -395,6 +395,22 @@
 .dark .market-negative {
   color: #ff999f;
 }
+.dark .ecosystem-stats {
+  background: #17191f;
+  border: 1px solid #343842;
+}
+.dark .ecosystem-stats > div {
+  border-color: #343842;
+}
+.dark .ecosystem-heading .market-chain {
+  background: #17191f;
+  border-color: #343842;
+  color: #eff0f4;
+}
+.dark .ecosystem-heading .market-chain:hover {
+  background: #20232b;
+  color: #fff;
+}
 @media (max-width: 700px) {
   .brief-stories .news-row {
     padding: 14px;
