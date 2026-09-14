@@ -207,7 +207,7 @@ function tickerMap(
 
 export async function fetchBackpackMarkets(
   fetcher: typeof fetch = fetch,
-  tokens: readonly StockToken[] = BACKPACK_TOKENS,
+  tokens: readonly StockToken[] = TOKENS.filter((token) => token.issuer === 'backpack'),
 ): Promise<Record<string, BackpackMarket>> {
   const load = (url: string) =>
     publicJson(url, fetcher).then((raw) => tickerMap(raw, tokens));

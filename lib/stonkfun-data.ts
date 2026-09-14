@@ -66,7 +66,7 @@ function rowsFromResponse(raw: unknown): unknown[] {
   ]) {
     if (Array.isArray(value)) return value;
   }
-  return [];
+  throw new Error('Invalid Stonkfun token response');
 }
 
 function timestamp(value: unknown) {
@@ -91,8 +91,8 @@ export function parseStonkfunTokens(
     const token = object(row.token);
     const launch = object(row.launch);
     const pair = object(row.pair);
-    const base = object(row.baseToken ?? pair.baseToken);
-    const quote = object(row.quoteToken ?? pair.quoteToken);
+    const base = object(row.baseToken ?? row.base ?? pair.baseToken);
+    const quote = object(row.quoteToken ?? row.quote ?? pair.quoteToken);
     const mint = stringValue(
       row.mint,
       row.tokenMint,
@@ -145,7 +145,7 @@ export function parseStonkfunTokens(
         pair.quoteSymbol,
         object(pair.quote).symbol,
       ),
-      category: stringValue(row.category, pair.category),
+      category: stringValue(row.category, quote.category, pair.category),
       status: stringValue(row.status, row.graduationStatus),
       marketCapUsd: numberValue(
         row.marketCapUsd,
@@ -156,7 +156,6 @@ export function parseStonkfunTokens(
       volume24hUsd: numberValue(
         row.volume24hUsd,
         row.volume24h,
-        row.volume,
         market.volume24hUsd,
         metrics.volume24hUsd,
         metrics.volume24h,

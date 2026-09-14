@@ -419,7 +419,7 @@ export function Community() {
                       </div>
                       <div>
                         <span>Holder discussions</span>
-                        <strong>Member-created rooms</strong>
+                        <strong>Curated channels</strong>
                       </div>
                     </div>
                   </div>

@@ -176,6 +176,7 @@ void test('Public route works without a wallet and never exposes runtime credent
     Object.keys(body).sort(),
     [
       'registry',
+      'backpack',
       'batch',
       'catalog',
       'history',
@@ -458,7 +459,7 @@ void test('Issuer dashboards place valuation before volume and liquidity, keepin
     assert.match(html, new RegExp(issuer.name + ' onchain'));
     assert.doesNotMatch(html, /onchain<span>\.<\/span>/);
     for (const label of [
-      'DEX pool volume',
+      issuer.id === 'backpack' ? 'Backpack venue volume' : 'DEX pool volume',
       'Pool liquidity',
       '24h change',
       'Search stocks',
@@ -472,12 +473,9 @@ void test('Issuer dashboards place valuation before volume and liquidity, keepin
     );
     const summary = html.split('<details class="bp-method"')[0];
     assert.doesNotMatch(summary, /Minted value/);
-    assert.ok(
-      summary.indexOf('Onchain value') < summary.indexOf('DEX pool volume'),
-    );
-    assert.ok(
-      summary.indexOf('DEX pool volume') < summary.indexOf('Pool liquidity'),
-    );
+    const volumeLabel = issuer.id === 'backpack' ? 'Backpack venue volume' : 'DEX pool volume';
+    assert.ok(summary.indexOf('Onchain value') < summary.indexOf(volumeLabel));
+    assert.ok(summary.indexOf(volumeLabel) < summary.indexOf('Pool liquidity'));
     assert.match(summary, /Stocks <span>/);
     assert.match(html.split('<details class="bp-method"')[1], /tokens valued/);
     assert.doesNotMatch(html, /Join the holder community/);

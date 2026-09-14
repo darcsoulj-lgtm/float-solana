@@ -770,6 +770,9 @@ void test('Ecosystem overview keeps valuation estimates and their caveats inside
     },
   ];
   const { SolanaEcosystem } = await component('solana-ecosystem.tsx', {
+    '@/hooks/use-stonkfun': {
+      useStonkfun: () => ({ source: null, busy: false, error: '' }),
+    },
     '@/lib/tokens': {
       TOKENS: [
         { symbol: 'MUx', underlyingSymbol: 'MU' },
