@@ -126,6 +126,14 @@ void test('Backpack ticker adapter keeps external reference data separate from v
   const calls = [];
   const rows = [
     {
+      symbol: 'MU.US_USDT',
+      lastPrice: '999',
+      priceChangePercent: '99',
+      volume: '999',
+      quoteVolume: '999',
+      trades: 99,
+    },
+    {
       symbol: 'MU.US_USDC',
       lastPrice: '75.25',
       priceChangePercent: '1.5',

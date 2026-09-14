@@ -188,8 +188,9 @@ function tickerMap(
     }
   > = {};
   for (const row of tickerRows(raw)) {
-    const market = String(row.symbol),
-      base = market.split('_')[0]?.replace(/\.US$/, ''),
+    const market = String(row.symbol);
+    if (!/_USDC(?:_RFQ)?$/.test(market)) continue;
+    const base = market.split('_')[0]?.replace(/\.US$/, ''),
       token = tokens.find((candidate) => candidate.symbol === base);
     if (!token || result[token.symbol]) continue;
     result[token.symbol] = {
@@ -208,18 +209,21 @@ export async function fetchBackpackMarkets(
   fetcher: typeof fetch = fetch,
   tokens: readonly StockToken[] = BACKPACK_TOKENS,
 ): Promise<Record<string, BackpackMarket>> {
-  const [external, venue] = await Promise.all([
-    publicJson(
+  const load = (url: string) =>
+    publicJson(url, fetcher).then((raw) => tickerMap(raw, tokens));
+  const [external, venue] = await Promise.allSettled([
+    load(
       'https://api.backpack.exchange/api/v1/tickers?interval=1d&source=External',
-      fetcher,
     ),
-    publicJson(
-      'https://api.backpack.exchange/api/v1/tickers?interval=1d',
-      fetcher,
-    ),
+    load('https://api.backpack.exchange/api/v1/tickers?interval=1d'),
   ]);
-  const externalRows = tickerMap(external, tokens),
-    venueRows = tickerMap(venue, tokens),
+  if (external.status === 'rejected' && venue.status === 'rejected') {
+    throw external.reason instanceof Error
+      ? external.reason
+      : new Error('Backpack ticker unavailable');
+  }
+  const externalRows = external.status === 'fulfilled' ? external.value : {},
+    venueRows = venue.status === 'fulfilled' ? venue.value : {},
     out: Record<string, BackpackMarket> = {};
   for (const token of tokens) {
     const e = externalRows[token.symbol],
