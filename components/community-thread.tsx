@@ -140,39 +140,45 @@ export function Thread({
         <>
           {page.replies.map((r) => (
             <div className="reply" key={r.id}>
-              <div className="reply-author">
-                <MemberAvatar
-                  alias={r.alias}
-                  memberId={r.member_id}
-                  version={r.avatar_key}
-                />
-                <strong>{r.alias}</strong>
-                {r.badge && <span className="pill">{r.badge} holder</span>}
-                {r.value_tier && (
-                  <HolderTierBadge
-                    tier={r.value_tier}
-                    expiresAt={r.value_tier_expires_at}
-                  />
-                )}
-                <span>{discussionTime(r.created_at)}</span>
+              <MemberAvatar
+                alias={r.alias}
+                memberId={r.member_id}
+                version={r.avatar_key}
+              />
+              <div className="reply-content">
+                <div className="reply-author">
+                  <strong>{r.alias}</strong>
+                  {r.badge && <span className="pill">{r.badge} holder</span>}
+                  {r.value_tier && (
+                    <HolderTierBadge
+                      tier={r.value_tier}
+                      expiresAt={r.value_tier_expires_at}
+                    />
+                  )}
+                  <time dateTime={new Date(r.created_at).toISOString()}>
+                    {discussionTime(r.created_at)}
+                  </time>
+                </div>
+                <p>{r.body}</p>
+                <div className="reply-actions">
+                  <Button
+                    size="xs"
+                    variant="ghost"
+                    onClick={() => setReport({ type: 'reply', id: r.id })}
+                  >
+                    Report
+                  </Button>
+                  {r.member_id === memberId && (
+                    <Button
+                      size="xs"
+                      variant="ghost"
+                      onClick={() => setRemove({ type: 'replies', id: r.id })}
+                    >
+                      Remove
+                    </Button>
+                  )}
+                </div>
               </div>
-              <p style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
-                {r.body}
-              </p>
-              <Button
-                variant="ghost"
-                onClick={() => setReport({ type: 'reply', id: r.id })}
-              >
-                Report
-              </Button>
-              {r.member_id === memberId && (
-                <Button
-                  variant="ghost"
-                  onClick={() => setRemove({ type: 'replies', id: r.id })}
-                >
-                  Remove
-                </Button>
-              )}
             </div>
           ))}
           {page.nextCursor && (

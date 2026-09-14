@@ -421,10 +421,70 @@
   align-items: center;
   gap: 8px;
 }
-.reply-author .member-avatar {
-  width: 28px;
-  height: 28px;
+.member-shell .reply {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  column-gap: 12px;
+  padding: 18px 4px;
+}
+.member-shell .reply > .member-avatar {
+  width: 34px;
+  height: 34px;
+  font-size: 13px;
+}
+.member-shell .reply-content {
+  min-width: 0;
+}
+.member-shell .reply-author {
+  min-height: 24px;
+  gap: 7px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.4;
+}
+.member-shell .reply-author strong {
+  color: var(--foreground);
+  font-size: 14px;
+  font-weight: 650;
+}
+.member-shell .reply-author time {
+  color: var(--muted-foreground);
   font-size: 12px;
+}
+.member-shell .thread-post .reply-content > p {
+  margin: 6px 0 0;
+  color: var(--foreground);
+  font-size: 15px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.member-shell .reply-actions {
+  display: flex;
+  gap: 2px;
+  margin: 6px 0 0 -8px;
+}
+.member-shell .reply-actions button {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 500;
+}
+@media (max-width: 700px) {
+  .member-shell .reply {
+    grid-template-columns: 30px minmax(0, 1fr);
+    column-gap: 10px;
+    padding: 16px 0;
+  }
+  .member-shell .reply > .member-avatar {
+    width: 30px;
+    height: 30px;
+    font-size: 12px;
+  }
+  .member-shell .reply-author {
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 4px 7px;
+  }
 }
 .compact-sources {
   padding: 8px 20px;
