@@ -9,6 +9,7 @@
     "dev": "vinext dev",
     "build": "node scripts/verify-release.mjs",
     "start": "wrangler dev --config dist/server/wrangler.json",
+    "prepare:cloudflare": "node scripts/prepare-cloudflare-deployment.mjs",
     "lint": "oxlint",
     "format": "oxfmt",
     "db:generate": "drizzle-kit generate",
