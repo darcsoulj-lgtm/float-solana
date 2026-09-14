@@ -7,3 +7,5 @@ Run `pnpm prepare:cloudflare` after the production build. It derives `dist/serve
 R2 is intentionally not bound. Cloudflare requires an account subscription before enabling R2, even though its monthly free allowance may cover a small launch. The avatar API fails closed with a clear unavailable response when the binding is absent; all other Float workflows continue to use D1. Do not add an R2 binding until the account owner explicitly accepts that subscription.
 
 Before a future external deployment, run the full release build, apply the `drizzle/` migrations to the selected D1 database, and deploy the exact resulting Worker with this configuration. The deployment contains a separate community database, so it does not carry existing Sites-hosted member sessions, posts, or market caches.
+
+Configure `SOLANA_RPC_URL` as an encrypted Worker secret using Float's dedicated Helius mainnet RPC URL. The public Solana endpoint may reject hosted Worker traffic with HTTP 403 and must not be used for production wallet verification. Never place the authenticated RPC URL in source control or a plain-text Worker variable.
