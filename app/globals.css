@@ -3473,6 +3473,17 @@ body:has(.community-entry) > footer {
   min-width: 0;
   color: var(--hp-ink-343434, #343434);
 }
+.public-markets {
+  width: min(100% - 64px, 1280px);
+  margin: 0 auto;
+  padding: 56px 0 32px;
+}
+@media (max-width: 700px) {
+  .public-markets {
+    width: min(100% - 32px, 1280px);
+    padding-top: 32px;
+  }
+}
 .market-toolbar,
 .market-search-row,
 .market-pagination,

@@ -329,13 +329,13 @@ export function Community() {
         <div className="club public-club">
           <section className="public-hero">
             <div className="eyebrow">
-              <span className="small-dot" /> FOR BACKPACK TOKENIZED STOCK
-              HOLDERS
+              <span className="small-dot" /> FOR TOKENIZED STOCK HOLDERS ON
+              SOLANA
             </div>
             <h1>
               A community for
               <br />
-              Solana stock holders.
+              tokenized stock holders.
             </h1>
             <p>
               News, market data and discussions. Connect a wallet holding a
@@ -510,8 +510,6 @@ export function Community() {
                 <ArrowUpRight size={18} />
               </Button>
               <p className="wallet-policy-links">
-                <Link href="/rules">Guidelines</Link>
-                <span aria-hidden="true"> · </span>
                 <Link href="/trust">Privacy</Link>
               </p>
               <Button

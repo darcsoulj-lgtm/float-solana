@@ -37,8 +37,10 @@ const json = (data: unknown, status = 200) =>
 export async function GET(req: Request) {
   const started = performance.now();
   try {
-    const member = await communityMember(req);
-    await rateLimit('market-data:' + member!.id, 120);
+    const member = await communityMember(req, false);
+    const audience =
+      member?.id || req.headers.get('cf-connecting-ip') || 'anonymous';
+    await rateLimit('market-data:' + audience, 120);
     const database = db();
     const registry = await backpackRegistry(
       database,

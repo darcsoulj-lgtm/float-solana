@@ -782,19 +782,21 @@ export function MarketOverviewPanel({
           />
         </label>
         <div className="market-table-filters">
-          <label className="holdings-toggle">
-            <input
-              type="checkbox"
-              role="switch"
-              aria-checked={onlyHoldings}
-              checked={onlyHoldings}
-              onChange={(e) => {
-                setOnlyHoldings(e.target.checked);
-                setPage(0);
-              }}
-            />
-            Only my holdings
-          </label>
+          {holdings.length > 0 && (
+            <label className="holdings-toggle">
+              <input
+                type="checkbox"
+                role="switch"
+                aria-checked={onlyHoldings}
+                checked={onlyHoldings}
+                onChange={(e) => {
+                  setOnlyHoldings(e.target.checked);
+                  setPage(0);
+                }}
+              />
+              Only my holdings
+            </label>
+          )}
           <span>{matches.length} stocks</span>
         </div>
       </div>
@@ -958,14 +960,6 @@ export function MarketOverviewPanel({
           rel="noopener noreferrer"
         >
           Backpack
-        </a>
-        ,{' '}
-        <a
-          href="https://www.stonkfun.xyz/developers"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Stonkfun
         </a>
         .
       </p>

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 export async function marketFlow(base, cookie) {
   assert.equal(base, 'http://localhost:3000');
   const guest = await fetch(base + '/api/market-data');
-  assert.equal(guest.status, 401);
+  assert.equal(guest.status, 200);
   const invalid = await fetch(base + '/api/market-data?symbol=FAKE', {
     headers: { Cookie: cookie },
   });
@@ -72,6 +72,6 @@ export async function marketFlow(base, cookie) {
   assert.equal(cached.pools.fetchedAt, data.pools.fetchedAt);
   assert.equal(cached.markets.fetchedAt, data.markets.fetchedAt);
   console.log(
-    'Market API checks passed: guest rejection, invalid stock, live Backpack/DEX Screener/DefiLlama/CoinMarketCap, book response and shared cache.',
+    'Market API checks passed: public access, invalid stock, live Backpack/DEX Screener/DefiLlama/CoinMarketCap, book response and shared cache.',
   );
 }

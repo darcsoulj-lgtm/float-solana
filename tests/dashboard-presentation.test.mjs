@@ -799,9 +799,6 @@ void test('Ecosystem overview keeps valuation estimates and their caveats inside
     },
   ];
   const { SolanaEcosystem } = await component('solana-ecosystem.tsx', {
-    '@/hooks/use-stonkfun': {
-      useStonkfun: () => ({ source: null, busy: false, error: '' }),
-    },
     '@/lib/tokens': {
       TOKENS: [
         { symbol: 'MUx', underlyingSymbol: 'MU' },
@@ -838,6 +835,7 @@ void test('Ecosystem overview keeps valuation estimates and their caveats inside
   assert.match(headline, /Tracked onchain value/);
   assert.match(headline, /\$1.5K/);
   assert.doesNotMatch(headline, /circulating market cap/);
+  assert.doesNotMatch(html, /Stonkfun|Stock-linked ecosystem/);
   assert.match(headline, /Tokens/);
   assert.match(headline, /Underlying assets/);
   assert.doesNotMatch(html, /<details[^>]*\sopen(?:[ =>])/);

@@ -470,11 +470,6 @@ export function MemberDashboard({
         <div className="sidebar-appearance">
           <ThemeToggle />
         </div>
-        <div className="sidebar-note">
-          <Link href="/rules">
-            Guidelines <ArrowUpRight size={14} />
-          </Link>
-        </div>
         <div className="sidebar-bottom">
           {status.admin && (
             <Link href="/admin/community">
