@@ -3896,6 +3896,141 @@ body:has(.community-entry) > footer {
   letter-spacing: -1px;
   font-variant-numeric: tabular-nums;
 }
+.ecosystem-linked {
+  margin-top: 18px;
+  padding: 20px 22px;
+  border: 1px solid var(--hp-edge-e3e3e3, #e3e3e3);
+  border-radius: 10px;
+  background: var(--hp-bg-ffffff, #fff);
+}
+.ecosystem-linked-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+.ecosystem-linked-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.ecosystem-linked-title h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+}
+.ecosystem-source-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 2px 8px;
+  border: 1px solid var(--hp-edge-d9d9d9, #d9d9d9);
+  border-radius: 999px;
+  color: var(--hp-ink-626262, #626262);
+  font-size: 12px;
+  line-height: 1.3;
+}
+.ecosystem-linked-heading p {
+  max-width: 680px;
+  margin: 5px 0 0;
+  color: var(--hp-ink-737373, #737373);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.ecosystem-linked-source {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: 0 0 auto;
+  color: var(--hp-ink-4a4a4a, #4a4a4a);
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.ecosystem-linked-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 18px;
+  border-top: 1px solid var(--hp-edge-edf0f4, #edf0f4);
+  border-bottom: 1px solid var(--hp-edge-edf0f4, #edf0f4);
+}
+.ecosystem-linked-stats > div {
+  padding: 14px 18px 14px 0;
+  border-right: 1px solid var(--hp-edge-edf0f4, #edf0f4);
+}
+.ecosystem-linked-stats > div:not(:first-child) {
+  padding-left: 18px;
+}
+.ecosystem-linked-stats > div:last-child {
+  border-right: 0;
+}
+.ecosystem-linked-stats span,
+.ecosystem-linked-stats strong {
+  display: block;
+}
+.ecosystem-linked-stats span {
+  color: var(--hp-ink-737373, #737373);
+  font-size: 12px;
+}
+.ecosystem-linked-stats strong {
+  margin-top: 4px;
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+}
+.ecosystem-linked-list {
+  margin-top: 4px;
+}
+.ecosystem-linked-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--hp-edge-edf0f4, #edf0f4);
+}
+.ecosystem-linked-asset b,
+.ecosystem-linked-asset small,
+.ecosystem-linked-value span,
+.ecosystem-linked-value small {
+  display: block;
+}
+.ecosystem-linked-asset b {
+  font-size: 14px;
+  font-weight: 600;
+}
+.ecosystem-linked-asset small,
+.ecosystem-linked-value small {
+  margin-top: 2px;
+  color: var(--hp-ink-737373, #737373);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.ecosystem-linked-value {
+  flex: 0 0 160px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.ecosystem-linked-value span {
+  font-size: 14px;
+}
+.ecosystem-linked-loading,
+.ecosystem-linked-empty,
+.ecosystem-linked-footnote {
+  display: block;
+  color: var(--hp-ink-737373, #737373);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.ecosystem-linked-loading,
+.ecosystem-linked-empty {
+  margin: 18px 0 0;
+}
+.ecosystem-linked-footnote {
+  margin: 12px 0 0;
+}
 .ecosystem-columns {
   display: grid;
   grid-template-columns: 1fr;
@@ -4004,6 +4139,34 @@ body:has(.community-entry) > footer {
   }
   .ecosystem-panel {
     padding: 18px;
+  }
+  .ecosystem-linked {
+    padding: 18px;
+  }
+  .ecosystem-linked-heading {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .ecosystem-linked-stats {
+    grid-template-columns: 1fr;
+  }
+  .ecosystem-linked-stats > div,
+  .ecosystem-linked-stats > div:not(:first-child) {
+    padding: 11px 0;
+    border-right: 0;
+    border-bottom: 1px solid var(--hp-edge-edf0f4, #edf0f4);
+  }
+  .ecosystem-linked-stats > div:last-child {
+    border-bottom: 0;
+  }
+  .ecosystem-linked-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .ecosystem-linked-value {
+    flex-basis: auto;
+    text-align: left;
   }
   .ecosystem-rank {
     grid-template-columns: 64px minmax(20px, 1fr) 64px 14px;

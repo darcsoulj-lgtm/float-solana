@@ -404,6 +404,7 @@ export async function publicJson(
       'api.dexscreener.com',
       'api.geckoterminal.com',
       'coins.llama.fi',
+      'www.stonkfun.xyz',
     ].includes(u.hostname) ||
     u.username ||
     u.password

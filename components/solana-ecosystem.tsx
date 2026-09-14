@@ -1,9 +1,12 @@
+'use client';
+
 import Link from '@/components/site-link';
 import { marketTokens } from '@/lib/market-data';
 import { ArrowUpRight } from 'lucide-react';
 import { ISSUERS, type IssuerId } from '@/lib/tokens';
 import { trackedValuation } from '@/lib/token-observation';
 import type { MarketOverview } from '@/lib/market-data';
+import { useStonkfun } from '@/hooks/use-stonkfun';
 const usd = (n: number | null) =>
   n === null
     ? '—'
@@ -26,6 +29,7 @@ export function SolanaEcosystem({
 }) {
   const tokens = marketTokens(data);
   const coverage = trackedValuation(data, now);
+  const stonkfun = useStonkfun();
   const leaders = [...coverage.valued]
     .sort((a, b) => b.value! - a.value!)
     .slice(0, 5);
@@ -65,6 +69,98 @@ export function SolanaEcosystem({
           <small>Stocks, ETFs & private-company exposure</small>
         </div>
       </div>
+      <section className="ecosystem-linked" aria-labelledby="linked-activity-title">
+        <div className="ecosystem-linked-heading">
+          <div>
+            <div className="ecosystem-linked-title">
+              <h3 id="linked-activity-title">Stock-linked ecosystem</h3>
+              <span className="ecosystem-source-pill">Stonkfun data</span>
+            </div>
+            <p>
+              Launchpad activity linked to a listed stock. Kept separate from
+              stock prices, market cap and DEX volume.
+            </p>
+          </div>
+          <a
+            href="https://www.stonkfun.xyz/developers"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="ecosystem-linked-source"
+          >
+            API docs <ArrowUpRight size={14} />
+          </a>
+        </div>
+        {stonkfun.busy && !stonkfun.source?.data && (
+          <output className="ecosystem-linked-loading">
+            Loading linked activity…
+          </output>
+        )}
+        {stonkfun.error && !stonkfun.source?.data && (
+          <p className="ecosystem-linked-empty">
+            Linked activity is temporarily unavailable. Stock metrics are not
+            affected.
+          </p>
+        )}
+        {!stonkfun.busy && !stonkfun.error && !stonkfun.source?.data && (
+          <p className="ecosystem-linked-empty">
+            No linked activity is available yet. Stock metrics are not
+            affected.
+          </p>
+        )}
+        {stonkfun.source?.data && (
+          <>
+            <div className="ecosystem-linked-stats">
+              <div>
+                <span>Linked launches</span>
+                <strong>{stonkfun.source.data.linkedLaunches}</strong>
+              </div>
+              <div>
+                <span>Active pairs</span>
+                <strong>{stonkfun.source.data.activePairs}</strong>
+              </div>
+              <div>
+                <span>24h launch volume</span>
+                <strong>{usd(stonkfun.source.data.volume24hUsd)}</strong>
+              </div>
+            </div>
+            {stonkfun.source.data.rows.length > 0 ? (
+              <div className="ecosystem-linked-list">
+                {stonkfun.source.data.rows.slice(0, 5).map((row) => (
+                  <div
+                    className="ecosystem-linked-row"
+                    key={`${row.mint}:${row.stockMint}`}
+                  >
+                    <div className="ecosystem-linked-asset">
+                      <b>{row.symbol}</b>
+                      <small>
+                        linked to {row.stockSymbol}
+                        {row.quoteSymbol ? ` · ${row.quoteSymbol}` : ''}
+                      </small>
+                    </div>
+                    <div className="ecosystem-linked-value">
+                      <span>{usd(row.volume24hUsd)} 24h</span>
+                      <small>{usd(row.marketCapUsd)} market cap</small>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="ecosystem-linked-empty">
+                No linked launches were found in the current Stonkfun feed.
+              </p>
+            )}
+            <p className="ecosystem-linked-footnote">
+              Coverage: Stonkfun’s top-volume and newest public feeds (up to
+              200 records). This is an activity sample, not a complete launch
+              count.{' '}
+              {stonkfun.source.fetchedAt
+                ? `Last checked ${new Date(stonkfun.source.fetchedAt).toLocaleString()}. `
+                : ''}
+              {stonkfun.source.stale ? 'Last saved data is shown.' : ''}
+            </p>
+          </>
+        )}
+      </section>
       <details className="market-methodology coverage-diagnostics">
         <summary>Coverage &amp; methodology</summary>
         <p>
@@ -131,6 +227,12 @@ export function SolanaEcosystem({
           Solana mint supply, subject to price freshness, unit and conflict
           checks. Their minted estimates can include issuer inventory. Adding
           them gives an estimated tracked value, not circulating AUM.
+        </p>
+        <p>
+          Stonkfun activity is a separate launchpad overlay. We include only
+          records where one side of the pair matches a verified Float Solana
+          stock mint. It never enters stock valuation, DEX volume or issuer
+          totals.
         </p>
         <h3>Largest tracked values</h3>
         {leaders.map((r) => (

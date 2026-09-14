@@ -959,6 +959,14 @@ export function MarketOverviewPanel({
         >
           Backpack
         </a>
+        ,{' '}
+        <a
+          href="https://www.stonkfun.xyz/developers"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Stonkfun
+        </a>
         .
       </p>
       <details className="market-methodology">
