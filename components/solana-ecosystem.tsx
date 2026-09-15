@@ -80,6 +80,27 @@ export function SolanaEcosystem({
     1,
     ...activityRows.map((issuer) => issuer[activityMetric] ?? 0),
   );
+  const dexActivity = Object.values(
+    marketPools.reduce(
+      (groups, pool) => {
+        const key = pool.dex.toLowerCase();
+        const current = groups[key] ?? { name: pool.dex, volume: 0, liquidity: 0 };
+        if (pool.volume24h != null) current.volume += pool.volume24h;
+        if (pool.liquidity != null) current.liquidity += pool.liquidity;
+        groups[key] = current;
+        return groups;
+      },
+      {} as Record<string, { name: string; volume: number; liquidity: number }>,
+    ),
+  ).sort((a, b) =>
+    (activityMetric === 'liquidity' ? b.liquidity - a.liquidity : b.volume - a.volume),
+  );
+  const dexMax = Math.max(
+    1,
+    ...dexActivity.map((dex) =>
+      activityMetric === 'liquidity' ? dex.liquidity : dex.volume,
+    ),
+  );
   const leaders = [...coverage.valued]
     .sort((a, b) => b.value! - a.value!)
     .slice(0, 5);
@@ -186,6 +207,27 @@ export function SolanaEcosystem({
             ? 'Issuer values use different, explicitly labelled supply bases. They are estimates, not a uniform market-cap measure.'
             : POOL_SCOPE}
         </p>
+        {activityMetric !== 'value' && (
+          <div className="market-dex-breakdown">
+            <div>
+              <h4>DEX activity</h4>
+              <p>Current eligible pool snapshot · {activityMetric === 'liquidity' ? 'liquidity' : '24h volume'}</p>
+            </div>
+            {dexActivity.slice(0, 5).map((dex) => {
+              const value = activityMetric === 'liquidity' ? dex.liquidity : dex.volume;
+              return (
+                <div className="market-dex-row" key={dex.name}>
+                  <span>{dex.name}</span>
+                  <span className="market-dex-track" aria-hidden="true">
+                    <span style={{ width: `${Math.max(2, (value / dexMax) * 100)}%` }} />
+                  </span>
+                  <strong>{usd(value)}</strong>
+                </div>
+              );
+            })}
+            {!dexActivity.length && <p className="issuer-activity-empty">No current eligible pool data.</p>}
+          </div>
+        )}
       </section>
       <details className="market-methodology coverage-diagnostics">
         <summary>Coverage &amp; methodology</summary>

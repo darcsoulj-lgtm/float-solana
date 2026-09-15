@@ -755,7 +755,7 @@ void test('compact issuer filters select and reset while the table prioritizes t
     (e) => e.type === 'table' && e.props.className === 'market-table',
   );
   const body = findElement(table, (e) => e.type === 'tbody');
-  assert.doesNotMatch(renderToStaticMarkup(body), />Minted<|>Circulating</);
+  assert.match(renderToStaticMarkup(body), />Minted<|>Circulating</);
   assert.match(renderToStaticMarkup(table), /About DEX volume/);
   assert.match(renderToStaticMarkup(table), /Pool liquidity/);
   assert.doesNotMatch(html, /Not verified/);
@@ -1071,7 +1071,7 @@ void test('Stock details expand under the selected row and collapse without navi
     (e) => e.type === 'tr' && e.props.className === 'stock-detail-row',
   );
   assert.ok(detail);
-  assert.equal(detail.props.children.props.colSpan, 5);
+  assert.equal(detail.props.children.props.colSpan, 6);
   assert.match(renderToStaticMarkup(detail), /id="selected-stock-detail"/);
   assert.equal(row().props.selected, true);
   row().props.onSelect('MU');

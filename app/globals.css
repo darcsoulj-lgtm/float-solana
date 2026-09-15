@@ -4093,6 +4093,47 @@ body:has(.community-entry) > footer {
   padding-top: 16px;
   border-top: 1px solid var(--border);
 }
+.market-dex-breakdown {
+  display: grid;
+  gap: 9px;
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+.market-dex-breakdown h4 {
+  margin: 0;
+  font-size: 15px;
+}
+.market-dex-breakdown > div:first-child p {
+  margin: 3px 0 6px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+.market-dex-row {
+  display: grid;
+  grid-template-columns: minmax(90px, 0.7fr) minmax(140px, 3fr) minmax(82px, auto);
+  align-items: center;
+  gap: 14px;
+  min-height: 30px;
+  font-size: 14px;
+}
+.market-dex-track {
+  height: 10px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--foreground) 7%, transparent);
+}
+.market-dex-track > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--foreground) 48%, var(--card));
+}
+.market-dex-row strong {
+  justify-self: end;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
 .ecosystem-linked {
   margin-top: 18px;
   padding: 20px 22px;
@@ -4365,6 +4406,10 @@ body:has(.community-entry) > footer {
         70px,
         auto
       );
+    gap: 9px;
+  }
+  .market-dex-row {
+    grid-template-columns: minmax(78px, 0.75fr) minmax(80px, 2fr) minmax(70px, auto);
     gap: 9px;
   }
   .ecosystem-panel {
