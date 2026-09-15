@@ -508,29 +508,18 @@ export function IssuerDashboardContent({
         </div>
         <div>
           <span>
-            {issuer === 'backpack'
-              ? 'Backpack venue volume · 24h'
-              : 'DEX pool volume · 24h'}{' '}
+            DEX pool volume · 24h{' '}
             <MetricInfo label="Volume source and coverage">
-              {issuer === 'backpack'
-                ? 'Backpack venue ticker volume from the official API. It covers Backpack activity only; Solana DEX and RFQ activity are separate.'
-                : `${POOL_SCOPE} DEX Screener pool trades only. Excludes RFQ trades, direct issuer trades and centralized exchanges. Pool discovery is partial; this is not total issuer volume.`}{' '}
+              {`${POOL_SCOPE} DEX Screener pool trades only. Excludes Backpack Exchange, RFQ trades, direct issuer trades and other centralized exchanges. Pool discovery is partial; this is not total issuer volume.`}{' '}
               {issuer === 'xstocks'
                 ? 'The xStocks API supplies circulation and reference valuations, not this volume figure.'
                 : ''}
             </MetricInfo>
           </span>
-          <strong>
-            {dollars(
-              issuer === 'backpack'
-                ? dashboard.backpackVenueVolume
-                : dashboard.volume,
-            )}
-          </strong>
+          <strong>{dollars(dashboard.volume)}</strong>
           <small>
-            {issuer === 'backpack'
-              ? `${dashboard.backpackVenueVolumeCovered} of ${dashboard.rows.length} tokens · venue only`
-              : `${dashboard.volumeCovered} of ${dashboard.rows.length} tokens · RFQ excluded`}
+            {dashboard.volumeCovered} of {dashboard.rows.length} tokens ·
+            eligible pools
           </small>
         </div>
         <div>

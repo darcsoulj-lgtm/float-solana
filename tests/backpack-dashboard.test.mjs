@@ -459,7 +459,7 @@ void test('Issuer dashboards place valuation before volume and liquidity, keepin
     assert.match(html, new RegExp(issuer.name + ' onchain'));
     assert.doesNotMatch(html, /onchain<span>\.<\/span>/);
     for (const label of [
-      issuer.id === 'backpack' ? 'Backpack venue volume' : 'DEX pool volume',
+      'DEX pool volume',
       'Pool liquidity',
       '24h change',
       'Search stocks',
@@ -473,7 +473,7 @@ void test('Issuer dashboards place valuation before volume and liquidity, keepin
     );
     const summary = html.split('<details class="bp-method"')[0];
     assert.doesNotMatch(summary, /Minted value/);
-    const volumeLabel = issuer.id === 'backpack' ? 'Backpack venue volume' : 'DEX pool volume';
+    const volumeLabel = 'DEX pool volume';
     assert.ok(summary.indexOf('Onchain value') < summary.indexOf(volumeLabel));
     assert.ok(summary.indexOf(volumeLabel) < summary.indexOf('Pool liquidity'));
     assert.match(summary, /Stocks <span>/);
@@ -500,7 +500,7 @@ void test('Ondo limited pool coverage is visible alongside volume, not presented
   assert.match(html, /DEX pool volume/);
   assert.ok(
     html.includes(
-      `1 of ${api.TOKENS.filter((t) => t.issuer === 'ondo').length} tokens · RFQ excluded`,
+      `1 of ${api.TOKENS.filter((t) => t.issuer === 'ondo').length} tokens · eligible pools`,
     ),
   );
   assert.match(html, /Volume source and coverage/);
