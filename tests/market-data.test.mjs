@@ -1229,11 +1229,12 @@ void test('public author queries reveal tiers only with opt-in, fresh verificati
   const sql = raw.match(/export const authorColumns =\s*'([^']+)'/)[1];
   const db = new DatabaseSync(':memory:');
   db.exec(
-    'CREATE TABLE community_members (alias TEXT,avatar_key TEXT,show_badge INTEGER,show_value_badge INTEGER,qualifying_symbol TEXT,verified_until INTEGER,suspended INTEGER,value_tier TEXT,value_tier_expires_at INTEGER)',
+    'CREATE TABLE community_members (alias TEXT,bio TEXT,avatar_key TEXT,show_badge INTEGER,show_value_badge INTEGER,qualifying_symbol TEXT,verified_until INTEGER,suspended INTEGER,value_tier TEXT,value_tier_expires_at INTEGER)',
   );
   const now = Date.now();
-  db.prepare('INSERT INTO community_members VALUES (?,?,?,?,?,?,?,?,?)').run(
+  db.prepare('INSERT INTO community_members VALUES (?,?,?,?,?,?,?,?,?,?)').run(
     'Alias',
+    'Bio',
     null,
     0,
     0,

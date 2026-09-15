@@ -453,6 +453,13 @@ footer {
   display: flex;
   gap: 25px;
 }
+.thread-author-bio {
+  max-width: 260px;
+  overflow: hidden;
+  color: var(--muted-foreground);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .legal {
   width: 100%;
   border-top: 1px solid var(--border);

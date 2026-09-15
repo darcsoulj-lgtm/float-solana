@@ -84,6 +84,7 @@ export function Thread({
             expiresAt={t.value_tier_expires_at}
           />
         )}
+        {t.bio && <span className="thread-author-bio">{t.bio}</span>}
         <span>
           {t.room_name || t.topic} · {discussionTime(t.created_at)}
         </span>
@@ -161,6 +162,7 @@ export function Thread({
                       expiresAt={r.value_tier_expires_at}
                     />
                   )}
+                  {r.bio && <span className="thread-author-bio">{r.bio}</span>}
                   <time dateTime={new Date(r.created_at).toISOString()}>
                     {discussionTime(r.created_at)}
                   </time>
