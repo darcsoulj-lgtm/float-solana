@@ -3965,15 +3965,16 @@ body:has(.community-entry) > footer {
 }
 .ecosystem-stats {
   display: grid;
-  grid-template-columns: 1.25fr 1fr 1fr;
-  background: #363636;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border: 1px solid var(--border);
+  background: var(--card);
   border-radius: 12px;
-  color: #fff;
+  color: var(--foreground);
   overflow: hidden;
 }
 .ecosystem-stats > div {
   padding: 22px 24px;
-  border-right: 1px solid #ffffff24;
+  border-right: 1px solid var(--border);
 }
 .ecosystem-stats > div:last-child {
   border: 0;
@@ -3981,7 +3982,7 @@ body:has(.community-entry) > footer {
 .ecosystem-stats span,
 .ecosystem-stats small {
   display: block;
-  color: #d8d8d8;
+  color: var(--muted-foreground);
   line-height: 1.5;
   font-size: 13px;
 }
@@ -3992,6 +3993,105 @@ body:has(.community-entry) > footer {
   font-weight: 600;
   letter-spacing: -1px;
   font-variant-numeric: tabular-nums;
+}
+.market-activity-panel {
+  margin-top: 18px;
+  padding: 22px 24px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+}
+.market-activity-panel > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 22px;
+}
+.market-activity-panel h3 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.35;
+}
+.market-activity-panel header p,
+.market-activity-scope,
+.issuer-activity-empty {
+  margin: 5px 0 0;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.market-activity-panel select {
+  min-height: 42px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 34px 8px 12px;
+  background: var(--background);
+  color: var(--foreground);
+  font: inherit;
+  font-size: 14px;
+}
+.issuer-activity-chart {
+  display: grid;
+  gap: 9px;
+}
+.issuer-activity-row {
+  display: grid;
+  grid-template-columns: minmax(96px, 0.65fr) minmax(140px, 3fr) minmax(
+      82px,
+      auto
+    );
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 42px;
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: var(--foreground);
+  text-align: left;
+  cursor: pointer;
+}
+.issuer-activity-row:hover .issuer-activity-name {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.issuer-activity-row:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+.issuer-activity-name {
+  font-size: 14px;
+  font-weight: 600;
+}
+.issuer-activity-track {
+  height: 16px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--foreground) 7%, transparent);
+}
+.issuer-activity-track > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--foreground) 68%, var(--card));
+}
+.issuer-activity-row strong {
+  justify-self: end;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.issuer-activity-row small {
+  grid-column: 2 / -1;
+  margin-top: -10px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.market-activity-scope {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
 }
 .ecosystem-linked {
   margin-top: 18px;
@@ -4220,6 +4320,15 @@ body:has(.community-entry) > footer {
   .ecosystem-columns {
     grid-template-columns: 1fr;
   }
+  .ecosystem-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .ecosystem-stats > div:nth-child(2n) {
+    border-right: 0;
+  }
+  .ecosystem-stats > div:nth-child(-n + 2) {
+    border-bottom: 1px solid var(--border);
+  }
 }
 @media (max-width: 640px) {
   .ecosystem-heading {
@@ -4227,12 +4336,36 @@ body:has(.community-entry) > footer {
     flex-direction: column;
   }
   .ecosystem-stats {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .ecosystem-stats > div {
     padding: 18px 20px;
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .ecosystem-stats > div:nth-child(2n) {
     border-right: 0;
-    border-bottom: 1px solid #ffffff24;
+  }
+  .ecosystem-stats > div:nth-last-child(-n + 2) {
+    border-bottom: 0;
+  }
+  .market-activity-panel {
+    padding: 18px;
+  }
+  .market-activity-panel > header {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .market-activity-panel label,
+  .market-activity-panel select {
+    width: 100%;
+  }
+  .issuer-activity-row {
+    grid-template-columns: minmax(78px, 0.75fr) minmax(80px, 2fr) minmax(
+        70px,
+        auto
+      );
+    gap: 9px;
   }
   .ecosystem-panel {
     padding: 18px;

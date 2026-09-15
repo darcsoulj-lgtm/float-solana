@@ -4,8 +4,10 @@ import Link from '@/components/site-link';
 import { marketTokens } from '@/lib/market-data';
 import { ArrowUpRight } from 'lucide-react';
 import { ISSUERS, type IssuerId } from '@/lib/tokens';
-import { trackedValuation } from '@/lib/token-observation';
+import { tokenObservation, trackedValuation } from '@/lib/token-observation';
 import type { MarketOverview } from '@/lib/market-data';
+import { poolMetrics, POOL_SCOPE } from '@/lib/stock-pools';
+import { useState } from 'react';
 const usd = (n: number | null) =>
   n === null
     ? '—'
@@ -26,8 +28,58 @@ export function SolanaEcosystem({
   onIssuer: (id: IssuerId | 'all') => void;
   select: (symbol: string) => void;
 }) {
+  const [activityMetric, setActivityMetric] = useState<
+    'volume' | 'liquidity' | 'value'
+  >('volume');
   const tokens = marketTokens(data);
   const coverage = trackedValuation(data, now);
+  const issuerActivity = ISSUERS.map((issuer) => {
+    const issuerTokens = tokens.filter((token) => token.issuer === issuer.id);
+    const pools = issuerTokens.flatMap((token) => {
+      const poolTime =
+        data?.pools.asOf?.[token.symbol] ?? data?.pools.fetchedAt ?? 0;
+      if (
+        !data?.pools ||
+        data.pools.stale ||
+        !poolTime ||
+        poolTime > now + 60000 ||
+        now - poolTime >= 300000
+      )
+        return [];
+      return data.pools.data?.[token.symbol] ?? [];
+    });
+    const dashboard = poolMetrics(pools);
+    const values = issuerTokens.map((token) =>
+      tokenObservation(data, token.symbol, now),
+    );
+    return {
+      ...issuer,
+      volume: dashboard.volume24h,
+      liquidity: dashboard.liquidity,
+      value:
+        values
+          .map((observation) =>
+            issuer.id === 'xstocks'
+              ? (observation.circulatingValue ??
+                observation.lastCirculation?.valueUsd ??
+                null)
+              : observation.issuedValue,
+          )
+          .filter((value): value is number => value !== null)
+          .reduce((sum, value) => sum + value, 0) || null,
+      pools: dashboard.pools,
+      basis: issuer.id === 'xstocks' ? 'Circulating value' : 'Minted value',
+    };
+  });
+  const marketPools = issuerActivity.flatMap((issuer) => issuer.pools);
+  const marketActivity = poolMetrics(marketPools);
+  const activityRows = issuerActivity
+    .filter((issuer) => issuer[activityMetric] !== null)
+    .sort((a, b) => (b[activityMetric] ?? 0) - (a[activityMetric] ?? 0));
+  const activityMax = Math.max(
+    1,
+    ...activityRows.map((issuer) => issuer[activityMetric] ?? 0),
+  );
   const leaders = [...coverage.valued]
     .sort((a, b) => b.value! - a.value!)
     .slice(0, 5);
@@ -53,20 +105,88 @@ export function SolanaEcosystem({
           </small>
         </div>
         <div>
-          <span>Tokens</span>
-          <strong>{tokens.length.toLocaleString()}</strong>
-          <small>{ISSUERS.length} issuers tracked</small>
+          <span>Eligible DEX volume · 24h</span>
+          <strong>{usd(marketActivity.volume24h)}</strong>
+          <small>Verified pools · each pool counted once</small>
         </div>
         <div>
-          <span>Underlying assets</span>
-          <strong>
+          <span>Pool liquidity</span>
+          <strong>{usd(marketActivity.liquidity)}</strong>
+          <small>Observed eligible Solana pools</small>
+        </div>
+        <div>
+          <span>Tokens · tokenized stocks</span>
+          <strong>{tokens.length.toLocaleString()}</strong>
+          <small>
             {new Set(
               tokens.map((t) => t.underlyingSymbol),
-            ).size.toLocaleString()}
-          </strong>
-          <small>Stocks, ETFs & private-company exposure</small>
+            ).size.toLocaleString()}{' '}
+            Underlying assets
+          </small>
         </div>
       </div>
+
+      <section
+        className="market-activity-panel"
+        aria-labelledby="market-activity-title"
+      >
+        <header>
+          <div>
+            <h3 id="market-activity-title">Issuer activity</h3>
+            <p>
+              Current verified snapshot · select an issuer to filter the stock
+              list
+            </p>
+          </div>
+          <label>
+            <span className="sr-only">Activity metric</span>
+            <select
+              value={activityMetric}
+              onChange={(event) =>
+                setActivityMetric(
+                  event.target.value as 'volume' | 'liquidity' | 'value',
+                )
+              }
+            >
+              <option value="volume">DEX volume · 24h</option>
+              <option value="liquidity">Pool liquidity</option>
+              <option value="value">Tracked value · est.</option>
+            </select>
+          </label>
+        </header>
+        <div className="issuer-activity-chart">
+          {activityRows.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              className="issuer-activity-row"
+              onClick={() => onIssuer(item.id)}
+              aria-label={`Filter stocks by ${item.name}`}
+            >
+              <span className="issuer-activity-name">{item.name}</span>
+              <span className="issuer-activity-track" aria-hidden="true">
+                <span
+                  style={{
+                    width: `${Math.max(2, ((item[activityMetric] ?? 0) / activityMax) * 100)}%`,
+                  }}
+                />
+              </span>
+              <strong>{usd(item[activityMetric])}</strong>
+              {activityMetric === 'value' && <small>{item.basis}</small>}
+            </button>
+          ))}
+          {!activityRows.length && (
+            <p className="issuer-activity-empty">
+              Waiting for current market observations.
+            </p>
+          )}
+        </div>
+        <p className="market-activity-scope">
+          {activityMetric === 'value'
+            ? 'Issuer values use different, explicitly labelled supply bases. They are estimates, not a uniform market-cap measure.'
+            : POOL_SCOPE}
+        </p>
+      </section>
       <details className="market-methodology coverage-diagnostics">
         <summary>Coverage &amp; methodology</summary>
         <p>
