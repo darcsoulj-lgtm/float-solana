@@ -15,6 +15,13 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: { url: '/favicon.svg?v=float-minimal', type: 'image/svg+xml' },
+    apple: { url: '/favicon.svg?v=float-minimal', type: 'image/svg+xml' },
+  },
+  manifest: '/manifest.webmanifest',
+  appleWebApp: {
+    capable: true,
+    title: 'Float',
+    statusBarStyle: 'default',
   },
   openGraph: {
     title: 'Float — For Solana tokenized stock holders',
