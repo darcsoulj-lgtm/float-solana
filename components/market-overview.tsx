@@ -809,6 +809,15 @@ export function MarketOverviewPanel({
           <thead>
             <tr>
               <th>Stock</th>
+              <th>
+                <span className="metric-label">
+                  Supply
+                  <MetricInfo label="About token supply">
+                    xStocks shows circulating Solana supply. Other issuers show
+                    minted onchain supply, which may include issuer inventory.
+                  </MetricInfo>
+                </span>
+              </th>
               <th>Token price</th>
               <th>24h change</th>
               <th>
@@ -851,6 +860,24 @@ export function MarketOverviewPanel({
                     }}
                   >
                     <td>
+                      <span className="market-supply-value">
+                        {(() => {
+                          const supply =
+                            t.issuer === 'xstocks'
+                              ? row.circulation?.circulatingSupply
+                              : (row.valuationSupply ?? row.supply?.supply);
+                          return supply == null
+                            ? '—'
+                            : new Intl.NumberFormat('en-US', {
+                                maximumFractionDigits: 5,
+                              }).format(supply);
+                        })()}
+                      </span>
+                      <small className="market-supply-basis">
+                        {t.issuer === 'xstocks' ? 'Circulating' : 'Minted'}
+                      </small>
+                    </td>
+                    <td>
                       {money(row.price)}
                       {row.priceDelayed && (
                         <small
@@ -877,7 +904,7 @@ export function MarketOverviewPanel({
                   </MarketStockRow>
                   {detailOpen && selection === t.symbol && (
                     <tr className="stock-detail-row">
-                      <td colSpan={5}>{stockDetail}</td>
+                      <td colSpan={6}>{stockDetail}</td>
                     </tr>
                   )}
                 </Fragment>
