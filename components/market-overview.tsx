@@ -60,7 +60,8 @@ export function MarketOverviewPanel({
   const [onlyHoldings, setOnlyHoldings] = useState(false),
     [query, setQuery] = useState(''),
     [issuer, setIssuer] = useState<IssuerId | 'all'>('all'),
-    [page, setPage] = useState(0);
+    [page, setPage] = useState(0),
+    [sort, setSort] = useState<{ key: string; direction: 'asc' | 'desc' }>({ key: 'symbol', direction: 'asc' });
   const [selection, setSelected] = useState(holdings[0] || 'MU'),
     [refresh, setRefresh] = useState(0),
     [copied, setCopied] = useState(false);
@@ -85,6 +86,11 @@ export function MarketOverviewPanel({
     setPage(0);
     setQuery('');
   };
+  const sortHeader = (key: string, label: string) => (
+    <button className="market-sort-button" type="button" onClick={() => { setSort((current) => ({ key, direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc' })); setPage(0); }}>
+      {label} {sort.key === key ? (sort.direction === 'asc' ? '↑' : '↓') : '↕'}
+    </button>
+  );
   const matches = tokens.filter(
     (t) =>
       (!onlyHoldings || holdings.includes(t.symbol)) &&
@@ -93,6 +99,18 @@ export function MarketOverviewPanel({
         .toLowerCase()
         .includes(query.toLowerCase()),
   );
+  const sortedMatches = [...matches].sort((a, b) => {
+    if (sort.key === 'symbol') return (sort.direction === 'asc' ? a.symbol : b.symbol).localeCompare(sort.direction === 'asc' ? b.symbol : a.symbol);
+    const value = (symbol: string) => {
+      const item = tokenObservation(data, symbol, now);
+      return sort.key === 'price' ? item.price : sort.key === 'change' ? item.change24h : sort.key === 'volume' ? item.poolVolume24h : sort.key === 'liquidity' ? item.liquidity : item.circulation?.circulatingSupply ?? item.supply?.supply;
+    };
+    const left = value(a.symbol), right = value(b.symbol);
+    if (left == null && right == null) return 0;
+    if (left == null) return 1;
+    if (right == null) return -1;
+    return sort.direction === 'asc' ? left - right : right - left;
+  });
   const selected =
     matches.find((t) => t.symbol === selection)?.symbol ||
     matches[0]?.symbol ||
@@ -172,9 +190,9 @@ export function MarketOverviewPanel({
       clearInterval(id);
     };
   }, [selected, selectedIssuer, refresh, detailOpen, data?.catalog.fetchedAt]);
-  const maxPage = Math.max(0, Math.ceil(matches.length / 10) - 1),
+  const maxPage = Math.max(0, Math.ceil(sortedMatches.length / 10) - 1),
     currentPage = Math.min(page, maxPage),
-    rows = matches.slice(currentPage * 10, currentPage * 10 + 10);
+    rows = sortedMatches.slice(currentPage * 10, currentPage * 10 + 10);
   const token = tokens.find((t) => t.symbol === selected)!,
     listing = data?.catalog.data?.find((t) => t.symbol === selected),
     detailedPools = poolDetail?.symbol === selected ? poolDetail.source : null,
@@ -808,21 +826,21 @@ export function MarketOverviewPanel({
           </caption>
           <thead>
             <tr>
-              <th>Stock</th>
+              <th>{sortHeader('symbol', 'Stock')}</th>
               <th>
                 <span className="metric-label">
-                  Supply
+                  {sortHeader('supply', 'Supply')}
                   <MetricInfo label="About token supply">
                     xStocks shows circulating Solana supply. Other issuers show
                     minted onchain supply, which may include issuer inventory.
                   </MetricInfo>
                 </span>
               </th>
-              <th>Token price</th>
-              <th>24h change</th>
+              <th>{sortHeader('price', 'Token price')}</th>
+              <th>{sortHeader('change', '24h change')}</th>
               <th>
                 <span className="metric-label">
-                  DEX volume · 24h
+                  {sortHeader('volume', 'DEX volume · 24h')}
                   <MetricInfo label="About DEX volume">
                     {POOL_SCOPE} Volume sums eligible returned pools. Coverage
                     is partial; missing values are not zero.
@@ -831,7 +849,7 @@ export function MarketOverviewPanel({
               </th>
               <th>
                 <span className="metric-label">
-                  Pool liquidity
+                  {sortHeader('liquidity', 'Pool liquidity')}
                   <MetricInfo label="About pool liquidity">
                     Liquidity in observed Solana pools, including both assets in
                     each pool. Coverage is partial. Shared pools can appear

@@ -453,6 +453,19 @@ footer {
   display: flex;
   gap: 25px;
 }
+.market-sort-button {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.market-sort-button:hover,
+.market-sort-button:focus-visible {
+  color: var(--foreground);
+  text-decoration: underline;
+}
 .thread-author-bio {
   max-width: 260px;
   overflow: hidden;
