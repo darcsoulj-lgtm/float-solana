@@ -73,6 +73,7 @@ export default function RootLayout({
             <p>An independent community for Solana tokenized stock holders.</p>
           </div>
           <div className="footerlinks">
+            <Link href="/install">Install Float</Link>
             <Link href="/about">About</Link>
             <Link href="/trust">Privacy</Link>
             <Link href="/methodology">Membership</Link>
