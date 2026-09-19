@@ -123,7 +123,7 @@ body,
   background: var(--hp-bg-ffe8e9, #ffe8e9);
 }
 .ecosystem-stats {
-  background: #0e0f14;
+  background: var(--card);
 }
 .ecosystem-bar i {
   background: var(--brand-red);

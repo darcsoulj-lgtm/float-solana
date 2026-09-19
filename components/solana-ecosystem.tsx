@@ -1,10 +1,11 @@
 'use client';
 
+import { MetricInfo } from './metric-info';
 import Link from '@/components/site-link';
 import { marketTokens } from '@/lib/market-data';
 import { ArrowUpRight } from 'lucide-react';
 import { ISSUERS, type IssuerId } from '@/lib/tokens';
-import { tokenObservation, trackedValuation } from '@/lib/token-observation';
+import { trackedValuation } from '@/lib/token-observation';
 import type { MarketOverview } from '@/lib/market-data';
 import { poolMetrics, POOL_SCOPE } from '@/lib/stock-pools';
 import { useState } from 'react';
@@ -49,42 +50,34 @@ export function SolanaEcosystem({
       return data.pools.data?.[token.symbol] ?? [];
     });
     const dashboard = poolMetrics(pools);
-    const values = issuerTokens.map((token) =>
-      tokenObservation(data, token.symbol, now),
-    );
     return {
       ...issuer,
       volume: dashboard.volume24h,
       liquidity: dashboard.liquidity,
       value:
-        values
-          .map((observation) =>
-            issuer.id === 'xstocks'
-              ? (observation.circulatingValue ??
-                observation.lastCirculation?.valueUsd ??
-                null)
-              : observation.issuedValue,
-          )
-          .filter((value): value is number => value !== null)
-          .reduce((sum, value) => sum + value, 0) || null,
+        coverage.issuers.find((item) => item.id === issuer.id)?.total ?? null,
       pools: dashboard.pools,
       basis: issuer.id === 'xstocks' ? 'Circulating value' : 'Minted value',
     };
   });
   const marketPools = issuerActivity.flatMap((issuer) => issuer.pools);
   const marketActivity = poolMetrics(marketPools);
-  const activityRows = issuerActivity
-    .filter((issuer) => issuer[activityMetric] !== null)
-    .sort((a, b) => (b[activityMetric] ?? 0) - (a[activityMetric] ?? 0));
+  const activityRows = issuerActivity.sort(
+    (a, b) => (b[activityMetric] ?? 0) - (a[activityMetric] ?? 0),
+  );
   const activityMax = Math.max(
     1,
     ...activityRows.map((issuer) => issuer[activityMetric] ?? 0),
   );
   const dexActivity = Object.values(
-    marketPools.reduce(
+    marketActivity.pools.reduce(
       (groups, pool) => {
         const key = pool.dex.toLowerCase();
-        const current = groups[key] ?? { name: pool.dex, volume: 0, liquidity: 0 };
+        const current = groups[key] ?? {
+          name: pool.dex,
+          volume: 0,
+          liquidity: 0,
+        };
         if (pool.volume24h != null) current.volume += pool.volume24h;
         if (pool.liquidity != null) current.liquidity += pool.liquidity;
         groups[key] = current;
@@ -93,7 +86,9 @@ export function SolanaEcosystem({
       {} as Record<string, { name: string; volume: number; liquidity: number }>,
     ),
   ).sort((a, b) =>
-    (activityMetric === 'liquidity' ? b.liquidity - a.liquidity : b.volume - a.volume),
+    activityMetric === 'liquidity'
+      ? b.liquidity - a.liquidity
+      : b.volume - a.volume,
   );
   const dexMax = Math.max(
     1,
@@ -110,14 +105,21 @@ export function SolanaEcosystem({
       aria-label="Tokenized stocks on Solana"
     >
       <div className="ecosystem-heading">
-        <h2>Tokenized Stocks on Solana</h2>
+        <h2>Tokenized markets on Solana</h2>
         <Link href="/tokens" className="market-chain">
           Coverage ↗
         </Link>
       </div>
       <div className="ecosystem-stats">
         <div>
-          <span>Tracked onchain value · est.</span>
+          <span className="metric-label">
+            Tracked onchain value · est.{' '}
+            <MetricInfo label="About tracked value">
+              Estimated value on Solana. Issuers use different supply bases;
+              this is not company market capitalization. See Coverage &amp;
+              methodology.
+            </MetricInfo>
+          </span>
           <strong>{usd(coverage.total)}</strong>
           <small>
             {coverage.issuerCount} / {ISSUERS.length} issuers
@@ -126,17 +128,28 @@ export function SolanaEcosystem({
           </small>
         </div>
         <div>
-          <span>Eligible DEX volume · 24h</span>
+          <span className="metric-label">
+            Eligible DEX volume · 24h{' '}
+            <MetricInfo label="About market volume">
+              {POOL_SCOPE} Each pool is counted once across the market.
+            </MetricInfo>
+          </span>
           <strong>{usd(marketActivity.volume24h)}</strong>
           <small>Verified pools · each pool counted once</small>
         </div>
         <div>
-          <span>Pool liquidity</span>
+          <span className="metric-label">
+            Pool liquidity{' '}
+            <MetricInfo label="About market liquidity">
+              Both assets in observed eligible pools. Shared pools are counted
+              once. Coverage is partial.
+            </MetricInfo>
+          </span>
           <strong>{usd(marketActivity.liquidity)}</strong>
           <small>Observed eligible Solana pools</small>
         </div>
         <div>
-          <span>Tokens · tokenized stocks</span>
+          <span>Tracked tokens</span>
           <strong>{tokens.length.toLocaleString()}</strong>
           <small>
             {new Set(
@@ -154,10 +167,7 @@ export function SolanaEcosystem({
         <header>
           <div>
             <h3 id="market-activity-title">Issuer activity</h3>
-            <p>
-              Current verified snapshot · select an issuer to filter the stock
-              list
-            </p>
+            <p>Select an issuer to explore its tokens</p>
           </div>
           <label>
             <span className="sr-only">Activity metric</span>
@@ -188,7 +198,7 @@ export function SolanaEcosystem({
               <span className="issuer-activity-track" aria-hidden="true">
                 <span
                   style={{
-                    width: `${Math.max(2, ((item[activityMetric] ?? 0) / activityMax) * 100)}%`,
+                    width: `${((item[activityMetric] ?? 0) / activityMax) * 100}%`,
                   }}
                 />
               </span>
@@ -203,30 +213,47 @@ export function SolanaEcosystem({
           )}
         </div>
         <p className="market-activity-scope">
-          {activityMetric === 'value'
-            ? 'Issuer values use different, explicitly labelled supply bases. They are estimates, not a uniform market-cap measure.'
-            : POOL_SCOPE}
+          {activityMetric === 'value' ? (
+            'Issuer values use different, explicitly labelled supply bases. They are estimates, not a uniform market-cap measure.'
+          ) : (
+            <>
+              Observed eligible pools · partial coverage{' '}
+              <MetricInfo label="About issuer activity">
+                {POOL_SCOPE} Shared pools may contribute to two issuers; issuer
+                totals must not be added together.
+              </MetricInfo>
+            </>
+          )}
         </p>
         {activityMetric !== 'value' && (
-          <div className="market-dex-breakdown">
+          <details className="market-dex-breakdown">
+            <summary>View DEX breakdown</summary>
             <div>
               <h4>DEX activity</h4>
-              <p>Current eligible pool snapshot · {activityMetric === 'liquidity' ? 'liquidity' : '24h volume'}</p>
+              <p>
+                Current eligible pool snapshot ·{' '}
+                {activityMetric === 'liquidity' ? 'liquidity' : '24h volume'}
+              </p>
             </div>
             {dexActivity.slice(0, 5).map((dex) => {
-              const value = activityMetric === 'liquidity' ? dex.liquidity : dex.volume;
+              const value =
+                activityMetric === 'liquidity' ? dex.liquidity : dex.volume;
               return (
                 <div className="market-dex-row" key={dex.name}>
                   <span>{dex.name}</span>
                   <span className="market-dex-track" aria-hidden="true">
-                    <span style={{ width: `${Math.max(2, (value / dexMax) * 100)}%` }} />
+                    <span style={{ width: `${(value / dexMax) * 100}%` }} />
                   </span>
                   <strong>{usd(value)}</strong>
                 </div>
               );
             })}
-            {!dexActivity.length && <p className="issuer-activity-empty">No current eligible pool data.</p>}
-          </div>
+            {!dexActivity.length && (
+              <p className="issuer-activity-empty">
+                No current eligible pool data.
+              </p>
+            )}
+          </details>
         )}
       </section>
       <details className="market-methodology coverage-diagnostics">

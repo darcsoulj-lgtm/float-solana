@@ -1,4 +1,11 @@
 'use client';
+import { TesseraContext } from './tessera-context';
+import { MarketBrowseFilters } from './market-browse-filters';
+import {
+  groupMarketTokens,
+  matchesAssetFilter,
+  type AssetFilter,
+} from '@/lib/market-browse';
 import { poolMetrics, POOL_SCOPE } from '@/lib/stock-pools';
 import { marketTokens } from '@/lib/market-data';
 import { MetricInfo } from './metric-info';
@@ -14,18 +21,14 @@ import {
 } from 'lucide-react';
 import { api } from '@/lib/client';
 import { useMarketOverview } from '@/hooks/use-market-overview';
-import { ISSUERS, issuerName, type IssuerId } from '@/lib/tokens';
+import { issuerName, type IssuerId } from '@/lib/tokens';
 import { type Book, type Pool, type SourceResult } from '@/lib/market-data';
 import { Button } from './ui/button';
 import { PortfolioSummary } from './portfolio-summary';
 import type { Holding } from '@/lib/community-types';
 import { MarketStockRow } from './market-stock-row';
 import { SolanaEcosystem } from './solana-ecosystem';
-import {
-  tokenObservation,
-  tokenValuation,
-  trackedValuation,
-} from '@/lib/token-observation';
+import { tokenObservation, tokenValuation } from '@/lib/token-observation';
 const money = (n: number | null | undefined, compact = false) =>
   n === null || n === undefined
     ? '—'
@@ -50,7 +53,6 @@ export function MarketOverviewPanel({
   holdings,
   positions = [],
   hidePortfolio = false,
-  onIssuer,
 }: {
   holdings: string[];
   positions?: Holding[];
@@ -59,9 +61,14 @@ export function MarketOverviewPanel({
 }) {
   const [onlyHoldings, setOnlyHoldings] = useState(false),
     [query, setQuery] = useState(''),
-    [issuer, setIssuer] = useState<IssuerId | 'all'>('all'),
+    [issuers, setIssuers] = useState<IssuerId[]>([]),
+    [asset, setAsset] = useState<AssetFilter>('all'),
+    [expandedGroups, setExpandedGroups] = useState<string[]>([]),
     [page, setPage] = useState(0),
-    [sort, setSort] = useState<{ key: string; direction: 'asc' | 'desc' }>({ key: 'symbol', direction: 'asc' });
+    [sort, setSort] = useState<{ key: string; direction: 'asc' | 'desc' }>({
+      key: 'volume',
+      direction: 'desc',
+    });
   const [selection, setSelected] = useState(holdings[0] || 'MU'),
     [refresh, setRefresh] = useState(0),
     [copied, setCopied] = useState(false);
@@ -77,35 +84,61 @@ export function MarketOverviewPanel({
   } | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const chooseIssuer = (id: IssuerId | 'all') => {
-    if (id !== 'all' && onIssuer) {
-      onIssuer(id);
-      return;
-    }
     setDetailOpen(false);
-    setIssuer(id);
+    setIssuers(id === 'all' ? [] : [id]);
     setPage(0);
     setQuery('');
   };
   const sortHeader = (key: string, label: string) => (
-    <button className="market-sort-button" type="button" onClick={() => { setSort((current) => ({ key, direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc' })); setPage(0); }}>
+    <button
+      className="market-sort-button"
+      type="button"
+      onClick={() => {
+        setSort((current) => ({
+          key,
+          direction:
+            current.key === key && current.direction === 'asc' ? 'desc' : 'asc',
+        }));
+        setPage(0);
+      }}
+    >
       {label} {sort.key === key ? (sort.direction === 'asc' ? '↑' : '↓') : '↕'}
     </button>
   );
   const matches = tokens.filter(
     (t) =>
       (!onlyHoldings || holdings.includes(t.symbol)) &&
-      (issuer === 'all' || t.issuer === issuer) &&
+      (!issuers.length || issuers.includes(t.issuer)) &&
+      matchesAssetFilter(t, asset) &&
       (t.symbol + ' ' + t.underlyingSymbol + ' ' + t.name)
         .toLowerCase()
         .includes(query.toLowerCase()),
   );
+  const observations = new Map(
+    tokens.map((token) => [
+      token.symbol,
+      tokenObservation(data, token.symbol, now),
+    ]),
+  );
   const sortedMatches = [...matches].sort((a, b) => {
-    if (sort.key === 'symbol') return (sort.direction === 'asc' ? a.symbol : b.symbol).localeCompare(sort.direction === 'asc' ? b.symbol : a.symbol);
+    if (sort.key === 'symbol')
+      return (sort.direction === 'asc' ? a.symbol : b.symbol).localeCompare(
+        sort.direction === 'asc' ? b.symbol : a.symbol,
+      );
     const value = (symbol: string) => {
-      const item = tokenObservation(data, symbol, now);
-      return sort.key === 'price' ? item.price : sort.key === 'change' ? item.change24h : sort.key === 'volume' ? item.poolVolume24h : sort.key === 'liquidity' ? item.liquidity : item.circulation?.circulatingSupply ?? item.supply?.supply;
+      const item = observations.get(symbol)!;
+      return sort.key === 'price'
+        ? item.price
+        : sort.key === 'change'
+          ? item.change24h
+          : sort.key === 'volume'
+            ? item.poolVolume24h
+            : sort.key === 'liquidity'
+              ? item.liquidity
+              : (item.circulation?.circulatingSupply ?? item.supply?.supply);
     };
-    const left = value(a.symbol), right = value(b.symbol);
+    const left = value(a.symbol),
+      right = value(b.symbol);
     if (left == null && right == null) return 0;
     if (left == null) return 1;
     if (right == null) return -1;
@@ -190,9 +223,15 @@ export function MarketOverviewPanel({
       clearInterval(id);
     };
   }, [selected, selectedIssuer, refresh, detailOpen, data?.catalog.fetchedAt]);
-  const maxPage = Math.max(0, Math.ceil(sortedMatches.length / 10) - 1),
+  const groups = groupMarketTokens(sortedMatches);
+  const maxPage = Math.max(0, Math.ceil(groups.length / 10) - 1),
     currentPage = Math.min(page, maxPage),
-    rows = sortedMatches.slice(currentPage * 10, currentPage * 10 + 10);
+    pageGroups = groups.slice(currentPage * 10, currentPage * 10 + 10),
+    rows = pageGroups.flatMap((group) =>
+      expandedGroups.includes(group.key)
+        ? group.versions
+        : group.versions.slice(0, 1),
+    );
   const token = tokens.find((t) => t.symbol === selected)!,
     listing = data?.catalog.data?.find((t) => t.symbol === selected),
     detailedPools = poolDetail?.symbol === selected ? poolDetail.source : null,
@@ -220,7 +259,6 @@ export function MarketOverviewPanel({
     book?.data && !book.stale && now - book.data.timestamp <= 120000
       ? book.data
       : null;
-  const issuerValues = trackedValuation(data, now);
   const sourceErrors = data
     ? [
         { name: 'CoinMarketCap', source: data.markets },
@@ -307,6 +345,7 @@ export function MarketOverviewPanel({
             </div>
           )}
         </div>
+        {token.issuer === 'tessera' && <TesseraContext mint={token.mint} />}
         <details className="market-methodology compact-sources">
           <summary>Sources &amp; timestamps</summary>
           <dl className="market-facts">
@@ -751,47 +790,27 @@ export function MarketOverviewPanel({
           setCopied(false);
         }}
       />
-      <fieldset className="issuer-filters" aria-label="Filter by issuer">
-        {[{ id: 'all' as const, name: 'All issuers' }, ...ISSUERS].map(
-          (item) => {
-            const count =
-              item.id === 'all'
-                ? tokens.length
-                : tokens.filter((token) => token.issuer === item.id).length;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                aria-label={item.name}
-                aria-pressed={issuer === item.id}
-                title={`${count.toLocaleString()} tokenized stocks`}
-                onClick={() => chooseIssuer(item.id)}
-              >
-                <span className="issuer-filter-name">
-                  {item.name}
-                  <Check size={14} aria-hidden="true" />
-                </span>
-                <span className="issuer-filter-count">
-                  {money(
-                    item.id === 'all'
-                      ? issuerValues.total
-                      : issuerValues.issuers.find((v) => v.id === item.id)
-                          ?.total,
-                    true,
-                  )}
-                </span>
-              </button>
-            );
-          },
-        )}
-      </fieldset>
+      <MarketBrowseFilters
+        issuers={issuers}
+        onIssuers={(ids) => {
+          setIssuers(ids);
+          setPage(0);
+          setDetailOpen(false);
+        }}
+        asset={asset}
+        onAsset={(value) => {
+          setAsset(value);
+          setPage(0);
+          setDetailOpen(false);
+        }}
+      />
       <div className="market-search-row">
         <label htmlFor="market-search">
-          Stock
+          Search markets
           <input
             id="market-search"
             type="search"
-            placeholder="Search stocks"
+            placeholder="Search company, symbol or token"
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
@@ -815,14 +834,37 @@ export function MarketOverviewPanel({
               Only my holdings
             </label>
           )}
-          <span>{matches.length} stocks</span>
+          <label className="market-sort-select">
+            Sort by
+            <select
+              value={sort.key + ':' + sort.direction}
+              onChange={(event) => {
+                const [key, direction] = event.target.value.split(':');
+                setSort({ key, direction: direction as 'asc' | 'desc' });
+                setPage(0);
+              }}
+            >
+              <option value="volume:desc">DEX volume · high to low</option>
+              <option value="liquidity:desc">Liquidity · high to low</option>
+              <option value="change:desc">24h change · high to low</option>
+              <option value="price:desc">Token price · high to low</option>
+              <option value="symbol:asc">Name · A–Z</option>
+            </select>
+          </label>
+          <span>
+            {groups.length.toLocaleString()} assets ·{' '}
+            {matches.length.toLocaleString()} tokens
+          </span>
         </div>
       </div>
       <div className="market-table-scroll">
-        <table className="market-table">
+        <table className="market-table market-discovery-table">
           <caption>
             Tokenized stocks ·{' '}
-            {issuer === 'all' ? 'All issuers' : issuerName(issuer)}
+            {issuers.length
+              ? issuers.map(issuerName).join(', ')
+              : 'All issuers'}{' '}
+            · Token-level metrics · Expand to compare issuer versions
           </caption>
           <thead>
             <tr>
@@ -866,6 +908,49 @@ export function MarketOverviewPanel({
               const change = row.change24h;
               return (
                 <Fragment key={t.symbol}>
+                  {(pageGroups.find((group) => group.key === t.underlyingSymbol)
+                    ?.versions.length ?? 0) > 1 &&
+                    pageGroups.find((group) => group.key === t.underlyingSymbol)
+                      ?.versions[0].symbol === t.symbol && (
+                      <tr className="market-group-row">
+                        <th colSpan={6} scope="rowgroup">
+                          <span>{t.underlyingSymbol}</span>
+                          <button
+                            type="button"
+                            aria-expanded={expandedGroups.includes(
+                              t.underlyingSymbol,
+                            )}
+                            disabled={
+                              (pageGroups.find(
+                                (group) => group.key === t.underlyingSymbol,
+                              )?.versions.length ?? 0) < 2
+                            }
+                            onClick={() =>
+                              setExpandedGroups((current) =>
+                                current.includes(t.underlyingSymbol)
+                                  ? current.filter(
+                                      (key) => key !== t.underlyingSymbol,
+                                    )
+                                  : [...current, t.underlyingSymbol],
+                              )
+                            }
+                          >
+                            {expandedGroups.includes(t.underlyingSymbol)
+                              ? 'Collapse'
+                              : 'Compare'}{' '}
+                            {
+                              pageGroups.find(
+                                (group) => group.key === t.underlyingSymbol,
+                              )?.versions.length
+                            }{' '}
+                            versions{' '}
+                            {expandedGroups.includes(t.underlyingSymbol)
+                              ? '−'
+                              : '+'}
+                          </button>
+                        </th>
+                      </tr>
+                    )}
                   <MarketStockRow
                     symbol={t.symbol}
                     name={t.shortName + ' · ' + issuerName(t.issuer)}

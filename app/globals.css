@@ -4890,3 +4890,46 @@ body:has(.community-entry) > footer {
 .market-toolbar .market-refresh-note {
   margin: 0 !important;
 }
+
+/* Market discovery: one overview, progressive explanations, issuer comparison. */
+.ecosystem-stats .metric-label { display: flex; align-items: center; gap: 6px; }
+.market-dex-breakdown { display: block; }
+.market-dex-breakdown > summary { cursor: pointer; font-size: 14px; font-weight: 500; padding: 4px 0; }
+.market-dex-breakdown[open] > summary { margin-bottom: 18px; }
+.market-dex-breakdown .market-dex-row { margin-top: 10px; }
+.market-browse-filters { display: grid; gap: 18px; margin: 26px 0 20px; }
+.market-asset-tabs, .market-issuer-selection { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.market-asset-tabs button, .market-filter-trigger, .market-selected-issuer { border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; background: var(--card); color: var(--foreground); font-size: 14px; cursor: pointer; }
+.market-asset-tabs button[aria-pressed="true"] { background: var(--foreground); color: var(--background); border-color: var(--foreground); }
+.market-selected-issuer { background: var(--muted); }
+.market-clear-filters { padding: 10px; color: var(--muted-foreground); cursor: pointer; }
+.market-issuer-popover label { display: flex; align-items: center; gap: 12px; padding: 12px 8px; cursor: pointer; }
+.market-issuer-popover input { width: 18px; height: 18px; accent-color: var(--foreground); }
+.market-issuer-popover button { padding: 12px 8px; text-align: left; }
+.market-sort-select { display: grid; gap: 6px; font-size: 13px; color: var(--muted-foreground); }
+.market-sort-select select { padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); color: var(--foreground); max-width: 100%; }
+.market-group-row th { background: var(--muted); padding: 10px 16px; }
+.market-group-row th > span { font-weight: 600; margin-right: 16px; }
+.market-group-row button { font-weight: 400; font-size: 13px; cursor: pointer; padding: 8px; }
+.market-group-row button:disabled { cursor: default; color: var(--muted-foreground); }
+.market-activity-scope .holdings-info-trigger { display: inline-flex; vertical-align: middle; }
+@media (max-width: 640px) {
+  .market-asset-tabs button { padding: 10px; font-size: 12px; }
+  .market-table-filters { flex-wrap: wrap; align-items: flex-start; }
+  .market-sort-select { width: 100%; }
+  .market-activity-panel > header { flex-wrap: wrap; gap: 12px; }
+  .market-activity-panel select { max-width: 100%; }
+}
+@media (max-width: 640px) {
+  .market-discovery-table { min-width: 0 !important; width: 100%; table-layout: auto; }
+  .market-discovery-table caption { white-space: normal; text-align: left; line-height: 1.5; }
+  .market-discovery-table > thead > tr > th:nth-child(2),
+  .market-discovery-table > thead > tr > th:nth-child(4),
+  .market-discovery-table > thead > tr > th:nth-child(6),
+  .market-discovery-table > tbody > tr:not(.stock-detail-row):not(.market-group-row) > td:nth-child(2),
+  .market-discovery-table > tbody > tr:not(.stock-detail-row):not(.market-group-row) > td:nth-child(4),
+  .market-discovery-table > tbody > tr:not(.stock-detail-row):not(.market-group-row) > td:nth-child(6) { display: none; }
+  .market-discovery-table > thead > tr > th, .market-discovery-table > tbody > tr > td { padding: 12px 8px; white-space: normal; overflow-wrap: anywhere; font-size: 12px; }
+  .market-discovery-table .market-sort-button { font-size: 11px; }
+  .market-discovery-table .market-group-row th { padding: 6px 8px; }
+}

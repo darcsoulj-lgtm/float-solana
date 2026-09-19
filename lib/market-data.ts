@@ -405,6 +405,7 @@ export async function publicJson(
       'api.geckoterminal.com',
       'coins.llama.fi',
       'www.stonkfun.xyz',
+      'rest-api.tessera.pe',
     ].includes(u.hostname) ||
     u.username ||
     u.password

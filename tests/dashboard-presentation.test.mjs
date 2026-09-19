@@ -6,6 +6,7 @@ import { createRequire } from 'node:module';
 import ts from 'typescript';
 import { bundle } from './helpers/bundle.mjs';
 const stockPools = await bundle("export * from './lib/stock-pools';");
+const marketBrowse = await bundle("export * from './lib/market-browse';");
 const communityTypes = await bundle("export * from './lib/community-types';");
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -280,10 +281,15 @@ async function renderDashboard(search, interact) {
             useState: (initial) => {
               const index = stateIndex++;
               if (!(index in state))
-                state[index] = typeof initial === 'function' ? initial() : initial;
-              return [state[index], (value) => {
-                state[index] = typeof value === 'function' ? value(state[index]) : value;
-              }];
+                state[index] =
+                  typeof initial === 'function' ? initial() : initial;
+              return [
+                state[index],
+                (value) => {
+                  state[index] =
+                    typeof value === 'function' ? value(state[index]) : value;
+                },
+              ];
             },
             useEffect: () => {},
             useRef: (initial) => ({ current: initial }),
@@ -319,13 +325,18 @@ async function renderDashboard(search, interact) {
     './member-brief': { MemberBrief: Empty },
     './holder-tier-badge': { HolderTierBadge: Empty },
     '@/lib/holder-tier': { HOLDER_TIERS: tierLevels },
+    '@/lib/market-browse': marketBrowse,
+    './tessera-context': { TesseraContext: Empty },
+    './market-browse-filters': { MarketBrowseFilters: Empty },
     '@/lib/client': { api: () => {} },
     '@/lib/community-post': {
       communityPostErrors: () => ({}),
       POST_LIMITS: { title: { max: 200 }, body: { max: 50000 } },
     },
     '@/lib/community-types': communityTypes,
-    '@/lib/tokens': { TOKENS: [{ symbol: 'MU', shortName: 'Micron', issuer: 'backpack' }] },
+    '@/lib/tokens': {
+      TOKENS: [{ symbol: 'MU', shortName: 'Micron', issuer: 'backpack' }],
+    },
   });
   const previous = globalThis.window;
   const pushed = [];
@@ -367,23 +378,52 @@ async function renderDashboard(search, interact) {
   }
 }
 void test('discussion composer offers only the eight curated channels and normalizes legacy topics', async () => {
-  const expected = communityTypes.COMMUNITY_CHANNELS.map(({ id, name }) => ({ value: id, label: name }));
+  const expected = communityTypes.COMMUNITY_CHANNELS.map(({ id, name }) => ({
+    value: id,
+    label: name,
+  }));
   assert.equal(expected.length, 8);
-  for (const topic of ['all', 'general', 'MU', 'old-room', ...expected.map(({ value }) => value)]) {
-    await renderDashboard('?view=home&topic=' + topic, (tree, _pushed, render) => {
-      const create = findElement(tree, (e) =>
-        typeof e.props?.onClick === 'function' &&
-        React.Children.toArray(e.props.children).includes(' New discussion'));
-      assert.ok(create, 'New discussion action exists');
-      create.props.onClick();
-      const picker = findElement(render(), (e) => e.props?.label === 'Discussion channel');
-      assert.deepEqual(picker.props.items, expected);
-      assert.equal(picker.props.value, expected.some((item) => item.value === topic) ? topic : expected[0].value);
-      assert.equal(picker.props.placeholder, 'Search channels…');
-      assert.equal(picker.props.emptyMessage, 'No matching channel.');
-      picker.props.onChange(expected[4].value);
-      assert.equal(findElement(render(), (e) => e.props?.label === 'Discussion channel').props.value, expected[4].value);
-    });
+  for (const topic of [
+    'all',
+    'general',
+    'MU',
+    'old-room',
+    ...expected.map(({ value }) => value),
+  ]) {
+    await renderDashboard(
+      '?view=home&topic=' + topic,
+      (tree, _pushed, render) => {
+        const create = findElement(
+          tree,
+          (e) =>
+            typeof e.props?.onClick === 'function' &&
+            React.Children.toArray(e.props.children).includes(
+              ' New discussion',
+            ),
+        );
+        assert.ok(create, 'New discussion action exists');
+        create.props.onClick();
+        const picker = findElement(
+          render(),
+          (e) => e.props?.label === 'Discussion channel',
+        );
+        assert.deepEqual(picker.props.items, expected);
+        assert.equal(
+          picker.props.value,
+          expected.some((item) => item.value === topic)
+            ? topic
+            : expected[0].value,
+        );
+        assert.equal(picker.props.placeholder, 'Search channels…');
+        assert.equal(picker.props.emptyMessage, 'No matching channel.');
+        picker.props.onChange(expected[4].value);
+        assert.equal(
+          findElement(render(), (e) => e.props?.label === 'Discussion channel')
+            .props.value,
+          expected[4].value,
+        );
+      },
+    );
   }
 });
 void test('old Saved links open Discussions with Saved selected, not a separate destination', async () => {
@@ -579,6 +619,9 @@ async function marketFixture(props = {}, valuation = {}) {
       useEffect: () => {},
       useRef: (v) => ({ current: v }),
     },
+    '@/lib/market-browse': marketBrowse,
+    './tessera-context': { TesseraContext: Empty },
+    './market-browse-filters': { MarketBrowseFilters: Empty },
     '@/lib/client': { api: () => {} },
     '@/lib/tokens': {
       TOKENS: tokens,
@@ -722,57 +765,32 @@ void test('News keeps its agenda visible when the headline request fails', async
   assert.match(html, /Agenda for MU/);
 });
 
-void test('compact issuer filters select and reset while the table prioritizes trading data', async () => {
+void test('issuer multi-selection filters rows and leaves market totals intact', async () => {
   const f = await marketFixture();
   let tree = f.render();
   const filters = () =>
-    findElement(tree, (e) => e.props?.['aria-label'] === 'Filter by issuer');
-  const button = (name) =>
-    findElement(
-      filters(),
-      (e) => e.type === 'button' && e.props['aria-label'] === name,
-    );
-  assert.equal(button('All issuers').props['aria-pressed'], true);
-  button('Ondo').props.onClick();
+    findElement(tree, (e) => typeof e.props?.onIssuers === 'function');
+  filters().props.onIssuers(['ondo']);
   tree = f.render();
-  let html = renderToStaticMarkup(tree);
-  assert.equal(button('Ondo').props['aria-pressed'], true);
-  assert.match(html, /GOOGLon/);
-  assert.doesNotMatch(html, /MU Held/);
-  assert.match(html, /Market-wide totals/);
-  assert.match(html, /Portfolio summary/);
-  const cards = findElement(
+  assert.match(renderToStaticMarkup(tree), /GOOGLon/);
+  assert.doesNotMatch(renderToStaticMarkup(tree), /MU Held/);
+  assert.match(renderToStaticMarkup(tree), /Market-wide totals/);
+  filters().props.onIssuers(['ondo', 'backpack']);
+  tree = f.render();
+  assert.match(renderToStaticMarkup(tree), /GOOGLon/);
+  assert.match(renderToStaticMarkup(tree), /MU Held/);
+  findElement(
     tree,
     (e) => typeof e.props?.onIssuer === 'function',
-  );
-  assert.doesNotMatch(
-    renderToStaticMarkup(filters()),
-    /Minted value|Circulating value/,
-  );
-  assert.match(renderToStaticMarkup(filters()), /title="1 tokenized stocks"/);
-  const table = findElement(
-    tree,
-    (e) => e.type === 'table' && e.props.className === 'market-table',
-  );
-  const body = findElement(table, (e) => e.type === 'tbody');
-  assert.match(renderToStaticMarkup(body), />Minted<|>Circulating</);
-  assert.match(renderToStaticMarkup(table), /About DEX volume/);
-  assert.match(renderToStaticMarkup(table), /Pool liquidity/);
-  assert.doesNotMatch(html, /Not verified/);
-  assert.equal(button('Ondo').props.type, 'button');
-  assert.doesNotMatch(html, /issuer-card/);
-  cards.props.onIssuer('backpack');
+  ).props.onIssuer('backpack');
   tree = f.render();
-  assert.equal(button('Backpack').props['aria-pressed'], true);
-  html = renderToStaticMarkup(tree);
-  assert.match(html, /MU Held/);
-  assert.doesNotMatch(html, /GOOGLon/);
-  button('All issuers').props.onClick();
+  assert.deepEqual(filters().props.issuers, ['backpack']);
+  assert.doesNotMatch(renderToStaticMarkup(tree), /GOOGLon/);
+  filters().props.onIssuers([]);
   tree = f.render();
-  html = renderToStaticMarkup(tree);
-  assert.match(html, /MU Held/);
-  assert.match(html, /GOOGLon/);
-  assert.equal(button('All issuers').props['aria-pressed'], true);
+  assert.match(renderToStaticMarkup(tree), /GOOGLon/);
+  assert.match(renderToStaticMarkup(tree), /About DEX volume/);
+  assert.match(renderToStaticMarkup(tree), /Pool liquidity/);
 });
 
 void test('Ecosystem overview keeps valuation estimates and their caveats inside collapsed coverage', async () => {
@@ -830,13 +848,14 @@ void test('Ecosystem overview keeps valuation estimates and their caveats inside
       select: () => {},
     }),
   );
-  assert.equal((html.match(/<details/g) || []).length, 1);
+  assert.equal((html.match(/<details/g) || []).length, 2);
+  assert.match(html, /View DEX breakdown/);
   const headline = html.split('<details')[0];
   assert.match(headline, /Tracked onchain value/);
   assert.match(headline, /\$1.5K/);
   assert.doesNotMatch(headline, /circulating market cap/);
   assert.doesNotMatch(html, /Stonkfun|Stock-linked ecosystem/);
-  assert.match(headline, /Tokens/);
+  assert.match(headline, /Tracked tokens/);
   assert.match(headline, /Underlying assets/);
   assert.doesNotMatch(html, /<details[^>]*\sopen(?:[ =>])/);
   assert.match(html, /Coverage &amp; methodology/);
@@ -982,21 +1001,17 @@ void test('Home news starts with five headlines, expands on demand, and Discuss 
   assert.doesNotMatch(renderToStaticMarkup(render()), /Updates delayed/);
 });
 
-void test('Issuer filters remain usable when valuation data is delayed', async () => {
+void test('Issuer selection does not depend on valuation availability', async () => {
   const f = await marketFixture(
     {},
     { delayed: true, observedAt: Date.now() - 3600000 },
   );
-  const tree = f.render();
-  const filters = findElement(
-    tree,
-    (e) => e.props?.['aria-label'] === 'Filter by issuer',
-  );
-  const html = renderToStaticMarkup(filters);
-  assert.match(html, /Backpack/);
-  assert.match(html, /Ondo/);
-  assert.match(html, /issuer-filter-count/);
-  assert.doesNotMatch(html, /Delayed|Minted|Circulating|Unavailable/);
+  findElement(
+    f.render(),
+    (e) => typeof e.props?.onIssuers === 'function',
+  ).props.onIssuers(['ondo']);
+  assert.match(renderToStaticMarkup(f.render()), /GOOGLon/);
+  assert.doesNotMatch(renderToStaticMarkup(f.render()), /MU Held/);
 });
 
 void test('Home portfolio links filter the existing news area and market navigation stays explicit', async () => {
@@ -1099,17 +1114,16 @@ void test('All issuer deep links resolve inside Markets and unknown issuers rese
   );
 });
 
-void test('Issuer buttons open their matching dashboard when used inside Markets', async () => {
+void test('Issuer activity filters in place even when an old navigation callback is supplied', async () => {
   const opened = [];
   const f = await marketFixture({ onIssuer: (issuer) => opened.push(issuer) });
-  for (const name of ['Backpack', 'Ondo']) {
-    const tree = f.render();
-    findElement(
-      tree,
-      (e) => e.type === 'button' && e.props['aria-label'] === name,
-    ).props.onClick();
-  }
-  assert.deepEqual(opened, ['backpack', 'ondo']);
+  findElement(
+    f.render(),
+    (e) => typeof e.props?.onIssuer === 'function',
+  ).props.onIssuer('ondo');
+  assert.deepEqual(opened, []);
+  assert.match(renderToStaticMarkup(f.render()), /GOOGLon/);
+  assert.doesNotMatch(renderToStaticMarkup(f.render()), /MU Held/);
 });
 
 void test('Markets sidebar resets every issuer dashboard to All markets and clears the stock deep link', async () => {
