@@ -343,56 +343,16 @@ try {
   await editorialFlow(base, cookie);
   await profileNewsFlow(base, cookie, m.id);
   if (process.env.TEST_LIVE_MARKETS === '1') await marketFlow(base, cookie);
-  const roomName = 'Memory club ' + crypto.randomUUID();
   await call(
     'rooms',
-    { name: roomName, description: 'Member-created room for local testing.' },
+    { name: 'Unapproved channel', description: 'Not member-creatable.' },
     { session: '', status: 401 },
   );
-  const room = (
-    await call(
-      'rooms',
-      { name: roomName, description: 'Member-created room for local testing.' },
-      { status: 201 },
-    )
-  ).d;
-  const roomHome = (await call('home')).d;
-  assert.ok(
-    roomHome.rooms.some((r) => r.id === room.id && r.thread_count === 0),
-  );
-  assert.ok(
-    roomHome.rooms.every((r) => r.id.startsWith('room-') || r.thread_count > 0),
-    'No empty auto-generated stock rooms',
-  );
-  assert.ok(roomHome.follows.includes(room.id));
   await call(
     'rooms',
-    {
-      name: roomName.toUpperCase(),
-      description: 'Duplicate room should be rejected.',
-    },
-    { status: 409 },
+    { name: 'Unapproved channel', description: 'Not member-creatable.' },
+    { status: 403 },
   );
-  const roomPost = (
-    await call(
-      'threads',
-      {
-        topic: room.id,
-        title: 'First room discussion',
-        body: 'A persistent discussion in a member-created room.',
-      },
-      { status: 201 },
-    )
-  ).d;
-  const roomFeed = (await call('threads?topic=' + room.id)).d;
-  assert.equal(roomFeed.threads[0].room_name, roomName);
-  assert.ok(
-    (await call('threads?feed=personal')).d.threads.some(
-      (t) => t.id === roomPost.id,
-    ),
-  );
-  await call('threads/' + roomPost.id + '/remove', {});
-  await call('follow', { symbol: room.id, follow: false });
 
   await call('save', { type: 'thread', id: t.id, save: true });
   assert.ok(
@@ -455,6 +415,60 @@ try {
       .threads.length,
     0,
   );
+  const pollThread = (
+    await call(
+      'threads',
+      {
+        topic: 'general',
+        title: 'Which topic should we discuss next?',
+        body: 'Vote to reveal the result.',
+        poll: {
+          options: ['Issuer updates', 'Token liquidity'],
+          duration: '3d',
+        },
+      },
+      { session: secondCookie, status: 201 },
+    )
+  ).d;
+  const beforeVote = (
+    await call(
+      'threads?topic=general&thread=' + pollThread.id,
+      undefined,
+      { session: secondCookie },
+    )
+  ).d.threads[0];
+  assert.equal(beforeVote.poll.results_visible, false);
+  assert.equal(beforeVote.poll.options[0].vote_count, null);
+  await call(
+    'threads/' + pollThread.id + '/poll/vote',
+    { optionId: beforeVote.poll.options[0].id },
+    { status: 201 },
+  );
+  const afterFirstVote = (
+    await call('threads?topic=general&thread=' + pollThread.id)
+  ).d.threads[0];
+  assert.equal(afterFirstVote.poll.results_visible, true);
+  assert.equal(afterFirstVote.poll.total_votes, 1);
+  await call(
+    'threads/' + pollThread.id + '/poll/vote',
+    { optionId: beforeVote.poll.options[1].id },
+    { session: secondCookie, status: 201 },
+  );
+  await call(
+    'threads/' + pollThread.id + '/poll/vote',
+    { optionId: beforeVote.poll.options[0].id },
+    { session: secondCookie, status: 409 },
+  );
+  const afterSecondVote = (
+    await call(
+      'threads?topic=general&thread=' + pollThread.id,
+      undefined,
+      { session: secondCookie },
+    )
+  ).d.threads[0];
+  assert.equal(afterSecondVote.poll.total_votes, 2);
+  assert.equal(afterSecondVote.poll.options[1].selected, true);
+  checks += 7;
   await call(
     'threads/' + t.id + '/remove',
     {},

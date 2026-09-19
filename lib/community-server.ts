@@ -2,7 +2,11 @@ import { db, digest } from './server';
 import { AppError, textValue } from './validation';
 import { type CommunityMember } from './community-types';
 import { TOKENS, type StockToken } from './tokens';
-import { communityPostErrors } from './community-post';
+import {
+  communityPostErrors,
+  POLL_DURATIONS,
+  type PollDraft,
+} from './community-post';
 export const MEMBERSHIP_MS = 24 * 60 * 60 * 1000;
 export function communityCookie(req: Request) {
   const cookies = req.headers.get('cookie') || '';
@@ -45,6 +49,32 @@ export function validateCommunityPost(
     body: String(b.body).trim(),
     topic: String(b.topic),
   };
+}
+export function validateCommunityPoll(value: unknown): PollDraft | null {
+  if (value === undefined) return null;
+  const input = value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+  const candidate = {
+    options: Array.isArray(input.options) ? input.options : [],
+    duration: input.duration,
+  };
+  const error = communityPostErrors({
+    topic: 'general',
+    title: 'Poll',
+    body: '',
+    poll: candidate,
+  }).pollOptions;
+  if (error) throw new AppError(error);
+  return {
+    options: candidate.options.map((option) => String(option).trim()),
+    duration: candidate.duration as PollDraft['duration'],
+  };
+}
+export function pollClosesAt(duration: PollDraft['duration'], now: number) {
+  if (!POLL_DURATIONS.includes(duration)) throw new AppError('Invalid poll.');
+  const days = duration === 'none' ? 0 : Number.parseInt(duration, 10);
+  return days ? now + days * 86400000 : null;
 }
 export function validateAlias(value: unknown) {
   const alias = textValue(value, 3, 24, 'Display name');

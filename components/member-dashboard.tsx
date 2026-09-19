@@ -33,6 +33,8 @@ import {
   RefreshCw,
   MessageSquare,
   ArrowRight,
+  ListChecks,
+  X,
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Checkbox } from './ui/checkbox';
@@ -71,7 +73,11 @@ import { ThemeToggle } from './theme-toggle';
 import { MemberAvatar, prepareAvatar } from './member-avatar';
 import { api } from '@/lib/client';
 import { readThenRefresh } from '@/lib/client-loading';
-import { communityPostErrors, POST_LIMITS } from '@/lib/community-post';
+import {
+  communityPostErrors,
+  POST_LIMITS,
+  type PollDuration,
+} from '@/lib/community-post';
 import {
   type CommunityStatus,
   type MemberHome,
@@ -203,6 +209,10 @@ export function MemberDashboard({
     COMMUNITY_CHANNELS[0].id,
   );
   const [draftBody, setDraftBody] = useState('');
+  const [draftPoll, setDraftPoll] = useState(false);
+  const [draftPollOptions, setDraftPollOptions] = useState(['', '']);
+  const [draftPollDuration, setDraftPollDuration] =
+    useState<PollDuration>('3d');
   const [draftAttempted, setDraftAttempted] = useState(false);
   const [draftError, setDraftError] = useState('');
   const [draftPosting, setDraftPosting] = useState(false);
@@ -214,6 +224,14 @@ export function MemberDashboard({
           title: draftTitle,
           body: draftBody,
           topic: draftTopic,
+          ...(draftPoll
+            ? {
+                poll: {
+                  options: draftPollOptions,
+                  duration: draftPollDuration,
+                },
+              }
+            : {}),
         },
         tokens,
       )
@@ -401,6 +419,9 @@ export function MemberDashboard({
         : COMMUNITY_CHANNELS[0].id,
     );
     setDraftBody('');
+    setDraftPoll(false);
+    setDraftPollOptions(['', '']);
+    setDraftPollDuration('3d');
     setDraftAttempted(false);
     setDraftError('');
     setCompose(true);
@@ -1280,15 +1301,25 @@ export function MemberDashboard({
                 title: draftTitle,
                 body: draftBody,
                 topic: draftTopic,
+                ...(draftPoll
+                  ? {
+                      poll: {
+                        options: draftPollOptions,
+                        duration: draftPollDuration,
+                      },
+                    }
+                  : {}),
               };
               const errors = communityPostErrors(payload, tokens);
               const invalidField = errors.topic
                 ? 'topic'
                 : errors.title
                   ? 'title'
-                  : errors.body
-                    ? 'body'
-                    : null;
+                    : errors.body
+                      ? 'body'
+                      : errors.pollOptions
+                        ? 'poll-options'
+                      : null;
               if (invalidField) {
                 document.getElementById(`${draftId}-${invalidField}`)?.focus();
                 return;
@@ -1319,6 +1350,24 @@ export function MemberDashboard({
               }
             }}
           >
+            <fieldset className="compose-kind" aria-label="Discussion type">
+              <button
+                type="button"
+                aria-pressed={!draftPoll}
+                disabled={draftPosting}
+                onClick={() => setDraftPoll(false)}
+              >
+                Discussion
+              </button>
+              <button
+                type="button"
+                aria-pressed={draftPoll}
+                disabled={draftPosting}
+                onClick={() => setDraftPoll(true)}
+              >
+                <ListChecks size={15} /> Poll
+              </button>
+            </fieldset>
             <div className="discussion-field">
               <label htmlFor={`${draftId}-topic`}>Channel</label>
               <SearchPicker
@@ -1341,17 +1390,21 @@ export function MemberDashboard({
               )}
             </div>
             <div className="discussion-field">
-              <label htmlFor={`${draftId}-title`}>Title</label>
+              <label htmlFor={`${draftId}-title`}>
+                {draftPoll ? 'Question' : 'Title'}
+              </label>
               <input
                 id={`${draftId}-title`}
-                aria-label="Discussion title"
+                aria-label={draftPoll ? 'Poll question' : 'Discussion title'}
                 aria-invalid={!!draftErrors.title}
                 aria-describedby={`${draftId}-title-help`}
                 value={draftTitle}
                 onChange={(e) => setDraftTitle(e.target.value)}
                 disabled={draftPosting}
                 name="title"
-                placeholder="Discussion title"
+                placeholder={
+                  draftPoll ? 'Ask verified members a question…' : 'Discussion title'
+                }
                 maxLength={POST_LIMITS.title.max}
                 required
               />
@@ -1363,18 +1416,80 @@ export function MemberDashboard({
                 {draftErrors.title || ''}
               </p>
             </div>
+            {draftPoll && (
+              <div className="discussion-field" id={`${draftId}-poll-options`}>
+                <span className="discussion-label">Choices</span>
+                <div className="poll-option-editor">
+                  {draftPollOptions.map((option, index) => (
+                    <div key={index}>
+                      <input
+                        aria-label={`Poll choice ${index + 1}`}
+                        value={option}
+                        disabled={draftPosting}
+                        placeholder={`Choice ${index + 1}`}
+                        maxLength={POST_LIMITS.pollOption.max}
+                        onChange={(event) =>
+                          setDraftPollOptions((options) =>
+                            options.map((entry, position) =>
+                              position === index ? event.target.value : entry,
+                            ),
+                          )
+                        }
+                      />
+                      {draftPollOptions.length > 2 && (
+                        <button
+                          type="button"
+                          aria-label={`Remove poll choice ${index + 1}`}
+                          disabled={draftPosting}
+                          onClick={() =>
+                            setDraftPollOptions((options) =>
+                              options.filter((_, position) => position !== index),
+                            )
+                          }
+                        >
+                          <X size={16} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {draftPollOptions.length < 4 && (
+                  <button
+                    className="text-action"
+                    type="button"
+                    disabled={draftPosting}
+                    onClick={() =>
+                      setDraftPollOptions((options) => [...options, ''])
+                    }
+                  >
+                    <Plus size={15} /> Add choice
+                  </button>
+                )}
+                {draftErrors.pollOptions && (
+                  <p className="field-error" role="alert">
+                    {draftErrors.pollOptions}
+                  </p>
+                )}
+              </div>
+            )}
             <div className="discussion-field">
-              <label htmlFor={`${draftId}-body`}>Message</label>
+              <label htmlFor={`${draftId}-body`}>
+                {draftPoll ? 'Context (optional)' : 'Message'}
+              </label>
               <textarea
                 id={`${draftId}-body`}
-                aria-label="Message"
+                aria-label={draftPoll ? 'Poll context' : 'Message'}
                 aria-invalid={!!draftErrors.body}
                 aria-describedby={`${draftId}-body-help`}
                 name="body"
                 value={draftBody}
                 onChange={(e) => setDraftBody(e.target.value)}
                 disabled={draftPosting}
-                placeholder="Write your message…"
+                placeholder={
+                  draftPoll
+                    ? 'Add context for members before they vote…'
+                    : 'Write your message…'
+                }
                 maxLength={POST_LIMITS.body.max}
               />
               <p
@@ -1385,13 +1500,38 @@ export function MemberDashboard({
                 {draftErrors.body || ''}
               </p>
             </div>
+            {draftPoll && (
+              <div className="discussion-field">
+                <label htmlFor={`${draftId}-poll-duration`}>Close poll</label>
+                <select
+                  id={`${draftId}-poll-duration`}
+                  aria-label="Close poll"
+                  value={draftPollDuration}
+                  disabled={draftPosting}
+                  onChange={(event) =>
+                    setDraftPollDuration(event.target.value as PollDuration)
+                  }
+                >
+                  <option value="1d">In 1 day</option>
+                  <option value="3d">In 3 days</option>
+                  <option value="7d">In 7 days</option>
+                  <option value="none">No closing date</option>
+                </select>
+              </div>
+            )}
             {draftError && (
               <p className="error" role="alert">
                 {draftError}
               </p>
             )}
             <Button type="submit" disabled={draftPosting}>
-              {draftPosting ? 'Posting…' : 'Post discussion'}{' '}
+              {draftPosting
+                ? draftPoll
+                  ? 'Creating poll…'
+                  : 'Posting…'
+                : draftPoll
+                  ? 'Create poll'
+                  : 'Post discussion'}{' '}
               <ArrowUpRight size={16} />
             </Button>
           </form>

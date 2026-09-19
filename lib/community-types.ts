@@ -77,6 +77,20 @@ export type CommunityAuthor = {
   value_tier?: string | null;
   value_tier_expires_at?: number;
 };
+export type CommunityPollOption = {
+  id: string;
+  label: string;
+  position: number;
+  vote_count: number | null;
+  selected: boolean;
+};
+export type CommunityPoll = {
+  closes_at: number | null;
+  closed: boolean;
+  results_visible: boolean;
+  total_votes: number | null;
+  options: CommunityPollOption[];
+};
 export type CommunityThread = CommunityAuthor & {
   id: string;
   topic: string;
@@ -87,6 +101,7 @@ export type CommunityThread = CommunityAuthor & {
   reply_count: number;
   hidden: number;
   saved: number;
+  poll?: CommunityPoll;
 };
 export type CommunityReply = CommunityAuthor & {
   id: string;

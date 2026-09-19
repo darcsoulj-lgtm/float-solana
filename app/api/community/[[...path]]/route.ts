@@ -36,7 +36,9 @@ import {
   MEMBERSHIP_MS,
   sessionCookie,
   validateAlias,
+  validateCommunityPoll,
   validateCommunityPost,
+  pollClosesAt,
 } from '@/lib/community-server';
 export const dynamic = 'force-dynamic';
 function json(data: unknown, status = 200, cookie?: string) {
@@ -620,6 +622,7 @@ async function handler(req: Request) {
     if (path[0] === 'threads' && !path[1]) {
       if (post) {
         const p = validateCommunityPost(b, (await registry()).tokens);
+        const poll = validateCommunityPoll(b.poll);
         if (
           p.topic.startsWith('room-') &&
           !(await db()
@@ -657,6 +660,22 @@ async function handler(req: Request) {
               'INSERT INTO community_threads (id,member_id,topic,title,body,hidden,created_at,updated_at) VALUES (?,?,?,?,?,0,?,?)',
             )
             .bind(id, member.id, p.topic, p.title, p.body, now, now),
+          ...(poll
+            ? [
+                db()
+                  .prepare(
+                    'INSERT INTO community_polls (thread_id,closes_at,created_at) VALUES (?,?,?)',
+                  )
+                  .bind(id, pollClosesAt(poll.duration, now), now),
+                ...poll.options.map((label, position) =>
+                  db()
+                    .prepare(
+                      'INSERT INTO community_poll_options (id,thread_id,label,position) VALUES (?,?,?,?)',
+                    )
+                    .bind(crypto.randomUUID(), id, label, position),
+                ),
+              ]
+            : []),
         ]);
         return json({ id }, 201);
       }
@@ -705,15 +724,76 @@ async function handler(req: Request) {
           )
           .all<CommunityThread>()
       ).results;
+      const pageRows = rows.slice(0, 30);
+      const pollOptions = new Map<
+        string,
+        {
+          closes_at: number | null;
+          id: string;
+          label: string;
+          position: number;
+          vote_count: number;
+          selected: number;
+        }[]
+      >();
+      if (pageRows.length) {
+        const placeholders = pageRows.map(() => '?').join(',');
+        const optionRows = (
+          await db()
+            .prepare(
+              `SELECT p.thread_id,p.closes_at,o.id,o.label,o.position,COUNT(v.member_id) vote_count,MAX(CASE WHEN v.member_id=? THEN 1 ELSE 0 END) selected FROM community_polls p JOIN community_poll_options o ON o.thread_id=p.thread_id LEFT JOIN community_poll_votes v ON v.option_id=o.id WHERE p.thread_id IN (${placeholders}) GROUP BY p.thread_id,p.closes_at,o.id,o.label,o.position ORDER BY o.position`,
+            )
+            .bind(member.id, ...pageRows.map((row) => row.id))
+            .all<{
+              thread_id: string;
+              closes_at: number | null;
+              id: string;
+              label: string;
+              position: number;
+              vote_count: number;
+              selected: number;
+            }>()
+        ).results;
+        for (const option of optionRows) {
+          const list = pollOptions.get(option.thread_id) || [];
+          list.push(option);
+          pollOptions.set(option.thread_id, list);
+        }
+      }
       return json({
-        threads: rows.slice(0, 30).map((row) => ({
+        threads: pageRows.map((row) => {
+          const options = pollOptions.get(row.id);
+          const selected = !!options?.some((option) => option.selected);
+          const closed = !!options?.[0]?.closes_at && options[0].closes_at <= Date.now();
+          const resultsVisible = selected || closed;
+          return {
           ...row,
           room_name:
             row.room_name ||
             COMMUNITY_CHANNELS.find((channel) => channel.id === row.topic)
               ?.name ||
             row.room_name,
-        })),
+          ...(options
+            ? {
+                poll: {
+                  closes_at: options[0].closes_at,
+                  closed,
+                  results_visible: resultsVisible,
+                  total_votes: resultsVisible
+                    ? options.reduce((sum, option) => sum + option.vote_count, 0)
+                    : null,
+                  options: options.map((option) => ({
+                    id: option.id,
+                    label: option.label,
+                    position: option.position,
+                    vote_count: resultsVisible ? option.vote_count : null,
+                    selected: !!option.selected,
+                  })),
+                },
+              }
+            : {}),
+        };
+        }),
         nextCursor:
           rows.length > 30 ? rows[29].created_at + ':' + rows[29].id : null,
       });
@@ -733,6 +813,35 @@ async function handler(req: Request) {
           .bind(thread.id)
           .run();
         return json({ ok: true });
+      }
+      if (path[2] === 'poll' && path[3] === 'vote' && post) {
+        await rateLimit('community-poll:' + member.id, 10);
+        const poll = await db()
+          .prepare(
+            'SELECT closes_at FROM community_polls WHERE thread_id=?',
+          )
+          .bind(thread.id)
+          .first<{ closes_at: number | null }>();
+        if (!poll) throw new AppError('Poll unavailable.', 404);
+        if (poll.closes_at !== null && poll.closes_at <= Date.now())
+          throw new AppError('This poll is closed.', 409);
+        const optionId = textValue(b.optionId, 36, 36, 'Poll option');
+        const option = await db()
+          .prepare(
+            'SELECT id FROM community_poll_options WHERE id=? AND thread_id=?',
+          )
+          .bind(optionId, thread.id)
+          .first();
+        if (!option) throw new AppError('Poll option unavailable.', 404);
+        const voted = await db()
+          .prepare(
+            'INSERT INTO community_poll_votes(thread_id,member_id,option_id,created_at) VALUES (?,?,?,?) ON CONFLICT(thread_id,member_id) DO NOTHING',
+          )
+          .bind(thread.id, member.id, optionId, Date.now())
+          .run();
+        if (!voted.meta.changes)
+          throw new AppError('You have already voted in this poll.', 409);
+        return json({ ok: true }, 201);
       }
       if (path[2] === 'replies') {
         if (post) {

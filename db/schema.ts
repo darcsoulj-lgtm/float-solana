@@ -182,6 +182,44 @@ export const communityReplies = sqliteTable(
     index('idx_community_replies_thread').on(t.threadId, t.hidden, t.createdAt),
   ],
 );
+export const communityPolls = sqliteTable('community_polls', {
+  threadId: text('thread_id')
+    .primaryKey()
+    .references(() => communityThreads.id),
+  closesAt: integer('closes_at'),
+  createdAt: integer('created_at').notNull(),
+});
+export const communityPollOptions = sqliteTable(
+  'community_poll_options',
+  {
+    id: text('id').primaryKey(),
+    threadId: text('thread_id')
+      .notNull()
+      .references(() => communityThreads.id),
+    label: text('label').notNull(),
+    position: integer('position').notNull(),
+  },
+  (t) => [index('idx_community_poll_options_thread').on(t.threadId, t.position)],
+);
+export const communityPollVotes = sqliteTable(
+  'community_poll_votes',
+  {
+    threadId: text('thread_id')
+      .notNull()
+      .references(() => communityThreads.id),
+    memberId: text('member_id')
+      .notNull()
+      .references(() => communityMembers.id),
+    optionId: text('option_id')
+      .notNull()
+      .references(() => communityPollOptions.id),
+    createdAt: integer('created_at').notNull(),
+  },
+  (t) => [
+    uniqueIndex('idx_community_poll_vote_once').on(t.threadId, t.memberId),
+    index('idx_community_poll_votes_option').on(t.optionId),
+  ],
+);
 export const communityReports = sqliteTable(
   'community_reports',
   {

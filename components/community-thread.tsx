@@ -55,6 +55,9 @@ export function Thread({
   const replies = useCallback(async () => {
     setPage(await api<ReplyPage>('community/threads/' + t.id + '/replies'));
   }, [t.id]);
+  const poll = t.poll;
+  const pollClosed = !!poll?.closed;
+  const hasVoted = !!poll?.options.some((option) => option.selected);
   useEffect(() => {
     if (!open) return;
     const poll = () => {
@@ -93,6 +96,54 @@ export function Thread({
       <p style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
         {t.body}
       </p>
+      {poll && (
+        <section className="thread-poll" aria-label={`Poll: ${t.title}`}>
+          <div className="thread-poll-heading">
+            <strong>Member poll</strong>
+            <span>
+              {pollClosed
+                ? 'Closed'
+                : poll.closes_at
+                  ? `Closes ${new Date(poll.closes_at).toLocaleDateString()}`
+                  : 'Open'}
+            </span>
+          </div>
+          <fieldset className="thread-poll-options">
+            <legend>Poll choices</legend>
+            {poll.options.map((option) => {
+              const percent =
+                poll.results_visible && poll.total_votes
+                  ? Math.round(((option.vote_count || 0) / poll.total_votes) * 100)
+                  : null;
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  className={option.selected ? 'selected' : ''}
+                  disabled={busy || hasVoted || !!pollClosed}
+                  aria-pressed={option.selected}
+                  onClick={() =>
+                    void run(async () => {
+                      await api('community/threads/' + t.id + '/poll/vote', {
+                        optionId: option.id,
+                      });
+                      await refresh();
+                    })
+                  }
+                >
+                  <span>{option.label}</span>
+                  {percent !== null && <strong>{percent}%</strong>}
+                </button>
+              );
+            })}
+          </fieldset>
+          <p className="thread-poll-note">
+            {poll.results_visible
+              ? `${poll.total_votes} verified member${poll.total_votes === 1 ? '' : 's'} voted.`
+              : 'Vote to reveal results.'}
+          </p>
+        </section>
+      )}
       <div className="thread-bottom">
         <Button
           variant="ghost"
