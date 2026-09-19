@@ -2,11 +2,13 @@
 import { FloatLogo } from './float-logo';
 import Link from '@/components/site-link';
 import Image from 'next/image';
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ArrowUpRight,
   MessageSquare,
   ShieldCheck,
+  UsersRound,
+  ChartNoAxesColumn,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -22,37 +24,6 @@ import type { CommunityStatus } from '@/lib/community-types';
 import type { CommunitySignInInput } from '@/lib/community-sign-in';
 import { selectedWallet, walletLabel } from '@/lib/wallet-provider';
 
-const PublicMarketOverview = lazy(() =>
-  import('./market-overview').then((module) => ({
-    default: module.MarketOverviewPanel,
-  })),
-);
-
-function PublicDashboard({ onJoin }: { onJoin: () => void }) {
-  return (
-    <div className="public-dashboard public-club">
-      <section className="public-dashboard-heading">
-        <div>
-          <span className="eyebrow">MARKETS</span>
-          <h1>Tokenized stocks on Solana.</h1>
-          <p>
-            Explore prices, DEX activity, liquidity, and issuer coverage before
-            you verify a wallet.
-          </p>
-        </div>
-        <Button onClick={onJoin}>
-          <MessageSquare size={17} />
-          Join discussions <ArrowUpRight size={17} />
-        </Button>
-      </section>
-      <Suspense
-        fallback={<output className="inline-status">Loading markets…</output>}
-      >
-        <PublicMarketOverview holdings={[]} hidePortfolio />
-      </Suspense>
-    </div>
-  );
-}
 export function Community() {
   const [status, setStatus] = useState<CommunityStatus | null>(null);
   const [error, setError] = useState('');
@@ -352,7 +323,51 @@ export function Community() {
           renew={openJoin}
         />
       ) : (
-        <PublicDashboard onJoin={openJoin} />
+        <div className="club public-club">
+          <section className="public-hero">
+            <div className="eyebrow">
+              <span className="small-dot" /> FOR TOKENIZED STOCK HOLDERS ON SOLANA
+            </div>
+            <h1>The community for people who hold tokenized stocks.</h1>
+            <p>
+              Verify your holdings privately. Follow the market and hear from
+              people who actually own the asset.
+            </p>
+            <div className="hero-actions">
+              <Button onClick={openJoin}>
+                Connect wallet <ArrowUpRight size={18} />
+              </Button>
+            </div>
+            {error && (
+              <div className="club-error" role="alert">
+                {error}{' '}
+                <Button
+                  variant="ghost"
+                  onClick={() => refresh().catch((e) => setError(e.message))}
+                >
+                  Retry
+                </Button>
+              </div>
+            )}
+          </section>
+          <section className="join-steps public-benefits" id="inside" aria-label="What Float offers">
+            <div>
+              <UsersRound aria-hidden="true" />
+              <h3>Verified holders</h3>
+              <p>Know you’re hearing from people who actually hold the asset.</p>
+            </div>
+            <div>
+              <MessageSquare aria-hidden="true" />
+              <h3>Share your view</h3>
+              <p>Post ideas, questions, polls, and market takes.</p>
+            </div>
+            <div>
+              <ChartNoAxesColumn aria-hidden="true" />
+              <h3>Holder insights</h3>
+              <p>See sentiment, conviction, and what holders are doing.</p>
+            </div>
+          </section>
+        </div>
       )}
       <Dialog
         open={join}

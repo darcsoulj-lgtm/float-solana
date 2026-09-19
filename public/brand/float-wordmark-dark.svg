@@ -1,1 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 330 90"><use href="/brand/float-wordmark.svg" fill="#16181c"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 306 90" role="img" aria-labelledby="title">
+  <title id="title">float</title>
+  <g fill="none" stroke="#f4f4f5" stroke-width="5" stroke-linecap="square" stroke-linejoin="round">
+    <path d="M34 82V29C34 15 42 7 57 7h8M18 35h48"/>
+    <path d="M89 7v75"/>
+    <circle cx="145" cy="57" r="25"/>
+    <circle cx="211" cy="57" r="25"/>
+    <path d="M236 34v48"/>
+    <path d="M272 7v55c0 14 6 20 19 20h6M255 35h42"/>
+  </g>
+</svg>

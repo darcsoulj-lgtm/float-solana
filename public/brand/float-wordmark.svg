@@ -1,10 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 330 90" role="img" aria-labelledby="title">
-  <title>float</title>
-  <g fill="currentColor">
-    <path d="M18 82V31C18 11 28 2 47 2h19v14H50c-8 0-12 4-12 13v2h27v14H38v37H18Z"/>
-    <path d="M82 2h19v80H82z"/>
-    <path fill-rule="evenodd" d="M151 23c27 0 43 12 43 31s-16 31-43 31-43-12-43-31 16-31 43-31Zm0 14c-15 0-24 6-24 17s9 17 24 17 24-6 24-17-9-17-24-17Z"/>
-    <path fill-rule="evenodd" d="M245 23c27 0 43 12 43 31s-16 31-43 31-43-12-43-31 16-31 43-31Zm0 14c-15 0-24 6-24 17s9 17 24 17 24-6 24-17-9-17-24-17Z"/>
-    <path d="M302 2h19v21h9v14h-9v22c0 8 3 10 9 10v14c-19 0-28-7-28-24V37h-8V23h8V2Z"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 306 90" role="img" aria-labelledby="title">
+  <title id="title">float</title>
+  <g fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="square" stroke-linejoin="round">
+    <path d="M34 82V29C34 15 42 7 57 7h8M18 35h48"/>
+    <path d="M89 7v75"/>
+    <circle cx="145" cy="57" r="25"/>
+    <circle cx="211" cy="57" r="25"/>
+    <path d="M236 34v48"/>
+    <path d="M272 7v55c0 14 6 20 19 20h6M255 35h42"/>
   </g>
 </svg>

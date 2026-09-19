@@ -14,8 +14,8 @@ export const metadata: Metadata = {
     template: '%s | Float',
   },
   icons: {
-    icon: { url: '/favicon.svg?v=float-minimal', type: 'image/svg+xml' },
-    apple: { url: '/favicon.svg?v=float-minimal', type: 'image/svg+xml' },
+    icon: { url: '/favicon.svg?v=float-refined-03', type: 'image/svg+xml' },
+    apple: { url: '/favicon.svg?v=float-refined-03', type: 'image/svg+xml' },
   },
   manifest: '/manifest.webmanifest',
   appleWebApp: {
@@ -57,7 +57,7 @@ export default function RootLayout({
           </Link>
           <nav aria-label="Main navigation">
             <Link href="/markets">Markets</Link>
-            <Link href="/">Community</Link>
+            <Link href="/?view=home">Community</Link>
           </nav>
           <ThemeToggle />
           <Link className="nav-cta" href="/#inside">
@@ -68,7 +68,7 @@ export default function RootLayout({
         <footer>
           <div>
             <Link className="footer-brand" href="/">
-              Float
+              <FloatLogo small />
             </Link>
             <p>An independent community for Solana tokenized stock holders.</p>
           </div>
