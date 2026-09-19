@@ -333,13 +333,13 @@ export function Community() {
               SOLANA
             </div>
             <h1>
-              A community for
+              The community for people who
               <br />
-              tokenized stock holders.
+              hold tokenized stocks.
             </h1>
             <p>
-              News, market data and discussions. Connect a wallet holding a
-              supported tokenized stock to join.
+              Verify your holdings privately. Follow the market and hear from
+              people who hold the same assets.
             </p>
             <div className="hero-actions">
               <Button onClick={openJoin}>

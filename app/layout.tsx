@@ -27,10 +27,10 @@ export const metadata: Metadata = {
     title: 'Float — For Solana tokenized stock holders',
     siteName: 'Float',
     description:
-      'A shared community for holders of tokenized equities on Solana.',
+      'A private community for people who hold tokenized stocks on Solana.',
   },
   description:
-    'A shared community for holders of tokenized equities on Solana.',
+    'A private community for people who hold tokenized stocks on Solana.',
 };
 export default function RootLayout({
   children,
@@ -61,7 +61,7 @@ export default function RootLayout({
           </nav>
           <ThemeToggle />
           <Link className="nav-cta" href="/#join">
-            How to join
+            How it works
           </Link>
         </header>
         <main id="main">{children}</main>
