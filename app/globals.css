@@ -4908,6 +4908,10 @@ body:has(.community-entry) > footer {
 .market-issuer-popover button { padding: 12px 8px; text-align: left; }
 .market-sort-select { display: grid; gap: 6px; font-size: 13px; color: var(--muted-foreground); }
 .market-sort-select select { padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); color: var(--foreground); max-width: 100%; }
+/* Desktop tables expose every sortable metric directly in their headers. */
+@media (min-width: 641px) {
+  .market-sort-select { display: none; }
+}
 .market-group-row th { background: var(--muted); padding: 10px 16px; }
 .market-group-row th > span { font-weight: 600; margin-right: 16px; }
 .market-group-row button { font-weight: 400; font-size: 13px; cursor: pointer; padding: 8px; }
