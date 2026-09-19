@@ -10,6 +10,7 @@ config.d1_databases = [
     binding: 'DB',
     database_name: 'float-solana-production',
     database_id: '9b18cdb5-e516-4116-8ab0-90eb670aa6d2',
+    migrations_dir: '../../drizzle',
   },
 ];
 config.r2_buckets = [];
