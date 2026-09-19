@@ -1,0 +1,9 @@
+# Market history and asset-first rows
+
+The Markets page continues to show the existing market-wide snapshot and issuer activity. It now records one daily observation of eligible Solana DEX volume and pool liquidity and offers a 7-day or 30-day chart. The chart starts when this release is deployed; past dates remain blank because historical pool snapshots were not stored. The 24-hour volume is a rolling measure observed on the recorded day, not daily executed volume. No extrapolation or synthetic backfill is used.
+
+The public history endpoint reads the already-cached, policy-filtered pool batches. It records a point only when every current registry batch is present, fresh, structurally valid, and observed within a three-minute window. Existing pool deduplication prevents shared pools from being counted for multiple tokens. Missing data leaves a gap, and only the first complete observation for a UTC date is stored. This path makes no new provider requests and carries no wallet or member information. A policy change is recorded alongside each point so a later methodology revision remains identifiable.
+
+The stock list now shows one collapsed row per underlying asset. Opening it reveals the actual issuer tokens and their separate supply, token price, change, eligible pool volume, and liquidity. The asset row displays no fabricated aggregate price or supply. Sorting still uses token-level values. The row identifies Solana explicitly; adding another chain later will require chain-aware registry identity, pool eligibility, and distinct source labels before it can be represented here.
+
+Validation: build, tests, desktop/mobile rendering, and live migration plus deployment must pass before release. A missing migration or an incomplete cache should display an unavailable chart rather than a historical zero.

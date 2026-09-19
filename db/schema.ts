@@ -2,6 +2,7 @@ import {
   sqliteTable,
   text,
   integer,
+  real,
   uniqueIndex,
   index,
 } from 'drizzle-orm/sqlite-core';
@@ -408,4 +409,17 @@ export const marketCache = sqliteTable('market_cache', {
   payload: text('payload'),
   fetchedAt: integer('fetched_at').notNull().default(0),
   retryAfter: integer('retry_after').notNull().default(0),
+});
+
+// One complete, quality-checked daily observation of eligible Solana pools.
+// Historical points are immutable so a later change in coverage cannot
+// silently rewrite what Float observed on an earlier day.
+export const marketDailyActivity = sqliteTable('market_daily_activity', {
+  day: text('day').primaryKey(),
+  observedAt: integer('observed_at').notNull(),
+  volume24h: real('volume_24h'),
+  liquidity: real('liquidity'),
+  poolCount: integer('pool_count').notNull(),
+  batchCount: integer('batch_count').notNull(),
+  policyVersion: text('policy_version').notNull(),
 });

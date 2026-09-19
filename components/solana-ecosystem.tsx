@@ -9,6 +9,7 @@ import { trackedValuation } from '@/lib/token-observation';
 import type { MarketOverview } from '@/lib/market-data';
 import { poolMetrics, POOL_SCOPE } from '@/lib/stock-pools';
 import { useState } from 'react';
+import { MarketActivityHistory } from './market-activity-history';
 const usd = (n: number | null) =>
   n === null
     ? '—'
@@ -23,11 +24,13 @@ export function SolanaEcosystem({
   now,
   onIssuer,
   select,
+  historyReady,
 }: {
   data: MarketOverview | null;
   now: number;
   onIssuer: (id: IssuerId | 'all') => void;
   select: (symbol: string) => void;
+  historyReady: boolean;
 }) {
   const [activityMetric, setActivityMetric] = useState<
     'volume' | 'liquidity' | 'value'
@@ -159,6 +162,8 @@ export function SolanaEcosystem({
           </small>
         </div>
       </div>
+
+      <MarketActivityHistory ready={historyReady} now={now} />
 
       <section
         className="market-activity-panel"

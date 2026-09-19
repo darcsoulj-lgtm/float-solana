@@ -708,16 +708,17 @@ void test('one market table filters to owned tokens without removing market-wide
   const f = await marketFixture();
   const tree = f.render();
   let html = renderToStaticMarkup(tree);
-  assert.match(html, /GOOGLon/);
-  assert.match(html, /MU Held/);
+  assert.match(html, /Alphabet/);
+  assert.match(html, /Micron/);
+  assert.doesNotMatch(html, /MU Held/);
   assert.match(html, /Market-wide totals/);
   assert.doesNotMatch(html, /Solana overview/);
   findElement(tree, (e) => e.props?.role === 'switch').props.onChange({
     target: { checked: true },
   });
   html = renderToStaticMarkup(f.render());
-  assert.doesNotMatch(html, /GOOGLon/);
-  assert.match(html, /MU Held/);
+  assert.doesNotMatch(html, /Alphabet/);
+  assert.match(html, /Micron/);
   assert.match(html, /Market-wide totals/);
   assert.match(html, /Portfolio summary/);
 });
@@ -772,23 +773,23 @@ void test('issuer multi-selection filters rows and leaves market totals intact',
     findElement(tree, (e) => typeof e.props?.onIssuers === 'function');
   filters().props.onIssuers(['ondo']);
   tree = f.render();
-  assert.match(renderToStaticMarkup(tree), /GOOGLon/);
-  assert.doesNotMatch(renderToStaticMarkup(tree), /MU Held/);
+  assert.match(renderToStaticMarkup(tree), /Alphabet/);
+  assert.doesNotMatch(renderToStaticMarkup(tree), /Micron/);
   assert.match(renderToStaticMarkup(tree), /Market-wide totals/);
   filters().props.onIssuers(['ondo', 'backpack']);
   tree = f.render();
-  assert.match(renderToStaticMarkup(tree), /GOOGLon/);
-  assert.match(renderToStaticMarkup(tree), /MU Held/);
+  assert.match(renderToStaticMarkup(tree), /Alphabet/);
+  assert.match(renderToStaticMarkup(tree), /Micron/);
   findElement(
     tree,
     (e) => typeof e.props?.onIssuer === 'function',
   ).props.onIssuer('backpack');
   tree = f.render();
   assert.deepEqual(filters().props.issuers, ['backpack']);
-  assert.doesNotMatch(renderToStaticMarkup(tree), /GOOGLon/);
+  assert.doesNotMatch(renderToStaticMarkup(tree), /Alphabet/);
   filters().props.onIssuers([]);
   tree = f.render();
-  assert.match(renderToStaticMarkup(tree), /GOOGLon/);
+  assert.match(renderToStaticMarkup(tree), /Alphabet/);
   assert.match(renderToStaticMarkup(tree), /About DEX volume/);
   assert.match(renderToStaticMarkup(tree), /Pool liquidity/);
 });
@@ -817,6 +818,7 @@ void test('Ecosystem overview keeps valuation estimates and their caveats inside
     },
   ];
   const { SolanaEcosystem } = await component('solana-ecosystem.tsx', {
+    './market-activity-history': { MarketActivityHistory: () => null },
     '@/lib/tokens': {
       TOKENS: [
         { symbol: 'MUx', underlyingSymbol: 'MU' },
@@ -1010,8 +1012,8 @@ void test('Issuer selection does not depend on valuation availability', async ()
     f.render(),
     (e) => typeof e.props?.onIssuers === 'function',
   ).props.onIssuers(['ondo']);
-  assert.match(renderToStaticMarkup(f.render()), /GOOGLon/);
-  assert.doesNotMatch(renderToStaticMarkup(f.render()), /MU Held/);
+  assert.match(renderToStaticMarkup(f.render()), /Alphabet/);
+  assert.doesNotMatch(renderToStaticMarkup(f.render()), /Micron/);
 });
 
 void test('Home portfolio links filter the existing news area and market navigation stays explicit', async () => {
@@ -1073,6 +1075,12 @@ void test('Stock details expand under the selected row and collapse without navi
   const f = await marketFixture();
   let tree = f.render();
   assert.doesNotMatch(renderToStaticMarkup(tree), /id="selected-stock-detail"/);
+  findElement(
+    tree,
+    (e) => e.props?.className === 'market-asset-trigger' && e.props?.['aria-label']?.includes('Micron'),
+  ).props.onClick();
+  tree = f.render();
+  assert.match(renderToStaticMarkup(tree), /MU Held/);
   const row = () =>
     findElement(
       tree,
@@ -1122,8 +1130,8 @@ void test('Issuer activity filters in place even when an old navigation callback
     (e) => typeof e.props?.onIssuer === 'function',
   ).props.onIssuer('ondo');
   assert.deepEqual(opened, []);
-  assert.match(renderToStaticMarkup(f.render()), /GOOGLon/);
-  assert.doesNotMatch(renderToStaticMarkup(f.render()), /MU Held/);
+  assert.match(renderToStaticMarkup(f.render()), /Alphabet/);
+  assert.doesNotMatch(renderToStaticMarkup(f.render()), /Micron/);
 });
 
 void test('Markets sidebar resets every issuer dashboard to All markets and clears the stock deep link', async () => {

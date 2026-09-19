@@ -226,12 +226,7 @@ export function MarketOverviewPanel({
   const groups = groupMarketTokens(sortedMatches);
   const maxPage = Math.max(0, Math.ceil(groups.length / 10) - 1),
     currentPage = Math.min(page, maxPage),
-    pageGroups = groups.slice(currentPage * 10, currentPage * 10 + 10),
-    rows = pageGroups.flatMap((group) =>
-      expandedGroups.includes(group.key)
-        ? group.versions
-        : group.versions.slice(0, 1),
-    );
+    pageGroups = groups.slice(currentPage * 10, currentPage * 10 + 10);
   const token = tokens.find((t) => t.symbol === selected)!,
     listing = data?.catalog.data?.find((t) => t.symbol === selected),
     detailedPools = poolDetail?.symbol === selected ? poolDetail.source : null,
@@ -780,12 +775,18 @@ export function MarketOverviewPanel({
       <SolanaEcosystem
         data={data}
         now={now}
+        historyReady={!!data && !busy}
         onIssuer={chooseIssuer}
         select={(symbol) => {
           setOnlyHoldings(false);
           setQuery(symbol);
           setPage(0);
           setSelected(symbol);
+          setExpandedGroups((current) =>
+            current.includes(tokens.find((t) => t.symbol === symbol)?.underlyingSymbol || symbol)
+              ? current
+              : [...current, tokens.find((t) => t.symbol === symbol)?.underlyingSymbol || symbol],
+          );
           setDetailOpen(true);
           setCopied(false);
         }}
@@ -864,11 +865,12 @@ export function MarketOverviewPanel({
             {issuers.length
               ? issuers.map(issuerName).join(', ')
               : 'All issuers'}{' '}
-            · Token-level metrics · Expand to compare issuer versions
+            · Assets are ordered using token-level values · Expand an asset
+            to compare issuer tokens
           </caption>
           <thead>
             <tr>
-              <th>{sortHeader('symbol', 'Stock')}</th>
+              <th>{sortHeader('symbol', 'Asset / token')}</th>
               <th>
                 <span className="metric-label">
                   {sortHeader('supply', 'Supply')}
@@ -903,113 +905,105 @@ export function MarketOverviewPanel({
             </tr>
           </thead>
           <tbody>
-            {rows.map((t) => {
-              const row = tokenObservation(data, t.symbol, now);
-              const change = row.change24h;
+            {pageGroups.map((group) => {
+              const expanded = expandedGroups.includes(group.key);
+              const lead = group.versions[0];
+              const assetName = tokens.find((t) => t.underlyingSymbol === group.key)?.shortName ?? lead.shortName;
+              const issuerLabels = [...new Set(group.versions.map((t) => issuerName(t.issuer)))];
               return (
-                <Fragment key={t.symbol}>
-                  {(pageGroups.find((group) => group.key === t.underlyingSymbol)
-                    ?.versions.length ?? 0) > 1 &&
-                    pageGroups.find((group) => group.key === t.underlyingSymbol)
-                      ?.versions[0].symbol === t.symbol && (
-                      <tr className="market-group-row">
-                        <th colSpan={6} scope="rowgroup">
-                          <span>{t.underlyingSymbol}</span>
-                          <button
-                            type="button"
-                            aria-expanded={expandedGroups.includes(
-                              t.underlyingSymbol,
-                            )}
-                            disabled={
-                              (pageGroups.find(
-                                (group) => group.key === t.underlyingSymbol,
-                              )?.versions.length ?? 0) < 2
-                            }
-                            onClick={() =>
-                              setExpandedGroups((current) =>
-                                current.includes(t.underlyingSymbol)
-                                  ? current.filter(
-                                      (key) => key !== t.underlyingSymbol,
-                                    )
-                                  : [...current, t.underlyingSymbol],
-                              )
-                            }
-                          >
-                            {expandedGroups.includes(t.underlyingSymbol)
-                              ? 'Collapse'
-                              : 'Compare'}{' '}
-                            {
-                              pageGroups.find(
-                                (group) => group.key === t.underlyingSymbol,
-                              )?.versions.length
-                            }{' '}
-                            versions{' '}
-                            {expandedGroups.includes(t.underlyingSymbol)
-                              ? '−'
-                              : '+'}
-                          </button>
-                        </th>
-                      </tr>
-                    )}
-                  <MarketStockRow
-                    symbol={t.symbol}
-                    name={t.shortName + ' · ' + issuerName(t.issuer)}
-                    selected={detailOpen && selection === t.symbol}
-                    held={holdings.includes(t.symbol)}
-                    onSelect={(symbol) => {
-                      setSelected(symbol);
-                      setCopied(false);
-                      setDetailOpen(!detailOpen || selection !== symbol);
-                    }}
-                  >
-                    <td>
-                      <span className="market-supply-value">
-                        {(() => {
-                          const supply =
-                            t.issuer === 'xstocks'
-                              ? row.circulation?.circulatingSupply
-                              : (row.valuationSupply ?? row.supply?.supply);
-                          return supply == null
-                            ? '—'
-                            : new Intl.NumberFormat('en-US', {
-                                maximumFractionDigits: 5,
-                              }).format(supply);
-                        })()}
-                      </span>
-                      <small className="market-supply-basis">
-                        {t.issuer === 'xstocks' ? 'Circulating' : 'Minted'}
-                      </small>
-                    </td>
-                    <td>
-                      {money(row.price)}
-                      {row.priceDelayed && (
-                        <small
-                          className="quote-age"
-                          title={time(row.priceTime)}
+                <Fragment key={group.key}>
+                  <tr className="market-group-row">
+                    <th colSpan={6} scope="rowgroup">
+                      <button
+                        type="button"
+                        className="market-asset-trigger"
+                        aria-label={`${expanded ? 'Hide' : 'Compare'} ${group.versions.length} ${group.versions.length === 1 ? 'token' : 'tokens'} for ${assetName}`}
+                        aria-expanded={expanded}
+                        onClick={() => {
+                          setExpandedGroups((current) =>
+                            expanded
+                              ? current.filter((key) => key !== group.key)
+                              : [...current, group.key],
+                          );
+                          if (expanded) setDetailOpen(false);
+                        }}
+                      >
+                        <span className="market-asset-identity">
+                          <strong>{assetName}</strong>
+                          <small>{group.key}</small>
+                        </span>
+                        <span className="market-asset-issuers">
+                          {issuerLabels.join(' · ')} · Solana
+                        </span>
+                        <span className="market-asset-action">
+                          {group.versions.length} {group.versions.length === 1 ? 'token' : 'tokens'}
+                          <span aria-hidden="true">{expanded ? ' −' : ' +'}</span>
+                        </span>
+                      </button>
+                    </th>
+                  </tr>
+                  {expanded && group.versions.map((t) => {
+                    const row = tokenObservation(data, t.symbol, now);
+                    const change = row.change24h;
+                    return (
+                      <Fragment key={t.symbol}>
+                        <MarketStockRow
+                          symbol={t.symbol}
+                          name={issuerName(t.issuer) + ' · Solana'}
+                          selected={detailOpen && selection === t.symbol}
+                          held={holdings.includes(t.symbol)}
+                          onSelect={(symbol) => {
+                            setSelected(symbol);
+                            setCopied(false);
+                            setDetailOpen(!detailOpen || selection !== symbol);
+                          }}
                         >
-                          Last quote · {time(row.priceTime)}
-                        </small>
-                      )}
-                    </td>
-                    <td
-                      className={
-                        change === null
-                          ? undefined
-                          : change < 0
-                            ? 'market-negative'
-                            : 'market-positive'
-                      }
-                    >
-                      {pct(change)}
-                    </td>
-                    <td>{money(row.poolVolume24h, true)}</td>
-                    <td>{money(row.liquidity, true)}</td>
-                  </MarketStockRow>
-                  {detailOpen && selection === t.symbol && (
-                    <tr className="stock-detail-row">
-                      <td colSpan={6}>{stockDetail}</td>
-                    </tr>
-                  )}
+                          <td>
+                            <span className="market-supply-value">
+                              {(() => {
+                                const supply =
+                                  t.issuer === 'xstocks'
+                                    ? row.circulation?.circulatingSupply
+                                    : (row.valuationSupply ?? row.supply?.supply);
+                                return supply == null
+                                  ? '—'
+                                  : new Intl.NumberFormat('en-US', {
+                                      maximumFractionDigits: 5,
+                                    }).format(supply);
+                              })()}
+                            </span>
+                            <small className="market-supply-basis">
+                              {t.issuer === 'xstocks' ? 'Circulating' : 'Minted'}
+                            </small>
+                          </td>
+                          <td>
+                            {money(row.price)}
+                            {row.priceDelayed && (
+                              <small className="quote-age" title={time(row.priceTime)}>
+                                Last quote · {time(row.priceTime)}
+                              </small>
+                            )}
+                          </td>
+                          <td className={
+                            change === null
+                              ? undefined
+                              : change < 0
+                                ? 'market-negative'
+                                : 'market-positive'
+                          }>
+                            {pct(change)}
+                          </td>
+                          <td>{money(row.poolVolume24h, true)}</td>
+                          <td>{money(row.liquidity, true)}</td>
+                        </MarketStockRow>
+                        {detailOpen && selection === t.symbol && (
+                          <tr className="stock-detail-row">
+                            <td colSpan={6}>{stockDetail}</td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    );
+                  })}
                 </Fragment>
               );
             })}

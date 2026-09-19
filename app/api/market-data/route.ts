@@ -21,6 +21,7 @@ import {
   publicJson,
 } from '@/lib/market-data';
 import { marketSnapshot } from '@/lib/market-cache';
+import { readMarketDailyActivity } from '@/lib/market-history';
 import { waitUntil } from 'cloudflare:workers';
 import { CIRCULATION_MAX_AGE_MS } from '@/lib/xstocks-circulation';
 import { circulationSnapshot } from '@/lib/circulation-cache';
@@ -48,6 +49,8 @@ export async function GET(req: Request) {
       runtime().SOLANA_RPC_URL,
     );
     const registryList = registryTokens(registry);
+    if (new URL(req.url).searchParams.get('history') === '1')
+      return json({ points: await readMarketDailyActivity(database, registryList) });
     const snapshot = <T>(key: string, ttl: number, loader: () => Promise<T>) =>
       marketSnapshot(
         database,
