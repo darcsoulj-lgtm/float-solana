@@ -1082,8 +1082,8 @@ fieldset.holding-filter-chips {
   width: 104px;
   height: 36px;
   background: currentColor;
-  -webkit-mask: url('/brand/float-wordmark.png') 50% 54% / 115% auto no-repeat;
-  mask: url('/brand/float-wordmark.png') 50% 54% / 115% auto no-repeat;
+  -webkit-mask: url('/brand/float-wordmark.svg') 50% 50% / 100% auto no-repeat;
+  mask: url('/brand/float-wordmark.svg') 50% 50% / 100% auto no-repeat;
 }
 .member-brand > .float-lockup,
 .operations-brand > .float-lockup {

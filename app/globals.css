@@ -3506,6 +3506,50 @@ body:has(.community-entry) > footer {
   margin: 0 auto;
   padding: 56px 0 32px;
 }
+.public-dashboard {
+  width: min(100% - 64px, 1440px);
+  margin: 0 auto;
+  padding: 40px 0 48px;
+}
+.public-dashboard-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 32px;
+  margin: 0 0 28px;
+}
+.public-dashboard-heading h1 {
+  margin: 8px 0 10px;
+  font-size: clamp(32px, 4vw, 52px);
+  letter-spacing: -0.045em;
+}
+.public-dashboard-heading p {
+  max-width: 660px;
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 17px;
+  line-height: 1.5;
+}
+.public-dashboard-heading button {
+  flex-shrink: 0;
+}
+@media (max-width: 700px) {
+  .public-dashboard {
+    width: min(100% - 32px, 1280px);
+    padding-top: 28px;
+  }
+  .public-dashboard-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .public-dashboard-heading h1 {
+    font-size: 34px;
+  }
+  .public-dashboard-heading p {
+    font-size: 16px;
+  }
+}
 @media (max-width: 700px) {
   .public-markets {
     width: min(100% - 32px, 1280px);

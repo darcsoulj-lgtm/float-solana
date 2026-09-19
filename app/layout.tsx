@@ -56,11 +56,11 @@ export default function RootLayout({
             <FloatLogo />
           </Link>
           <nav aria-label="Main navigation">
-            <Link href="/">Community</Link>
             <Link href="/markets">Markets</Link>
+            <Link href="/">Community</Link>
           </nav>
           <ThemeToggle />
-          <Link className="nav-cta" href="/#join">
+          <Link className="nav-cta" href="/#inside">
             How it works
           </Link>
         </header>

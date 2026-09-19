@@ -2,17 +2,11 @@
 import { FloatLogo } from './float-logo';
 import Link from '@/components/site-link';
 import Image from 'next/image';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import {
   ArrowUpRight,
-  ChartNoAxesCombined,
-  Home,
   MessageSquare,
   ShieldCheck,
-  LockKeyhole,
-  ScanLine,
-  MessagesSquare,
-  UserRound,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -27,6 +21,38 @@ import { api, ApiError } from '@/lib/client';
 import type { CommunityStatus } from '@/lib/community-types';
 import type { CommunitySignInInput } from '@/lib/community-sign-in';
 import { selectedWallet, walletLabel } from '@/lib/wallet-provider';
+
+const PublicMarketOverview = lazy(() =>
+  import('./market-overview').then((module) => ({
+    default: module.MarketOverviewPanel,
+  })),
+);
+
+function PublicDashboard({ onJoin }: { onJoin: () => void }) {
+  return (
+    <div className="public-dashboard public-club">
+      <section className="public-dashboard-heading">
+        <div>
+          <span className="eyebrow">MARKETS</span>
+          <h1>Tokenized stocks on Solana.</h1>
+          <p>
+            Explore prices, DEX activity, liquidity, and issuer coverage before
+            you verify a wallet.
+          </p>
+        </div>
+        <Button onClick={onJoin}>
+          <MessageSquare size={17} />
+          Join discussions <ArrowUpRight size={17} />
+        </Button>
+      </section>
+      <Suspense
+        fallback={<output className="inline-status">Loading markets…</output>}
+      >
+        <PublicMarketOverview holdings={[]} hidePortfolio />
+      </Suspense>
+    </div>
+  );
+}
 export function Community() {
   const [status, setStatus] = useState<CommunityStatus | null>(null);
   const [error, setError] = useState('');
@@ -326,136 +352,7 @@ export function Community() {
           renew={openJoin}
         />
       ) : (
-        <div className="club public-club">
-          <section className="public-hero">
-            <div className="eyebrow">
-              <span className="small-dot" /> FOR TOKENIZED STOCK HOLDERS ON
-              SOLANA
-            </div>
-            <h1>
-              The community for people who
-              <br />
-              hold tokenized stocks.
-            </h1>
-            <p>
-              Verify your holdings privately. Follow the market and hear from
-              people who hold the same assets.
-            </p>
-            <div className="hero-actions">
-              <Button onClick={openJoin}>
-                Connect wallet <ArrowUpRight size={18} />
-              </Button>
-              <a href="#inside">See inside ↓</a>
-            </div>
-            {error && (
-              <div className="club-error" role="alert">
-                {error}{' '}
-                <Button
-                  variant="ghost"
-                  onClick={() => refresh().catch((e) => setError(e.message))}
-                >
-                  Retry
-                </Button>
-              </div>
-            )}
-          </section>
-          <section
-            className="public-preview"
-            id="inside"
-            aria-label="Member dashboard"
-          >
-            <div className="preview-label">
-              <span>MEMBER DASHBOARD</span>
-              <span>
-                <LockKeyhole size={13} /> Holders only
-              </span>
-            </div>
-            <div className="preview-layout">
-              <div className="preview-nav">
-                <FloatLogo small />
-                <div className="preview-member">
-                  <span className="preview-avatar">F</span>
-                  <span>Verified holder</span>
-                </div>
-                <strong>Your dashboard</strong>
-                <span className="selected">
-                  <Home size={14} /> Home
-                </span>
-                <span>
-                  <MessageSquare size={14} /> Discussions
-                </span>
-                <span>
-                  <ChartNoAxesCombined size={14} /> Markets
-                </span>
-                <span>
-                  <UserRound size={14} /> Profile
-                </span>
-              </div>
-              <div className="preview-workspace">
-                <div className="preview-topbar">
-                  <span>
-                    Float <em>/ Home</em>
-                  </span>
-                  <span>
-                    <LockKeyhole size={12} /> Holders only
-                  </span>
-                </div>
-                <div className="preview-content">
-                  <div className="preview-main">
-                    <span className="eyebrow">HOME</span>
-                    <h2>News for your holdings.</h2>
-                    <p>
-                      See your portfolio, the latest news, and holder
-                      discussions in one place.
-                    </p>
-                    <div className="preview-modules">
-                      <div>
-                        <span>Portfolio</span>
-                        <strong>Your verified holdings</strong>
-                      </div>
-                      <div>
-                        <span>Latest news</span>
-                        <strong>Your holdings · 7 days</strong>
-                      </div>
-                      <div>
-                        <span>Holder discussions</span>
-                        <strong>Curated channels</strong>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="preview-note">
-                    <ShieldCheck size={25} />
-                    <h3>Private holdings</h3>
-                    <p>
-                      Holdings are detected automatically. Balances stay
-                      private.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-          <section className="join-steps" id="join">
-            <div>
-              <ScanLine size={24} />
-              <span>01 / CONNECT</span>
-              <h3>Connect</h3>
-              <p>Choose your Solana wallet.</p>
-            </div>
-            <div>
-              <ShieldCheck size={24} />
-              <span>02 / VERIFY</span>
-              <h3>Verify</h3>
-              <p>Sign a message. No transaction or transfer.</p>
-            </div>
-            <div>
-              <MessagesSquare size={24} />
-              <span>03 / JOIN IN</span>
-              <h3>Join</h3>
-              <p>One supported holding gives access to every channel.</p>
-            </div>
-          </section>
-        </div>
+        <PublicDashboard onJoin={openJoin} />
       )}
       <Dialog
         open={join}

@@ -16,6 +16,12 @@ export default function manifest(): MetadataRoute.Manifest {
         type: 'image/svg+xml',
         purpose: 'maskable',
       },
+      {
+        src: '/brand/float-mark.svg',
+        sizes: '64x64',
+        type: 'image/svg+xml',
+        purpose: 'maskable',
+      },
     ],
   };
 }
