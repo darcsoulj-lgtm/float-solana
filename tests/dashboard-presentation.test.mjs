@@ -642,11 +642,11 @@ async function marketFixture(props = {}, valuation = {}) {
         React.createElement('div', null, 'Portfolio summary'),
     },
     './market-stock-row': {
-      MarketStockRow: ({ symbol, held, children }) =>
+      MarketStockRow: ({ symbol, name, held, children }) =>
         React.createElement(
           'tr',
           null,
-          React.createElement('td', null, symbol, held ? ' Held' : ''),
+          React.createElement('td', null, symbol, ' ', name, held ? ' Held' : ''),
           children,
         ),
     },
@@ -676,12 +676,12 @@ async function marketFixture(props = {}, valuation = {}) {
         label: 'Minted value',
         basis: 'Minted',
       }),
-      tokenObservation: () => ({
-        price: null,
+      tokenObservation: (_data, symbol) => ({
+        price: symbol === 'MU' ? 100 : 200,
         change24h: null,
         issuedValue: null,
         cmcDexVolume24h: null,
-        poolVolume24h: null,
+        poolVolume24h: symbol === 'MU' ? 300 : 200,
         priceTime: null,
         supply: null,
       }),
@@ -710,7 +710,7 @@ void test('one market table filters to owned tokens without removing market-wide
   let html = renderToStaticMarkup(tree);
   assert.match(html, /Alphabet/);
   assert.match(html, /Micron/);
-  assert.doesNotMatch(html, /MU Held/);
+  assert.match(html, /MU Micron.*Held/);
   assert.match(html, /Market-wide totals/);
   assert.doesNotMatch(html, /Solana overview/);
   findElement(tree, (e) => e.props?.role === 'switch').props.onChange({
@@ -721,6 +721,33 @@ void test('one market table filters to owned tokens without removing market-wide
   assert.match(html, /Micron/);
   assert.match(html, /Market-wide totals/);
   assert.match(html, /Portfolio summary/);
+});
+
+void test('Tokens shows issuer rows by default and company comparison reveals them on demand', async () => {
+  const f = await marketFixture();
+  let tree = f.render();
+  assert.match(renderToStaticMarkup(tree), /Sortable issuer tokens/);
+  assert.ok(findElement(tree, (e) => e.props?.symbol === 'MU'));
+  findElement(tree, (e) => e.type === 'button' && e.props?.children === 'By company').props.onClick();
+  tree = f.render();
+  assert.doesNotMatch(renderToStaticMarkup(tree), /Sortable issuer tokens/);
+  assert.ok(findElement(tree, (e) => e.props?.className === 'market-asset-trigger'));
+  assert.equal(findElement(tree, (e) => e.props?.symbol === 'MU'), null);
+  findElement(tree, (e) => e.props?.className === 'market-asset-trigger' && e.props?.['aria-label']?.includes('Micron')).props.onClick();
+  tree = f.render();
+  assert.ok(findElement(tree, (e) => e.props?.symbol === 'MU'));
+});
+
+void test('sorting token price reorders the visible issuer rows', async () => {
+  const f = await marketFixture();
+  let tree = f.render();
+  let html = renderToStaticMarkup(tree);
+  assert.ok(html.indexOf('MU Micron') < html.indexOf('GOOGLon Alphabet'));
+  findElement(tree, (e) => e.props?.className === 'market-sort-button' && e.props?.children?.[0] === 'Token price').props.onClick();
+  tree = f.render();
+  html = renderToStaticMarkup(tree);
+  assert.ok(html.indexOf('GOOGLon Alphabet') < html.indexOf('MU Micron'));
+  assert.match(html, /aria-sort="descending"/);
 });
 
 void test('News keeps its agenda visible when the headline request fails', async () => {
@@ -1075,12 +1102,7 @@ void test('Stock details expand under the selected row and collapse without navi
   const f = await marketFixture();
   let tree = f.render();
   assert.doesNotMatch(renderToStaticMarkup(tree), /id="selected-stock-detail"/);
-  findElement(
-    tree,
-    (e) => e.props?.className === 'market-asset-trigger' && e.props?.['aria-label']?.includes('Micron'),
-  ).props.onClick();
-  tree = f.render();
-  assert.match(renderToStaticMarkup(tree), /MU Held/);
+  assert.match(renderToStaticMarkup(tree), /MU Micron.*Held/);
   const row = () =>
     findElement(
       tree,

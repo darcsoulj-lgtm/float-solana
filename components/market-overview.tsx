@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import { api } from '@/lib/client';
 import { useMarketOverview } from '@/hooks/use-market-overview';
-import { issuerName, type IssuerId } from '@/lib/tokens';
+import { issuerName, type IssuerId, type StockToken } from '@/lib/tokens';
 import { type Book, type Pool, type SourceResult } from '@/lib/market-data';
 import { Button } from './ui/button';
 import { PortfolioSummary } from './portfolio-summary';
@@ -64,6 +64,7 @@ export function MarketOverviewPanel({
     [issuers, setIssuers] = useState<IssuerId[]>([]),
     [asset, setAsset] = useState<AssetFilter>('all'),
     [expandedGroups, setExpandedGroups] = useState<string[]>([]),
+    [listingView, setListingView] = useState<'tokens' | 'companies'>('tokens'),
     [page, setPage] = useState(0),
     [sort, setSort] = useState<{ key: string; direction: 'asc' | 'desc' }>({
       key: 'volume',
@@ -97,7 +98,9 @@ export function MarketOverviewPanel({
         setSort((current) => ({
           key,
           direction:
-            current.key === key && current.direction === 'asc' ? 'desc' : 'asc',
+            current.key === key
+              ? current.direction === 'asc' ? 'desc' : 'asc'
+              : key === 'symbol' ? 'asc' : 'desc',
         }));
         setPage(0);
       }}
@@ -105,6 +108,9 @@ export function MarketOverviewPanel({
       {label} {sort.key === key ? (sort.direction === 'asc' ? '↑' : '↓') : '↕'}
     </button>
   );
+  const sortAria = (key: string): 'ascending' | 'descending' | 'none' => sort.key === key
+    ? sort.direction === 'asc' ? 'ascending' : 'descending'
+    : 'none';
   const matches = tokens.filter(
     (t) =>
       (!onlyHoldings || holdings.includes(t.symbol)) &&
@@ -125,8 +131,8 @@ export function MarketOverviewPanel({
       return (sort.direction === 'asc' ? a.symbol : b.symbol).localeCompare(
         sort.direction === 'asc' ? b.symbol : a.symbol,
       );
-    const value = (symbol: string) => {
-      const item = observations.get(symbol)!;
+    const value = (token: StockToken) => {
+      const item = observations.get(token.symbol)!;
       return sort.key === 'price'
         ? item.price
         : sort.key === 'change'
@@ -135,10 +141,12 @@ export function MarketOverviewPanel({
             ? item.poolVolume24h
             : sort.key === 'liquidity'
               ? item.liquidity
-              : (item.circulation?.circulatingSupply ?? item.supply?.supply);
+              : token.issuer === 'xstocks'
+                ? item.circulation?.circulatingSupply
+                : (item.valuationSupply ?? item.supply?.supply);
     };
-    const left = value(a.symbol),
-      right = value(b.symbol);
+    const left = value(a),
+      right = value(b);
     if (left == null && right == null) return 0;
     if (left == null) return 1;
     if (right == null) return -1;
@@ -223,10 +231,16 @@ export function MarketOverviewPanel({
       clearInterval(id);
     };
   }, [selected, selectedIssuer, refresh, detailOpen, data?.catalog.fetchedAt]);
-  const groups = groupMarketTokens(sortedMatches);
-  const maxPage = Math.max(0, Math.ceil(groups.length / 10) - 1),
+  const groups = groupMarketTokens(matches).sort((a, b) =>
+    a.versions[0].shortName.localeCompare(b.versions[0].shortName, undefined, { numeric: true }) ||
+    a.key.localeCompare(b.key),
+  );
+  const pageSize = listingView === 'tokens' ? 20 : 10;
+  const resultCount = listingView === 'tokens' ? sortedMatches.length : groups.length;
+  const maxPage = Math.max(0, Math.ceil(resultCount / pageSize) - 1),
     currentPage = Math.min(page, maxPage),
-    pageGroups = groups.slice(currentPage * 10, currentPage * 10 + 10);
+    pageTokens = sortedMatches.slice(currentPage * pageSize, currentPage * pageSize + pageSize),
+    pageGroups = groups.slice(currentPage * pageSize, currentPage * pageSize + pageSize);
   const token = tokens.find((t) => t.symbol === selected)!,
     listing = data?.catalog.data?.find((t) => t.symbol === selected),
     detailedPools = poolDetail?.symbol === selected ? poolDetail.source : null,
@@ -739,6 +753,74 @@ export function MarketOverviewPanel({
         </div>
       </section>
     ) : null;
+  const renderTokenRow = (t: StockToken) => {
+    const row = observations.get(t.symbol)!;
+    const change = row.change24h;
+    const isSelected = detailOpen && selected === t.symbol;
+    const supply = t.issuer === 'xstocks'
+      ? row.circulation?.circulatingSupply
+      : (row.valuationSupply ?? row.supply?.supply);
+    return (
+      <Fragment key={t.symbol}>
+        <MarketStockRow
+          symbol={t.symbol}
+          name={`${t.shortName} · ${issuerName(t.issuer)}`}
+          selected={isSelected}
+          held={holdings.includes(t.symbol)}
+          onSelect={(symbol) => {
+            setSelected(symbol);
+            setCopied(false);
+            setDetailOpen(!detailOpen || selected !== symbol);
+          }}
+        >
+          <td className="market-supply-cell">
+            <span className="market-mobile-label">Supply</span>
+            <span className="market-supply-value">
+              {supply == null ? '—' : new Intl.NumberFormat('en-US', { maximumFractionDigits: 5 }).format(supply)}
+            </span>
+            <small className="market-supply-basis">{t.issuer === 'xstocks' ? 'Circulating' : 'Minted'}</small>
+          </td>
+          <td>
+            <span className="market-mobile-label">Token price</span>
+            {money(row.price)}
+            {row.priceDelayed && <small className="quote-age" title={time(row.priceTime)}>Last quote · {time(row.priceTime)}</small>}
+          </td>
+          <td className={change === null ? undefined : change < 0 ? 'market-negative' : 'market-positive'}>
+            <span className="market-mobile-label">24h change</span>
+            {pct(change)}
+          </td>
+          <td><span className="market-mobile-label">DEX volume · 24h</span>{money(row.poolVolume24h, true)}</td>
+          <td><span className="market-mobile-label">Pool liquidity</span>{money(row.liquidity, true)}</td>
+        </MarketStockRow>
+        {isSelected && <tr className="stock-detail-row"><td colSpan={6}>{stockDetail}</td></tr>}
+      </Fragment>
+    );
+  };
+  const renderTokenTable = (rows: StockToken[], sortable: boolean) => (
+    <div className="market-table-scroll market-token-table-wrap">
+      <table className={`market-table market-discovery-table market-token-table${sortable && sort.key === 'supply' ? ' market-supply-sorted' : ''}`}>
+        <caption className="sr-only">{sortable ? 'Sortable issuer tokens' : 'Issuer tokens for this company'}</caption>
+        <thead><tr>
+          <th aria-sort={sortable ? sortAria('symbol') : undefined}>{sortable ? sortHeader('symbol', 'Token / issuer') : 'Token / issuer'}</th>
+          <th aria-sort={sortable ? sortAria('supply') : undefined}><span className="metric-label">
+            {sortable ? sortHeader('supply', 'Supply') : 'Supply'}
+            <MetricInfo label="About token supply">xStocks shows circulating Solana supply. Other issuers show minted onchain supply, which may include issuer inventory.</MetricInfo>
+          </span></th>
+          <th aria-sort={sortable ? sortAria('price') : undefined}>{sortable ? sortHeader('price', 'Token price') : 'Token price'}</th>
+          <th aria-sort={sortable ? sortAria('change') : undefined}>{sortable ? sortHeader('change', '24h change') : '24h change'}</th>
+          <th aria-sort={sortable ? sortAria('volume') : undefined}><span className="metric-label">
+            {sortable ? sortHeader('volume', 'DEX volume · 24h') : 'DEX volume · 24h'}
+            <MetricInfo label="About DEX volume">{POOL_SCOPE} Volume sums eligible returned pools. Coverage is partial; missing values are not zero.</MetricInfo>
+          </span></th>
+          <th aria-sort={sortable ? sortAria('liquidity') : undefined}><span className="metric-label">
+            {sortable ? sortHeader('liquidity', 'Pool liquidity') : 'Pool liquidity'}
+            <MetricInfo label="About pool liquidity">Liquidity in observed Solana pools, including both assets in each pool. Coverage is partial. Shared pools can appear under more than one token, so rows should not be added together.</MetricInfo>
+          </span></th>
+        </tr></thead>
+        <tbody>{rows.map(renderTokenRow)}</tbody>
+      </table>
+    </div>
+  );
   return (
     <div className="market-overview">
       {!hidePortfolio && (
@@ -835,7 +917,7 @@ export function MarketOverviewPanel({
               Only my holdings
             </label>
           )}
-          <label className="market-sort-select">
+          {listingView === 'tokens' && <label className="market-sort-select">
             Sort by
             <select
               value={sort.key + ':' + sort.direction}
@@ -846,169 +928,61 @@ export function MarketOverviewPanel({
               }}
             >
               <option value="volume:desc">DEX volume · high to low</option>
+              <option value="volume:asc">DEX volume · low to high</option>
               <option value="liquidity:desc">Liquidity · high to low</option>
+              <option value="liquidity:asc">Liquidity · low to high</option>
               <option value="change:desc">24h change · high to low</option>
+              <option value="change:asc">24h change · low to high</option>
               <option value="price:desc">Token price · high to low</option>
-              <option value="symbol:asc">Name · A–Z</option>
+              <option value="price:asc">Token price · low to high</option>
+              <option value="supply:desc">Supply · high to low</option>
+              <option value="supply:asc">Supply · low to high</option>
+              <option value="symbol:asc">Token symbol · A–Z</option>
+              <option value="symbol:desc">Token symbol · Z–A</option>
             </select>
-          </label>
+          </label>}
           <span>
             {groups.length.toLocaleString()} assets ·{' '}
             {matches.length.toLocaleString()} tokens
           </span>
         </div>
       </div>
-      <div className="market-table-scroll">
-        <table className="market-table market-discovery-table">
-          <caption>
-            Tokenized stocks ·{' '}
-            {issuers.length
-              ? issuers.map(issuerName).join(', ')
-              : 'All issuers'}{' '}
-            <span className="sr-only"> Assets are ordered using token-level values. Expand an asset to compare issuer tokens.</span>
-          </caption>
-          <thead>
-            <tr>
-              <th>{sortHeader('symbol', 'Asset / token')}</th>
-              <th>
-                <span className="metric-label">
-                  {sortHeader('supply', 'Supply')}
-                  <MetricInfo label="About token supply">
-                    xStocks shows circulating Solana supply. Other issuers show
-                    minted onchain supply, which may include issuer inventory.
-                  </MetricInfo>
-                </span>
-              </th>
-              <th>{sortHeader('price', 'Token price')}</th>
-              <th>{sortHeader('change', '24h change')}</th>
-              <th>
-                <span className="metric-label">
-                  {sortHeader('volume', 'DEX volume · 24h')}
-                  <MetricInfo label="About DEX volume">
-                    {POOL_SCOPE} Volume sums eligible returned pools. Coverage
-                    is partial; missing values are not zero.
-                  </MetricInfo>
-                </span>
-              </th>
-              <th>
-                <span className="metric-label">
-                  {sortHeader('liquidity', 'Pool liquidity')}
-                  <MetricInfo label="About pool liquidity">
-                    Liquidity in observed Solana pools, including both assets in
-                    each pool. Coverage is partial. Shared pools can appear
-                    under more than one token, so rows should not be added
-                    together.
-                  </MetricInfo>
-                </span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {pageGroups.map((group) => {
-              const expanded = expandedGroups.includes(group.key);
-              const lead = group.versions[0];
-              const assetName = tokens.find((t) => t.underlyingSymbol === group.key)?.shortName ?? lead.shortName;
-              const issuerLabels = [...new Set(group.versions.map((t) => issuerName(t.issuer)))];
-              return (
-                <Fragment key={group.key}>
-                  <tr className="market-group-row">
-                    <th colSpan={6} scope="rowgroup">
-                      <button
-                        type="button"
-                        className="market-asset-trigger"
-                        aria-label={`${expanded ? 'Hide' : 'Compare'} ${group.versions.length} ${group.versions.length === 1 ? 'token' : 'tokens'} for ${assetName}`}
-                        aria-expanded={expanded}
-                        onClick={() => {
-                          setExpandedGroups((current) =>
-                            expanded
-                              ? current.filter((key) => key !== group.key)
-                              : [...current, group.key],
-                          );
-                          if (expanded) setDetailOpen(false);
-                        }}
-                      >
-                        <span className="market-asset-identity">
-                          <strong>{assetName}</strong>
-                          <small>{group.key}</small>
-                        </span>
-                        <span className="market-asset-issuers">
-                          {issuerLabels.join(' · ')} · Solana
-                        </span>
-                        <span className="market-asset-action">
-                          {group.versions.length} {group.versions.length === 1 ? 'token' : 'tokens'}
-                          <span aria-hidden="true">{expanded ? ' −' : ' +'}</span>
-                        </span>
-                      </button>
-                    </th>
-                  </tr>
-                  {expanded && group.versions.map((t) => {
-                    const row = tokenObservation(data, t.symbol, now);
-                    const change = row.change24h;
-                    return (
-                      <Fragment key={t.symbol}>
-                        <MarketStockRow
-                          symbol={t.symbol}
-                          name={issuerName(t.issuer) + ' · Solana'}
-                          selected={detailOpen && selection === t.symbol}
-                          held={holdings.includes(t.symbol)}
-                          onSelect={(symbol) => {
-                            setSelected(symbol);
-                            setCopied(false);
-                            setDetailOpen(!detailOpen || selection !== symbol);
-                          }}
-                        >
-                          <td>
-                            <span className="market-supply-value">
-                              {(() => {
-                                const supply =
-                                  t.issuer === 'xstocks'
-                                    ? row.circulation?.circulatingSupply
-                                    : (row.valuationSupply ?? row.supply?.supply);
-                                return supply == null
-                                  ? '—'
-                                  : new Intl.NumberFormat('en-US', {
-                                      maximumFractionDigits: 5,
-                                    }).format(supply);
-                              })()}
-                            </span>
-                            <small className="market-supply-basis">
-                              {t.issuer === 'xstocks' ? 'Circulating' : 'Minted'}
-                            </small>
-                          </td>
-                          <td>
-                            {money(row.price)}
-                            {row.priceDelayed && (
-                              <small className="quote-age" title={time(row.priceTime)}>
-                                Last quote · {time(row.priceTime)}
-                              </small>
-                            )}
-                          </td>
-                          <td className={
-                            change === null
-                              ? undefined
-                              : change < 0
-                                ? 'market-negative'
-                                : 'market-positive'
-                          }>
-                            {pct(change)}
-                          </td>
-                          <td>{money(row.poolVolume24h, true)}</td>
-                          <td>{money(row.liquidity, true)}</td>
-                        </MarketStockRow>
-                        {detailOpen && selection === t.symbol && (
-                          <tr className="stock-detail-row">
-                            <td colSpan={6}>{stockDetail}</td>
-                          </tr>
-                        )}
-                      </Fragment>
-                    );
-                  })}
-                </Fragment>
-              );
-            })}
-          </tbody>
-        </table>
+      <div className="market-results-heading">
+        <fieldset className="market-view-switch">
+          <legend className="sr-only">Browse markets by</legend>
+          <button type="button" aria-pressed={listingView === 'tokens'} onClick={() => { setListingView('tokens'); setPage(0); setDetailOpen(false); }}>Tokens</button>
+          <button type="button" aria-pressed={listingView === 'companies'} onClick={() => { setListingView('companies'); setPage(0); setDetailOpen(false); }}>By company</button>
+        </fieldset>
+        <span>{issuers.length ? issuers.map(issuerName).join(', ') : 'All issuers'}</span>
       </div>
+      {listingView === 'tokens' ? renderTokenTable(pageTokens, true) : (
+        <div className="market-company-list" aria-label="Companies and their issuer tokens">
+          {pageGroups.map((group) => {
+            const expanded = expandedGroups.includes(group.key);
+            const name = tokens.find((t) => t.underlyingSymbol === group.key)?.shortName ?? group.versions[0].shortName;
+            const labels = [...new Set(group.versions.map((t) => issuerName(t.issuer)))];
+            return (
+              <section className="market-company" key={group.key}>
+                <button
+                  type="button"
+                  className="market-asset-trigger"
+                  aria-label={`${expanded ? 'Hide' : 'Compare'} ${group.versions.length} ${group.versions.length === 1 ? 'token' : 'tokens'} for ${name}`}
+                  aria-expanded={expanded}
+                  onClick={() => {
+                    setExpandedGroups((current) => expanded ? current.filter((key) => key !== group.key) : [...current, group.key]);
+                    if (expanded) setDetailOpen(false);
+                  }}
+                >
+                  <span className="market-asset-identity"><strong>{name}</strong><small>{group.key}</small></span>
+                  <span className="market-asset-issuers">{labels.join(' · ')}</span>
+                  <span className="market-asset-action">{group.versions.length} {group.versions.length === 1 ? 'token' : 'tokens'} <span aria-hidden="true">{expanded ? '−' : '+'}</span></span>
+                </button>
+                {expanded && renderTokenTable(group.versions, false)}
+              </section>
+            );
+          })}
+        </div>
+      )}
       {!matches.length && (
         <p className="market-empty">No stocks match this selection.</p>
       )}
@@ -1032,7 +1006,7 @@ export function MarketOverviewPanel({
         <div>
           <Button
             variant="ghost"
-            aria-label="Previous stocks"
+            aria-label={`Previous ${listingView === 'tokens' ? 'tokens' : 'companies'}`}
             disabled={currentPage === 0}
             onClick={() => setPage(currentPage - 1)}
           >
@@ -1043,7 +1017,7 @@ export function MarketOverviewPanel({
           </span>
           <Button
             variant="ghost"
-            aria-label="Next stocks"
+            aria-label={`Next ${listingView === 'tokens' ? 'tokens' : 'companies'}`}
             disabled={currentPage === maxPage}
             onClick={() => setPage(currentPage + 1)}
           >

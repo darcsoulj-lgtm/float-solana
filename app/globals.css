@@ -5106,3 +5106,63 @@ body:has(.community-entry) > footer {
   .market-asset-identity { min-width: 0; width: 100%; }
   .market-asset-issuers { flex: 1 1 auto; }
 }
+
+/* A single restrained accent gives Markets hierarchy without recoloring data. */
+.market-overview {
+  --market-accent: #2c6b73;
+  --market-accent-soft: #eaf3f2;
+  --market-accent-border: #b9d6d2;
+}
+.dark .market-overview {
+  --market-accent: #8bc9c7;
+  --market-accent-soft: #203a3d;
+  --market-accent-border: #43696b;
+}
+.market-overview .market-history-bar { fill: var(--market-accent); opacity: .86; }
+.market-overview .issuer-activity-track > span { background: var(--market-accent); }
+.market-overview .market-asset-tabs button[aria-pressed="true"] {
+  background: var(--market-accent-soft);
+  border-color: var(--market-accent-border);
+  color: var(--market-accent);
+}
+.market-results-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 18px 0 10px; color: var(--muted-foreground); font-size: 13px; }
+.market-view-switch { display: inline-flex; gap: 3px; margin: 0; padding: 3px; border: 1px solid var(--border); background: var(--muted); border-radius: 9px; }
+.market-view-switch button { min-height: 38px; padding: 7px 14px; border: 1px solid transparent; border-radius: 6px; color: var(--muted-foreground); font-size: 13px; font-weight: 600; cursor: pointer; }
+.market-view-switch button[aria-pressed="true"] { background: var(--market-accent-soft); border-color: var(--market-accent-border); color: var(--market-accent); }
+.market-view-switch button:focus-visible, .market-token-table button:focus-visible { outline: 2px solid var(--market-accent); outline-offset: 2px; }
+.market-token-table th[aria-sort="ascending"], .market-token-table th[aria-sort="descending"] { color: var(--market-accent); }
+.market-token-table tr.is-selected { background: var(--market-accent-soft); }
+.market-token-table td .market-mobile-label { display: none; }
+.market-company-list { overflow: hidden; border: 1px solid var(--border); border-radius: 10px; background: var(--card); }
+.market-company + .market-company { border-top: 1px solid var(--border); }
+.market-company .market-asset-trigger { min-height: 66px; }
+.market-company .market-asset-trigger:hover { background: var(--market-accent-soft); }
+.market-company .market-token-table-wrap { border: 0; border-top: 1px solid var(--border); border-radius: 0; }
+.market-company .market-asset-action { color: var(--market-accent); }
+@media (min-width: 701px) and (max-width: 900px) {
+  .market-token-table { min-width: 900px !important; }
+  .market-token-table > thead > tr > th, .market-token-table > tbody > tr:not(.stock-detail-row) > td { display: table-cell !important; }
+}
+@media (max-width: 700px) {
+  .market-results-heading { align-items: flex-start; flex-direction: column; }
+  .market-token-table-wrap { overflow: visible; border: 0; background: transparent; }
+  .market-token-table, .market-token-table > tbody { display: block; min-width: 0 !important; width: 100%; }
+  .market-token-table > thead { display: none; }
+  .market-token-table > tbody { display: grid; gap: 10px; }
+  .market-token-table > tbody > tr:not(.stock-detail-row) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--card); }
+  .market-token-table > tbody > tr:not(.stock-detail-row) > td { display: block !important; min-width: 0; padding: 10px 14px; border-top: 0; text-align: left; font-size: 14px; font-weight: 600; }
+  .market-token-table > tbody > tr:not(.stock-detail-row) > td:first-child { grid-column: 1 / -1; border-bottom: 1px solid var(--border); }
+  .market-token-table > tbody > tr:not(.stock-detail-row) > td.market-supply-cell { display: none !important; }
+  .market-token-table.market-supply-sorted > tbody > tr:not(.stock-detail-row) > td.market-supply-cell { display: block !important; grid-column: 1 / -1; order: 7; border-top: 1px solid var(--border); }
+  .market-token-table > tbody > tr:not(.stock-detail-row) > td:nth-child(4), .market-token-table > tbody > tr:not(.stock-detail-row) > td:nth-child(6) { border-left: 1px solid var(--border); }
+  .market-token-table > tbody > tr:not(.stock-detail-row) > td:nth-child(5), .market-token-table > tbody > tr:not(.stock-detail-row) > td:nth-child(6) { border-top: 1px solid var(--border); }
+  .market-token-table td .market-mobile-label { display: block; margin-bottom: 3px; color: var(--muted-foreground); font-size: 11px; font-weight: 500; line-height: 1.3; }
+  .market-token-table .stock-row-trigger { min-height: 48px; }
+  .market-token-table .stock-row-trigger > span { max-width: none; white-space: normal; }
+  .market-token-table > tbody > tr.stock-detail-row { display: block; margin-top: -10px; }
+  .market-token-table > tbody > tr.stock-detail-row > td { display: block; padding: 0; border: 0; }
+  .market-company .market-token-table-wrap { padding: 10px; }
+  .market-company .market-asset-trigger { gap: 3px 8px; }
+  .market-company .market-asset-identity { width: 100%; }
+  .market-company .market-asset-issuers { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
