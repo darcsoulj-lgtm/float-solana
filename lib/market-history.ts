@@ -102,10 +102,10 @@ export async function readMarketDailyActivity(
 ): Promise<MarketDailyPoint[]> {
   const day = new Date(now).toISOString().slice(0, 10);
   const existing = await database
-    .prepare('SELECT day FROM market_daily_activity WHERE day=?')
+    .prepare('SELECT policy_version FROM market_daily_activity WHERE day=?')
     .bind(day)
-    .first();
-  if (!existing) {
+    .first<{ policy_version: string }>();
+  if (existing?.policy_version !== POOL_POLICY_VERSION) {
     const batches = await marketPoolBatches(tokens);
     const rows = await marketCacheRows(database, batches.map((batch) => batch.key));
     const point = completeMarketActivity(batches, rows, now);
@@ -116,7 +116,7 @@ export async function readMarketDailyActivity(
     )
       await database
         .prepare(
-          'INSERT OR IGNORE INTO market_daily_activity (day,observed_at,volume_24h,liquidity,pool_count,batch_count,policy_version) VALUES (?,?,?,?,?,?,?)',
+          'INSERT INTO market_daily_activity (day,observed_at,volume_24h,liquidity,pool_count,batch_count,policy_version) VALUES (?,?,?,?,?,?,?) ON CONFLICT(day) DO UPDATE SET observed_at=excluded.observed_at,volume_24h=excluded.volume_24h,liquidity=excluded.liquidity,pool_count=excluded.pool_count,batch_count=excluded.batch_count,policy_version=excluded.policy_version',
         )
         .bind(
           day,
@@ -133,9 +133,9 @@ export async function readMarketDailyActivity(
   return (
     await database
       .prepare(
-        'SELECT day,observed_at,volume_24h,liquidity,pool_count,batch_count,policy_version FROM market_daily_activity WHERE day>=? ORDER BY day',
+        'SELECT day,observed_at,volume_24h,liquidity,pool_count,batch_count,policy_version FROM market_daily_activity WHERE day>=? AND policy_version=? ORDER BY day',
       )
-      .bind(cutoff)
+      .bind(cutoff, POOL_POLICY_VERSION)
       .all<MarketDailyPoint>()
   ).results;
 }

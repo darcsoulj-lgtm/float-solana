@@ -1,4 +1,4 @@
-import { stockPoolPolicy } from './stock-pools';
+import { parseStonkfunPoolRegistry, stockPoolPolicy, type StonkfunPoolIdentity } from './stock-pools';
 import { registryTokens, type RegistryStatus } from './token-registry';
 import type { TokenMarket } from './cmc-data';
 import type { IssuerCirculation } from './xstocks-circulation';
@@ -56,6 +56,7 @@ export type Pool = {
   side?: 'base' | 'quote';
   baseMint?: string;
   quoteMint?: string;
+  origin?: 'stonkfun';
 };
 export type TokenPrice = {
   price: number;
@@ -249,12 +250,13 @@ export function parsePools(
   raw: unknown,
   tokens: readonly StockToken[] = TOKENS,
   verifiedStocks: readonly StockToken[] = TOKENS,
+  stonkfunPools: readonly StonkfunPoolIdentity[] = [],
 ): Record<string, Pool[]> {
   if (!Array.isArray(raw)) throw new Error('Invalid pool response');
   const result: Record<string, Pool[]> = Object.fromEntries(
     tokens.map((t) => [t.symbol, []]),
   );
-  const policy = stockPoolPolicy(verifiedStocks);
+  const policy = stockPoolPolicy(verifiedStocks, stonkfunPools);
   const seen = new Set<string>();
   for (const value of raw) {
     const p = record(value),
@@ -273,7 +275,7 @@ export function parsePools(
       typeof p.pairAddress !== 'string' ||
       !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(p.pairAddress) ||
       seen.has(p.pairAddress) ||
-      !policy.accepts(base.address, quote.address)
+      !policy.accepts(base.address, quote.address, p.pairAddress)
     )
       continue;
     if (typeof p.dexId !== 'string' || p.dexId.length > 40) continue;
@@ -296,6 +298,9 @@ export function parsePools(
         baseMint: base.address,
         quoteMint: quote.address,
         side: isBase ? 'base' : 'quote',
+        origin: policy.isStonkfun(base.address, quote.address, p.pairAddress)
+          ? 'stonkfun'
+          : undefined,
         price: isBase ? positive(p.priceUsd) : null,
         change24h: isBase ? numeric(record(p.priceChange).h24) : null,
         liquidity: nonnegative(record(p.liquidity).usd),
@@ -422,6 +427,62 @@ export async function publicJson(
   if (!r.ok) throw new SourceHttpError(u.hostname, r);
   return r.json();
 }
+
+const stonkfunRegistryCache = new WeakMap<typeof fetch, {
+  expiresAt: number;
+  value: Promise<unknown>;
+}>();
+
+async function stonkfunPoolRegistry(
+  fetcher: typeof fetch,
+  verifiedStocks: readonly StockToken[],
+): Promise<StonkfunPoolIdentity[]> {
+  // Reuse the public issuer feed across market pages in the same Worker isolate.
+  // Its top-volume page is a partial discovery feed, never an aggregate to add.
+  const cached = stonkfunRegistryCache.get(fetcher);
+  if (cached && cached.expiresAt > Date.now()) {
+    try {
+      return parseStonkfunPoolRegistry(await cached.value, verifiedStocks);
+    } catch {
+      return [];
+    }
+  }
+  const value = publicJson(
+    'https://www.stonkfun.xyz/api/public/v1/tokens?sort=volume&page=1&pageSize=100',
+    fetcher,
+  );
+  stonkfunRegistryCache.set(fetcher, { expiresAt: Date.now() + 300000, value });
+  try {
+    return parseStonkfunPoolRegistry(await value, verifiedStocks);
+  } catch {
+    // Short cooldown avoids hammering the issuer during an outage while the
+    // previously reviewed settlement/stock pools continue to work.
+    stonkfunRegistryCache.set(fetcher, {
+      expiresAt: Date.now() + 30000,
+      value,
+    });
+    return [];
+  }
+}
+
+async function exactStonkfunPairs(
+  fetcher: typeof fetch,
+  tokens: readonly StockToken[],
+  official: readonly StonkfunPoolIdentity[],
+): Promise<unknown[]> {
+  const wanted = new Set(tokens.map((token) => token.mint));
+  const addresses = [...new Set(official.filter((pool) => wanted.has(pool.stockMint)).map((pool) => pool.address))];
+  const requests: Promise<unknown>[] = [];
+  for (let i = 0; i < addresses.length; i += 30)
+    requests.push(publicJson(
+      'https://api.dexscreener.com/latest/dex/pairs/solana/' + addresses.slice(i, i + 30).join(','),
+      fetcher,
+    ));
+  const responses = await Promise.allSettled(requests);
+  return responses.flatMap((response) => response.status === 'fulfilled'
+    ? list(record(response.value).pairs)
+    : []);
+}
 export async function fetchCatalog(
   fetcher: typeof fetch = fetch,
   tokens: readonly { symbol: string; mint: string }[] = BACKPACK_TOKENS,
@@ -437,6 +498,7 @@ export async function fetchPools(
   tokens: readonly StockToken[] = TOKENS,
   verifiedStocks: readonly StockToken[] = TOKENS,
 ) {
+  const official = await stonkfunPoolRegistry(fetcher, verifiedStocks);
   const batches = [];
   for (let i = 0; i < tokens.length; i += 30)
     batches.push(tokens.slice(i, i + 30));
@@ -453,7 +515,8 @@ export async function fetchPools(
   );
   if (data.some((x) => !Array.isArray(x)))
     throw new Error('Invalid pool response');
-  const discovered = parsePools(data.flat(), tokens, verifiedStocks);
+  const exact = await exactStonkfunPairs(fetcher, tokens, official);
+  const discovered = parsePools([...data.flat(), ...exact], tokens, verifiedStocks, official);
   // The multi-token endpoint is a discovery snapshot, not a complete pool
   // list. Spend a bounded number of additional free requests on the most
   // active verified tokens in each 30-mint group. Other tokens retain their
@@ -470,7 +533,7 @@ export async function fetchPools(
       .slice(0, 2),
   );
   const detail = await Promise.allSettled(
-    selected.map((token) => fetchTokenPools(token, fetcher, verifiedStocks)),
+    selected.map((token) => fetchTokenPools(token, fetcher, verifiedStocks, official, false)),
   );
   for (const [index, result] of detail.entries()) {
     if (result.status !== 'fulfilled') continue;
@@ -506,12 +569,17 @@ export async function fetchTokenPools(
   token: StockToken,
   fetcher: typeof fetch = fetch,
   verifiedStocks: readonly StockToken[] = TOKENS,
+  officialPools?: readonly StonkfunPoolIdentity[],
+  includeExact = true,
 ) {
+  const official = officialPools ?? await stonkfunPoolRegistry(fetcher, verifiedStocks);
   const raw = await publicJson(
     'https://api.dexscreener.com/token-pairs/v1/solana/' + token.mint,
     fetcher,
   );
-  return parsePools(raw, [token], verifiedStocks)[token.symbol];
+  if (!Array.isArray(raw)) throw new Error('Invalid pool response');
+  const exact = includeExact ? await exactStonkfunPairs(fetcher, [token], official) : [];
+  return parsePools([...raw, ...exact], [token], verifiedStocks, official)[token.symbol];
 }
 
 export async function fetchHistoricalPrices(

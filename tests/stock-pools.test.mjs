@@ -49,6 +49,40 @@ void test('The reported LIZM/METAx pair and reversed or spoofed versions never q
   }
 });
 
+void test('Only the exact official Stonkfun pool enters stock-quoted activity once', async () => {
+  const spy = api.TOKENS.find((token) => token.symbol === 'SPYx');
+  const launchMint = '6GmAFSYs4gk3FDao5FzzySQpPZaWsa4rUJHacpMpUNgx';
+  const address = '7a8xxAJBELDo6P9dikSYctdw6ce8F4mWr3ahcAD8Ao49';
+  const official = api.parseStonkfunPoolRegistry({
+    data: { tokens: [{ mint: launchMint, pool: address, symbol: 'STONK', quote: { mint: spy.mint } }] },
+  }, [spy]);
+  assert.equal(official.length, 1);
+  const pool = { ...pair(launchMint, spy.mint, 120), pairAddress: address };
+  const lookalike = pair(launchMint, spy.mint, 999999);
+  const wrongMint = { ...pair(meme, spy.mint, 999999), pairAddress: address };
+  const rows = api.parsePools([pool, pool, lookalike, wrongMint], [spy], [spy], official)[spy.symbol];
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].quote, 'STONK');
+  assert.equal(rows[0].origin, 'stonkfun');
+  assert.equal(rows[0].price, null);
+  assert.equal(api.poolMetrics(rows).volume24h, 120);
+  const seen = [];
+  const fetcher = async (url) => {
+    seen.push(String(url));
+    if (String(url).includes('stonkfun.xyz')) return Response.json({ data: { tokens: [
+      { mint: launchMint, pool: address, symbol: 'STONK', quote: { mint: spy.mint } },
+    ] } });
+    if (String(url).includes('/latest/dex/pairs/')) return Response.json({ pairs: [pool] });
+    if (String(url).includes('/tokens/v1/')) return Response.json([]);
+    return Response.json([pool, lookalike]);
+  };
+  const found = await api.fetchTokenPools(spy, fetcher, [spy]);
+  assert.equal(api.poolMetrics(found).volume24h, 120);
+  assert.ok(seen.some((url) => url.includes('/latest/dex/pairs/')));
+  const batch = await api.fetchPools(fetcher, [spy], [spy]);
+  assert.equal(api.poolMetrics(batch[spy.symbol]).volume24h, 120);
+});
+
 void test('Every reviewed settlement mint works in both orientations; labels come from trusted registry', () => {
   for (const asset of api.POOL_SETTLEMENT_ASSETS) {
     const rows = api.parsePools(
@@ -149,7 +183,7 @@ void test('Active tokens gain eligible detail pools without counting spoof pairs
   assert.equal(api.poolMetrics(pools[b.symbol]).volume24h, 90);
   assert.equal(api.poolMetrics(pools[c.symbol]).volume24h, 10);
   assert.equal(pools[a.symbol].length, 2);
-  assert.equal(requested.length, 3);
+  assert.equal(requested.length, 4);
   assert.ok(requested.some((url) => url.endsWith('/' + a.mint)));
   assert.ok(requested.some((url) => url.endsWith('/' + b.mint)));
   assert.ok(!requested.some((url) => url.endsWith('/' + c.mint)));
@@ -206,7 +240,7 @@ void test('A warm legacy pool cache cannot reintroduce excluded activity, includ
   };
   try {
     const result = await api.readMarketBatch(db, [stock], { history: false });
-    assert.equal(calls, 1);
+    assert.equal(calls, 2);
     assert.equal(result.pools.data, null);
     assert.ok(result.pools.error);
     assert.equal(

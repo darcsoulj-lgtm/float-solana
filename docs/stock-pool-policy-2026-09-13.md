@@ -1,5 +1,15 @@
 # Eligible stock trading pools — 13 September 2026
 
+## Update — 20 September 2026: Stonkfun stock-quoted pools
+
+Float now includes a Stonkfun launch pool when Stonkfun's public top-volume feed identifies the exact pool address, launch mint and quote mint, and the quote mint matches Float's verified stock registry. DEX Screener supplies the pool's observed rolling 24-hour volume and liquidity. Its pool-address endpoint supplements token discovery, and the same address is counted only once in token, issuer, market and history totals. Stonkfun's own volume number is **not** added to the DEX Screener number, because these can describe the same trades and currently differ by methodology.
+
+The SPYx-quoted STONK pool `7a8xxAJBELDo6P9dikSYctdw6ce8F4mWr3ahcAD8Ao49` is an example. This is activity trading STONK *against* SPYx, not direct SPYx equity purchases. A second STONK/SPYx pool, an unlisted lookalike, or another memecoin/stock pair does not qualify merely by sharing a ticker or mint. The official discovery feed's first 100 top-volume launches is partial, and DEX Screener can omit or delay pools; neither source establishes full market volume or screens wash trading. If the Stonkfun feed fails, the reviewed settlement/stock pool subset remains available but excludes Stonkfun-only pools for that observation.
+
+The pool-policy cache namespace is now `stonkfun-v1`. Historical chart points are shown only when their policy version matches, so the prior narrower values are not compared as if they used the new definition. The new definition applies consistently to all issuers and the public Backpack view.
+
+The sections below record the original September 13 rule and validation; the update above supersedes their blanket exclusion of memecoin pairs and their `eligible-v1` cache version.
+
 ## Decision and architecture
 
 Float measures an explicitly scoped subset of Solana DEX trading. A pool must contain a verified tokenized-stock mint and pair it with canonical wrapped SOL, a reviewed stablecoin mint, or another verified stock mint. The rule applies in both base/quote orientations. Memecoins and unverified counterparties are excluded, including the reported LIZM/METAx pair `3MTB5DMjsQDMcqisagTVUED51GnSfvGe3iMjLwe96rZ1`.

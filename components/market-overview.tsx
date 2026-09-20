@@ -707,6 +707,7 @@ export function MarketOverviewPanel({
             >
               <span>
                 <b>{p.dex}</b> {token.symbol} / {p.quote}
+                {p.origin === 'stonkfun' ? ' · Stonkfun' : ''}
               </span>
               <span>{money(p.liquidity, true)} liquidity</span>
               <ArrowUpRight size={15} />

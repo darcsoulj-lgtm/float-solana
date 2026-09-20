@@ -108,7 +108,8 @@ export function TokenTradingPools({ pools }: { pools: Pool[] }) {
               <span>
                 <b>{p.dex}</b>
                 <small>
-                  {p.address.slice(0, 5)}…{p.address.slice(-4)} · {p.quote}{' '}
+                  {p.address.slice(0, 5)}…{p.address.slice(-4)} · {p.quote}
+                  {p.origin === 'stonkfun' ? ' · Stonkfun' : ''}{' '}
                   <ArrowUpRight size={12} />
                 </small>
               </span>

@@ -117,17 +117,20 @@ void test('Per-token discovery stays bounded and uses exact mint endpoints', asy
       max = Math.max(max, inflight);
       await new Promise((r) => setTimeout(r, 1));
       inflight--;
+      if (String(url).includes('stonkfun.xyz'))
+        return Response.json({ data: { tokens: [] } });
       return new Response('[]', { status: 200 });
     },
   );
   assert.equal(Object.keys(result).length, 10);
   assert.ok(max <= 3);
-  assert.equal(urls.length, 10);
+  assert.equal(urls.length, 11);
   assert.ok(
-    urls.every((u) =>
+    urls.filter((u) => u.includes('dexscreener.com')).every((u) =>
       u.startsWith('https://api.dexscreener.com/token-pairs/v1/solana/'),
     ),
   );
+  assert.equal(urls.filter((u) => u.includes('stonkfun.xyz')).length, 1);
 });
 // Compile the public route with explicit dependency stubs. Any accidental auth
 // import fails this harness; the output must remain public market data only.
