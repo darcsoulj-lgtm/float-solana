@@ -3,6 +3,7 @@ import { TesseraContext } from './tessera-context';
 import { MarketBrowseFilters } from './market-browse-filters';
 import {
   groupMarketTokens,
+  fundUnderlyings,
   marketAssetPath,
   matchesAssetFilter,
   type AssetFilter,
@@ -78,6 +79,7 @@ export function MarketOverviewPanel({
     [copied, setCopied] = useState(false);
   const { data, error, busy } = useMarketOverview(holdings, 0);
   const tokens = marketTokens(data);
+  const knownFunds = fundUnderlyings(tokens);
   const [bookData, setBook] = useState<SourceResult<Book> | null>(null),
     [bookMessage, setBookReason] = useState('Loading order book…'),
     [bookSymbol, setBookSymbol] = useState(''),
@@ -119,7 +121,7 @@ export function MarketOverviewPanel({
       (!assetSymbol || t.underlyingSymbol.toLowerCase() === assetSymbol.toLowerCase()) &&
       (!onlyHoldings || holdings.includes(t.symbol)) &&
       (!issuers.length || issuers.includes(t.issuer)) &&
-      matchesAssetFilter(t, asset) &&
+      matchesAssetFilter(t, asset, knownFunds) &&
       (t.symbol + ' ' + t.underlyingSymbol + ' ' + t.name)
         .toLowerCase()
         .includes(query.toLowerCase()),

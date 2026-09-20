@@ -25,8 +25,9 @@ export function MarketBrowseFilters({
         {(
           [
             ['all', 'All assets'],
+            ['stocks', 'Stocks'],
             ['funds', 'Funds & ETFs'],
-            ['private', 'Private-company exposure'],
+            ['private', 'Pre-IPO'],
           ] as const
         ).map(([value, label]) => (
           <button

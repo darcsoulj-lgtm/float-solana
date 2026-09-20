@@ -18,7 +18,7 @@ async function load(path) {
   );
   return compiled.exports;
 }
-const { groupMarketTokens, marketAssetPath, matchesAssetFilter } = await load(
+const { groupMarketTokens, marketAssetPath, matchesAssetFilter, fundUnderlyings } = await load(
   '../lib/market-browse.ts',
 );
 const { parseTesseraContext } = await load('../lib/tessera-data.ts');
@@ -38,7 +38,7 @@ void test('asset URLs group issuer tokens under one shareable underlying route',
   assert.equal(marketAssetPath('MU', 'MUx'), '/markets/mu?token=MUx');
   assert.equal(marketAssetPath('SPCX'), '/markets/spcx');
 });
-void test('SpaceX is not classified as private solely because of its issuer', () => {
+void test('stock and Pre-IPO filters distinguish issuer exposure from funds', () => {
   assert.equal(
     matchesAssetFilter(
       { issuer: 'prestocks', underlyingSymbol: 'SPCX' },
@@ -54,6 +54,20 @@ void test('SpaceX is not classified as private solely because of its issuer', ()
     true,
   );
   assert.equal(matchesAssetFilter({ name: 'US Treasury ETF' }, 'funds'), true);
+  const versions = [
+    { name: 'SPDR S&P 500 ETF', underlyingSymbol: 'SPY', issuer: 'ondo' },
+    { name: 'SP500', underlyingSymbol: 'SPY', issuer: 'xstocks' },
+    { name: 'Micron', underlyingSymbol: 'MU', issuer: 'backpack' },
+  ];
+  const funds = fundUnderlyings(versions);
+  assert.equal(matchesAssetFilter(versions[1], 'funds', funds), true);
+  assert.equal(matchesAssetFilter(versions[1], 'stocks', funds), false);
+  assert.equal(matchesAssetFilter(versions[2], 'stocks', funds), true);
+  assert.equal(matchesAssetFilter({ name: 'Gold', underlyingSymbol: 'GLD' }, 'stocks'), false);
+  assert.equal(matchesAssetFilter({ name: 'Digital Realty Trust', underlyingSymbol: 'DLR' }, 'stocks'), true);
+  assert.equal(matchesAssetFilter({ name: 'iShares Gold Trust', underlyingSymbol: 'IAU' }, 'funds'), true);
+  assert.equal(matchesAssetFilter({ issuer: 'prestocks', underlyingSymbol: 'OPENAI' }, 'stocks'), false);
+  assert.equal(matchesAssetFilter({ issuer: 'prestocks', underlyingSymbol: 'SPCX' }, 'stocks'), true);
 });
 void test('Tessera context accepts only registry-confirmed Tessera mints and finite positive marks', () => {
   const tokens = [
