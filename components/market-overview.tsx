@@ -3,6 +3,7 @@ import { TesseraContext } from './tessera-context';
 import { MarketBrowseFilters } from './market-browse-filters';
 import {
   groupMarketTokens,
+  marketAssetPath,
   matchesAssetFilter,
   type AssetFilter,
 } from '@/lib/market-browse';
@@ -28,6 +29,7 @@ import type { Holding } from '@/lib/community-types';
 import { MarketStockRow } from './market-stock-row';
 import { SolanaEcosystem } from './solana-ecosystem';
 import { tokenObservation, tokenValuation } from '@/lib/token-observation';
+import Link from '@/components/site-link';
 const money = (n: number | null | undefined, compact = false) =>
   n === null || n === undefined
     ? '—'
@@ -52,24 +54,27 @@ export function MarketOverviewPanel({
   holdings,
   positions = [],
   hidePortfolio = false,
+  assetSymbol,
+  initialToken,
 }: {
   holdings: string[];
   positions?: Holding[];
   hidePortfolio?: boolean;
   onIssuer?: (issuer: IssuerId) => void;
+  assetSymbol?: string;
+  initialToken?: string;
 }) {
   const [onlyHoldings, setOnlyHoldings] = useState(false),
     [query, setQuery] = useState(''),
     [issuers, setIssuers] = useState<IssuerId[]>([]),
     [asset, setAsset] = useState<AssetFilter>('all'),
-    [expandedGroups, setExpandedGroups] = useState<string[]>([]),
     [listingView, setListingView] = useState<'tokens' | 'companies'>('tokens'),
     [page, setPage] = useState(0),
     [sort, setSort] = useState<{ key: string; direction: 'asc' | 'desc' }>({
       key: 'volume',
       direction: 'desc',
     });
-  const [selection, setSelected] = useState(holdings[0] || 'MU'),
+  const [selection, setSelected] = useState(initialToken || holdings[0] || 'MU'),
     [copied, setCopied] = useState(false);
   const { data, error, busy } = useMarketOverview(holdings, 0);
   const tokens = marketTokens(data);
@@ -81,7 +86,7 @@ export function MarketOverviewPanel({
     symbol: string;
     source: SourceResult<Pool[]>;
   } | null>(null);
-  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(Boolean(assetSymbol));
   const chooseIssuer = (id: IssuerId | 'all') => {
     setDetailOpen(false);
     setIssuers(id === 'all' ? [] : [id]);
@@ -111,6 +116,7 @@ export function MarketOverviewPanel({
     : 'none';
   const matches = tokens.filter(
     (t) =>
+      (!assetSymbol || t.underlyingSymbol.toLowerCase() === assetSymbol.toLowerCase()) &&
       (!onlyHoldings || holdings.includes(t.symbol)) &&
       (!issuers.length || issuers.includes(t.issuer)) &&
       matchesAssetFilter(t, asset) &&
@@ -296,7 +302,7 @@ export function MarketOverviewPanel({
             <span className="market-chain">
               {issuerName(token.issuer)} · Solana
             </span>
-            <Button
+            {!assetSymbol && <Button
               variant="ghost"
               size="icon"
               aria-label={`Close ${token.symbol} details`}
@@ -308,7 +314,7 @@ export function MarketOverviewPanel({
               }}
             >
               <X size={17} />
-            </Button>
+            </Button>}
           </div>
         </header>
         <div
@@ -766,11 +772,16 @@ export function MarketOverviewPanel({
           name={`${t.shortName} · ${issuerName(t.issuer)}`}
           selected={isSelected}
           held={holdings.includes(t.symbol)}
-          onSelect={(symbol) => {
+          href={assetSymbol ? undefined : marketAssetPath(t.underlyingSymbol, t.symbol)}
+          onSelect={assetSymbol ? (symbol) => {
             setSelected(symbol);
             setCopied(false);
-            setDetailOpen(!detailOpen || selected !== symbol);
-          }}
+            setDetailOpen(true);
+            window.history.replaceState(null, '', marketAssetPath(t.underlyingSymbol, symbol));
+            requestAnimationFrame(() =>
+              document.getElementById('selected-stock-detail')?.scrollIntoView({ block: 'start' }),
+            );
+          } : undefined}
         >
           <td className="market-supply-cell">
             <span className="market-mobile-label">Supply</span>
@@ -791,7 +802,6 @@ export function MarketOverviewPanel({
           <td><span className="market-mobile-label">DEX volume · 24h</span>{money(row.poolVolume24h, true)}</td>
           <td><span className="market-mobile-label">Pool liquidity</span>{money(row.liquidity, true)}</td>
         </MarketStockRow>
-        {isSelected && <tr className="stock-detail-row"><td colSpan={6}>{stockDetail}</td></tr>}
       </Fragment>
     );
   };
@@ -820,6 +830,41 @@ export function MarketOverviewPanel({
       </table>
     </div>
   );
+  if (assetSymbol) {
+    const company = matches[0];
+    return (
+      <div className="market-overview market-asset-page">
+        <Link className="market-asset-back" href="/markets">← Back to Markets</Link>
+        {company ? (
+          <>
+            <header className="market-asset-page-heading">
+              <div>
+                <span className="market-kicker">Solana markets</span>
+                <h1>{company.shortName}</h1>
+                <p>{company.underlyingSymbol} · {matches.length} {matches.length === 1 ? 'issuer token' : 'issuer tokens'}</p>
+              </div>
+            </header>
+            {error && <div className="error" role="alert">{error}</div>}
+            <section className="market-asset-versions" aria-label="Issuer tokens">
+              <h2>Issuer tokens</h2>
+              {renderTokenTable(matches, false)}
+            </section>
+            {stockDetail}
+          </>
+        ) : !data || busy ? (
+          <section className="market-asset-missing" aria-live="polite">
+            <h1>Loading market</h1>
+            <p>Finding verified issuer tokens…</p>
+          </section>
+        ) : (
+          <section className="market-asset-missing">
+            <h1>Asset not found</h1>
+            <p>This asset is not in Float’s tracked Solana markets.</p>
+          </section>
+        )}
+      </div>
+    );
+  }
   return (
     <div className="market-overview">
       {!hidePortfolio && (
@@ -843,17 +888,8 @@ export function MarketOverviewPanel({
         historyReady={!!data && !busy}
         onIssuer={chooseIssuer}
         select={(symbol) => {
-          setOnlyHoldings(false);
-          setQuery(symbol);
-          setPage(0);
-          setSelected(symbol);
-          setExpandedGroups((current) =>
-            current.includes(tokens.find((t) => t.symbol === symbol)?.underlyingSymbol || symbol)
-              ? current
-              : [...current, tokens.find((t) => t.symbol === symbol)?.underlyingSymbol || symbol],
-          );
-          setDetailOpen(true);
-          setCopied(false);
+          const selectedToken = tokens.find((t) => t.symbol === symbol);
+          if (selectedToken) window.location.assign(marketAssetPath(selectedToken.underlyingSymbol, symbol));
         }}
       />
       <MarketBrowseFilters
@@ -941,26 +977,19 @@ export function MarketOverviewPanel({
       {listingView === 'tokens' ? renderTokenTable(pageTokens, true) : (
         <div className="market-company-list" aria-label="Companies and their issuer tokens">
           {pageGroups.map((group) => {
-            const expanded = expandedGroups.includes(group.key);
             const name = tokens.find((t) => t.underlyingSymbol === group.key)?.shortName ?? group.versions[0].shortName;
             const labels = [...new Set(group.versions.map((t) => issuerName(t.issuer)))];
             return (
               <section className="market-company" key={group.key}>
-                <button
-                  type="button"
+                <Link
+                  href={marketAssetPath(group.key)}
                   className="market-asset-trigger"
-                  aria-label={`${expanded ? 'Hide' : 'Compare'} ${group.versions.length} ${group.versions.length === 1 ? 'token' : 'tokens'} for ${name}`}
-                  aria-expanded={expanded}
-                  onClick={() => {
-                    setExpandedGroups((current) => expanded ? current.filter((key) => key !== group.key) : [...current, group.key]);
-                    if (expanded) setDetailOpen(false);
-                  }}
+                  aria-label={`View ${name} and ${group.versions.length} ${group.versions.length === 1 ? 'token' : 'tokens'}`}
                 >
                   <span className="market-asset-identity"><strong>{name}</strong><small>{group.key}</small></span>
                   <span className="market-asset-issuers">{labels.join(' · ')}</span>
-                  <span className="market-asset-action">{group.versions.length} {group.versions.length === 1 ? 'token' : 'tokens'} <span aria-hidden="true">{expanded ? '−' : '+'}</span></span>
-                </button>
-                {expanded && renderTokenTable(group.versions, false)}
+                  <span className="market-asset-action">{group.versions.length} {group.versions.length === 1 ? 'token' : 'tokens'} <span aria-hidden="true">→</span></span>
+                </Link>
               </section>
             );
           })}

@@ -58,7 +58,7 @@ export function SourceCard({
           </p>
         )}
         <h2>
-          <a href={item.url} target="_blank" rel="noopener noreferrer">
+          <a href={`/read?url=${encodeURIComponent(item.url)}`}>
             {item.title}
             <ArrowUpRight size={16} />
           </a>

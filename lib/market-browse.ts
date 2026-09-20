@@ -24,3 +24,8 @@ export function groupMarketTokens(tokens: readonly StockToken[]) {
   }
   return [...groups].map(([key, versions]) => ({ key, versions }));
 }
+
+export function marketAssetPath(underlyingSymbol: string, tokenSymbol?: string) {
+  const path = `/markets/${encodeURIComponent(underlyingSymbol.toLowerCase())}`;
+  return tokenSymbol ? `${path}?token=${encodeURIComponent(tokenSymbol)}` : path;
+}

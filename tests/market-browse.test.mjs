@@ -18,7 +18,7 @@ async function load(path) {
   );
   return compiled.exports;
 }
-const { groupMarketTokens, matchesAssetFilter } = await load(
+const { groupMarketTokens, marketAssetPath, matchesAssetFilter } = await load(
   '../lib/market-browse.ts',
 );
 const { parseTesseraContext } = await load('../lib/tessera-data.ts');
@@ -32,6 +32,11 @@ void test('issuer versions retain individual identity and sorted group priority'
     groupMarketTokens(tokens).map((g) => g.versions.map((t) => t.symbol)),
     [['AAPLx', 'AAPLon'], ['MU']],
   );
+});
+void test('asset URLs group issuer tokens under one shareable underlying route', () => {
+  assert.equal(marketAssetPath('MU', 'MU'), '/markets/mu?token=MU');
+  assert.equal(marketAssetPath('MU', 'MUx'), '/markets/mu?token=MUx');
+  assert.equal(marketAssetPath('SPCX'), '/markets/spcx');
 });
 void test('SpaceX is not classified as private solely because of its issuer', () => {
   assert.equal(

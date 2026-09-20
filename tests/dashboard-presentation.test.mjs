@@ -723,19 +723,16 @@ void test('one market table filters to owned tokens without removing market-wide
   assert.match(html, /Portfolio summary/);
 });
 
-void test('Tokens shows issuer rows by default and company comparison reveals them on demand', async () => {
+void test('Tokens and company rows link to an asset page instead of expanding inline', async () => {
   const f = await marketFixture();
   let tree = f.render();
   assert.match(renderToStaticMarkup(tree), /Sortable issuer tokens/);
-  assert.ok(findElement(tree, (e) => e.props?.symbol === 'MU'));
+  assert.equal(findElement(tree, (e) => e.props?.symbol === 'MU').props.href, '/markets/mu?token=MU');
   findElement(tree, (e) => e.type === 'button' && e.props?.children === 'By company').props.onClick();
   tree = f.render();
   assert.doesNotMatch(renderToStaticMarkup(tree), /Sortable issuer tokens/);
-  assert.ok(findElement(tree, (e) => e.props?.className === 'market-asset-trigger'));
+  assert.equal(findElement(tree, (e) => e.props?.className === 'market-asset-trigger').props.href, '/markets/googl');
   assert.equal(findElement(tree, (e) => e.props?.symbol === 'MU'), null);
-  findElement(tree, (e) => e.props?.className === 'market-asset-trigger' && e.props?.['aria-label']?.includes('Micron')).props.onClick();
-  tree = f.render();
-  assert.ok(findElement(tree, (e) => e.props?.symbol === 'MU'));
 });
 
 void test('sorting token price reorders the visible issuer rows', async () => {
@@ -1098,30 +1095,15 @@ void test('Home portfolio links filter the existing news area and market navigat
   assert.doesNotMatch(html, /Backpack dashboard/);
 });
 
-void test('Stock details expand under the selected row and collapse without navigating away', async () => {
-  const f = await marketFixture();
-  let tree = f.render();
-  assert.doesNotMatch(renderToStaticMarkup(tree), /id="selected-stock-detail"/);
-  assert.match(renderToStaticMarkup(tree), /MU Micron.*Held/);
-  const row = () =>
-    findElement(
-      tree,
-      (e) =>
-        e.props?.symbol === 'MU' && typeof e.props?.onSelect === 'function',
-    );
-  row().props.onSelect('MU');
-  tree = f.render();
-  const detail = findElement(
-    tree,
-    (e) => e.type === 'tr' && e.props.className === 'stock-detail-row',
-  );
-  assert.ok(detail);
-  assert.equal(detail.props.children.props.colSpan, 6);
-  assert.match(renderToStaticMarkup(detail), /id="selected-stock-detail"/);
-  assert.equal(row().props.selected, true);
-  row().props.onSelect('MU');
-  tree = f.render();
-  assert.doesNotMatch(renderToStaticMarkup(tree), /id="selected-stock-detail"/);
+void test('A direct asset page shows issuer versions and a distinct detail section', async () => {
+  const f = await marketFixture({ assetSymbol: 'mu', initialToken: 'MU' });
+  const tree = f.render();
+  const html = renderToStaticMarkup(tree);
+  assert.match(html, /Back to Markets/);
+  assert.match(html, /Issuer tokens/);
+  assert.match(html, /id="selected-stock-detail"/);
+  assert.doesNotMatch(html, /stock-detail-row/);
+  assert.equal(findElement(tree, (e) => e.props?.symbol === 'MU').props.selected, true);
 });
 
 void test('All issuer deep links resolve inside Markets and unknown issuers reset safely', () => {
