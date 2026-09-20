@@ -23,6 +23,40 @@ function discussionTime(timestamp: number) {
   });
 }
 
+function shortDiscussionTime(timestamp: number, now: number) {
+  const elapsed = Math.max(0, now - timestamp);
+  if (elapsed < 60_000) return 'now';
+  if (elapsed < 3_600_000) return `${Math.floor(elapsed / 60_000)}m`;
+  if (elapsed < 86_400_000) return `${Math.floor(elapsed / 3_600_000)}h`;
+  if (elapsed < 604_800_000) return `${Math.floor(elapsed / 86_400_000)}d`;
+  const date = new Date(timestamp);
+  return date.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    ...(date.getFullYear() !== new Date(now).getFullYear() ? { year: 'numeric' as const } : {}),
+  });
+}
+
+function DiscussionTimestamp({ timestamp, now }: { timestamp: number; now: number }) {
+  const [showExact, setShowExact] = useState(false);
+  const exact = discussionTime(timestamp);
+  return (
+    <time dateTime={new Date(timestamp).toISOString()}>
+      <button
+        type="button"
+        className="discussion-time"
+        title={exact}
+        aria-label={`${exact}. ${showExact ? 'Show short time' : 'Show exact time'}`}
+        aria-pressed={showExact}
+        suppressHydrationWarning
+        onClick={() => setShowExact((current) => !current)}
+      >
+        {showExact ? exact : shortDiscussionTime(timestamp, now)}
+      </button>
+    </time>
+  );
+}
+
 export function Thread({
   thread: t,
   memberId,
@@ -35,6 +69,7 @@ export function Thread({
   refresh: () => Promise<void>;
 }) {
   const [open, setOpen] = useState(false),
+    [now, setNow] = useState(() => Date.now()),
     [page, setPage] = useState<ReplyPage>({ replies: [], nextCursor: null }),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false),
@@ -58,6 +93,18 @@ export function Thread({
   const poll = t.poll;
   const pollClosed = !!poll?.closed;
   const hasVoted = !!poll?.options.some((option) => option.selected);
+  useEffect(() => {
+    const update = () => {
+      if (document.visibilityState === 'visible') setNow(Date.now());
+    };
+    update();
+    const timer = window.setInterval(update, 60_000);
+    document.addEventListener('visibilitychange', update);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', update);
+    };
+  }, []);
   useEffect(() => {
     if (!open) return;
     const poll = () => {
@@ -88,9 +135,9 @@ export function Thread({
           />
         )}
         {t.bio && <span className="thread-author-bio">{t.bio}</span>}
-        <span>
-          {t.room_name || t.topic} · {discussionTime(t.created_at)}
-        </span>
+        <span>{t.room_name || t.topic}</span>
+        <span aria-hidden="true">·</span>
+        <DiscussionTimestamp timestamp={t.created_at} now={now} />
       </div>
       <h3>{t.title}</h3>
       <p style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
@@ -214,9 +261,7 @@ export function Thread({
                     />
                   )}
                   {r.bio && <span className="thread-author-bio">{r.bio}</span>}
-                  <time dateTime={new Date(r.created_at).toISOString()}>
-                    {discussionTime(r.created_at)}
-                  </time>
+                  <DiscussionTimestamp timestamp={r.created_at} now={now} />
                 </div>
                 <p>{r.body}</p>
                 <div className="reply-actions">

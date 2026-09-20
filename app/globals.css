@@ -1030,6 +1030,15 @@ nav {
   color: var(--hp-ink-6f6f6f, #6f6f6f);
   flex-wrap: wrap;
 }
+.discussion-time {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.discussion-time:hover, .discussion-time:focus-visible { text-decoration: underline; }
 .avatar-letter {
   width: 30px;
   height: 30px;
