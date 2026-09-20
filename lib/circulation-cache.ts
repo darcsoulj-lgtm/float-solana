@@ -62,7 +62,7 @@ export async function circulationSnapshot(
   const first = read(cache.get(0));
   const count = first?.data?.tokens?.page?.totalPages;
   const expected =
-    Number.isInteger(count) && count > 0 && count <= 20 ? count : 1;
+    Number.isInteger(count) && count > 0 && count <= 50 ? count : 1;
   const fx = await marketSnapshot(
     database,
     'xstocks-reference-fx:v2',
@@ -170,7 +170,7 @@ export async function circulationSnapshot(
           !Array.isArray(result.data?.tokens?.nodes) ||
           !Number.isInteger(result.data?.tokens?.page?.totalPages) ||
           (result.data?.tokens?.page?.totalPages ?? 0) < 1 ||
-          (result.data?.tokens?.page?.totalPages ?? 21) > 20
+          (result.data?.tokens?.page?.totalPages ?? 51) > 50
         )
           throw Error('Invalid issuer page');
         return result;

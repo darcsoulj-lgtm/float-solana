@@ -13,15 +13,35 @@ export async function api<T = unknown>(
   path: string,
   body?: unknown,
 ): Promise<T> {
-  const response = await fetch('/api/' + path, {
-    signal: AbortSignal.timeout(
-      /^community\/(challenge|verify)$/.test(path) ? 45000 : 25000,
-    ),
-    method: body ? 'POST' : 'GET',
-    headers: body ? { 'Content-Type': 'application/json' } : {},
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const data: unknown = await response.json();
+  const controller = new AbortController();
+  const timeout = globalThis.setTimeout(
+    () => controller.abort(),
+    /^community\/(challenge|verify|holdings-refresh)$/.test(path)
+      ? 45000
+      : 25000,
+  );
+  let response: Response;
+  let data: unknown;
+  try {
+    response = await fetch('/api/' + path, {
+      signal: controller.signal,
+      method: body ? 'POST' : 'GET',
+      headers: body ? { 'Content-Type': 'application/json' } : {},
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    data = await response.json();
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    throw new ApiError(
+      controller.signal.aborted
+        ? 'The connection timed out. Please try again.'
+        : 'Could not reach Float. Check your connection and try again.',
+      0,
+      controller.signal.aborted ? 'TIMEOUT' : 'NETWORK_ERROR',
+    );
+  } finally {
+    globalThis.clearTimeout(timeout);
+  }
   if (
     response.status === 401 &&
     (path.startsWith('community/') || path.startsWith('market-data')) &&

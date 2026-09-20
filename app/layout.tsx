@@ -79,7 +79,6 @@ export default function RootLayout({
             <Link href="/methodology">Membership</Link>
             <Link href="/tokens">Supported stocks</Link>
             <Link href="/docs">Help</Link>
-            <Link href="/admin/community">Admin</Link>
           </div>
           <p className="legal">
             Community discussions are not investment advice. Independent of

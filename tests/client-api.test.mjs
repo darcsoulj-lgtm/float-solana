@@ -37,6 +37,14 @@ void test('No-holdings errors preserve a machine-readable reason without ending 
       (error) => error.code === undefined && error.status === 503,
     );
     assert.deepEqual(events, ['hp-session-expired']);
+    globalThis.fetch = async () => {
+      throw new DOMException('The string did not match the expected pattern.', 'SyntaxError');
+    };
+    await assert.rejects(
+      api('community/holdings-refresh', { force: true }),
+      (error) => error.code === 'NETWORK_ERROR' &&
+        error.message === 'Could not reach Float. Check your connection and try again.',
+    );
   } finally {
     globalThis.fetch = originalFetch;
     if (originalWindow === undefined) delete globalThis.window;

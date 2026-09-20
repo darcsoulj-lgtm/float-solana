@@ -188,7 +188,9 @@ export async function fetchXstocksCirculationPage(
       query: XSTOCKS_CIRCULATION_QUERY,
       variables: {
         page,
-        pageSize: 100,
+        // The issuer query expands collateral prices and deployments. Smaller
+        // pages finish reliably within the Worker fetch timeout.
+        pageSize: 50,
         where: { businessLine: { equals: 'xStocks' } },
         orderBy: { field: 'symbol', direction: 'asc' },
         maxAge: 259200,

@@ -4,7 +4,11 @@ import Image from 'next/image';
 import { ArrowUpRight, ChevronRight, LoaderCircle } from 'lucide-react';
 import { Button } from './ui/button';
 import { walletAvailability, subscribeWallets } from '@/lib/wallet-provider';
-import { isMobileBrowser, walletBrowserLink } from '@/lib/wallet-browser-link';
+import {
+  isMobileBrowser,
+  walletBrowserLink,
+  walletLaunchIntent,
+} from '@/lib/wallet-browser-link';
 const labels = {
   phantom: 'Phantom',
   backpack: 'Backpack',
@@ -33,8 +37,20 @@ export function WalletList({
     typeof walletAvailability
   > | null>(null);
   const [help, setHelp] = useState('');
+  const [mobile, setMobile] = useState(false);
+  const [launchIntent, setLaunchIntent] = useState<string | null>(null);
   useEffect(() => {
-    const update = () => setAvailable(walletAvailability());
+    const update = () => {
+      setMobile(
+        isMobileBrowser(
+          navigator.userAgent,
+          navigator.platform,
+          navigator.maxTouchPoints,
+        ),
+      );
+      setLaunchIntent(walletLaunchIntent(window.location.href));
+      setAvailable(walletAvailability());
+    };
     const timeout = setTimeout(update, 0);
     const unsubscribe = subscribeWallets(update);
     // Also refresh after the browser returns from enabling an extension.
@@ -57,17 +73,17 @@ export function WalletList({
             disabled={disabled}
             onClick={() => {
               const latest = walletAvailability().find((w) => w.id === id);
-              if (latest?.state !== 'detected') {
-                const mobile = isMobileBrowser(
-                  navigator.userAgent,
-                  navigator.platform,
-                  navigator.maxTouchPoints,
-                );
+              // Mobile wallet browsers can expose another wallet's provider.
+              // First move through the selected wallet's own deep link, then
+              // require its named provider before requesting a signature.
+              if (mobile && launchIntent !== id) {
                 const walletUrl = walletBrowserLink(id, window.location.href);
-                if (mobile && walletUrl) {
+                if (walletUrl) {
                   window.location.assign(walletUrl);
                   return;
                 }
+              }
+              if (latest?.state !== 'detected') {
                 setHelp(id);
                 return;
               }
@@ -80,6 +96,8 @@ export function WalletList({
             <span className="wallet-detected">
               {disabled && selected === id ? (
                 <LoaderCircle size={18} className="animate-spin" />
+              ) : mobile && launchIntent !== id ? (
+                'Open app'
               ) : state === 'detected' ? (
                 'Detected'
               ) : state === 'ambiguous' ? (

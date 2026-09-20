@@ -49,6 +49,15 @@ const data = {
   catalog: wrap([]),
 };
 
+void test('issuer circulation fetch uses bounded pages that fit the Worker timeout', async () => {
+  await api.fetchXstocksCirculationPage(0, async (_url, options) => {
+    const body = JSON.parse(options.body);
+    assert.equal(body.variables.pageSize, 50);
+    assert.equal(body.variables.page, 0);
+    return Response.json({ data: { tokens: { nodes: [], page: { totalPages: 19 } } } });
+  });
+});
+
 void test('Captured issuer circulation reconciles Solana separately from pre-mints and other chains', () => {
   const c = api.circulatingCoverage(data, now, 'xstocks');
   assert.ok(c.valued.length > 800);
