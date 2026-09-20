@@ -49,7 +49,7 @@ void test('The reported LIZM/METAx pair and reversed or spoofed versions never q
   }
 });
 
-void test('Only the exact official Stonkfun pool enters stock-quoted activity once', async () => {
+void test('Official and graduated Stonkfun stock-quoted pools enter once each by mint and address', async () => {
   const spy = api.TOKENS.find((token) => token.symbol === 'SPYx');
   const launchMint = '6GmAFSYs4gk3FDao5FzzySQpPZaWsa4rUJHacpMpUNgx';
   const address = '7a8xxAJBELDo6P9dikSYctdw6ce8F4mWr3ahcAD8Ao49';
@@ -58,14 +58,15 @@ void test('Only the exact official Stonkfun pool enters stock-quoted activity on
   }, [spy]);
   assert.equal(official.length, 1);
   const pool = { ...pair(launchMint, spy.mint, 120), pairAddress: address };
-  const lookalike = pair(launchMint, spy.mint, 999999);
+  const graduated = pair(launchMint, spy.mint, 80);
+  const lookalike = pair(meme, spy.mint, 999999);
   const wrongMint = { ...pair(meme, spy.mint, 999999), pairAddress: address };
-  const rows = api.parsePools([pool, pool, lookalike, wrongMint], [spy], [spy], official)[spy.symbol];
-  assert.equal(rows.length, 1);
+  const rows = api.parsePools([pool, pool, graduated, lookalike, wrongMint], [spy], [spy], official)[spy.symbol];
+  assert.equal(rows.length, 2);
   assert.equal(rows[0].quote, 'STONK');
   assert.equal(rows[0].origin, 'stonkfun');
   assert.equal(rows[0].price, null);
-  assert.equal(api.poolMetrics(rows).volume24h, 120);
+  assert.equal(api.poolMetrics(rows).volume24h, 200);
   const seen = [];
   const fetcher = async (url) => {
     seen.push(String(url));
@@ -74,13 +75,13 @@ void test('Only the exact official Stonkfun pool enters stock-quoted activity on
     ] } });
     if (String(url).includes('/latest/dex/pairs/')) return Response.json({ pairs: [pool] });
     if (String(url).includes('/tokens/v1/')) return Response.json([]);
-    return Response.json([pool, lookalike]);
+    return Response.json([pool, graduated, lookalike]);
   };
   const found = await api.fetchTokenPools(spy, fetcher, [spy]);
-  assert.equal(api.poolMetrics(found).volume24h, 120);
+  assert.equal(api.poolMetrics(found).volume24h, 200);
   assert.ok(seen.some((url) => url.includes('/latest/dex/pairs/')));
   const batch = await api.fetchPools(fetcher, [spy], [spy]);
-  assert.equal(api.poolMetrics(batch[spy.symbol]).volume24h, 120);
+  assert.equal(api.poolMetrics(batch[spy.symbol]).volume24h, 200);
 });
 
 void test('Every reviewed settlement mint works in both orientations; labels come from trusted registry', () => {

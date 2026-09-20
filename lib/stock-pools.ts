@@ -2,9 +2,9 @@ import type { StockToken } from './tokens';
 import type { Pool } from './market-data';
 
 // Bump whenever eligibility changes: old broad snapshots must never be reused.
-export const POOL_POLICY_VERSION = 'stonkfun-v1';
+export const POOL_POLICY_VERSION = 'stonkfun-v2';
 export const POOL_SCOPE =
-  'Verified stock pools with reviewed settlement assets or other verified stocks, plus exact stock-quoted pools confirmed by Stonkfun. Stonkfun volume is launch-token trading against a stock token, not stock purchases. Each pool address is counted once; coverage is partial.';
+  'Verified stock pools with reviewed settlement assets or other verified stocks, plus pools pairing an official Stonkfun launch mint with its verified stock quote mint. Stonkfun-linked volume is launch-token trading against a stock token, not stock purchases. Each pool address is counted once; coverage is partial.';
 
 export type StonkfunPoolIdentity = {
   address: string;
@@ -15,8 +15,8 @@ export type StonkfunPoolIdentity = {
 
 const solanaAddress = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 
-// Only exact pool, launch-mint and verified stock-mint matches qualify. The
-// launch's ticker or a lookalike pool is never sufficient evidence.
+// Exact launch and stock mints qualify, including migrated pools whose address
+// differs from the original launch pool. A ticker is never sufficient evidence.
 export function parseStonkfunPoolRegistry(
   raw: unknown,
   stocks: readonly StockToken[],
@@ -65,7 +65,9 @@ export function stockPoolPolicy(
   stonkfunPools: readonly StonkfunPoolIdentity[] = [],
 ) {
   const verified = new Map(stocks.map((t) => [t.mint, t.symbol]));
-  const stonkfun = new Map(stonkfunPools.map((pool) => [pool.address, pool]));
+  const stonkfun = new Map(stonkfunPools.map((pool) => [
+    `${pool.launchMint}:${pool.stockMint}`, pool,
+  ]));
   const standard = new Map<string, string>([
     ...POOL_SETTLEMENT_ASSETS.map((t) => [t.mint, t.symbol] as const),
     ...verified,
@@ -74,17 +76,13 @@ export function stockPoolPolicy(
     ...standard,
     ...stonkfunPools.map((pool) => [pool.launchMint, pool.symbol] as const),
   ]);
-  const isStonkfun = (base: string, quote: string, address: string) => {
-    const official = stonkfun.get(address);
-    return !!official &&
-      ((official.launchMint === base && official.stockMint === quote) ||
-       (official.launchMint === quote && official.stockMint === base));
-  };
+  const isStonkfun = (base: string, quote: string) =>
+    stonkfun.has(`${base}:${quote}`) || stonkfun.has(`${quote}:${base}`);
   return {
     isStonkfun,
-    accepts: (base: string, quote: string, address: string) => {
+    accepts: (base: string, quote: string) => {
       if (base === quote) return false;
-      if (isStonkfun(base, quote, address)) return true;
+      if (isStonkfun(base, quote)) return true;
       return standard.has(base) && standard.has(quote) &&
         (verified.has(base) || verified.has(quote));
     },

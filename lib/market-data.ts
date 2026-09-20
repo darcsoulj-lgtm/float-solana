@@ -275,7 +275,7 @@ export function parsePools(
       typeof p.pairAddress !== 'string' ||
       !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(p.pairAddress) ||
       seen.has(p.pairAddress) ||
-      !policy.accepts(base.address, quote.address, p.pairAddress)
+      !policy.accepts(base.address, quote.address)
     )
       continue;
     if (typeof p.dexId !== 'string' || p.dexId.length > 40) continue;
@@ -298,7 +298,7 @@ export function parsePools(
         baseMint: base.address,
         quoteMint: quote.address,
         side: isBase ? 'base' : 'quote',
-        origin: policy.isStonkfun(base.address, quote.address, p.pairAddress)
+        origin: policy.isStonkfun(base.address, quote.address)
           ? 'stonkfun'
           : undefined,
         price: isBase ? positive(p.priceUsd) : null,
