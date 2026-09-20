@@ -1038,43 +1038,43 @@ export function MarketOverviewPanel({
           </Button>
         </div>
       </div>
-      <p className="market-attribution">
-        Data provided by{' '}
-        <a
-          href="https://coinmarketcap.com/"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          CoinMarketCap
-        </a>
-        ,{' '}
-        <a
-          href="https://dexscreener.com/"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          DEX Screener
-        </a>
-        ,{' '}
-        <a
-          href="https://defillama.com/"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          DefiLlama
-        </a>{' '}
-        and{' '}
-        <a
-          href="https://docs.backpack.exchange/"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Backpack
-        </a>
-        .
-      </p>
       <details className="market-methodology">
         <summary>Data sources & methodology</summary>
+        <p className="market-attribution">
+          Sources:{' '}
+          <a
+            href="https://coinmarketcap.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            CoinMarketCap
+          </a>
+          ,{' '}
+          <a
+            href="https://dexscreener.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            DEX Screener
+          </a>
+          ,{' '}
+          <a
+            href="https://defillama.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            DefiLlama
+          </a>{' '}
+          and{' '}
+          <a
+            href="https://docs.backpack.exchange/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Backpack
+          </a>
+          .
+        </p>
         <p>
           Price listings and reviewed registries are matched by exact Solana
           mint, not ticker name. Backpack-issued stocks use Backpack’s official
