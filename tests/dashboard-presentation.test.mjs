@@ -853,12 +853,12 @@ void test('Ecosystem overview keeps valuation estimates and their caveats inside
   assert.equal((html.match(/<details/g) || []).length, 2);
   assert.match(html, /View DEX breakdown/);
   const headline = html.split('<details')[0];
-  assert.match(headline, /Tracked onchain value/);
+  assert.match(headline, /Tracked value · est./);
   assert.match(headline, /\$1.5K/);
   assert.doesNotMatch(headline, /circulating market cap/);
   assert.doesNotMatch(html, /Stonkfun|Stock-linked ecosystem/);
   assert.match(headline, /Tracked tokens/);
-  assert.match(headline, /Underlying assets/);
+  assert.match(headline, /assets/);
   assert.doesNotMatch(html, /<details[^>]*\sopen(?:[ =>])/);
   assert.match(html, /Coverage &amp; methodology/);
   assert.match(html, /2 \/ 2 issuers/);

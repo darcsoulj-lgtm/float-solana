@@ -56,6 +56,7 @@ export function MarketActivityHistory({ ready, now }: { ready: boolean; now: num
   const available = series.filter(
     ({ point }) => point && point[metric] !== null,
   ).length;
+  const hasTrend = !unavailable && available >= 7;
   const max = Math.max(
     1,
     ...series.map(({ point }) => point?.[metric] ?? 0),
@@ -67,8 +68,7 @@ export function MarketActivityHistory({ ready, now }: { ready: boolean; now: num
     <section className="market-history-panel" aria-labelledby="market-history-title">
       <header>
         <div>
-          <h3 id="market-history-title">Market activity over time</h3>
-          <p>Solana · One complete daily observation, where available</p>
+          <h3 id="market-history-title">Market history</h3>
         </div>
         <div className="market-history-controls">
           <label>
@@ -89,11 +89,14 @@ export function MarketActivityHistory({ ready, now }: { ready: boolean; now: num
           </fieldset>
         </div>
       </header>
-      <div className="market-history-value">
+      {hasTrend ? <div className="market-history-value">
         <strong>{label}</strong>
-        <span>{available} of {days} days recorded</span>
-      </div>
-      <div className="market-history-plot">
+        <span>{available}/{days} days observed</span>
+      </div> : <output className="market-history-empty">
+        <strong>{unavailable ? 'History unavailable' : 'History is building'}</strong>
+        <span>{unavailable ? 'Try again later.' : `${available}/${days} days observed · Trend appears after 7 days.`}</span>
+      </output>}
+      {hasTrend && <div className="market-history-plot">
         <svg viewBox="0 0 1000 270" aria-label={`${label} over the past ${days} days. ${available} observed days; missing days are gaps.`}>
           {[0, 0.5, 1].map((fraction) => {
             const y = plot.y + plot.height * (1 - fraction);
@@ -125,16 +128,11 @@ export function MarketActivityHistory({ ready, now }: { ready: boolean; now: num
           <text x={plot.x} y={256} className="market-history-axis">{series[0].day}</text>
           <text x={plot.x + plot.width} y={256} textAnchor="end" className="market-history-axis">{series[series.length - 1].day}</text>
         </svg>
-      </div>
-      <p className="market-history-note">
-        {unavailable
-          ? 'Historical observations are temporarily unavailable.'
-          : available === 0
-            ? 'Recording starts when every market batch has a fresh, verified pool snapshot. No historical values are estimated.'
-            : available === 1
-              ? 'The first observation is recorded. A trend will appear as new complete days are collected.'
-              : 'Daily points are 24-hour rolling volume or observed liquidity at the recorded time. Gaps mean incomplete coverage.'}
-      </p>
+      </div>}
+      <details className="market-history-about">
+        <summary>About this chart</summary>
+        <p>Solana only. Each point is a complete daily observation of rolling 24-hour DEX volume or observed pool liquidity. Missing days are gaps, not estimates. Recording requires a fresh, verified pool snapshot.</p>
+      </details>
     </section>
   );
 }

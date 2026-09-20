@@ -502,8 +502,8 @@ export function IssuerDashboardContent({
           </span>
           <strong>{dollars(dashboard.value)}</strong>
           <small>
-            {dashboard.valued} of {dashboard.rows.length} valued
-            {dashboard.delayed ? ' · Includes dated values' : ''}
+            {dashboard.valued}/{dashboard.rows.length} valued
+            {dashboard.delayed ? ' · dated values' : ''}
           </small>
         </div>
         <div>
@@ -518,14 +518,12 @@ export function IssuerDashboardContent({
           </span>
           <strong>{dollars(dashboard.volume)}</strong>
           <small>
-            {dashboard.volumeCovered} of {dashboard.rows.length} tokens ·
-            eligible pools
+            {dashboard.volumeCovered}/{dashboard.rows.length} tokens covered
           </small>
         </div>
         <div>
           <span>Pool liquidity</span>
           <strong>{dollars(dashboard.liquidity)}</strong>
-          <small>{dashboard.pools.length} unique trading pools</small>
         </div>
       </div>
       {leaders.length > 0 ? (

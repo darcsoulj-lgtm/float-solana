@@ -500,7 +500,7 @@ void test('Ondo limited pool coverage is visible alongside volume, not presented
   assert.match(html, /DEX pool volume/);
   assert.ok(
     html.includes(
-      `1 of ${api.TOKENS.filter((t) => t.issuer === 'ondo').length} tokens · eligible pools`,
+      `1/${api.TOKENS.filter((t) => t.issuer === 'ondo').length} tokens covered`,
     ),
   );
   assert.match(html, /Volume source and coverage/);

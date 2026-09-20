@@ -116,7 +116,7 @@ export function SolanaEcosystem({
       <div className="ecosystem-stats">
         <div>
           <span className="metric-label">
-            Tracked onchain value · est.{' '}
+            <span>Tracked value · est.</span>
             <MetricInfo label="About tracked value">
               Estimated value on Solana. Issuers use different supply bases;
               this is not company market capitalization. See Coverage &amp;
@@ -125,31 +125,28 @@ export function SolanaEcosystem({
           </span>
           <strong>{usd(coverage.total)}</strong>
           <small>
-            {coverage.issuerCount} / {ISSUERS.length} issuers
-            {coverage.partial ? ' · Partial coverage' : ''}
-            {coverage.delayed ? ' · Includes dated values' : ''}
+            {coverage.partial ? 'Partial coverage' : `${coverage.issuerCount}/${ISSUERS.length} issuers`}
+            {coverage.delayed ? ' · dated values' : ''}
           </small>
         </div>
         <div>
           <span className="metric-label">
-            Eligible DEX volume · 24h{' '}
+            <span>DEX volume · 24h</span>
             <MetricInfo label="About market volume">
               {POOL_SCOPE} Each pool is counted once across the market.
             </MetricInfo>
           </span>
           <strong>{usd(marketActivity.volume24h)}</strong>
-          <small>Verified pools · each pool counted once</small>
         </div>
         <div>
           <span className="metric-label">
-            Pool liquidity{' '}
+            <span>Pool liquidity</span>
             <MetricInfo label="About market liquidity">
               Both assets in observed eligible pools. Shared pools are counted
               once. Coverage is partial.
             </MetricInfo>
           </span>
           <strong>{usd(marketActivity.liquidity)}</strong>
-          <small>Observed eligible Solana pools</small>
         </div>
         <div>
           <span>Tracked tokens</span>
@@ -158,7 +155,7 @@ export function SolanaEcosystem({
             {new Set(
               tokens.map((t) => t.underlyingSymbol),
             ).size.toLocaleString()}{' '}
-            Underlying assets
+            assets
           </small>
         </div>
       </div>
@@ -172,7 +169,6 @@ export function SolanaEcosystem({
         <header>
           <div>
             <h3 id="market-activity-title">Issuer activity</h3>
-            <p>Select an issuer to explore its tokens</p>
           </div>
           <label>
             <span className="sr-only">Activity metric</span>
@@ -219,10 +215,15 @@ export function SolanaEcosystem({
         </div>
         <p className="market-activity-scope">
           {activityMetric === 'value' ? (
-            'Issuer values use different, explicitly labelled supply bases. They are estimates, not a uniform market-cap measure.'
+            <>
+              Mixed supply bases{' '}
+              <MetricInfo label="About issuer values">
+                Issuer values use different, explicitly labelled supply bases. They are estimates, not a uniform market-cap measure.
+              </MetricInfo>
+            </>
           ) : (
             <>
-              Observed eligible pools · partial coverage{' '}
+              Partial pool coverage{' '}
               <MetricInfo label="About issuer activity">
                 {POOL_SCOPE} Shared pools may contribute to two issuers; issuer
                 totals must not be added together.
@@ -233,13 +234,7 @@ export function SolanaEcosystem({
         {activityMetric !== 'value' && (
           <details className="market-dex-breakdown">
             <summary>View DEX breakdown</summary>
-            <div>
-              <h4>DEX activity</h4>
-              <p>
-                Current eligible pool snapshot ·{' '}
-                {activityMetric === 'liquidity' ? 'liquidity' : '24h volume'}
-              </p>
-            </div>
+            <h4>DEX activity</h4>
             {dexActivity.slice(0, 5).map((dex) => {
               const value =
                 activityMetric === 'liquidity' ? dex.liquidity : dex.volume;

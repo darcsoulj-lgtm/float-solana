@@ -767,10 +767,10 @@ export function MarketOverviewPanel({
         </div>
       )}
       {sourceErrors && (
-        <output className="market-warning">
-          Delayed sources: {sourceErrors}. Last saved observations are marked
-          below.
-        </output>
+        <details className="market-warning">
+          <summary>Some sources delayed</summary>
+          <p>{sourceErrors}. Last saved observations are marked below.</p>
+        </details>
       )}
       <SolanaEcosystem
         data={data}
@@ -865,8 +865,7 @@ export function MarketOverviewPanel({
             {issuers.length
               ? issuers.map(issuerName).join(', ')
               : 'All issuers'}{' '}
-            · Assets are ordered using token-level values · Expand an asset
-            to compare issuer tokens
+            <span className="sr-only"> Assets are ordered using token-level values. Expand an asset to compare issuer tokens.</span>
           </caption>
           <thead>
             <tr>
