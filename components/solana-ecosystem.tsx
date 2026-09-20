@@ -219,7 +219,7 @@ export function SolanaEcosystem({
             </>
           ) : (
             <>
-              Partial pool coverage{' '}
+              Observed DEX pool coverage · partial{' '}
               <MetricInfo label="About issuer activity">
                 {POOL_SCOPE} Shared pools may contribute to two issuers; issuer
                 totals must not be added together.
@@ -253,7 +253,7 @@ export function SolanaEcosystem({
         )}
       </section>
       <details className="market-methodology coverage-diagnostics">
-        <summary>Coverage &amp; methodology</summary>
+        <summary>Market coverage &amp; methodology</summary>
         <p>
           <strong>Tracked value · est.: {usd(coverage.total)}</strong> ·{' '}
           {coverage.issuerCount} / {ISSUERS.length} issuers
