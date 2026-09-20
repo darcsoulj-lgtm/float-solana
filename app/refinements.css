@@ -569,20 +569,6 @@ fieldset.holding-filter-chips {
   font-size: 13px;
   line-height: 1.5;
 }
-.profile-appearance {
-  border-top: 1px solid var(--border);
-  padding: 22px 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-.profile-appearance h3 {
-  font-size: 15px;
-  font-weight: 600;
-  margin: 0;
-}
 .theme-choices[data-slot='toggle-group'] {
   display: flex;
   flex-wrap: nowrap;
@@ -878,9 +864,6 @@ fieldset.holding-filter-chips {
   .portfolio-overview {
     flex-direction: column;
     text-align: center;
-  }
-  .profile-appearance .theme-choices button {
-    padding-inline: 8px;
   }
 }
 .token-issuer-link {

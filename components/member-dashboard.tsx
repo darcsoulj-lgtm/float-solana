@@ -937,10 +937,6 @@ export function MemberDashboard({
                     onCheckedChange={(v) => setNotifyReplies(v === true)}
                   />
                 </div>
-                <div className="profile-appearance">
-                  <h3>Appearance</h3>
-                  <ThemeToggle />
-                </div>
                 <div className="profile-actions">
                   <Button type="submit" disabled={busy}>
                     Save profile <Check size={16} />
