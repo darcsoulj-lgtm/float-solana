@@ -5,6 +5,8 @@ import { marketBatches, readMarketBatch, emptySource } from './market-service';
 import { cachedMarket } from './market-cache';
 import { mergeMarketPages, type MarketOverview } from './market-data';
 import { CMC_REFRESH_MS, fetchTokenMarkets } from './cmc-data';
+import { BACKPACK_TICKER_REFRESH_MS, fetchBackpackMarkets } from './market-data';
+import { tokenBatchKey } from './backpack-registry';
 
 // A newer verified snapshot must always win over a slow price request.
 export const TIER_WRITE_SQL = `UPDATE community_members SET value_tier=?,value_tier_expires_at=?
@@ -47,23 +49,34 @@ export async function updateHolderTier(
           fetchTokenMarkets(cmcKey),
         )
       : Promise.resolve(emptySource({}));
+    const backpackTokens = all.filter((t) => t.issuer === 'backpack');
+    const backpackRequest = backpackTokens.some((t) => held.has(t.symbol))
+      ? cachedMarket(
+          database,
+          'backpack-tickers-v1:' + (await tokenBatchKey(backpackTokens)),
+          BACKPACK_TICKER_REFRESH_MS,
+          () => fetchBackpackMarkets(fetch, backpackTokens),
+        )
+      : Promise.resolve(emptySource({}));
     const pages: MarketOverview[] = [];
     // Bound upstream fan-out; use the same shared caches as Markets.
     for (let i = 0; i < batches.length; i += 2) {
       pages.push(
         ...(await Promise.all(
           batches.slice(i, i + 2).map(async (batch) => {
-            const [observations, markets] = await Promise.all([
+            const [observations, markets, backpack] = await Promise.all([
               readMarketBatch(database, batch, {
                 rpcUrl,
                 pools: false,
                 history: false,
               }),
               marketsRequest,
+              backpackRequest,
             ]);
             return {
               ...observations,
               markets,
+              backpack,
               registry,
               catalog: emptySource([]),
             };

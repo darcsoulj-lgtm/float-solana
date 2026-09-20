@@ -61,10 +61,12 @@ export function Thread({
   thread: t,
   memberId,
   refresh,
+  showChannel = true,
 }: {
   thread: CommunityThread;
   memberId: string;
   refresh: () => Promise<void>;
+  showChannel?: boolean;
 }) {
   const [open, setOpen] = useState(false),
     [now, setNow] = useState(() => Date.now()),
@@ -132,8 +134,8 @@ export function Thread({
           />
         )}
         {t.bio && <span className="thread-author-bio">{t.bio}</span>}
-        <span>{t.room_name || t.topic}</span>
-        <span aria-hidden="true">·</span>
+        {showChannel && <span>{t.room_name || t.topic}</span>}
+        {showChannel && <span aria-hidden="true">·</span>}
         <DiscussionTimestamp timestamp={t.created_at} now={now} />
       </div>
       <h3>{t.title}</h3>

@@ -240,8 +240,7 @@ void test('value badge renders a compact label, never an exact balance, and hide
   const expired = renderToStaticMarkup(
     React.createElement(HolderTierBadge, { tier: 'gold', expiresAt: 1 }),
   );
-  assert.doesNotMatch(expired, /Gold/);
-  assert.match(expired, /Verified holder/);
+  assert.equal(expired, '');
 });
 const navSource = await readFile(
   new URL('../lib/member-navigation.ts', import.meta.url),
@@ -429,10 +428,20 @@ void test('discussion composer offers only the eight curated channels and normal
 void test('old Saved links open Discussions with Saved selected, not a separate destination', async () => {
   const html = await renderDashboard('?view=saved');
   assert.match(html, /<h1>Discussions<\/h1>/);
-  assert.match(html, /<button aria-pressed="true">[^]*?Saved<\/button>/);
+  assert.match(html, /<button class="channel-saved" aria-pressed="true">[^]*?Saved<\/button>/);
   assert.doesNotMatch(html.split('</aside>')[0], />Saved</);
   assert.match(html, /Holders only/);
   assert.doesNotMatch(html, /Members only/);
+});
+void test('Discussion channels filter one feed without a separate directory', async () => {
+  const html = await renderDashboard('?view=topics');
+  assert.match(html, /aria-label="Discussion channels"/);
+  assert.match(html, /<button aria-pressed="true">All<\/button>/);
+  assert.match(html, /Technology/);
+  assert.doesNotMatch(html, /Find a channel|>Follow<|>Channels<\/button>/);
+  const selected = await renderDashboard('?view=home&topic=channel-technology');
+  assert.match(selected, /<button aria-pressed="true">Technology<\/button>/);
+  assert.match(selected, /No Technology discussions yet/);
 });
 void test('Profile stays Profile after navigation and displays the private value badge control', async () => {
   const html = await renderDashboard('?view=profile');
@@ -444,7 +453,7 @@ void test('Profile stays Profile after navigation and displays the private value
 void test('Saved filter survives a fresh page load through its own URL', async () => {
   const html = await renderDashboard('?view=home&feed=saved');
   assert.match(html, /<h1>Discussions<\/h1>/);
-  assert.match(html, /<button aria-pressed="true">[^]*?Saved<\/button>/);
+  assert.match(html, /<button class="channel-saved" aria-pressed="true">[^]*?Saved<\/button>/);
 });
 
 void test('old Calendar links open Home and Calendar is absent from sidebar destinations', async () => {

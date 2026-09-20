@@ -1170,6 +1170,17 @@ void test('holder tier uses verified raw units, prices all holdings and bounds e
   holdings.push({ ...holdings[0], symbol: 'SPCX' });
   assert.equal(calculateHolderTier(holdings, data, now).tier, null);
 });
+void test('Backpack reference price qualifies a tier with its own fresh observation time', () => {
+  const { now, holdings, data } = tierFixture();
+  data.prices.data = {};
+  data.backpack = {
+    data: { MU: { externalPrice: 40, externalChange24h: null } },
+    fetchedAt: now,
+    stale: false,
+    error: null,
+  };
+  assert.equal(calculateHolderTier(holdings, data, now).tier, 'bronze');
+});
 void test('holder tier fails closed for stale, conflicting, ambiguous and pool-only valuations', () => {
   const changes = [
     (f) => (f.holdings[0].verified_at -= 180000),

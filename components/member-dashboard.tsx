@@ -1,5 +1,4 @@
 'use client';
-import { RoomDirectory } from './room-directory';
 import { useCommunityFeed } from '@/hooks/use-community-feed';
 import { registryTokens } from '@/lib/token-registry';
 import { FloatLogo } from './float-logo';
@@ -20,7 +19,6 @@ import Link from './site-link';
 import {
   Home,
   ChartNoAxesCombined,
-  Compass,
   Bookmark,
   UserRound,
   Bell,
@@ -32,7 +30,6 @@ import {
   LogOut,
   RefreshCw,
   MessageSquare,
-  ArrowRight,
   ListChecks,
   X,
 } from 'lucide-react';
@@ -258,7 +255,7 @@ export function MemberDashboard({
     hasPage,
     refresh: refreshFeed,
     loadMore,
-  } = useCommunityFeed(query, view === 'home' || view === 'topics');
+  } = useCommunityFeed(query, view === 'home');
   const refresh = useCallback(async () => {
     await Promise.all([
       syncHoldings(true)
@@ -376,28 +373,35 @@ export function MemberDashboard({
       ? tierResult
       : { tier: null, expiresAt: 0 };
   useEffect(() => {
+    if (!holdingsKey) return;
     let active = true;
-    if (holdingsKey) {
+    const update = () => {
+      if (document.visibilityState !== 'visible') return;
       void api<HolderTierResult>('community/holder-tier', {})
         .then((result) => {
           if (active) setHolderTier({ ...result, holdingsKey });
         })
         .catch(() => {
-          /* A price outage must not block community access. */
+          if (active) setHolderTier({ tier: null, expiresAt: 0, holdingsKey });
         });
-    }
+    };
+    update();
+    const timer = window.setInterval(update, 60000);
+    document.addEventListener('visibilitychange', update);
     return () => {
       active = false;
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', update);
     };
   }, [holdingsKey]);
   useEffect(() => {
     if (!holderTier.expiresAt) return;
-    const timer = setTimeout(
-      () => setHolderTier({ tier: null, expiresAt: 0 }),
+    const timer = window.setTimeout(
+      () => setHolderTier({ tier: null, expiresAt: 0, holdingsKey }),
       Math.max(0, holderTier.expiresAt - Date.now()),
     );
-    return () => clearTimeout(timer);
-  }, [holderTier.expiresAt]);
+    return () => window.clearTimeout(timer);
+  }, [holderTier.expiresAt, holdingsKey]);
   const rooms = data?.rooms || [];
   const roomName = (id: string) =>
     rooms.find((r) => r.id === id)?.name ||
@@ -405,7 +409,6 @@ export function MemberDashboard({
     id;
   const holdings = data?.holdings || [];
   const held = new Set(holdings.map((h) => h.symbol));
-  const relevant = new Set([...held, ...(data?.follows || [])]);
   const unread = data?.notifications.filter((n) => !n.read).length || 0;
   function startDiscussion(title = '', selectedTopic = topic) {
     setDraftTitle(title);
@@ -440,8 +443,7 @@ export function MemberDashboard({
   const sourceItems = (data?.sources || []).filter((s) =>
     feed === 'saved'
       ? s.saved
-      : (topic === 'all' || s.symbol === topic) &&
-        (feed === 'all' || relevant.has(s.symbol)),
+      : topic === 'all' || s.symbol === topic,
   );
   return (
     <div
@@ -490,7 +492,7 @@ export function MemberDashboard({
             <button
               key={id}
               aria-current={
-                (view === 'topics' ? 'home' : view) === id ? 'page' : undefined
+                view === id ? 'page' : undefined
               }
               onPointerEnter={id === 'markets' ? preloadMarkets : undefined}
               onFocus={id === 'markets' ? preloadMarkets : undefined}
@@ -498,7 +500,7 @@ export function MemberDashboard({
             >
               <Icon size={19} />
               {label}
-              {(view === 'topics' ? 'home' : view) === id && (
+              {view === id && (
                 <span className="nav-indicator" />
               )}
             </button>
@@ -532,7 +534,7 @@ export function MemberDashboard({
               /{' '}
               {
                 destinations.find(
-                  (d) => d.id === (view === 'topics' ? 'home' : view),
+                  (d) => d.id === view,
                 )?.label
               }
             </span>
@@ -558,9 +560,7 @@ export function MemberDashboard({
               <div className="member-page-heading">
                 <div>
                   <h1>
-                    {view === 'home' || view === 'topics'
-                      ? 'Discussions'
-                      : 'Profile'}
+                    {view === 'home' ? 'Discussions' : 'Profile'}
                   </h1>
                 </div>
                 {view === 'home' && (
@@ -569,26 +569,6 @@ export function MemberDashboard({
                   </Button>
                 )}
               </div>
-            )}
-            {(view === 'home' || view === 'topics') && (
-              <fieldset
-                className="feed-tabs discussion-views"
-
-                aria-label="Discussions view"
-              >
-                <button
-                  aria-pressed={view === 'home'}
-                  onClick={() => navigate('home')}
-                >
-                  Threads
-                </button>
-                <button
-                  aria-pressed={view === 'topics'}
-                  onClick={() => navigate('topics')}
-                >
-                  Channels
-                </button>
-              </fieldset>
             )}
             {homeError && (
               <p className="inline-status" role="alert">
@@ -685,31 +665,7 @@ export function MemberDashboard({
                 </MemberSectionBoundary>
               </Activity>
             )}
-            {view === 'markets' || view === 'overview' ? null : view ===
-              'topics' ? (
-              <>
-                <RoomDirectory
-                  follows={data?.follows ?? []}
-                  onOpen={(room) => {
-                    setData((previous) =>
-                      previous && !previous.rooms.some((r) => r.id === room.id)
-                        ? { ...previous, rooms: [...previous.rooms, room] }
-                        : previous,
-                    );
-                    openTopic(room.id);
-                  }}
-                  onFollow={(room) =>
-                    run(async () => {
-                      await api('community/follow', {
-                        symbol: room.id,
-                        follow: !data?.follows.includes(room.id),
-                      });
-                      await refresh();
-                    })
-                  }
-                />
-              </>
-            ) : view === 'profile' ? (
+            {view === 'markets' || view === 'overview' ? null : view === 'profile' ? (
               <form
                 className="member-profile"
                 onSubmit={(e) => {
@@ -813,10 +769,14 @@ export function MemberDashboard({
                 <section className="profile-tier" aria-label="Holder tier">
                   <div className="profile-tier-heading">
                     <h3>Your holder tier</h3>
-                    <HolderTierBadge
-                      tier={holderTier.tier}
-                      expiresAt={holderTier.expiresAt}
-                    />
+                    {holderTier.tier ? (
+                      <HolderTierBadge
+                        tier={holderTier.tier}
+                        expiresAt={holderTier.expiresAt}
+                      />
+                    ) : (
+                      <span className="tier-unavailable">Tier unavailable</span>
+                    )}
                   </div>
                   <p>
                     Based on verified tokenized stock value in this wallet. A
@@ -890,70 +850,52 @@ export function MemberDashboard({
               </form>
             ) : (
               <>
-                <div className="member-feed-toolbar">
-                  <div className="feed-tabs" aria-label="Feed filter">
-                    {view === 'home' ? (
-                      <>
-                        <button
-                          aria-pressed={feed === 'personal' && !threadId}
-                          onClick={() => {
-                            setFeed('personal');
-                            setTopic('all');
-                            setThreadId('');
-                          }}
-                        >
-                          For you
-                        </button>
-                        <button
-                          aria-pressed={feed === 'all' && !threadId}
-                          onClick={() => {
-                            setFeed('all');
-                            setTopic('all');
-                            setThreadId('');
-                          }}
-                        >
-                          All discussions
-                        </button>
-                        <button
-                          aria-pressed={feed === 'saved' && !threadId}
-                          onClick={() => {
-                            setFeed('saved');
-                            setTopic('all');
-                            setThreadId('');
-                          }}
-                        >
-                          <Bookmark size={15} aria-hidden="true" /> Saved
-                        </button>
-                      </>
-                    ) : (
-                      <strong>Saved discussions</strong>
-                    )}
-                    {topic !== 'all' && (
-                      <span className="filter-chip">
-                        {roomName(topic)}
-                        <button
-                          aria-label="Clear topic filter"
-                          onClick={() => setTopic('all')}
-                        >
-                          ×
-                        </button>
-                      </span>
-                    )}
-                    {threadId && (
-                      <button onClick={() => setThreadId('')}>
-                        ← Back to feed
+                <div className="channel-filters" aria-label="Discussion channels">
+                  <div className="channel-filter-scroll">
+                    <button
+                      aria-pressed={topic === 'all' && feed !== 'saved'}
+                      onClick={() => {
+                        setTopic('all');
+                        setFeed('all');
+                        setThreadId('');
+                      }}
+                    >
+                      All
+                    </button>
+                    {COMMUNITY_CHANNELS.map((channel) => (
+                      <button
+                        key={channel.id}
+                        aria-pressed={topic === channel.id && feed !== 'saved'}
+                        onClick={() => {
+                          setTopic(channel.id);
+                          setFeed('all');
+                          setThreadId('');
+                        }}
+                      >
+                        {channel.name}
                       </button>
-                    )}
+                    ))}
                   </div>
-                  <Button
-                    variant="ghost"
-                    disabled={busy || loading}
-                    aria-label="Refresh feed"
-                    onClick={() => run(refresh)}
+                  <button
+                    className="channel-saved"
+                    aria-pressed={feed === 'saved'}
+                    onClick={() => {
+                      setFeed('saved');
+                      setTopic('all');
+                      setThreadId('');
+                    }}
                   >
-                    <RefreshCw size={16} />
-                  </Button>
+                    <Bookmark size={15} aria-hidden="true" /> Saved
+                  </button>
                 </div>
+                {threadId && (
+                  <button
+                    className="discussion-back"
+                    onClick={() => setThreadId('')}
+                  >
+                    ← Back to discussions
+                  </button>
+                )}
                 {feedError && (
                   <p className="inline-status" role="alert">
                     {feedError}{' '}
@@ -970,7 +912,7 @@ export function MemberDashboard({
                         t.member_id === member.id
                           ? {
                               ...t,
-                              value_tier: member.show_value_badge
+                              value_tier: showValueBadge
                                 ? holderTier.tier
                                 : null,
                               value_tier_expires_at: holderTier.expiresAt,
@@ -979,6 +921,7 @@ export function MemberDashboard({
                       }
                       memberId={member.id}
                       refresh={refresh}
+                      showChannel={feed === 'saved' || topic === 'all'}
                     />
                   ))
                 ) : (
@@ -989,7 +932,9 @@ export function MemberDashboard({
                         ? 'This discussion is unavailable.'
                         : feed === 'saved'
                           ? 'No saved discussions.'
-                          : 'No discussions yet.'}
+                          : topic === 'all'
+                            ? 'No discussions yet.'
+                            : `No ${roomName(topic)} discussions yet.`}
                     </h3>
                     <p>
                       {feed === 'saved'
@@ -1144,31 +1089,6 @@ export function MemberDashboard({
               </button>
               <button className="text-action" onClick={renew}>
                 Manage wallet
-              </button>
-            </section>
-            <section className="context-following">
-              <div className="context-heading">
-                <Compass size={17} />
-                <span>FOLLOWING</span>
-              </div>
-              {data?.follows.some((id) => rooms.some((r) => r.id === id)) ? (
-                <div className="following-tags">
-                  {data.follows
-                    .filter((id) => rooms.some((r) => r.id === id))
-                    .map((symbol) => (
-                      <button key={symbol} onClick={() => openTopic(symbol)}>
-                        {roomName(symbol)} <ArrowUpRight size={12} />
-                      </button>
-                    ))}
-                </div>
-              ) : (
-                <p>No followed channels.</p>
-              )}
-              <button
-                className="text-action"
-                onClick={() => navigate('topics')}
-              >
-                Browse channels <ArrowRight size={14} />
               </button>
             </section>
             <div className="context-principle">

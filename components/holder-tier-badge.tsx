@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { Gem, ShieldCheck } from 'lucide-react';
+import { Gem } from 'lucide-react';
 import { HOLDER_TIERS } from '@/lib/holder-tier';
 
 export function HolderTierBadge({
@@ -23,21 +23,14 @@ export function HolderTierBadge({
     expiresAt !== undefined && expiresAt <= now
       ? undefined
       : HOLDER_TIERS.find((t) => t.id === tier);
+  if (!level) return null;
   return (
     <span
-      className={'holder-tier-badge ' + (level?.id || 'verified')}
-      title={
-        level
-          ? `${level.range} in verified tokenized stocks · estimated USD value`
-          : 'Verified holder'
-      }
+      className={'holder-tier-badge ' + level.id}
+      title={`${level.range} in verified tokenized stocks · estimated USD value`}
     >
-      {level ? (
-        <Gem size={13} aria-hidden="true" />
-      ) : (
-        <ShieldCheck size={13} aria-hidden="true" />
-      )}
-      {level?.label || 'Verified holder'}
+      <Gem size={13} aria-hidden="true" />
+      {level.label}
     </span>
   );
 }

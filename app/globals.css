@@ -2144,9 +2144,65 @@ body:has(.community-entry) > footer {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  margin: 26px 0 14px;
+  margin: 12px 0 14px;
   border-bottom: 1px solid var(--hp-edge-e1e1e1, #e1e1e1);
   padding-bottom: 12px;
+}
+.channel-filters {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  margin: 18px 0 0;
+}
+.channel-filter-scroll {
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  padding: 2px 0 6px;
+}
+.channel-filters button {
+  flex: 0 0 auto;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--muted-foreground);
+  padding: 7px 12px;
+  font-size: 13px;
+  line-height: 1.3;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.channel-filters button[aria-pressed='true'] {
+  background: var(--foreground);
+  border-color: var(--foreground);
+  color: var(--background);
+}
+.channel-filters .channel-saved {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+}
+.discussion-back {
+  display: block;
+  margin: 16px 0 4px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  cursor: pointer;
+}
+@media (max-width: 680px) {
+  .channel-filters {
+    flex-wrap: wrap;
+  }
+  .channel-filter-scroll {
+    flex-basis: 100%;
+  }
+  .channel-filters .channel-saved {
+    margin-left: 0;
+  }
 }
 .feed-tabs {
   display: flex;
@@ -4891,6 +4947,10 @@ body:has(.community-entry) > footer {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 12px;
+}
+.tier-unavailable {
+  color: var(--muted-foreground);
+  font-size: 13px;
 }
 .profile-tier > p {
   color: var(--muted-foreground);
