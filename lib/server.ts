@@ -8,6 +8,7 @@ export const runtime = () =>
     AVATARS?: R2Bucket;
     SOLANA_RPC_URL?: string;
     ADMIN_EMAILS?: string;
+    ADMIN_WALLETS?: string;
     BENZINGA_API_KEY?: string;
     CMC_API_KEY?: string;
     COINGECKO_PRO_API_KEY?: string;

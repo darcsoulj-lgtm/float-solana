@@ -4,9 +4,8 @@ import { readBoundedText } from '@/lib/request-body';
 import { communityHome } from '@/lib/community-home';
 import { updateHolderTier } from '@/lib/holder-tier-server';
 import { refreshHoldings } from '@/lib/holdings-refresh';
-import { getChatGPTUser } from '@/app/chatgpt-auth';
+import { adminWallet, adminChallenge, adminVerify, adminLogout } from '@/lib/admin-wallet';
 import {
-  actor,
   auditStatement,
   db,
   digest,
@@ -119,10 +118,21 @@ async function handler(req: Request) {
       );
       return json({ ok: true });
     }
+    if (path[0] === 'admin-auth') {
+      if (path[1] === 'status' && !post)
+        return json({ admin: !!(await adminWallet(req, false)) });
+      if (path[1] === 'challenge' && post)
+        return json(await adminChallenge(req, b.wallet));
+      if (path[1] === 'verify' && post)
+        return json({ ok: true }, 200, await adminVerify(req, b.challengeId, b.signature));
+      if (path[1] === 'logout' && post)
+        return json({ ok: true }, 200, await adminLogout(req));
+      throw new AppError('Unknown administrator request.', 404);
+    }
     if (path[0] === 'status' && !post) {
-      const [member, user, counts] = await Promise.all([
+      const [member, adminWalletAddress, counts] = await Promise.all([
         communityMember(req, false),
-        getChatGPTUser(),
+        adminWallet(req, false),
         db().batch<{ count: number }>([
           db().prepare(
             'SELECT count(*) count FROM community_members WHERE suspended=0',
@@ -132,12 +142,7 @@ async function handler(req: Request) {
           ),
         ]),
       ]);
-      const admins = (runtime().ADMIN_EMAILS || '')
-        .toLowerCase()
-        .split(',')
-        .map((s) => s.trim())
-        .filter(Boolean);
-      const admin = !!user && admins.includes(user.email.toLowerCase());
+      const admin = !!adminWalletAddress;
       return json({
         member,
         admin,
@@ -317,9 +322,8 @@ async function handler(req: Request) {
       return json({ ok: true }, 200, sessionCookie('', req, true));
     }
     if (path[0] === 'moderation') {
-      const admin = await actor();
-      if (!admin.admin)
-        throw new AppError('Administrator access is required.', 403);
+      const wallet = await adminWallet(req);
+      const admin = { userId: 'wallet:' + (await digest(wallet)) };
       if (post && b.action === 'source') {
         const id = b.id
           ? textValue(b.id, 1, 100, 'Source')

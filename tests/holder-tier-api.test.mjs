@@ -76,6 +76,9 @@ async function fixture() {
     },
     '@/lib/tokens': {},
     '@/lib/community-sign-in': {},
+    '@/lib/admin-wallet': {
+      adminWallet: async () => null,
+    },
     '@/lib/community-types': {},
     '@/lib/community-server': {
       communityMember: async () => {

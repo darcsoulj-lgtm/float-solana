@@ -1,0 +1,7 @@
+# Community moderation access
+
+The report queue and moderation actions now use a dedicated Solana-wallet administrator session. A wallet does not need supported holdings. `ADMIN_WALLETS` is a comma-separated server-side allowlist of public Solana addresses; with an empty list, nobody can sign in. Never place a seed phrase, private key, or address allowlist in client code.
+
+The browser requests a five-minute, one-use challenge bound to the site's origin and explicitly limited to admin sign-in. The server checks the allowlist before issuing it, verifies the Ed25519 signature, consumes the challenge, and creates a two-hour HttpOnly, Secure (on HTTPS), SameSite=Strict cookie. Every moderation request checks both the session and current allowlist, so removing an address revokes access. Existing moderation writes continue to record actions in the audit table; the actor is a hash of the admin address. Sign-out removes the session.
+
+Community membership and admin access are independent. The old ChatGPT account gate remains for separate editorial and research workspaces; it no longer grants community moderation rights. Before activating this feature, obtain RJ's public wallet address, set `ADMIN_WALLETS` as a Cloudflare Worker secret, then test wallet sign-in and an actual report review on the live deployment. Do not set `ADMIN_EMAILS` as a workaround for the broken live ChatGPT sign-in route.
