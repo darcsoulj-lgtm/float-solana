@@ -60,12 +60,10 @@ function DiscussionTimestamp({ timestamp, now }: { timestamp: number; now: numbe
 export function Thread({
   thread: t,
   memberId,
-  memberBadge,
   refresh,
 }: {
   thread: CommunityThread;
   memberId: string;
-  memberBadge: string | null;
   refresh: () => Promise<void>;
 }) {
   const [open, setOpen] = useState(false),
@@ -127,13 +125,10 @@ export function Thread({
           version={t.avatar_key}
         />
         <strong>{t.alias}</strong>
-        {t.badge && <span className="pill">{t.badge} holder</span>}
-        {t.value_tier && (
-          <HolderTierBadge
-            tier={t.value_tier}
-            expiresAt={t.value_tier_expires_at}
-          />
-        )}
+        <HolderTierBadge
+          tier={t.value_tier}
+          expiresAt={t.value_tier_expires_at}
+        />
         {t.bio && <span className="thread-author-bio">{t.bio}</span>}
         <span>{t.room_name || t.topic}</span>
         <span aria-hidden="true">·</span>
@@ -249,17 +244,10 @@ export function Thread({
               <div className="reply-content">
                 <div className="reply-author">
                   <strong>{r.alias}</strong>
-                  {(r.member_id === memberId ? memberBadge : r.badge) && (
-                    <span className="pill">
-                      {r.member_id === memberId ? memberBadge : r.badge} holder
-                    </span>
-                  )}
-                  {r.value_tier && (
-                    <HolderTierBadge
-                      tier={r.value_tier}
-                      expiresAt={r.value_tier_expires_at}
-                    />
-                  )}
+                  <HolderTierBadge
+                    tier={r.value_tier}
+                    expiresAt={r.value_tier_expires_at}
+                  />
                   {r.bio && <span className="thread-author-bio">{r.bio}</span>}
                   <DiscussionTimestamp timestamp={r.created_at} now={now} />
                 </div>

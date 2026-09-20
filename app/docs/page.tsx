@@ -21,8 +21,7 @@ export default function Page() {
           members can access every channel. Save posts and sources for later.
         </p>
         <p>
-          Set your display name, optional token badge and reply notifications in
-          Profile.
+          Set your display name and reply notifications in Profile.
         </p>
       </section>
       <section className="panel">

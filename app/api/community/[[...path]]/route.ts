@@ -576,22 +576,6 @@ async function handler(req: Request) {
         b.bio === undefined
           ? member.bio || ''
           : textValue(b.bio, 0, 160, 'Bio');
-      if (typeof b.showBadge !== 'boolean')
-        throw new AppError('Choose a badge preference.');
-      const symbol =
-        typeof b.badgeSymbol === 'string'
-          ? b.badgeSymbol
-          : member.qualifying_symbol;
-      if (
-        symbol !== member.qualifying_symbol &&
-        !(await db()
-          .prepare(
-            'SELECT 1 FROM community_holdings WHERE member_id=? AND symbol=?',
-          )
-          .bind(member.id, symbol)
-          .first())
-      )
-        throw new AppError('Only a verified holding can appear as your badge.');
       if (b.notifyReplies !== undefined && typeof b.notifyReplies !== 'boolean')
         throw new AppError('Invalid notification preference.');
       if (
@@ -601,13 +585,11 @@ async function handler(req: Request) {
         throw new AppError('Invalid value badge preference.');
       await db()
         .prepare(
-          'UPDATE community_members SET alias=?,bio=?,show_badge=?,qualifying_symbol=?,notify_replies=?,show_value_badge=? WHERE id=?',
+          'UPDATE community_members SET alias=?,bio=?,show_badge=0,notify_replies=?,show_value_badge=? WHERE id=?',
         )
         .bind(
           alias,
           bio,
-          b.showBadge ? 1 : 0,
-          symbol,
           b.notifyReplies === undefined
             ? member.notify_replies
             : b.notifyReplies
@@ -711,7 +693,6 @@ async function handler(req: Request) {
             `SELECT t.id,t.member_id,t.topic,(SELECT name FROM community_rooms WHERE id=t.topic) room_name,t.title,t.body,t.created_at,t.hidden,${authorColumns},EXISTS(SELECT 1 FROM community_bookmarks b WHERE b.member_id=? AND b.target_type='thread' AND b.target_id=t.id) saved,(SELECT count(*) FROM community_replies r WHERE r.thread_id=t.id AND r.hidden=0) reply_count FROM community_threads t JOIN community_members m ON m.id=t.member_id WHERE t.hidden=0 AND (?='all' OR t.topic=?) AND (?='' OR t.id=?) AND (?!='personal' OR t.topic='general' OR t.topic IN (SELECT symbol FROM community_holdings WHERE member_id=? UNION SELECT symbol FROM community_follows WHERE member_id=?)) AND (?!='saved' OR EXISTS(SELECT 1 FROM community_bookmarks b WHERE b.member_id=? AND b.target_type='thread' AND b.target_id=t.id)) AND (t.created_at<? OR (t.created_at=? AND t.id<?)) ORDER BY t.created_at DESC,t.id DESC LIMIT 31`,
           )
           .bind(
-            Date.now(),
             member.id,
             topic,
             topic,
@@ -888,7 +869,7 @@ async function handler(req: Request) {
             .prepare(
               `SELECT r.id,r.member_id,r.thread_id,r.body,r.hidden,r.created_at,${authorColumns} FROM community_replies r JOIN community_members m ON m.id=r.member_id WHERE r.thread_id=? AND r.hidden=0 AND (r.created_at>? OR (r.created_at=? AND r.id>?)) ORDER BY r.created_at,r.id LIMIT 51`,
             )
-            .bind(Date.now(), thread.id, cursor, cursor, key)
+            .bind(thread.id, cursor, cursor, key)
             .all<CommunityReply>()
         ).results;
         return json({

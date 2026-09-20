@@ -153,7 +153,7 @@ void test('tier endpoint rejects unsigned and cross-origin requests', async () =
 });
 void test('value badge preference persists, can be revoked, and rejects non-booleans', async () => {
   const f = await fixture();
-  const profile = { alias: 'Alice', bio: 'Hello', showBadge: false };
+  const profile = { alias: 'Alice', bio: 'Hello' };
   assert.equal(
     (await f.post('profile', { ...profile, showValueBadge: true })).status,
     200,

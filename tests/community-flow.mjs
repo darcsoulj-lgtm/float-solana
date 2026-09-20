@@ -280,15 +280,9 @@ try {
   await call('follow', { symbol: 'SPCX', follow: true });
   assert.ok((await call('home')).d.follows.includes('SPCX'));
   await call('follow', { symbol: 'FAKE', follow: true }, { status: 400 });
-  await call(
-    'profile',
-    { alias: 'Curious Holder', showBadge: true, badgeSymbol: 'SPCX' },
-    { status: 400 },
-  );
   await call('profile', {
     alias: 'Curious Holder',
     bio: 'I follow semiconductors.',
-    showBadge: true,
     notifyReplies: false,
   });
   assert.equal((await call('status')).d.member.notify_replies, 0);
@@ -337,7 +331,7 @@ try {
   assert.equal(posted[0].id, t.id);
   assert.equal(posted[0].title, '?');
   assert.equal(posted[0].body, '');
-  assert.equal(posted[0].badge, 'MU');
+  assert.equal('badge' in posted[0], false);
   assert.ok(!JSON.stringify(posted).includes('raw_amount'));
   assert.ok(!JSON.stringify(posted).includes('ui_amount'));
   await editorialFlow(base, cookie);
@@ -369,7 +363,7 @@ try {
   );
   const feed = (await call('threads?topic=SPCX')).d;
 
-  assert.ok(feed.threads.some((x) => x.id === t.id && x.badge === 'MU'));
+  assert.ok(feed.threads.some((x) => x.id === t.id));
   assert.ok(!JSON.stringify(feed).includes(wallet));
   assert.ok(!JSON.stringify(feed).includes('wallet_hash'));
   checks += 3;
@@ -482,9 +476,7 @@ try {
   assert.equal((await call('home')).d.notifications.length, 0);
   await call('profile', {
     alias: 'Curious Holder',
-    showBadge: true,
     notifyReplies: true,
-    badgeSymbol: 'SKHY',
   });
   const noticeReply = (
     await call(

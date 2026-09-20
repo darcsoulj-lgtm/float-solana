@@ -25,7 +25,7 @@ export default function Page() {
         <p>
           We store a private hash of your wallet address, display name,
           supported token symbols and verification slots/times, verification
-          expiry, optional value tier and its expiry, badge preferences,
+          expiry, optional value tier and its expiry, value-badge preference,
           followed topics, saved-item references, reply notification preferences
           and in-app notifications, posts, replies, reports, and moderation
           records.
@@ -61,8 +61,7 @@ export default function Page() {
         <h2>What others see</h2>
         <p>
           Member discussions require an active verified session. Other members
-          see your alias, contributions, and any stock or value badges you
-          choose to show. Public visitors see the dashboard layout with no
+          see your alias, contributions, and your optional value badge. Public visitors see the dashboard layout with no
           member data. Your full holdings list, followed topics, saved items,
           and notifications are returned only to your own active session.
           Administrators can review content, reports, and member records.

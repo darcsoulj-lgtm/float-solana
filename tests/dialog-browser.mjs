@@ -115,7 +115,6 @@ try {
       id: 'fixture-thread',
       member_id: member.id,
       alias: member.alias,
-      badge: null,
       topic: 'SKHY',
       title: 'A browser-only discussion fixture',
       body: 'Content used only to verify dialog layout.',

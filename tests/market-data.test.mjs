@@ -1245,7 +1245,7 @@ void test('public author queries reveal tiers only with opt-in, fresh verificati
     now + 60000,
   );
   const get = () =>
-    db.prepare('SELECT ' + sql + ' FROM community_members m').get(now);
+    db.prepare('SELECT ' + sql + ' FROM community_members m').get();
   assert.equal(get().value_tier, null);
   db.exec('UPDATE community_members SET show_value_badge=1');
   assert.equal(get().value_tier, 'gold');

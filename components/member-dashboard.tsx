@@ -239,7 +239,6 @@ export function MemberDashboard({
   const [notifications, setNotifications] = useState(false);
   const [alias, setAlias] = useState(member.alias);
   const [bio, setBio] = useState(member.bio || '');
-  const [badge, setBadge] = useState(!!member.show_badge);
   const [showValueBadge, setShowValueBadge] = useState(
     !!member.show_value_badge,
   );
@@ -249,7 +248,6 @@ export function MemberDashboard({
     tier: null,
     expiresAt: 0,
   });
-  const [badgeSymbol, setBadgeSymbol] = useState(member.qualifying_symbol);
   const [notifyReplies, setNotifyReplies] = useState(!!member.notify_replies);
   const query = `community/threads?topic=${encodeURIComponent(topic)}&feed=${feed}&thread=${encodeURIComponent(threadId)}`;
   const {
@@ -337,25 +335,19 @@ export function MemberDashboard({
       setBusy(false);
     }
   }
-  async function saveBadgePreferences({
-    showBadge = badge,
-    symbol = badgeSymbol,
+  async function saveTierPreference({
     showTier = showValueBadge,
   }: {
-    showBadge?: boolean;
-    symbol?: string;
     showTier?: boolean;
   }) {
     await api('community/profile', {
       alias: member.alias,
       bio: member.bio || '',
-      showBadge,
       showValueBadge: showTier,
-      badgeSymbol: symbol,
       notifyReplies: !!member.notify_replies,
     });
     await refreshStatus();
-    setNotice('Badge preference saved.');
+    setNotice('Value badge preference saved.');
   }
   function navigate(next: View, nextMarket = market) {
     if (view === 'profile' && next !== 'profile') {
@@ -489,9 +481,7 @@ export function MemberDashboard({
             <strong>{member.alias}</strong>
             <span>
               <span className="small-dot" />{' '}
-              {member.show_badge
-                ? `${member.qualifying_symbol} holder`
-                : 'Verified holder'}
+              Verified holder
             </span>
           </div>
         </div>
@@ -728,9 +718,7 @@ export function MemberDashboard({
                     await api('community/profile', {
                       alias,
                       bio,
-                      showBadge: badge,
                       showValueBadge,
-                      badgeSymbol,
                       notifyReplies,
                     });
                     await refreshStatus();
@@ -747,7 +735,7 @@ export function MemberDashboard({
                   <div>
                     <strong>{alias || 'Your display name'}</strong>
                     <span>
-                      {badge ? `${badgeSymbol} holder` : 'Verified holder'}
+                      Verified holder
                     </span>
                   </div>
                   <span className="eyebrow">PROFILE PREVIEW</span>
@@ -822,57 +810,6 @@ export function MemberDashboard({
                     placeholder="A little about you"
                   />
                 </label>
-                <div className="profile-setting">
-                  <div>
-                    <h3>Show stock badge</h3>
-                    <p>
-                      Show one verified stock beside your name. Saves
-                      automatically.
-                    </p>
-                  </div>
-                  <Checkbox
-                    aria-label="Show stock badge"
-                    checked={badge}
-                    disabled={busy}
-                    onCheckedChange={(v) => {
-                      const next = v === true;
-                      setBadge(next);
-                      void run(async () => {
-                        try {
-                          await saveBadgePreferences({ showBadge: next });
-                        } catch (error) {
-                          setBadge(!!member.show_badge);
-                          throw error;
-                        }
-                      });
-                    }}
-                  />
-                </div>
-                {badge && (
-                  <SearchPicker
-                    label="Public holder badge"
-                    value={badgeSymbol}
-                    onChange={(symbol) => {
-                      const previous = badgeSymbol;
-                      setBadgeSymbol(symbol);
-                      void run(async () => {
-                        try {
-                          await saveBadgePreferences({ symbol });
-                        } catch (error) {
-                          setBadgeSymbol(previous);
-                          throw error;
-                        }
-                      });
-                    }}
-                    items={(holdings.length
-                      ? holdings.map((h) => h.symbol)
-                      : [member.qualifying_symbol]
-                    ).map((symbol) => ({
-                      value: symbol,
-                      label: symbol + ' holder',
-                    }))}
-                  />
-                )}
                 <section className="profile-tier" aria-label="Holder tier">
                   <div className="profile-tier-heading">
                     <h3>Your holder tier</h3>
@@ -913,7 +850,7 @@ export function MemberDashboard({
                         setShowValueBadge(next);
                         void run(async () => {
                           try {
-                            await saveBadgePreferences({ showTier: next });
+                            await saveTierPreference({ showTier: next });
                           } catch (error) {
                             setShowValueBadge(!!member.show_value_badge);
                             throw error;
@@ -1033,9 +970,6 @@ export function MemberDashboard({
                         t.member_id === member.id
                           ? {
                               ...t,
-                              badge: member.show_badge
-                                ? member.qualifying_symbol
-                                : null,
                               value_tier: member.show_value_badge
                                 ? holderTier.tier
                                 : null,
@@ -1044,9 +978,6 @@ export function MemberDashboard({
                           : t
                       }
                       memberId={member.id}
-                      memberBadge={
-                        member.show_badge ? member.qualifying_symbol : null
-                      }
                       refresh={refresh}
                     />
                   ))

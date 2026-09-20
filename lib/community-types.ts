@@ -73,7 +73,6 @@ export type CommunityAuthor = {
   alias: string;
   avatar_key?: string | null;
   bio?: string;
-  badge: string | null;
   value_tier?: string | null;
   value_tier_expires_at?: number;
 };
