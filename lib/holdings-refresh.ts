@@ -36,6 +36,28 @@ export async function refreshHoldings(
     true,
     tokens,
   );
+  const previous = (
+    await db
+      .prepare(
+        'SELECT symbol,raw_amount,decimals FROM community_holdings WHERE member_id=?',
+      )
+      .bind(memberId)
+      .all<{
+        symbol: string;
+        raw_amount: string | null;
+        decimals: number | null;
+      }>()
+  ).results;
+  const unchanged =
+    previous.length === holdings.length &&
+    holdings.every((holding) =>
+      previous.some(
+        (row) =>
+          row.symbol === holding.symbol &&
+          row.raw_amount === holding.rawAmount &&
+          row.decimals === holding.decimals,
+      ),
+    );
   const guard =
     'EXISTS(SELECT 1 FROM community_sessions WHERE hash=? AND member_id=? AND holdings_refresh_at=? AND expires_at>?)';
   const args = [hash, memberId, now, Date.now()];
@@ -71,12 +93,16 @@ export async function refreshHoldings(
         JSON.stringify(holdings.map((h) => h.symbol)),
         ...args,
       ),
-    db
-      .prepare(
-        'UPDATE community_members SET value_tier=NULL,value_tier_expires_at=0 WHERE id=? AND ' +
-          guard,
-      )
-      .bind(memberId, ...args),
+    ...(!unchanged
+      ? [
+          db
+            .prepare(
+              'UPDATE community_members SET value_tier=NULL,value_tier_expires_at=0 WHERE id=? AND ' +
+                guard,
+            )
+            .bind(memberId, ...args),
+        ]
+      : []),
     ...(!holdings.length
       ? [
           db

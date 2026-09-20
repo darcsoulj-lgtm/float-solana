@@ -1181,6 +1181,32 @@ void test('Backpack reference price qualifies a tier with its own fresh observat
   };
   assert.equal(calculateHolderTier(holdings, data, now).tier, 'bronze');
 });
+void test('a newly verified Backpack listing can use its issuer ticker for a holder tier', () => {
+  const { now, holdings, data } = tierFixture();
+  const added = {
+    ...TOKENS.find((token) => token.symbol === 'MU'),
+    symbol: 'NEW',
+    underlyingSymbol: 'NEW',
+    mint: 'NEWx5Fw4rEdvCy8Gp2jT6LkqsP3HZQWm7uY9SaBcDeF',
+    source: 'https://api.backpack.exchange/api/v1/assets',
+  };
+  holdings[0].symbol = 'NEW';
+  data.registry = {
+    additions: [added],
+    checkedAt: now,
+    refreshing: false,
+    delayed: false,
+  };
+  data.prices.data = {};
+  data.supplies.data = { NEW: { supply: 10000, valuationSafe: true } };
+  data.backpack = {
+    data: { NEW: { externalPrice: 40, externalChange24h: null } },
+    fetchedAt: now,
+    stale: false,
+    error: null,
+  };
+  assert.equal(calculateHolderTier(holdings, data, now).tier, 'bronze');
+});
 void test('A dated reliable quote qualifies only when a 25 percent range stays within one tier', () => {
   const f = tierFixture();
   f.data.prices.data.MU.price = 39;

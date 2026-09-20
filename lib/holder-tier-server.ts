@@ -1,11 +1,18 @@
-import { calculateHolderTier, type HolderTierResult } from './holder-tier';
+import {
+  calculateHolderTier,
+  HOLDER_TIERS,
+  type HolderTierResult,
+} from './holder-tier';
 import type { Holding } from './community-types';
 import { registryTokens, type RegistryStatus } from './token-registry';
 import { marketBatches, readMarketBatch, emptySource } from './market-service';
 import { cachedMarket } from './market-cache';
 import { mergeMarketPages, type MarketOverview } from './market-data';
 import { CMC_REFRESH_MS, fetchTokenMarkets } from './cmc-data';
-import { BACKPACK_TICKER_REFRESH_MS, fetchBackpackMarkets } from './market-data';
+import {
+  BACKPACK_TICKER_REFRESH_MS,
+  fetchBackpackMarkets,
+} from './market-data';
 import { tokenBatchKey } from './backpack-registry';
 
 // A newer verified snapshot must always win over a slow price request.
@@ -86,6 +93,25 @@ export async function updateHolderTier(
     }
     if (pages.length)
       result = calculateHolderTier(holdings, mergeMarketPages(pages));
+  }
+  // A temporary quote outage must not erase a still-valid result for the
+  // same holdings. Changed balances clear the stored tier during refresh.
+  if (!result.tier) {
+    const previous = await database
+      .prepare(
+        'SELECT value_tier,value_tier_expires_at FROM community_members WHERE id=?',
+      )
+      .bind(memberId)
+      .first<{ value_tier: string | null; value_tier_expires_at: number }>();
+    if (
+      previous?.value_tier &&
+      previous.value_tier_expires_at > Date.now() &&
+      HOLDER_TIERS.some((tier) => tier.id === previous.value_tier)
+    )
+      result = {
+        tier: previous.value_tier as HolderTierResult['tier'],
+        expiresAt: previous.value_tier_expires_at,
+      };
   }
   const updated = await database
     .prepare(TIER_WRITE_SQL)

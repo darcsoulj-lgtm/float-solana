@@ -34,7 +34,11 @@ export function tokenObservation(
   const valued = data?.valuations?.data;
   const reported = valued?.rows[symbol];
   const isOndo = ondoMints.has(symbol);
-  const token = TOKENS.find((candidate) => candidate.symbol === symbol);
+  // The verified Backpack registry can add mints after a release. Use the
+  // same token set that ownership verification and Markets use.
+  const token = marketTokens(data).find(
+    (candidate) => candidate.symbol === symbol,
+  );
   const backpackMarket =
     token?.issuer === 'backpack' && recent(data?.backpack, now, symbol)
       ? data?.backpack?.data?.[symbol]

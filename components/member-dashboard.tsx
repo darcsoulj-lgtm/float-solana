@@ -375,23 +375,46 @@ export function MemberDashboard({
   useEffect(() => {
     if (!holdingsKey) return;
     let active = true;
-    const update = () => {
+    let pending = false;
+    let timer: number | undefined;
+    const update = async () => {
       if (document.visibilityState !== 'visible') return;
-      void api<HolderTierResult>('community/holder-tier', {})
-        .then((result) => {
-          if (active) setHolderTier({ ...result, holdingsKey });
-        })
-        .catch(() => {
-          if (active) setHolderTier({ tier: null, expiresAt: 0, holdingsKey });
-        });
+      if (pending) return;
+      pending = true;
+      window.clearTimeout(timer);
+      let nextCheck = 60000;
+      try {
+        const result = await api<HolderTierResult>('community/holder-tier', {});
+        if (!active) return;
+        setHolderTier({ ...result, holdingsKey });
+        if (result.expiresAt > Date.now())
+          nextCheck = Math.min(
+            60000,
+            Math.max(10000, result.expiresAt - Date.now() - 15000),
+          );
+      } catch {
+        if (!active) return;
+        setHolderTier((previous) =>
+          previous.holdingsKey === holdingsKey &&
+          previous.expiresAt > Date.now()
+            ? previous
+            : { tier: null, expiresAt: 0, holdingsKey },
+        );
+        nextCheck = 30000;
+      } finally {
+        pending = false;
+        if (active) timer = window.setTimeout(update, nextCheck);
+      }
     };
-    update();
-    const timer = window.setInterval(update, 60000);
-    document.addEventListener('visibilitychange', update);
+    void update();
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void update();
+    };
+    document.addEventListener('visibilitychange', onVisible);
     return () => {
       active = false;
       window.clearInterval(timer);
-      document.removeEventListener('visibilitychange', update);
+      document.removeEventListener('visibilitychange', onVisible);
     };
   }, [holdingsKey]);
   useEffect(() => {
@@ -441,9 +464,7 @@ export function MemberDashboard({
     await refresh();
   }
   const sourceItems = (data?.sources || []).filter((s) =>
-    feed === 'saved'
-      ? s.saved
-      : topic === 'all' || s.symbol === topic,
+    feed === 'saved' ? s.saved : topic === 'all' || s.symbol === topic,
   );
   return (
     <div
@@ -482,8 +503,7 @@ export function MemberDashboard({
           <div>
             <strong>{member.alias}</strong>
             <span>
-              <span className="small-dot" />{' '}
-              Verified holder
+              <span className="small-dot" /> Verified holder
             </span>
           </div>
         </div>
@@ -491,18 +511,14 @@ export function MemberDashboard({
           {destinations.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
-              aria-current={
-                view === id ? 'page' : undefined
-              }
+              aria-current={view === id ? 'page' : undefined}
               onPointerEnter={id === 'markets' ? preloadMarkets : undefined}
               onFocus={id === 'markets' ? preloadMarkets : undefined}
               onClick={() => navigate(id, id === 'markets' ? 'all' : market)}
             >
               <Icon size={19} />
               {label}
-              {view === id && (
-                <span className="nav-indicator" />
-              )}
+              {view === id && <span className="nav-indicator" />}
             </button>
           ))}
         </nav>
@@ -531,12 +547,7 @@ export function MemberDashboard({
           <span>
             Float{' '}
             <span className="breadcrumb">
-              /{' '}
-              {
-                destinations.find(
-                  (d) => d.id === view,
-                )?.label
-              }
+              / {destinations.find((d) => d.id === view)?.label}
             </span>
           </span>
           <div>
@@ -559,9 +570,7 @@ export function MemberDashboard({
             {view !== 'markets' && view !== 'overview' && (
               <div className="member-page-heading">
                 <div>
-                  <h1>
-                    {view === 'home' ? 'Discussions' : 'Profile'}
-                  </h1>
+                  <h1>{view === 'home' ? 'Discussions' : 'Profile'}</h1>
                 </div>
                 {view === 'home' && (
                   <Button onClick={() => startDiscussion()}>
@@ -665,7 +674,8 @@ export function MemberDashboard({
                 </MemberSectionBoundary>
               </Activity>
             )}
-            {view === 'markets' || view === 'overview' ? null : view === 'profile' ? (
+            {view === 'markets' || view === 'overview' ? null : view ===
+              'profile' ? (
               <form
                 className="member-profile"
                 onSubmit={(e) => {
@@ -690,9 +700,7 @@ export function MemberDashboard({
                   />
                   <div>
                     <strong>{alias || 'Your display name'}</strong>
-                    <span>
-                      Verified holder
-                    </span>
+                    <span>Verified holder</span>
                   </div>
                   <span className="eyebrow">PROFILE PREVIEW</span>
                 </div>
@@ -850,7 +858,10 @@ export function MemberDashboard({
               </form>
             ) : (
               <>
-                <div className="channel-filters" aria-label="Discussion channels">
+                <div
+                  className="channel-filters"
+                  aria-label="Discussion channels"
+                >
                   <div className="channel-filter-scroll">
                     <button
                       aria-pressed={topic === 'all' && feed !== 'saved'}
@@ -1161,10 +1172,10 @@ export function MemberDashboard({
                 ? 'topic'
                 : errors.title
                   ? 'title'
-                    : errors.body
-                      ? 'body'
-                      : errors.pollOptions
-                        ? 'poll-options'
+                  : errors.body
+                    ? 'body'
+                    : errors.pollOptions
+                      ? 'poll-options'
                       : null;
               if (invalidField) {
                 document.getElementById(`${draftId}-${invalidField}`)?.focus();
@@ -1249,7 +1260,9 @@ export function MemberDashboard({
                 disabled={draftPosting}
                 name="title"
                 placeholder={
-                  draftPoll ? 'Ask verified members a question…' : 'Discussion title'
+                  draftPoll
+                    ? 'Ask verified members a question…'
+                    : 'Discussion title'
                 }
                 maxLength={POST_LIMITS.title.max}
                 required
@@ -1289,7 +1302,9 @@ export function MemberDashboard({
                           disabled={draftPosting}
                           onClick={() =>
                             setDraftPollOptions((options) =>
-                              options.filter((_, position) => position !== index),
+                              options.filter(
+                                (_, position) => position !== index,
+                              ),
                             )
                           }
                         >
