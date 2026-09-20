@@ -274,20 +274,6 @@ export function MarketOverviewPanel({
     book?.data && !book.stale && now - book.data.timestamp <= 120000
       ? book.data
       : null;
-  const sourceErrors = data
-    ? [
-        { name: 'CoinMarketCap', source: data.markets },
-        { name: 'Backpack', source: data.catalog },
-        { name: 'DEX Screener', source: data.pools },
-        { name: 'DefiLlama', source: data.prices },
-        { name: 'Solana supply', source: data.supplies },
-        { name: 'xStocks circulation', source: data.circulation },
-        { name: 'Backpack ticker', source: data.backpack },
-      ]
-        .filter((r) => r.source?.stale || r.source?.error)
-        .map((r) => r.name)
-        .join(', ')
-    : '';
   const stockDetail =
     detailOpen && matches.length > 0 ? (
       <section
@@ -876,12 +862,6 @@ export function MarketOverviewPanel({
           {error}{' '}
           {data ? 'Previously loaded observations may be out of date.' : ''}
         </div>
-      )}
-      {sourceErrors && (
-        <details className="market-warning">
-          <summary>Some sources delayed</summary>
-          <p>{sourceErrors}. Last saved observations are marked below.</p>
-        </details>
       )}
       <SolanaEcosystem
         data={data}
