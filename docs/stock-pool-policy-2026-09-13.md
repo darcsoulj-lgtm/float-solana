@@ -6,7 +6,7 @@ Float measures an explicitly scoped subset of Solana DEX trading. A pool must co
 
 `lib/stock-pools.ts` owns the policy and deduplicated metric sums. `parsePools` applies it at the provider boundary before retaining prices, changes, volume, liquidity, timestamps or links. The batch endpoint, per-token endpoint and public Backpack endpoint share that parser. Server callers pass the entire verified registry, so cross-issuer pairs and new verified Backpack listings are accepted even when the counterparty is outside the requested page. User-supplied symbols do not establish eligibility; counterparty labels also come from verified addresses.
 
-The existing server authentication, public/private response boundaries, bounded provider requests, caching and quotas are unchanged. This adds no paid API or request fan-out. Lookup maps are constructed once per parsed response.
+The existing server authentication, public/private response boundaries, caching and quotas are unchanged. Lookup maps are constructed once per parsed response.
 
 The market table and stock details now use eligible DEX Screener pool volume, matching issuer dashboards. CMC price/change observations remain available; CMC aggregate volume is retained only as provider data, not shown as this filtered metric. Pool-derived fallback prices can only use eligible stock-base pools; a quote-side stock never inherits the other token's USD price.
 
@@ -26,7 +26,7 @@ This is a reviewed allowlist, not a claim to support every stablecoin. Additions
 
 - Pool volume counts trades in eligible returned pools. It excludes RFQ, direct issuer mint/redeem and centralized-exchange activity. It is not total issuer trading volume, net investment, or organic demand.
 - Liquidity includes both assets in each eligible pool. Duplicate pool addresses count once per stock and once per issuer total; stock/stock pools can legitimately appear in both stocks' rows. Do not sum issuer subtotals to derive an all-issuer unique pool total without deduplicating again.
-- Multi-hop swaps can involve multiple pool trades; the data does not deduplicate economic orders or detect wash trading. Pool discovery is partial. A per-token detail response can cover more pools than the batch overview.
+- Multi-hop swaps can involve multiple pool trades; the data does not deduplicate economic orders or detect wash trading. Pool discovery is partial. The market overview fetches the per-token pair list for at most two active tokens per 30-mint batch, selected by eligible discovery-pool volume. It merges those pools by address with the discovery response. Detail failure retains the discovery snapshot. Other tokens may have additional eligible pools that are not counted.
 - Empty eligible coverage and provider failure remain unknown, not zero. A reported zero is retained. Existing freshness checks and source timestamps remain intact.
 - `POOL_POLICY_VERSION=eligible-v1` changes all three pool cache namespaces. Broad legacy snapshots cannot appear as last-good values after the release, even on provider failure. Unrelated price/supply caches remain warm. Newly verified registry additions enter existing pool snapshots at their next normal refresh (two to four minutes), without requiring a code edit.
 

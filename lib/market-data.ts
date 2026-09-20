@@ -207,7 +207,9 @@ function tickerMap(
 
 export async function fetchBackpackMarkets(
   fetcher: typeof fetch = fetch,
-  tokens: readonly StockToken[] = TOKENS.filter((token) => token.issuer === 'backpack'),
+  tokens: readonly StockToken[] = TOKENS.filter(
+    (token) => token.issuer === 'backpack',
+  ),
 ): Promise<Record<string, BackpackMarket>> {
   const load = (url: string) =>
     publicJson(url, fetcher).then((raw) => tickerMap(raw, tokens));
@@ -451,7 +453,37 @@ export async function fetchPools(
   );
   if (data.some((x) => !Array.isArray(x)))
     throw new Error('Invalid pool response');
-  return parsePools(data.flat(), tokens, verifiedStocks);
+  const discovered = parsePools(data.flat(), tokens, verifiedStocks);
+  // The multi-token endpoint is a discovery snapshot, not a complete pool
+  // list. Spend a bounded number of additional free requests on the most
+  // active verified tokens in each 30-mint group. Other tokens retain their
+  // eligible discovery pools, and a failed detail request cannot blank a page.
+  const discoveredVolume = (token: StockToken) =>
+    (discovered[token.symbol] ?? []).reduce(
+      (sum, pool) => sum + (pool.volume24h ?? 0),
+      0,
+    );
+  const selected = batches.flatMap((batch) =>
+    [...batch]
+      .filter((token) => discoveredVolume(token) > 0)
+      .sort((a, b) => discoveredVolume(b) - discoveredVolume(a))
+      .slice(0, 2),
+  );
+  const detail = await Promise.allSettled(
+    selected.map((token) => fetchTokenPools(token, fetcher, verifiedStocks)),
+  );
+  for (const [index, result] of detail.entries()) {
+    if (result.status !== 'fulfilled') continue;
+    const symbol = selected[index].symbol;
+    const byAddress = new Map(
+      (discovered[symbol] ?? []).map((pool) => [pool.address, pool]),
+    );
+    for (const pool of result.value) byAddress.set(pool.address, pool);
+    discovered[symbol] = [...byAddress.values()].sort(
+      (a, b) => (b.liquidity ?? -1) - (a.liquidity ?? -1),
+    );
+  }
+  return discovered;
 }
 export async function fetchPrices(
   fetcher: typeof fetch = fetch,

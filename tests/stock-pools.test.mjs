@@ -128,6 +128,33 @@ void test('Cross-issuer and newly verified stocks qualify outside the requested 
   );
 });
 
+void test('Active tokens gain eligible detail pools without counting spoof pairs or duplicating discovery pools', async () => {
+  const [a, b, c] = api.TOKENS.filter((token) => token.mint).slice(0, 3);
+  const first = pair(a.mint, usdc.mint, 100);
+  const second = pair(b.mint, usdc.mint, 90);
+  const third = pair(c.mint, usdc.mint, 10);
+  const extra = pair(a.mint, usdc.mint, 60);
+  const spoof = pair(a.mint, meme, 1000000);
+  const requested = [];
+  const fetcher = async (url) => {
+    requested.push(String(url));
+    if (String(url).includes('/tokens/v1/'))
+      return Response.json([first, second, third]);
+    if (String(url).endsWith('/' + a.mint))
+      return Response.json([first, extra, spoof]);
+    return new Response('', { status: 429 });
+  };
+  const pools = await api.fetchPools(fetcher, [a, b, c]);
+  assert.equal(api.poolMetrics(pools[a.symbol]).volume24h, 160);
+  assert.equal(api.poolMetrics(pools[b.symbol]).volume24h, 90);
+  assert.equal(api.poolMetrics(pools[c.symbol]).volume24h, 10);
+  assert.equal(pools[a.symbol].length, 2);
+  assert.equal(requested.length, 3);
+  assert.ok(requested.some((url) => url.endsWith('/' + a.mint)));
+  assert.ok(requested.some((url) => url.endsWith('/' + b.mint)));
+  assert.ok(!requested.some((url) => url.endsWith('/' + c.mint)));
+});
+
 void test('A stock-stock pool counts for both stocks but only once in an issuer total', () => {
   const [a, b] = api.TOKENS.filter((t) => t.issuer === 'backpack');
   const raw = pair(a.mint, b.mint, 75);
