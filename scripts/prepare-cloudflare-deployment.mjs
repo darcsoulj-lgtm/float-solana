@@ -14,12 +14,6 @@ config.d1_databases = [
   },
 ];
 config.r2_buckets = [];
-// Keep Vinext's generated fetch handler, with a tiny project-owned wrapper for
-// the public market-data cron. The path is relative to dist/server.
-config.main = '../../worker.ts';
-config.triggers = { crons: ['* * * * *'] };
-// Vinext's generated file is pre-bundled. Our TypeScript wrapper imports that
-// handler, so Wrangler must bundle this final entrypoint instead.
-delete config.no_bundle;
+config.triggers = { crons: [] };
 
 await writeFile(deployConfig, JSON.stringify(config));

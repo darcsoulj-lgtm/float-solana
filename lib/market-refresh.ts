@@ -16,7 +16,6 @@ export function retainRefreshingSources(
     'supplies',
     'pools',
     'history',
-    'volumes',
     'circulation',
     'backpack',
   ] as const) {

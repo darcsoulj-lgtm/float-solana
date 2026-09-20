@@ -27,16 +27,11 @@ const now = Date.now();
 const source = (data) => ({ data, fetchedAt: now, stale: false, error: null });
 const blank = () => ({
   pools: source({}),
-  volumes: source({}),
   prices: source({}),
   supplies: source({}),
   catalog: source([]),
   markets: source({}),
 });
-const onchain = (symbol, usd24h, liquidityUsd) => {
-  const token = api.TOKENS.find((candidate) => candidate.symbol === symbol);
-  return { usd24h, liquidityUsd, mint: token.mint };
-};
 const pool = (address, volume24h, liquidity) => ({
   address,
   volume24h,
@@ -48,15 +43,13 @@ const pool = (address, volume24h, liquidity) => ({
   url: 'https://dexscreener.com/solana/' + address,
   createdAt: now - 86400000,
 });
-void test('Issuer aggregate uses the same per-mint onchain source as its token rows', () => {
+void test('Issuer aggregate counts shared pools once; token rows retain their own pool coverage', () => {
   const d = blank();
   d.pools.data.MU = [pool('shared', 100, 50), pool('mu-only', 20, 10)];
   d.pools.data.SPCX = [pool('shared', 100, 50)];
-  d.volumes.data.MU = onchain('MU', 120, 60);
-  d.volumes.data.SPCX = onchain('SPCX', 100, 50);
   const result = api.backpackDashboard(d, now);
-  assert.equal(result.volume, 220);
-  assert.equal(result.liquidity, 110);
+  assert.equal(result.volume, 120);
+  assert.equal(result.liquidity, 60);
   assert.equal(result.volumeCovered, 2);
   assert.equal(
     result.rows.find((r) => r.token.symbol === 'SPCX').dexVolume,
@@ -68,7 +61,6 @@ void test('Unknown volume stays unknown; confirmed zero is zero', () => {
   const d = blank();
   assert.equal(api.backpackDashboard(d, now).volume, null);
   d.pools.data.MU = [pool('zero', 0, 0)];
-  d.volumes.data.MU = onchain('MU', 0, 0);
   assert.equal(api.backpackDashboard(d, now).volume, 0);
   assert.equal(api.backpackDashboard(d, now).liquidity, 0);
 });
@@ -351,7 +343,6 @@ void test('Issuer totals include pools beyond the three initially displayed', ()
   d.pools.data.MU = Array.from({ length: 5 }, (_, i) =>
     pool(`pool-${i}`, 10, i + 1),
   );
-  d.volumes.data.MU = onchain('MU', 50, 15);
   const result = api.backpackDashboard(d, now);
   const row = result.rows.find((r) => r.token.symbol === 'MU');
   assert.equal(row.pools.length, 5);
@@ -364,8 +355,6 @@ void test('Sort keeps unknown values last in either direction and search matches
   const d = blank();
   d.pools.data.MU = [pool('mu', 50, 100)];
   d.pools.data.SPCX = [pool('spcx', 100, 200)];
-  d.volumes.data.MU = onchain('MU', 50, 100);
-  d.volumes.data.SPCX = onchain('SPCX', 100, 200);
   const rows = api.backpackDashboard(d, now).rows;
   assert.equal(
     sortedBackpackRows(rows, '', 'dexVolume', false)[0].token.symbol,
@@ -413,21 +402,18 @@ void test('Embedded Backpack keeps dashboard controls without the public join pr
   assert.match(publicHtml, /Join the holder community/);
 });
 
-void test('Every issuer uses isolated per-mint onchain totals with unknown values preserved', () => {
+void test('Every issuer uses isolated, deduplicated pool totals with unknown values preserved', () => {
   for (const issuer of api.ISSUERS) {
     const d = blank();
     const tokens = api.TOKENS.filter((t) => t.issuer === issuer.id);
     d.pools.data[tokens[0].symbol] = [pool('shared', 125, 50)];
-    d.volumes.data[tokens[0].symbol] = onchain(tokens[0].symbol, 125, 50);
     if (tokens[1]) d.pools.data[tokens[1].symbol] = [pool('shared', 125, 50)];
-    if (tokens[1])
-      d.volumes.data[tokens[1].symbol] = onchain(tokens[1].symbol, 125, 50);
     const other = api.TOKENS.find((t) => t.issuer !== issuer.id);
     d.pools.data[other.symbol] = [pool('outside', 1e9, 1e9)];
     const result = api.issuerDashboard(d, issuer.id, now);
     assert.equal(result.rows.length, tokens.length);
-    assert.equal(result.volume, tokens[1] ? 250 : 125);
-    assert.equal(result.liquidity, tokens[1] ? 100 : 50);
+    assert.equal(result.volume, 125);
+    assert.equal(result.liquidity, 50);
     assert.ok(result.rows.every((r) => r.token.issuer === issuer.id));
     assert.equal(api.issuerDashboard(blank(), issuer.id, now).volume, null);
   }
@@ -473,8 +459,8 @@ void test('Issuer dashboards place valuation before volume and liquidity, keepin
     assert.match(html, new RegExp(issuer.name + ' onchain'));
     assert.doesNotMatch(html, /onchain<span>\.<\/span>/);
     for (const label of [
-      'Onchain volume',
-      'Onchain liquidity',
+      'DEX pool volume',
+      'Pool liquidity',
       '24h change',
       'Search stocks',
       'Sources &amp; coverage',
@@ -487,9 +473,9 @@ void test('Issuer dashboards place valuation before volume and liquidity, keepin
     );
     const summary = html.split('<details class="bp-method"')[0];
     assert.doesNotMatch(summary, /Minted value/);
-    const volumeLabel = 'Onchain volume';
+    const volumeLabel = 'DEX pool volume';
     assert.ok(summary.indexOf('Onchain value') < summary.indexOf(volumeLabel));
-    assert.ok(summary.indexOf(volumeLabel) < summary.indexOf('Onchain liquidity'));
+    assert.ok(summary.indexOf(volumeLabel) < summary.indexOf('Pool liquidity'));
     assert.match(summary, /Stocks <span>/);
     assert.match(html.split('<details class="bp-method"')[1], /tokens valued/);
     assert.doesNotMatch(html, /Join the holder community/);
@@ -501,7 +487,6 @@ void test('Ondo limited pool coverage is visible alongside volume, not presented
   const { renderToStaticMarkup } = require('react-dom/server');
   const data = blank();
   data.pools.data.GOOGLon = [pool('googl', 7.28, 20)];
-  data.volumes.data.GOOGLon = onchain('GOOGLon', 7.28, 20);
   const html = renderToStaticMarkup(
     React.createElement(uiModule.exports.IssuerDashboardContent, {
       issuer: 'ondo',
@@ -512,7 +497,7 @@ void test('Ondo limited pool coverage is visible alongside volume, not presented
       onRefresh: () => {},
     }),
   );
-  assert.match(html, /Onchain volume/);
+  assert.match(html, /DEX pool volume/);
   assert.ok(
     html.includes(
       `1/${api.TOKENS.filter((t) => t.issuer === 'ondo').length} tokens covered`,

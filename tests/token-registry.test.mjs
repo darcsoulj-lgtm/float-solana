@@ -75,7 +75,6 @@ function overview(registry) {
   return {
     registry,
     pools: source({}),
-    volumes: source({}),
     prices: source({}),
     history: source({}),
     supplies: source({}),
@@ -118,7 +117,6 @@ void test('Live-registry discovery verifies unseen mints then adds them without 
   d.pools.data.NEXT = [
     { address: 'next-pool', price: 12, volume24h: 40, liquidity: 50 },
   ];
-  d.volumes.data.NEXT = { usd24h: 40, liquidityUsd: 50, mint: additions[0].mint };
   assert.equal(api.marketTokens(d).length, api.TOKENS.length + 1);
   assert.equal(
     api

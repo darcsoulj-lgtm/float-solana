@@ -7,7 +7,6 @@ import {
   type StockToken,
 } from './tokens';
 import { fetchSupplies } from './token-supply';
-import { readOnchainMarket } from './onchain-market-cache';
 import {
   fetchPrices,
   fetchHistoricalPrices,
@@ -82,7 +81,7 @@ export async function readMarketBatch(
           Date.now(),
           saved.get(prefix + key) ?? null,
         );
-  const [prices, supplies, history, pools, volumes] = await Promise.all([
+  const [prices, supplies, history, pools] = await Promise.all([
     read('llama-prices-v3:', MARKET_REFRESH_MS, () =>
       fetchPrices(fetch, tokens),
     ),
@@ -99,7 +98,6 @@ export async function readMarketBatch(
       : read(poolPrefix, POOL_REFRESH_MS, () =>
           fetchPools(fetch, tokens, options.verifiedStocks),
         ),
-    readOnchainMarket(database, tokens),
   ]);
-  return { prices, supplies, history, pools, volumes };
+  return { prices, supplies, history, pools };
 }
