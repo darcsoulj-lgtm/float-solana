@@ -4783,14 +4783,8 @@ body:has(.community-entry) > footer {
   color: var(--muted-foreground);
   margin-top: 3px;
 }
-.market-supply-value,
-.market-supply-basis {
+.market-supply-value {
   display: block;
-}
-.market-supply-basis {
-  margin-top: 3px;
-  color: var(--muted-foreground);
-  font-size: 11px;
 }
 .directory-search {
   display: grid;

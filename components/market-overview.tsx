@@ -790,7 +790,6 @@ export function MarketOverviewPanel({
             <span className="market-supply-value">
               {supply == null ? '—' : new Intl.NumberFormat('en-US', { maximumFractionDigits: 5 }).format(supply)}
             </span>
-            <small className="market-supply-basis">{t.issuer === 'xstocks' ? 'Circulating' : 'Minted'}</small>
           </td>
           <td>
             <span className="market-mobile-label">Token price</span>
