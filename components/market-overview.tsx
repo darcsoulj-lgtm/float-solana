@@ -138,9 +138,9 @@ export function MarketOverviewPanel({
         : sort.key === 'change'
           ? item.change24h
           : sort.key === 'volume'
-            ? item.poolVolume24h
+            ? item.onchainVolume24h
             : sort.key === 'liquidity'
-              ? item.liquidity
+              ? item.onchainLiquidity
               : token.issuer === 'xstocks'
                 ? item.circulation?.circulatingSupply
                 : (item.valuationSupply ?? item.supply?.supply);
@@ -254,15 +254,9 @@ export function MarketOverviewPanel({
     now - detailedPools.fetchedAt <= 300000 &&
     detailedPools.fetchedAt <= now + 60000;
   const detailMetrics = poolMetrics(freshDetails ? pools : []);
-  const poolLiquidity = detailMetrics.liquidity;
+  const verifiedPoolLiquidity = detailMetrics.liquidity;
   const observation = tokenObservation(data, selected, now);
-  const detailVolume = detailedPools
-    ? detailMetrics.volume24h
-    : observation.poolVolume24h;
-  const volumeTime =
-    detailedPools?.fetchedAt ??
-    data?.pools.asOf?.[selected] ??
-    data?.pools.fetchedAt;
+  const detailVolume = observation.onchainVolume24h;
   const observed = observation.cmc;
   const quote =
     book?.data && !book.stale && now - book.data.timestamp <= 120000
@@ -274,6 +268,7 @@ export function MarketOverviewPanel({
         { name: 'Backpack', source: data.catalog },
         { name: 'DEX Screener', source: data.pools },
         { name: 'DefiLlama', source: data.prices },
+        { name: 'GeckoTerminal', source: data.volumes },
         { name: 'Solana supply', source: data.supplies },
         { name: 'xStocks circulation', source: data.circulation },
         { name: 'Backpack ticker', source: data.backpack },
@@ -349,7 +344,7 @@ export function MarketOverviewPanel({
           </div>
           {detailVolume !== null && (
             <div>
-              <span title={POOL_SCOPE}>DEX volume · 24h</span>
+              <span title="All indexed Solana spot-pool trades for this exact official mint.">Onchain volume · 24h</span>
               <strong>{money(detailVolume, true)}</strong>
             </div>
           )}
@@ -461,16 +456,25 @@ export function MarketOverviewPanel({
             </div>
             {detailVolume !== null && (
               <div>
-                <dt>DEX volume · 24h</dt>
+                <dt>Onchain volume · 24h</dt>
                 <dd>
                   <a
-                    href={'https://dexscreener.com/solana/' + token.mint}
+                    href={'https://www.geckoterminal.com/solana/pools/new?token_address=' + token.mint}
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    DEX Screener ↗
+                    GeckoTerminal ↗
                   </a>{' '}
-                  · {time(volumeTime)}
+                  · {time(observation.onchainVolumeTime)}
+                </dd>
+              </div>
+            )}
+            {verifiedPoolLiquidity !== null && (
+              <div>
+                <dt>Verified DEX liquidity</dt>
+                <dd>
+                  {money(verifiedPoolLiquidity, true)} · {pools.length} eligible
+                  {' '}pools observed by Float
                 </dd>
               </div>
             )}
@@ -504,8 +508,9 @@ export function MarketOverviewPanel({
           </dl>
           {detailVolume !== null && (
             <p>
-              {POOL_SCOPE} Volume sums eligible returned pools over 24 hours;
-              discovery is partial and excludes RFQ and centralized exchanges.
+              Onchain volume and liquidity use indexed Solana pools for the
+              exact official mint. Float’s verified-pool liquidity uses a
+              narrower settlement-pair filter: {POOL_SCOPE}
             </p>
           )}
         </details>
@@ -537,9 +542,9 @@ export function MarketOverviewPanel({
             </small>
           </div>
           <div>
-            <span>Observed pool liquidity</span>
-            <strong>{money(poolLiquidity, true)}</strong>
-            <small>{pools.length} eligible pools · partial coverage</small>
+            <span title="Current reserves across indexed Solana pools for this exact official mint.">Onchain pool liquidity</span>
+            <strong>{money(observation.onchainLiquidity, true)}</strong>
+            <small>Indexed pools · exact mint</small>
           </div>
         </div>
         <p className="market-footnote market-source-line">
@@ -789,8 +794,8 @@ export function MarketOverviewPanel({
             <span className="market-mobile-label">24h change</span>
             {pct(change)}
           </td>
-          <td><span className="market-mobile-label">DEX volume · 24h</span>{money(row.poolVolume24h, true)}</td>
-          <td><span className="market-mobile-label">Pool liquidity</span>{money(row.liquidity, true)}</td>
+          <td><span className="market-mobile-label">Onchain volume · 24h</span>{money(row.onchainVolume24h, true)}</td>
+          <td><span className="market-mobile-label">Onchain liquidity</span>{money(row.onchainLiquidity, true)}</td>
         </MarketStockRow>
         {isSelected && <tr className="stock-detail-row"><td colSpan={6}>{stockDetail}</td></tr>}
       </Fragment>
@@ -809,12 +814,12 @@ export function MarketOverviewPanel({
           <th aria-sort={sortable ? sortAria('price') : undefined}>{sortable ? sortHeader('price', 'Token price') : 'Token price'}</th>
           <th aria-sort={sortable ? sortAria('change') : undefined}>{sortable ? sortHeader('change', '24h change') : '24h change'}</th>
           <th aria-sort={sortable ? sortAria('volume') : undefined}><span className="metric-label">
-            {sortable ? sortHeader('volume', 'DEX volume · 24h') : 'DEX volume · 24h'}
-            <MetricInfo label="About DEX volume">{POOL_SCOPE} Volume sums eligible returned pools. Coverage is partial; missing values are not zero.</MetricInfo>
+            {sortable ? sortHeader('volume', 'Onchain volume · 24h') : 'Onchain volume · 24h'}
+            <MetricInfo label="About onchain volume">Rolling 24-hour spot volume across indexed Solana pools for this exact official mint. Missing values are not zero.</MetricInfo>
           </span></th>
           <th aria-sort={sortable ? sortAria('liquidity') : undefined}><span className="metric-label">
-            {sortable ? sortHeader('liquidity', 'Pool liquidity') : 'Pool liquidity'}
-            <MetricInfo label="About pool liquidity">Liquidity in observed Solana pools, including both assets in each pool. Coverage is partial. Shared pools can appear under more than one token, so rows should not be added together.</MetricInfo>
+            {sortable ? sortHeader('liquidity', 'Onchain liquidity') : 'Onchain liquidity'}
+            <MetricInfo label="About onchain liquidity">Current reserves in indexed Solana pools for this exact official mint. It is not issuer reserves or guaranteed exit capacity.</MetricInfo>
           </span></th>
         </tr></thead>
         <tbody>{rows.map(renderTokenRow)}</tbody>
@@ -829,7 +834,7 @@ export function MarketOverviewPanel({
       <div className="market-toolbar">
         <details className="market-refresh-note">
           <summary>Auto-updating</summary>
-          Prices and supply: 2 min · Pools: 4 min · CoinMarketCap: 5 min · Order
+          Prices and supply: 2 min · Pools: 4 min · Onchain market data: up to 3 hr · CoinMarketCap: 5 min · Order
           books: 30 sec · Issuer circulation: 10 min.
         </details>
         <Button
@@ -927,10 +932,10 @@ export function MarketOverviewPanel({
                 setPage(0);
               }}
             >
-              <option value="volume:desc">DEX volume · high to low</option>
-              <option value="volume:asc">DEX volume · low to high</option>
-              <option value="liquidity:desc">Liquidity · high to low</option>
-              <option value="liquidity:asc">Liquidity · low to high</option>
+              <option value="volume:desc">Onchain volume · high to low</option>
+              <option value="volume:asc">Onchain volume · low to high</option>
+              <option value="liquidity:desc">Onchain liquidity · high to low</option>
+              <option value="liquidity:asc">Onchain liquidity · low to high</option>
               <option value="change:desc">24h change · high to low</option>
               <option value="change:asc">24h change · low to high</option>
               <option value="price:desc">Token price · high to low</option>
@@ -995,9 +1000,9 @@ export function MarketOverviewPanel({
           <p>
             Backpack prices and 24h changes: official Backpack external ticker.
             Other prices: CoinMarketCap, fresh DefiLlama, then DEX pool. Older
-            DefiLlama references are labeled Last quote (up to 96 hours). DEX
-            volume and liquidity: eligible DEX Screener pools, with partial
-            coverage.
+            DefiLlama references are labeled Last quote (up to 96 hours).
+            Onchain volume and liquidity: GeckoTerminal’s indexed Solana pools
+            for the exact mint.
             {POOL_SCOPE} Missing data is shown as —. Supply and valuation
             estimates are available in stock details and Coverage &amp;
             methodology.
@@ -1036,11 +1041,11 @@ export function MarketOverviewPanel({
         </a>
         ,{' '}
         <a
-          href="https://dexscreener.com/"
+          href="https://www.geckoterminal.com/"
           target="_blank"
           rel="noopener noreferrer"
         >
-          DEX Screener
+          GeckoTerminal
         </a>
         ,{' '}
         <a
@@ -1067,8 +1072,10 @@ export function MarketOverviewPanel({
           mint, not ticker name. Backpack-issued stocks use Backpack’s official
           external ticker for price and 24-hour change; its venue ticker is kept
           separate from DEX activity. CoinMarketCap supplies aggregate token
-          prices, circulating supply, token market cap, volume and price
-          changes. We display observations no older than 15 minutes; missing
+          prices, circulating supply, token market cap and price changes.
+          GeckoTerminal supplies the table&apos;s one-mint onchain volume and
+          liquidity observations, so every issuer uses the same measurement.
+          We display observations no older than 15 minutes; missing
           listings use separately labeled pool or onchain data where available.
           CMC market cap measures circulating tokens at the provider’s price,
           not the underlying company’s market cap. Without a CMC price, we
@@ -1083,13 +1090,14 @@ export function MarketOverviewPanel({
           DefiLlama 24h changes compare prices for the same mint from the same
           source, with timestamps within 15 minutes of a 24-hour interval. We
           never combine a pool price with another provider’s historical price.
-          {POOL_SCOPE} DEX liquidity sums unique eligible returned pool
-          addresses, including either side of a pair. The provider may limit the
-          returned set; this is not total Solana liquidity or volume.
+          The expanded token view separately shows Float’s stricter verified-pool
+          observation: {POOL_SCOPE} It is useful for assessing pool quality, but
+          it is not the table’s total onchain volume or liquidity.
         </p>
         <p>
-          Fetched timestamps show when we retrieved data. DEX Screener does not
-          supply a quote timestamp in this response. Missing values stay blank;
+          Fetched timestamps show when we retrieved data. The shared onchain
+          index refreshes in the background, so those metrics can be up to three
+          hours old. Missing values stay blank;
           an unavailable source is never treated as zero. Your exact wallet
           balances are not sent to these providers.
         </p>

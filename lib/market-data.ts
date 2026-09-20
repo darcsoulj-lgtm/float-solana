@@ -62,7 +62,14 @@ export type TokenPrice = {
   timestamp: number;
   confidence: number | null;
 };
-export type TokenVolume = { usd24h: number; mint: string };
+// Token-level onchain observations are intentionally distinct from Float's
+// filtered pool metrics. They represent the provider's coverage of the exact
+// mint across indexed Solana pools.
+export type TokenVolume = {
+  usd24h: number;
+  liquidityUsd: number | null;
+  mint: string;
+};
 export type MarketOverview = {
   valuations?: SourceResult<OndoValueSnapshot>;
   registry?: RegistryStatus;
@@ -527,7 +534,11 @@ export function parseTokenVolumes(
     seen.add(token.symbol);
     const volume = nonnegative(record(attr.volume_usd).h24);
     if (volume !== null)
-      out[token.symbol] = { usd24h: volume, mint: token.mint };
+      out[token.symbol] = {
+        usd24h: volume,
+        liquidityUsd: nonnegative(attr.total_reserve_in_usd),
+        mint: token.mint,
+      };
   }
   return out;
 }
@@ -635,6 +646,7 @@ export function mergeMarketPages(pages: MarketOverview[]): MarketOverview {
     backpack: pages.find((p) => p.backpack)?.backpack,
     prices: combine(pages.map((p) => p.prices)),
     pools: combine(pages.map((p) => p.pools)),
+    volumes: combine(pages.flatMap((p) => (p.volumes ? [p.volumes] : []))),
     supplies: combine(pages.map((p) => p.supplies)),
     circulation: lastCirculation
       ? {

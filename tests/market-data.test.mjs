@@ -23,6 +23,7 @@ for (const file of [
   'holder-tier',
   'holder-tier-server',
   'market-service',
+  'onchain-market-cache',
   'backpack-registry',
   'holder-news',
   'headline-cache',
@@ -39,7 +40,7 @@ for (const file of [
       },
     })
     .outputText.replace(
-      /from '\.\/(solana-network|ondo-valuation|request-body|validation|stock-pools|tokens|token-registry|market-service|backpack-registry|market-data|market-cache|cmc-data|token-supply|token-observation|holder-tier|holder-news)'/g,
+      /from '\.\/(solana-network|ondo-valuation|request-body|validation|stock-pools|tokens|token-registry|market-service|onchain-market-cache|backpack-registry|market-data|market-cache|cmc-data|token-supply|token-observation|holder-tier|holder-news)'/g,
       "from './$1.mjs'",
     );
   await writeFile(dir + '/' + file + '.mjs', out);
@@ -789,7 +790,16 @@ void test('Volume parsing rejects wrong chain, fake mint, negative data and dupl
     type: 'token',
     attributes: { address: mint, volume_usd: { h24: '0' } },
   };
-  assert.equal(parseTokenVolumes({ data: [row] }).MU.usd24h, 0);
+  const zero = parseTokenVolumes({
+    data: [
+      {
+        ...row,
+        attributes: { ...row.attributes, total_reserve_in_usd: '456.78' },
+      },
+    ],
+  }).MU;
+  assert.equal(zero.usd24h, 0);
+  assert.equal(zero.liquidityUsd, 456.78);
   assert.deepEqual(
     parseTokenVolumes({ data: [{ ...row, id: 'ethereum_' + mint }] }),
     {},

@@ -1,5 +1,4 @@
 'use client';
-import { POOL_SCOPE } from '@/lib/stock-pools';
 import Link from '@/components/site-link';
 import {
   Fragment,
@@ -467,8 +466,8 @@ export function IssuerDashboardContent({
   const columns: [Sort, string][] = [
     ['price', 'Price'],
     ['change24h', '24h change'],
-    ['dexVolume', 'Pool volume · 24h'],
-    ['poolLiquidity', 'Liquidity'],
+    ['dexVolume', 'Onchain volume · 24h'],
+    ['poolLiquidity', 'Onchain liquidity'],
     ...(issuer === 'xstocks'
       ? [['value', 'Circulating value'] as [Sort, string]]
       : []),
@@ -508,12 +507,11 @@ export function IssuerDashboardContent({
         </div>
         <div>
           <span>
-            DEX pool volume · 24h{' '}
+            Onchain volume · 24h{' '}
             <MetricInfo label="Volume source and coverage">
-              {`${POOL_SCOPE} DEX Screener pool trades only. Excludes Backpack Exchange, RFQ trades, direct issuer trades and other centralized exchanges. Pool discovery is partial; this is not total issuer volume.`}{' '}
-              {issuer === 'xstocks'
-                ? 'The xStocks API supplies circulation and reference valuations, not this volume figure.'
-                : ''}
+              Rolling spot volume in indexed Solana pools for each exact official
+              token mint. The issuer total sums token rows, so a token/token
+              pool can appear twice. It excludes centralized and RFQ activity.
             </MetricInfo>
           </span>
           <strong>{dollars(dashboard.volume)}</strong>
@@ -522,14 +520,14 @@ export function IssuerDashboardContent({
           </small>
         </div>
         <div>
-          <span>Pool liquidity</span>
+          <span>Onchain liquidity</span>
           <strong>{dollars(dashboard.liquidity)}</strong>
         </div>
       </div>
       {leaders.length > 0 ? (
         <section className="bp-activity" aria-label="Most active tokens">
           <h2>
-            Most active <small>24h pool volume</small>
+            Most active <small>24h onchain volume</small>
           </h2>
           <div>
             {leaders.map((r) => (
@@ -803,15 +801,10 @@ export function IssuerDashboardContent({
             </p>
           )}
           <p>
-            {POOL_SCOPE} DEX Screener supplies pool volume and liquidity. Each
-            eligible returned Solana pool is counted once in the overview,
-            including pools shared by two stocks. Coverage is partial; routed
-            swaps can involve several pool trades. RFQ trades, direct issuer
-            trades and centralized exchange trades are not included. These
-            figures are not total issuer trading volume.{' '}
-            {issuer !== 'backpack'
-              ? 'The overview uses batch-discovered pools. Open a stock for additional per-token pool discovery; those details may have broader coverage than the overview.'
-              : ''}
+            Onchain volume and liquidity come from indexed Solana pools for
+            each exact official mint. They exclude RFQ and centralized activity.
+            Open a token to inspect Float’s stricter verified-pool view, which
+            excludes unverified counterparties.
           </p>
           <p>
             Solana RPC supplies minted quantities. CoinMarketCap, where covered,

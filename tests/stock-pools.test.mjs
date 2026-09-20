@@ -26,6 +26,23 @@ const pair = (base, quote, volume = 10) => ({
 const source = (data) => ({ data, fetchedAt: now, stale: false, error: null });
 const market = (pools) => ({
   pools: source(pools),
+  volumes: source(
+    Object.fromEntries(
+      Object.entries(pools)
+        .filter(([, rows]) => rows.length > 0)
+        .map(([symbol, rows]) => {
+        const token = api.TOKENS.find((candidate) => candidate.symbol === symbol);
+        return [
+          symbol,
+          {
+            usd24h: rows.reduce((total, row) => total + (row.volume24h ?? 0), 0),
+            liquidityUsd: rows.reduce((total, row) => total + (row.liquidity ?? 0), 0),
+            mint: token.mint,
+          },
+        ];
+        }),
+    ),
+  ),
   prices: source({}),
   supplies: source({}),
   markets: source({}),
@@ -95,6 +112,7 @@ void test('All issuers exclude meme activity from prices, totals and recent pool
     assert.equal(api.issuerDashboard(empty, issuer.id, now).volume, null);
     assert.equal(api.tokenObservation(empty, token.symbol, now).price, null);
     d.pools.stale = true;
+    d.volumes.stale = true;
     assert.equal(api.issuerDashboard(d, issuer.id, now).volume, null);
   }
 });
@@ -128,13 +146,13 @@ void test('Cross-issuer and newly verified stocks qualify outside the requested 
   );
 });
 
-void test('A stock-stock pool counts for both stocks but only once in an issuer total', () => {
+void test('A stock-stock pool stays visible for both mints in the shared onchain index', () => {
   const [a, b] = api.TOKENS.filter((t) => t.issuer === 'backpack');
   const raw = pair(a.mint, b.mint, 75);
   const data = market(api.parsePools([raw, raw], [a, b]));
   assert.equal(api.tokenObservation(data, a.symbol, now).poolVolume24h, 75);
   assert.equal(api.tokenObservation(data, b.symbol, now).poolVolume24h, 75);
-  assert.equal(api.issuerDashboard(data, 'backpack', now).volume, 75);
+  assert.equal(api.issuerDashboard(data, 'backpack', now).volume, 150);
 });
 
 void test('A warm legacy pool cache cannot reintroduce excluded activity, including when refresh fails', async () => {

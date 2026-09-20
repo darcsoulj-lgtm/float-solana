@@ -5,9 +5,9 @@ import Link from '@/components/site-link';
 import { marketTokens } from '@/lib/market-data';
 import { ArrowUpRight } from 'lucide-react';
 import { ISSUERS, type IssuerId } from '@/lib/tokens';
-import { trackedValuation } from '@/lib/token-observation';
+import { tokenObservation, trackedValuation } from '@/lib/token-observation';
 import type { MarketOverview } from '@/lib/market-data';
-import { poolMetrics, POOL_SCOPE } from '@/lib/stock-pools';
+import { poolMetrics } from '@/lib/stock-pools';
 import { useState } from 'react';
 import { MarketActivityHistory } from './market-activity-history';
 const usd = (n: number | null) =>
@@ -19,6 +19,12 @@ const usd = (n: number | null) =>
         notation: 'compact',
         maximumFractionDigits: 2,
       }).format(n);
+const sumKnown = (values: (number | null)[]) => {
+  const known = values.filter(
+    (value): value is number => value !== null && Number.isFinite(value),
+  );
+  return known.length ? known.reduce((total, value) => total + value, 0) : null;
+};
 export function SolanaEcosystem({
   data,
   now,
@@ -37,6 +43,9 @@ export function SolanaEcosystem({
   >('volume');
   const tokens = marketTokens(data);
   const coverage = trackedValuation(data, now);
+  const observations = new Map(
+    tokens.map((token) => [token.symbol, tokenObservation(data, token.symbol, now)]),
+  );
   const issuerActivity = ISSUERS.map((issuer) => {
     const issuerTokens = tokens.filter((token) => token.issuer === issuer.id);
     const pools = issuerTokens.flatMap((token) => {
@@ -53,10 +62,13 @@ export function SolanaEcosystem({
       return data.pools.data?.[token.symbol] ?? [];
     });
     const dashboard = poolMetrics(pools);
+    const issuerObservations = issuerTokens.map((token) =>
+      observations.get(token.symbol),
+    );
     return {
       ...issuer,
-      volume: dashboard.volume24h,
-      liquidity: dashboard.liquidity,
+      volume: sumKnown(issuerObservations.map((item) => item?.onchainVolume24h ?? null)),
+      liquidity: sumKnown(issuerObservations.map((item) => item?.onchainLiquidity ?? null)),
       value:
         coverage.issuers.find((item) => item.id === issuer.id)?.total ?? null,
       pools: dashboard.pools,
@@ -65,6 +77,12 @@ export function SolanaEcosystem({
   });
   const marketPools = issuerActivity.flatMap((issuer) => issuer.pools);
   const marketActivity = poolMetrics(marketPools);
+  const marketVolume = sumKnown(
+    [...observations.values()].map((item) => item.onchainVolume24h),
+  );
+  const marketLiquidity = sumKnown(
+    [...observations.values()].map((item) => item.onchainLiquidity),
+  );
   const activityRows = issuerActivity.sort(
     (a, b) => (b[activityMetric] ?? 0) - (a[activityMetric] ?? 0),
   );
@@ -131,22 +149,23 @@ export function SolanaEcosystem({
         </div>
         <div>
           <span className="metric-label">
-            <span>DEX volume · 24h</span>
+            <span>Onchain volume · 24h</span>
             <MetricInfo label="About market volume">
-              {POOL_SCOPE} Each pool is counted once across the market.
+              Rolling 24-hour volume across indexed Solana pools for each
+              official mint. This uses the same source across issuers.
             </MetricInfo>
           </span>
-          <strong>{usd(marketActivity.volume24h)}</strong>
+          <strong>{usd(marketVolume)}</strong>
         </div>
         <div>
           <span className="metric-label">
-            <span>Pool liquidity</span>
+            <span>Onchain liquidity</span>
             <MetricInfo label="About market liquidity">
-              Both assets in observed eligible pools. Shared pools are counted
-              once. Coverage is partial.
+              Current indexed Solana pool reserves for each official mint. It
+              is a trading-depth signal, not issuer reserves.
             </MetricInfo>
           </span>
-          <strong>{usd(marketActivity.liquidity)}</strong>
+          <strong>{usd(marketLiquidity)}</strong>
         </div>
         <div>
           <span>Tracked tokens</span>
@@ -180,8 +199,8 @@ export function SolanaEcosystem({
                 )
               }
             >
-              <option value="volume">DEX volume · 24h</option>
-              <option value="liquidity">Pool liquidity</option>
+              <option value="volume">Onchain volume · 24h</option>
+              <option value="liquidity">Onchain liquidity</option>
               <option value="value">Tracked value · est.</option>
             </select>
           </label>
@@ -223,18 +242,19 @@ export function SolanaEcosystem({
             </>
           ) : (
             <>
-              Partial pool coverage{' '}
+              Per-mint onchain coverage{' '}
               <MetricInfo label="About issuer activity">
-                {POOL_SCOPE} Shared pools may contribute to two issuers; issuer
-                totals must not be added together.
+                Each issuer total is the sum of its official token mints. A
+                direct token/token pool can appear in both mint observations,
+                so issuer totals must not be added together.
               </MetricInfo>
             </>
           )}
         </p>
         {activityMetric !== 'value' && (
           <details className="market-dex-breakdown">
-            <summary>View DEX breakdown</summary>
-            <h4>DEX activity</h4>
+            <summary>View eligible-pool breakdown</summary>
+            <h4>Eligible DEX pool activity</h4>
             {dexActivity.slice(0, 5).map((dex) => {
               const value =
                 activityMetric === 'liquidity' ? dex.liquidity : dex.volume;

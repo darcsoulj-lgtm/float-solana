@@ -177,6 +177,11 @@ export function tokenObservation(
       : undefined;
   const circulatingValue = circulation?.valueUsd ?? null;
   const metrics = poolMetrics(pools);
+  const onchainMarket = recent(data?.volumes, now, symbol)
+    ? data?.volumes?.data?.[symbol]
+    : undefined;
+  const onchainMarketTime =
+    data?.volumes?.asOf?.[symbol] ?? data?.volumes?.fetchedAt ?? null;
   return {
     symbol,
     lastCirculation,
@@ -190,10 +195,10 @@ export function tokenObservation(
     valuationSupply: issuerValue?.supply,
     poolVolume24h: metrics.volume24h,
     cmcDexVolume24h: cmc?.dexVolume24h ?? null,
-    onchainVolume24h: recent(data?.volumes, now, symbol)
-      ? (data?.volumes?.data?.[symbol]?.usd24h ?? null)
-      : null,
-    onchainVolumeTime: data?.volumes?.fetchedAt ?? null,
+    onchainVolume24h: onchainMarket?.usd24h ?? null,
+    onchainVolumeTime: onchainMarket ? onchainMarketTime : null,
+    onchainLiquidity: onchainMarket?.liquidityUsd ?? null,
+    onchainLiquidityTime: onchainMarket ? onchainMarketTime : null,
     backpackMarket,
     backpackMarketTime: data?.backpack?.fetchedAt ?? null,
     backpackVenueVolume24h: backpackMarket?.venueVolume24h ?? null,

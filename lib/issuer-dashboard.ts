@@ -1,4 +1,3 @@
-import { poolMetrics } from './stock-pools';
 import { marketTokens } from './market-data';
 import { type IssuerId } from './tokens';
 import { tokenObservation, tokenValuation } from './token-observation';
@@ -33,33 +32,28 @@ export function issuerDashboard(
           ).map((p) => [p.address, p]),
         ).values(),
       ];
-      const metrics = poolMetrics(pools);
       return {
         token,
         ...observation,
         valuation: tokenValuation(observation, issuer),
         value: tokenValuation(observation, issuer).value,
         pools,
-        dexVolume: metrics.volume24h,
-        poolLiquidity: metrics.liquidity,
+        // One neutral token-level definition for every issuer. Pool metrics
+        // remain available for the expanded trading-pool inspection only.
+        dexVolume: observation.onchainVolume24h,
+        poolLiquidity: observation.onchainLiquidity,
         listing: data?.catalog.stale
           ? undefined
           : data?.catalog.data?.find((l) => l.symbol === token.symbol),
       };
     });
-  // A stock/stock pool may appear in both token rows. Count its volume and
-  // reserves once at issuer level. Routed trades can still have multiple legs.
-  const pools = [
-    ...new Map(
-      rows.flatMap((r) => r.pools.map((p) => [p.address, p] as const)),
-    ).values(),
-  ];
-  const metrics = poolMetrics(pools);
   return {
     rows,
-    pools,
-    volume: metrics.volume24h,
-    liquidity: metrics.liquidity,
+    pools: rows.flatMap((r) => r.pools),
+    // These are token sums, not a unique-trader or economic-order total.
+    // A direct stock/stock pair can be represented in both token rows.
+    volume: sumKnown(rows.map((r) => r.dexVolume)),
+    liquidity: sumKnown(rows.map((r) => r.poolLiquidity)),
     mintedValue:
       issuer === 'xstocks' ? null : sumKnown(rows.map((r) => r.issuedValue)),
     value: sumKnown(rows.map((r) => r.value)),

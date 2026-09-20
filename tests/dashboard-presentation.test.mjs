@@ -682,6 +682,8 @@ async function marketFixture(props = {}, valuation = {}) {
         issuedValue: null,
         cmcDexVolume24h: null,
         poolVolume24h: symbol === 'MU' ? 300 : 200,
+        onchainVolume24h: symbol === 'MU' ? 300 : 200,
+        onchainLiquidity: symbol === 'MU' ? 120 : 80,
         priceTime: null,
         supply: null,
       }),
@@ -817,8 +819,8 @@ void test('issuer multi-selection filters rows and leaves market totals intact',
   filters().props.onIssuers([]);
   tree = f.render();
   assert.match(renderToStaticMarkup(tree), /Alphabet/);
-  assert.match(renderToStaticMarkup(tree), /About DEX volume/);
-  assert.match(renderToStaticMarkup(tree), /Pool liquidity/);
+  assert.match(renderToStaticMarkup(tree), /About onchain volume/);
+  assert.match(renderToStaticMarkup(tree), /Onchain liquidity/);
 });
 
 void test('Ecosystem overview keeps valuation estimates and their caveats inside collapsed coverage', async () => {
@@ -854,6 +856,10 @@ void test('Ecosystem overview keeps valuation estimates and their caveats inside
       ISSUERS: issuers,
     },
     '@/lib/token-observation': {
+      tokenObservation: () => ({
+        onchainVolume24h: null,
+        onchainLiquidity: null,
+      }),
       trackedValuation: () => ({
         total: 1500,
         issuers,
@@ -878,7 +884,7 @@ void test('Ecosystem overview keeps valuation estimates and their caveats inside
     }),
   );
   assert.equal((html.match(/<details/g) || []).length, 2);
-  assert.match(html, /View DEX breakdown/);
+  assert.match(html, /View eligible-pool breakdown/);
   const headline = html.split('<details')[0];
   assert.match(headline, /Tracked value · est./);
   assert.match(headline, /\$1.5K/);

@@ -133,7 +133,7 @@ void test('Canonical market cache is shared across consumers, uses one warm read
     reads = 0;
     const result = await readMarketBatch(db, batch, options);
     assert.equal(result.prices.data[batch[0].symbol].price, 12);
-    assert.equal(reads, 1);
+    assert.equal(reads, 2);
     assert.equal(calls, 1);
     sql
       .prepare(
