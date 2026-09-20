@@ -780,7 +780,7 @@ export function MemberDashboard({
                   </div>
                   <p>
                     Based on verified tokenized stock value in this wallet. A
-                    tier appears when every holding has a reliable price.
+                    tier appears when prices support a clear range.
                   </p>
                   <div className="holder-tier-scale">
                     {HOLDER_TIERS.map((t) => (

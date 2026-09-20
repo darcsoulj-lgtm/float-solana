@@ -1181,6 +1181,17 @@ void test('Backpack reference price qualifies a tier with its own fresh observat
   };
   assert.equal(calculateHolderTier(holdings, data, now).tier, 'bronze');
 });
+void test('A dated reliable quote qualifies only when a 25 percent range stays within one tier', () => {
+  const f = tierFixture();
+  f.data.prices.data.MU.price = 39;
+  f.data.prices.data.MU.timestamp = f.now - 2 * 60 * 60 * 1000;
+  assert.equal(calculateHolderTier(f.holdings, f.data, f.now).tier, 'bronze');
+  f.data.prices.data.MU.price = 40;
+  assert.equal(calculateHolderTier(f.holdings, f.data, f.now).tier, null);
+  f.data.prices.data.MU.price = 39;
+  f.data.prices.data.MU.timestamp = f.now - 4 * 60 * 60 * 1000 - 1;
+  assert.equal(calculateHolderTier(f.holdings, f.data, f.now).tier, null);
+});
 void test('holder tier fails closed for stale, conflicting, ambiguous and pool-only valuations', () => {
   const changes = [
     (f) => (f.holdings[0].verified_at -= 180000),

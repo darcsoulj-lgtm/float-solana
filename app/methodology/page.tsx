@@ -50,9 +50,10 @@ export default function Page() {
           $1,000–$9,999; Platinum $10,000–$99,999; Diamond $100,000 or more.
         </p>
         <p>
-          Every holding needs a reliable current price. Tiers expire when checks
-          become stale. They do not indicate expertise or total wealth, and do
-          not change posting rights.
+          Every holding needs a reliable price. A reference up to four hours
+          old can qualify only when a 25% price change would leave the wallet
+          in the same tier. Tiers expire when checks become stale. They do not
+          indicate expertise or total wealth, and do not change posting rights.
         </p>
         <p>
           Value badges are private by default. Enable Show value badge in
