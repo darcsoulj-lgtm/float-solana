@@ -108,7 +108,7 @@ export function SolanaEcosystem({
       aria-label="Tokenized stocks on Solana"
     >
       <div className="ecosystem-heading">
-        <h2>Tokenized markets on Solana</h2>
+        <h2>Tokenized assets on Solana</h2>
         <Link href="/tokens" className="market-chain">
           Coverage ↗
         </Link>
