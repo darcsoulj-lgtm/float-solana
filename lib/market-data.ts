@@ -10,7 +10,7 @@ import {
   TOKEN_REVIEW_DATE,
   type StockToken,
 } from './tokens';
-export const MARKET_REFRESH_MS = 120000;
+export const MARKET_REFRESH_MS = 60000;
 // Pool snapshots are secondary price observations; four minutes lowers shared
 // public-provider traffic while remaining inside the five-minute validity limit.
 export const POOL_REFRESH_MS = 240000;

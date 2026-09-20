@@ -12,7 +12,6 @@ import { MetricInfo } from './metric-info';
 import { Fragment, useEffect, useState } from 'react';
 import {
   ArrowUpRight,
-  RefreshCw,
   ChevronLeft,
   ChevronRight,
   Copy,
@@ -71,9 +70,8 @@ export function MarketOverviewPanel({
       direction: 'desc',
     });
   const [selection, setSelected] = useState(holdings[0] || 'MU'),
-    [refresh, setRefresh] = useState(0),
     [copied, setCopied] = useState(false);
-  const { data, error, busy } = useMarketOverview(holdings, refresh);
+  const { data, error, busy } = useMarketOverview(holdings, 0);
   const tokens = marketTokens(data);
   const [bookData, setBook] = useState<SourceResult<Book> | null>(null),
     [bookMessage, setBookReason] = useState('Loading order book…'),
@@ -194,7 +192,7 @@ export function MarketOverviewPanel({
       active = false;
       clearInterval(timer);
     };
-  }, [selected, refresh, detailOpen]);
+  }, [selected, detailOpen]);
   useEffect(() => {
     if (
       !detailOpen ||
@@ -230,7 +228,7 @@ export function MarketOverviewPanel({
       active = false;
       clearInterval(id);
     };
-  }, [selected, selectedIssuer, refresh, detailOpen, data?.catalog.fetchedAt]);
+  }, [selected, selectedIssuer, detailOpen, data?.catalog.fetchedAt]);
   const groups = groupMarketTokens(matches).sort((a, b) =>
     a.versions[0].shortName.localeCompare(b.versions[0].shortName, undefined, { numeric: true }) ||
     a.key.localeCompare(b.key),
@@ -827,22 +825,6 @@ export function MarketOverviewPanel({
       {!hidePortfolio && (
         <PortfolioSummary positions={positions} data={data} now={now} />
       )}
-      <div className="market-toolbar">
-        <details className="market-refresh-note">
-          <summary>Auto-updating</summary>
-          Prices and supply: 2 min · Pools: 4 min · CoinMarketCap: 5 min · Order
-          books: 30 sec · Issuer circulation: 10 min.
-        </details>
-        <Button
-          variant="outline"
-          disabled={busy}
-          onClick={() => setRefresh((x) => x + 1)}
-        >
-          <RefreshCw size={16} />
-          {busy ? 'Updating…' : 'Refresh'}
-        </Button>
-      </div>
-
       {error && (
         <div className="error" role="alert">
           {error}{' '}

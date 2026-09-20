@@ -1,7 +1,6 @@
 'use client';
 
 import { MetricInfo } from './metric-info';
-import Link from '@/components/site-link';
 import { marketTokens } from '@/lib/market-data';
 import { ArrowUpRight } from 'lucide-react';
 import { ISSUERS, type IssuerId } from '@/lib/tokens';
@@ -106,12 +105,9 @@ export function SolanaEcosystem({
     <section
       className="ecosystem-overview"
       aria-label="Tokenized stocks on Solana"
-    >
+      >
       <div className="ecosystem-heading">
         <h2>Tokenized assets on Solana</h2>
-        <Link href="/tokens" className="market-chain">
-          Coverage ↗
-        </Link>
       </div>
       <div className="ecosystem-stats">
         <div>
