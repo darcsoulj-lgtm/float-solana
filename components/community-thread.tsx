@@ -125,10 +125,12 @@ export function Thread({
           version={t.avatar_key}
         />
         <strong>{t.alias}</strong>
-        <HolderTierBadge
-          tier={t.value_tier}
-          expiresAt={t.value_tier_expires_at}
-        />
+        {t.value_tier && (
+          <HolderTierBadge
+            tier={t.value_tier}
+            expiresAt={t.value_tier_expires_at}
+          />
+        )}
         {t.bio && <span className="thread-author-bio">{t.bio}</span>}
         <span>{t.room_name || t.topic}</span>
         <span aria-hidden="true">·</span>
@@ -244,10 +246,12 @@ export function Thread({
               <div className="reply-content">
                 <div className="reply-author">
                   <strong>{r.alias}</strong>
-                  <HolderTierBadge
-                    tier={r.value_tier}
-                    expiresAt={r.value_tier_expires_at}
-                  />
+                  {r.value_tier && (
+                    <HolderTierBadge
+                      tier={r.value_tier}
+                      expiresAt={r.value_tier_expires_at}
+                    />
+                  )}
                   {r.bio && <span className="thread-author-bio">{r.bio}</span>}
                   <DiscussionTimestamp timestamp={r.created_at} now={now} />
                 </div>
