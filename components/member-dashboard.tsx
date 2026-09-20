@@ -358,6 +358,10 @@ export function MemberDashboard({
     setNotice('Badge preference saved.');
   }
   function navigate(next: View, nextMarket = market) {
+    if (view === 'profile' && next !== 'profile') {
+      setAlias(member.alias);
+      setBio(member.bio || '');
+    }
     scrollPositions.current[viewKey] = window.scrollY;
     setView(next);
     setMarket(nextMarket);
