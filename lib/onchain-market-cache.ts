@@ -4,6 +4,7 @@ import { tokenBatchKey } from './backpack-registry';
 import { type StockToken } from './tokens';
 
 export const ONCHAIN_MARKET_BATCH_SIZE = 30;
+export const ONCHAIN_MARKET_BATCHES_PER_RUN = 3;
 export const ONCHAIN_MARKET_REFRESH_MS = 60 * 60000;
 export const ONCHAIN_MARKET_MAX_AGE_MS = 3 * 60 * 60000;
 const ONCHAIN_MARKET_PREFIX = 'gecko-onchain-market-v2:';

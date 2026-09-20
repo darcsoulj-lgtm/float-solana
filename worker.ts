@@ -4,6 +4,7 @@ import generated from './dist/server/index.js';
 import { REGISTRY_KEY } from './lib/backpack-registry';
 import {
   onchainMarketBatches,
+  ONCHAIN_MARKET_BATCHES_PER_RUN,
   refreshOnchainMarketBatch,
 } from './lib/onchain-market-cache';
 import { registryTokens } from './lib/token-registry';
@@ -36,11 +37,12 @@ async function refreshOnchainMarket(
   const tokens = await scheduledTokens(env.DB);
   const batches = onchainMarketBatches(tokens);
   if (!batches.length) return;
-  // One free-provider request per minute stays far beneath its public quota.
-  // A full registry pass completes in roughly 90 minutes without visitor traffic.
+  // Three requests per minute stay far beneath the public quota while keeping
+  // a full registry pass near fifteen minutes without visitor traffic.
   const minute = Math.floor(controller.scheduledTime / 60000);
-  const batch = batches[minute % batches.length];
-  await refreshOnchainMarketBatch(env.DB, batch);
+  const first = (minute * ONCHAIN_MARKET_BATCHES_PER_RUN) % batches.length;
+  for (let offset = 0; offset < Math.min(ONCHAIN_MARKET_BATCHES_PER_RUN, batches.length); offset++)
+    await refreshOnchainMarketBatch(env.DB, batches[(first + offset) % batches.length]);
 }
 
 const app = generated as unknown as AppHandler;
