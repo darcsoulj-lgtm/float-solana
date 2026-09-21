@@ -38,15 +38,15 @@ void test('wallet-browser context survives a removed query and refresh, but is r
 
 void test('mobile wallet buttons open the current Float page in the selected wallet', () => {
   const page =
-    'https://float-solana.darcsoulj.workers.dev/?view=overview&join=1#join';
+    'https://joinfloat.xyz/?view=overview&join=1#join';
   assert.equal(
     walletBrowserLink('backpack', page),
     'https://backpack.app/ul/v1/browse/' +
       encodeURIComponent(
-        'https://float-solana.darcsoulj.workers.dev/?view=overview&join=1&float_wallet=backpack',
+        'https://joinfloat.xyz/?view=overview&join=1&float_wallet=backpack',
       ) +
       '?ref=' +
-      encodeURIComponent('https://float-solana.darcsoulj.workers.dev'),
+      encodeURIComponent('https://joinfloat.xyz'),
   );
   assert.match(walletBrowserLink('phantom', page), /^https:\/\/phantom\.app/);
   assert.equal(
