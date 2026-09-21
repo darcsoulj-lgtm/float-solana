@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { ArrowRight, MessageSquare, Plus } from 'lucide-react';
 import { PortfolioSummary } from './portfolio-summary';
 import { MemberBrief } from './member-brief';
+import { UpcomingAgenda } from './upcoming-agenda';
 import { useMarketOverview } from '@/hooks/use-market-overview';
 import { api } from '@/lib/client';
 import type { Holding, ThreadPage } from '@/lib/community-types';
@@ -89,6 +90,12 @@ export function MemberHomePanel({
           </button>
         </div>
       </div>
+      <UpcomingAgenda
+        symbol="all"
+        holdingsKey={holdingsKey}
+        refresh={retry}
+        title="Coming up"
+      />
       <section
         id="home-news"
         className="home-news"
@@ -105,6 +112,7 @@ export function MemberHomePanel({
           onSymbolChange={onSymbolChange}
           onDiscuss={onDiscuss}
           compact
+          showAgenda={false}
         />
       </section>
       <section

@@ -52,7 +52,8 @@ void test('Stock-name activation stays keyboard accessible and prevents duplicat
     onSelect: (symbol) => calls.push(symbol),
     children: null,
   });
-  const button = row.props.children[0].props.children;
+  const cellChildren = row.props.children[0].props.children;
+  const button = Array.isArray(cellChildren) ? cellChildren[0] : cellChildren;
   assert.equal(button.type, 'button');
   assert.equal(button.props.type, 'button');
   assert.equal(button.props['aria-label'], 'View SPCX details');

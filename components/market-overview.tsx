@@ -758,6 +758,22 @@ export function MarketOverviewPanel({
           name={`${t.shortName} · ${issuerName(t.issuer)}`}
           selected={isSelected}
           held={holdings.includes(t.symbol)}
+          mobileMarket={
+            <>
+              <strong>{money(row.price)}</strong>
+              <span
+                className={
+                  change === null
+                    ? undefined
+                    : change < 0
+                      ? 'market-negative'
+                      : 'market-positive'
+                }
+              >
+                {pct(change)}
+              </span>
+            </>
+          }
           href={assetSymbol ? undefined : marketAssetPath(t.underlyingSymbol, t.symbol)}
           onSelect={assetSymbol ? (symbol) => {
             setSelected(symbol);
@@ -775,9 +791,12 @@ export function MarketOverviewPanel({
               {supply == null ? '—' : new Intl.NumberFormat('en-US', { maximumFractionDigits: 5 }).format(supply)}
             </span>
           </td>
-          <td>
+          <td className="market-price-cell">
             <span className="market-mobile-label">Token price</span>
             {money(row.price)}
+            <span className={`market-mobile-change${change === null ? '' : change < 0 ? ' market-negative' : ' market-positive'}`}>
+              {pct(change)}
+            </span>
             {row.priceDelayed && <span className="quote-delay">Delayed <MetricInfo label={`Quote timestamp for ${t.symbol}`}>Last available quote: {time(row.priceTime)}. This is not a live price.</MetricInfo></span>}
           </td>
           <td className={change === null ? undefined : change < 0 ? 'market-negative' : 'market-positive'}>
@@ -871,20 +890,6 @@ export function MarketOverviewPanel({
           if (selectedToken) window.location.assign(marketAssetPath(selectedToken.underlyingSymbol, symbol));
         }}
       />
-      <MarketBrowseFilters
-        issuers={issuers}
-        onIssuers={(ids) => {
-          setIssuers(ids);
-          setPage(0);
-          setDetailOpen(false);
-        }}
-        asset={asset}
-        onAsset={(value) => {
-          setAsset(value);
-          setPage(0);
-          setDetailOpen(false);
-        }}
-      />
       <div className="market-search-row">
         <label htmlFor="market-search">
           Search markets
@@ -945,6 +950,20 @@ export function MarketOverviewPanel({
           </span>
         </div>
       </div>
+      <MarketBrowseFilters
+        issuers={issuers}
+        onIssuers={(ids) => {
+          setIssuers(ids);
+          setPage(0);
+          setDetailOpen(false);
+        }}
+        asset={asset}
+        onAsset={(value) => {
+          setAsset(value);
+          setPage(0);
+          setDetailOpen(false);
+        }}
+      />
       <div className="market-results-heading">
         <fieldset className="market-view-switch">
           <legend className="sr-only">Browse markets by</legend>

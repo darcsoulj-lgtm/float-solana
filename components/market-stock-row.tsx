@@ -8,6 +8,7 @@ export function MarketStockRow({
   held,
   onSelect,
   href,
+  mobileMarket,
   children,
 }: {
   symbol: string;
@@ -16,6 +17,7 @@ export function MarketStockRow({
   held: boolean;
   onSelect?: (symbol: string) => void;
   href?: string;
+  mobileMarket?: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -57,6 +59,9 @@ export function MarketStockRow({
             <span title={name}>{name}</span>
             {held && <small>Held</small>}
           </button>
+        )}
+        {mobileMarket && (
+          <span className="stock-row-mobile-market">{mobileMarket}</span>
         )}
       </td>
       {children}

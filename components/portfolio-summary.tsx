@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Eye, EyeOff, ChevronDown } from 'lucide-react';
 import type { Holding } from '@/lib/community-types';
 import type { MarketOverview } from '@/lib/market-data';
-import { TOKENS } from '@/lib/tokens';
+import { issuerName, TOKENS } from '@/lib/tokens';
 import { tokenObservation } from '@/lib/token-observation';
 const colors = ['#e94b56', '#6495ed', '#b092ed', '#d9a44b', '#42a8a1'];
 const quantityFormat = new Intl.NumberFormat('en-US', {
@@ -68,6 +68,8 @@ export function PortfolioSummary({
       return {
         ...p,
         value,
+        price: o.price,
+        change24h: o.change24h,
         source: o.priceSource,
         priceTime: o.priceTime,
         priceDelayed: o.priceDelayed,
@@ -110,7 +112,7 @@ export function PortfolioSummary({
     >
       <div className="portfolio-heading">
         <div>
-          <h2>My Portfolio</h2>
+          <h2>{compact ? 'Your portfolio' : 'My Portfolio'}</h2>
         </div>
         <button
           type="button"
@@ -192,8 +194,8 @@ export function PortfolioSummary({
         </div>
         <div className="portfolio-breakdown">
           <div className="portfolio-list-heading">
-            <span>Asset / quantity</span>
-            <span>Value / weight</span>
+            <span>{compact ? 'Holding' : 'Asset / quantity'}</span>
+            <span>{compact ? 'Market' : 'Value / weight'}</span>
           </div>
           <ul className="portfolio-positions">
             {visible.map((r, index) => (
@@ -220,13 +222,25 @@ export function PortfolioSummary({
                     <strong>{r.symbol}</strong>
                   )}
                   <span>
-                    {hidden ? '••••' : displayQuantity(r.ui_amount)} tokens
+                    {compact
+                      ? `${TOKENS.find((token) => token.symbol === r.symbol)?.shortName || r.symbol} · ${issuerName(TOKENS.find((token) => token.symbol === r.symbol)?.issuer || 'backpack')}`
+                      : `${hidden ? '••••' : displayQuantity(r.ui_amount)} tokens`}
                   </span>
                 </div>
                 <div className="position-value">
-                  <strong>{money(r.value)}</strong>
-                  <span>
-                    {hidden
+                  <strong>{compact ? money(r.price) : money(r.value)}</strong>
+                  <span
+                    className={
+                      compact && r.change24h !== null
+                        ? r.change24h < 0
+                          ? 'market-negative'
+                          : 'market-positive'
+                        : undefined
+                    }
+                  >
+                    {compact
+                      ? pct(r.change24h)
+                      : hidden
                       ? '••••'
                       : allocation && r.value !== null
                         ? `${((100 * r.value) / total).toFixed(1)}%`
@@ -279,4 +293,9 @@ export function PortfolioSummary({
       </details>
     </section>
   );
+}
+
+function pct(value: number | null) {
+  if (value === null || !Number.isFinite(value)) return '—';
+  return `${value > 0 ? '+' : ''}${value.toFixed(2)}%`;
 }

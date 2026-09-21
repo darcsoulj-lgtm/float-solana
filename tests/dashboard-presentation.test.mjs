@@ -1060,6 +1060,7 @@ void test('Home portfolio links filter the existing news area and market navigat
   const { MemberHomePanel } = await component('member-home.tsx', {
     './portfolio-summary': { PortfolioSummary: Portfolio },
     './member-brief': { MemberBrief: News },
+    './upcoming-agenda': { UpcomingAgenda: Empty },
     '@/hooks/use-market-overview': {
       useMarketOverview: (_holdings, _refresh, scope) => {
         assert.equal(scope, 'holdings');

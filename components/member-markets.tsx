@@ -30,7 +30,12 @@ export function MemberMarkets({
   if (!visited.has(market)) setVisited(new Set([...visited, market]));
   return (
     <div className="member-markets">
-      {market === 'all' && <h1 className="sr-only">Markets</h1>}
+      {market === 'all' && (
+        <header className="mobile-market-heading">
+          <span>Solana tokenized stocks</span>
+          <h1>Markets</h1>
+        </header>
+      )}
       {market !== 'all' && (
         <button className="market-back" onClick={() => onMarketChange('all')}>
           <ArrowLeft size={16} />

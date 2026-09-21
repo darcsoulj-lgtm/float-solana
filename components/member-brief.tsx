@@ -125,8 +125,10 @@ export function MemberBrief({
   symbol,
   onSymbolChange,
   compact = false,
+  showAgenda = true,
 }: {
   compact?: boolean;
+  showAgenda?: boolean;
   kind: 'news' | 'event';
   holdings: string[];
   symbol: string;
@@ -281,7 +283,7 @@ export function MemberBrief({
         <p className="brief-scope-note">Times shown in your timezone.</p>
       )}
 
-      {kind === 'news' && (
+      {kind === 'news' && showAgenda && (
         <UpcomingAgenda
           symbol="all"
           holdingsKey={holdingsKey}

@@ -49,10 +49,12 @@ export function UpcomingAgenda({
   symbol,
   holdingsKey,
   refresh,
+  title = 'Upcoming',
 }: {
   symbol: string;
   holdingsKey: string;
   refresh: number;
+  title?: string;
 }) {
   const [expanded, setExpanded] = useState(() => {
     if (typeof window === 'undefined') return false;
@@ -135,7 +137,7 @@ export function UpcomingAgenda({
       <header>
         <h2>
           <CalendarDays size={17} aria-hidden="true" />
-          Upcoming
+          {title}
         </h2>
         <button
           type="button"
