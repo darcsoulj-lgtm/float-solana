@@ -485,6 +485,13 @@ void test('discussion composer offers the curated channels and normalizes legacy
     );
   }
 });
+void test('discussion detail puts one icon-only back action beside the title', async () => {
+  const html = await renderDashboard('?view=home&thread=thread-1');
+  assert.match(html, /aria-label="Back to discussions"/);
+  assert.match(html, /discussion-title-row/);
+  assert.match(html, /<h1>Discussion<\/h1>/);
+  assert.doesNotMatch(html, /‹ Discussions|← Back to discussions/);
+});
 void test('old Saved links open Discussions with Saved selected, not a separate destination', async () => {
   const html = await renderDashboard('?view=saved');
   assert.match(html, /<h1>Discussions<\/h1>/);

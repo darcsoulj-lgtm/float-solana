@@ -2239,24 +2239,34 @@ body:has(.community-entry) > footer {
   gap: 5px;
   margin-left: 6px;
 }
-.discussion-back {
+.discussion-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.member-page-heading .discussion-heading-back {
   display: inline-flex;
   align-items: center;
-  margin: 8px 0 14px;
+  justify-content: center;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  border-radius: 50%;
   color: var(--muted-foreground);
-  font-size: 14px;
-  font-weight: 550;
-  line-height: 1.4;
   cursor: pointer;
 }
-.discussion-back:hover,
-.discussion-back:focus-visible {
+.member-page-heading .discussion-heading-back:hover {
+  background: var(--accent);
   color: var(--foreground);
 }
-.discussion-back:focus-visible {
+.member-page-heading .discussion-heading-back:focus-visible {
   outline: 2px solid var(--ring);
-  outline-offset: 4px;
-  border-radius: 2px;
+  outline-offset: 2px;
+}
+.member-shell .discussion-title-row h1 {
+  margin: 0;
 }
 @media (max-width: 680px) {
   .channel-filters { display: block; }

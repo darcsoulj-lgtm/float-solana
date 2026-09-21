@@ -22,6 +22,7 @@ import {
   Bookmark,
   UserRound,
   Bell,
+  ArrowLeft,
   ArrowUpRight,
   Plus,
   Check,
@@ -608,7 +609,17 @@ export function MemberDashboard({
           <section className="member-main">
             {view !== 'markets' && view !== 'overview' && (
               <div className="member-page-heading">
-                <div>
+                <div className={threadId ? 'discussion-title-row' : undefined}>
+                  {view === 'home' && threadId && (
+                    <button
+                      type="button"
+                      className="discussion-heading-back"
+                      onClick={closeDiscussion}
+                      aria-label="Back to discussions"
+                    >
+                      <ArrowLeft size={24} aria-hidden="true" />
+                    </button>
+                  )}
                   <h1>
                     {view === 'home'
                       ? threadId
@@ -948,15 +959,6 @@ export function MemberDashboard({
                     </button>
                   </div>
                 </div>}
-                {threadId && (
-                  <button
-                    className="discussion-back"
-                    onClick={closeDiscussion}
-                    aria-label="Back to discussions"
-                  >
-                    ‹ Discussions
-                  </button>
-                )}
                 {feedError && (
                   <p className="inline-status" role="alert">
                     {feedError}{' '}
