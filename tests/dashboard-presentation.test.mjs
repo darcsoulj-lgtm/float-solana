@@ -108,6 +108,55 @@ function elements(node, type) {
     ...elements(node.props?.children, type),
   ];
 }
+void test('discussion feed stays compact and dedicated detail owns replies', async () => {
+  const Wrap = ({ children, ...props }) =>
+    React.createElement('button', props, children);
+  const { Thread } = await component('community-thread.tsx', {
+    './holder-tier-badge': { HolderTierBadge: Empty },
+    './member-avatar': { MemberAvatar: Empty },
+    '@/components/ui/button': { Button: Wrap },
+    '@/components/ui/dialog': {
+      Dialog: ({ children }) => children,
+      DialogContent: ({ children }) => children,
+      DialogTitle: ({ children }) => children,
+      DialogDescription: ({ children }) => children,
+    },
+    '@/lib/client': { api: async () => ({ replies: [], nextCursor: null }) },
+  });
+  const thread = {
+    id: 'thread-1',
+    member_id: 'member-1',
+    alias: 'Member',
+    avatar_key: '',
+    bio: '',
+    topic: 'general',
+    room_name: 'Market Talk',
+    title: 'A long discussion',
+    body: 'A body that belongs in the feed preview.',
+    created_at: Date.now(),
+    reply_count: 27,
+    saved: 0,
+    value_tier: null,
+    poll: null,
+  };
+  const common = {
+    thread,
+    memberId: 'member-2',
+    refresh: async () => {},
+  };
+  const feed = renderToStaticMarkup(
+    React.createElement(Thread, { ...common, onOpen: () => {} }),
+  );
+  assert.match(feed, /27 replies →/);
+  assert.match(feed, /thread-body-preview/);
+  assert.doesNotMatch(feed, /Write a reply/);
+  const detail = renderToStaticMarkup(
+    React.createElement(Thread, { ...common, detail: true }),
+  );
+  assert.match(detail, /27 replies/);
+  assert.match(detail, /Write a reply/);
+  assert.doesNotMatch(detail, /thread-body-preview/);
+});
 void test('Portfolio ring and list agree on value and allocation', async () => {
   const tree = await portfolio({
     positions: [holding('MU'), holding('SPCX')],

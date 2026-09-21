@@ -62,14 +62,17 @@ export function Thread({
   memberId,
   refresh,
   showChannel = true,
+  detail = false,
+  onOpen,
 }: {
   thread: CommunityThread;
   memberId: string;
   refresh: () => Promise<void>;
   showChannel?: boolean;
+  detail?: boolean;
+  onOpen?: () => void;
 }) {
-  const [open, setOpen] = useState(false),
-    [now, setNow] = useState(() => Date.now()),
+  const [now, setNow] = useState(() => Date.now()),
     [page, setPage] = useState<ReplyPage>({ replies: [], nextCursor: null }),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false),
@@ -106,20 +109,24 @@ export function Thread({
     };
   }, []);
   useEffect(() => {
-    if (!open) return;
+    if (!detail) return;
     const poll = () => {
       if (document.visibilityState === 'visible')
         void replies().catch((e) => setError((e as Error).message));
     };
+    poll();
     const timer = window.setInterval(poll, 10000);
     document.addEventListener('visibilitychange', poll);
     return () => {
       window.clearInterval(timer);
       document.removeEventListener('visibilitychange', poll);
     };
-  }, [open, replies]);
+  }, [detail, replies]);
   return (
-    <article className="thread-post" id={'thread-' + t.id}>
+    <article
+      className={`thread-post ${detail ? 'is-detail' : 'is-feed'}`}
+      id={'thread-' + t.id}
+    >
       <div className="thread-meta">
         <MemberAvatar
           alias={t.alias}
@@ -138,11 +145,26 @@ export function Thread({
         {showChannel && <span aria-hidden="true">·</span>}
         <DiscussionTimestamp timestamp={t.created_at} now={now} />
       </div>
-      <h3>{t.title}</h3>
-      <p style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
-        {t.body}
-      </p>
-      {poll && (
+      <h3>
+        {detail || !onOpen ? (
+          t.title
+        ) : (
+          <button type="button" className="thread-open" onClick={onOpen}>
+            {t.title}
+          </button>
+        )}
+      </h3>
+      {detail || !onOpen ? (
+        <p style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
+          {t.body}
+        </p>
+      ) : (
+        <button type="button" className="thread-body-preview" onClick={onOpen}>
+          <span>{t.body}</span>
+        </button>
+      )}
+      {poll && !detail && <span className="thread-poll-preview">Member poll</span>}
+      {poll && detail && (
         <section className="thread-poll" aria-label={`Poll: ${t.title}`}>
           <div className="thread-poll-heading">
             <strong>Member poll</strong>
@@ -191,18 +213,15 @@ export function Thread({
         </section>
       )}
       <div className="thread-bottom">
-        <Button
-          variant="ghost"
-          disabled={busy}
-          onClick={() =>
-            run(async () => {
-              if (!open) await replies();
-              setOpen(!open);
-            })
-          }
-        >
-          {t.reply_count} replies {open ? '↑' : '↓'}
-        </Button>
+        {detail ? (
+          <strong className="thread-reply-heading">
+            {t.reply_count} {t.reply_count === 1 ? 'reply' : 'replies'}
+          </strong>
+        ) : (
+          <Button variant="ghost" disabled={busy} onClick={onOpen}>
+            {t.reply_count} {t.reply_count === 1 ? 'reply' : 'replies'} →
+          </Button>
+        )}
         <Button
           variant="ghost"
           disabled={busy}
@@ -236,7 +255,7 @@ export function Thread({
           </Button>
         )}
       </div>
-      {open && (
+      {detail && (
         <>
           {page.replies.map((r) => (
             <div className="reply" key={r.id}>
@@ -384,7 +403,7 @@ export function Thread({
                   {},
                 );
                 setRemove(null);
-                if (open && remove?.type !== 'threads') await replies();
+                if (detail && remove?.type !== 'threads') await replies();
                 await refresh();
               })
             }

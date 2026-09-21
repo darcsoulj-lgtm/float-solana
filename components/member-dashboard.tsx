@@ -117,7 +117,10 @@ export function MemberDashboard({
   );
   const [visited, setVisited] = useState<Set<View>>(() => new Set([view]));
   const scrollPositions = useRef<Record<string, number>>({});
-  const viewKey = view + ':' + (view === 'markets' ? market : '');
+  const viewKey =
+    view === 'home'
+      ? `home:${threadId ? `thread:${threadId}` : `feed:${feed}:${topic}`}`
+      : view + ':' + (view === 'markets' ? market : '');
   if (!visited.has(view)) setVisited(new Set([...visited, view]));
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -135,7 +138,11 @@ export function MemberDashboard({
       if (view === 'home' && value) url.searchParams.set(key, value);
       else url.searchParams.delete(key);
     }
-    window.history.replaceState(null, '', url.pathname + url.search + url.hash);
+    window.history.replaceState(
+      window.history.state,
+      '',
+      url.pathname + url.search + url.hash,
+    );
   }, [view, market, feed, topic, threadId]);
   useEffect(() => {
     const restore = () => {
@@ -365,6 +372,42 @@ export function MemberDashboard({
     url.hash = '';
     window.history.pushState(null, '', url.pathname + url.search);
   }
+  function openDiscussion(
+    id: string,
+    resetFilters = false,
+    requestedTopic?: string,
+  ) {
+    scrollPositions.current[viewKey] = window.scrollY;
+    const nextFeed = resetFilters ? 'all' : feed;
+    const nextTopic = requestedTopic || (resetFilters ? 'all' : topic);
+    const url = new URL(window.location.href);
+    url.searchParams.set('view', 'home');
+    url.searchParams.set('thread', id);
+    url.searchParams.set('feed', nextFeed);
+    url.searchParams.set('topic', nextTopic);
+    url.searchParams.delete('issuer');
+    url.hash = '';
+    window.history.pushState(
+      { ...window.history.state, floatThread: true },
+      '',
+      url.pathname + url.search,
+    );
+    setFeed(nextFeed);
+    setTopic(nextTopic);
+    setThreadId(id);
+    setView('home');
+    setNotice('');
+  }
+  function closeDiscussion() {
+    if (window.history.state?.floatThread) {
+      window.history.back();
+      return;
+    }
+    const url = new URL(window.location.href);
+    url.searchParams.delete('thread');
+    window.history.replaceState(window.history.state, '', url.pathname + url.search);
+    setThreadId('');
+  }
   const holdingsKey = (data?.holdings ?? [])
     .map((h) => `${h.symbol}:${h.raw_amount}:${h.verified_at}`)
     .join('|');
@@ -566,9 +609,15 @@ export function MemberDashboard({
             {view !== 'markets' && view !== 'overview' && (
               <div className="member-page-heading">
                 <div>
-                  <h1>{view === 'home' ? 'Discussions' : 'Profile'}</h1>
+                  <h1>
+                    {view === 'home'
+                      ? threadId
+                        ? 'Discussion'
+                        : 'Discussions'
+                      : 'Profile'}
+                  </h1>
                 </div>
-                {view === 'home' && (
+                {view === 'home' && !threadId && (
                   <Button onClick={() => startDiscussion()}>
                     <Plus size={17} /> New discussion
                   </Button>
@@ -629,10 +678,7 @@ export function MemberDashboard({
                         }}
                         onMarkets={() => navigate('markets', 'all')}
                         onThread={(id) => {
-                          setThreadId(id);
-                          setFeed('all');
-                          setTopic('all');
-                          navigate('home');
+                          openDiscussion(id, true);
                         }}
                         onDiscussions={() => {
                           setFeed('all');
@@ -861,7 +907,7 @@ export function MemberDashboard({
               </form>
             ) : (
               <>
-                <div
+                {!threadId && <div
                   className="channel-filters"
                   aria-label="Discussion channels"
                 >
@@ -901,11 +947,11 @@ export function MemberDashboard({
                       <Bookmark size={15} aria-hidden="true" /> Saved
                     </button>
                   </div>
-                </div>
+                </div>}
                 {threadId && (
                   <button
                     className="discussion-back"
-                    onClick={() => setThreadId('')}
+                    onClick={closeDiscussion}
                   >
                     ← Back to discussions
                   </button>
@@ -935,7 +981,9 @@ export function MemberDashboard({
                       }
                       memberId={member.id}
                       refresh={refresh}
-                      showChannel={feed === 'saved' || topic === 'all'}
+                      detail={!!threadId}
+                      onOpen={() => openDiscussion(t.id)}
+                      showChannel={!!threadId || feed === 'saved' || topic === 'all'}
                     />
                   ))
                 ) : (
@@ -974,7 +1022,7 @@ export function MemberDashboard({
                     )}
                   </div>
                 )}
-                {cursor && (
+                {cursor && !threadId && (
                   <Button
                     className="load-more"
                     variant="outline"
@@ -1185,11 +1233,8 @@ export function MemberDashboard({
                   'community/threads',
                   payload,
                 );
-                navigate('home');
                 setCommunityRevision((n) => n + 1);
-                setFeed('all');
-                setTopic(draftTopic);
-                setThreadId(result.id);
+                openDiscussion(result.id, false, draftTopic);
                 setNotice('Discussion posted.');
                 setCompose(false);
               } catch (e) {
@@ -1422,10 +1467,7 @@ export function MemberDashboard({
                     className={n.read ? '' : 'unread'}
                     onClick={() => {
                       setNotifications(false);
-                      setView('home');
-                      setTopic('all');
-                      setFeed('all');
-                      setThreadId(n.thread_id);
+                      openDiscussion(n.thread_id, true);
                     }}
                   >
                     <span>{n.alias} replied</span>
