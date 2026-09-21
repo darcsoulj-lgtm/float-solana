@@ -2,7 +2,7 @@
 
 A community and market dashboard for people who hold tokenized stocks on Solana.
 
-**[Live product](https://float-solana.darcsoulj.workers.dev)** · **[Explore markets](https://float-solana.darcsoulj.workers.dev/markets)** · **[Submission package](docs/hackathon/README.md)**
+**[Live product](https://joinfloat.xyz)** · **[Explore markets](https://joinfloat.xyz/markets)** · **[Submission package](docs/hackathon/README.md)**
 
 ![Float: A community for tokenized stock holders. Built on Solana.](public/og.png)
 
@@ -52,7 +52,7 @@ A positive balance of a supported token qualifies for membership. Membership exp
 
 Bronze is the base tier for verified membership. Silver starts at $100, Gold at $1,000, Platinum at $10,000 and Diamond at $100,000 in supported verified holdings value. Missing or ambiguous pricing cannot establish a higher tier and falls back to Bronze. Bronze therefore does not assert that a wallet's total value is below $100. Public badges are optional and never show an exact balance.
 
-The service processes wallet addresses and balances to verify membership and provide the private portfolio. Other members see the chosen alias, bio and optional badge, not the private wallet/portfolio view. Do not describe this as zero-knowledge or as the server never seeing an address. Read the live [Privacy page](https://float-solana.darcsoulj.workers.dev/trust) for storage and retention details.
+The service processes wallet addresses and balances to verify membership and provide the private portfolio. Other members see the chosen alias, bio and optional badge, not the private wallet/portfolio view. Do not describe this as zero-knowledge or as the server never seeing an address. Read the live [Privacy page](https://joinfloat.xyz/trust) for storage and retention details.
 
 ## Registry and data limits
 
