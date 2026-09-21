@@ -16,7 +16,7 @@ const { BACKPACK_TOKENS: seeds } = await import(
 );
 const issuerUrl = 'https://api.backpack.exchange/api/v1/assets';
 const runtimeUrl =
-  'https://float-solana.darcsoulj.workers.dev/api/market-data?batch=0';
+  'https://joinfloat.xyz/api/market-data?batch=0';
 async function read(url) {
   const r = await fetch(url, {
     redirect: 'manual',
