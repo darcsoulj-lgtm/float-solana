@@ -12,7 +12,10 @@ void test('all wallet handoffs enter authentication even from a stock page with 
     const id = '85e158b6-5f36-4732-983c-54dd80d9a4ef';
     const link = walletBrowserLink(wallet, 'https://float.example/markets/BB?view=markets', id);
     const page = new URL(decodeURIComponent(link.split('/browse/')[1].split('?ref=')[0]));
-    assert.equal(page.pathname, '/');
+    assert.equal(page.pathname, `/wallet/connect/${id}`);
+    page.search = '';
+    assert.equal(walletHandoffId(page.href), id);
+    page.search = new URL(decodeURIComponent(link.split('/browse/')[1].split('?ref=')[0])).search;
     assert.equal(page.searchParams.get('join'), '1');
     assert.equal(page.searchParams.get('float_handoff'), id);
     assert.equal(page.searchParams.get('float_wallet'), wallet);

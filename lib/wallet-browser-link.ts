@@ -43,7 +43,7 @@ export function walletBrowserLink(wallet: string, currentUrl: string, handoffId?
   page.searchParams.set(WALLET_LAUNCH_PARAM, wallet);
   if (handoffId) {
     // Always land on the authentication owner, including launches from /markets.
-    page.pathname = '/';
+    page.pathname = `/wallet/connect/${handoffId}`;
     page.searchParams.set('float_handoff', handoffId);
     page.searchParams.set('join', '1');
   }

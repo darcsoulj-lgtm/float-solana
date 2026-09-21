@@ -182,6 +182,10 @@ async function handler(req: Request) {
       return json({ ready: true }, 200, sessionCookie(session, req));
     }
     if (path[0] === 'challenge' && post) {
+      const handoffId = b.handoffId === undefined ? null : textValue(b.handoffId, 36, 36, 'Handoff');
+      if (handoffId && !await db().prepare('SELECT id FROM wallet_handoffs WHERE id=? AND member_id IS NULL AND expires_at>?').bind(handoffId, Date.now()).first()) {
+        throw new AppError('Return to Float and start wallet connection again.', 400);
+      }
       if (b.authMethod !== undefined && b.authMethod !== 'signIn')
         throw new AppError('Unsupported authentication method.');
       const wallet = validWallet(textValue(b.wallet, 32, 44, 'Wallet'));
@@ -215,9 +219,9 @@ async function handler(req: Request) {
         : `Float community membership\nOrigin: ${url.origin}\nWallet: ${wallet}\nAccess: All community topics\nNonce: ${id}\nExpires: ${new Date(expires).toISOString()}\nSign to prove control of this wallet and verify supported tokenized-equity holdings for 24-hour community access. Your wallet address is kept for this session to refresh supported holdings; supported balances are stored privately to show your portfolio and verify access. No transaction or asset transfer is authorized.`;
       await db()
         .prepare(
-          'INSERT INTO community_challenges (id,wallet,symbol,message,expires_at,consumed) VALUES (?,?,?,?,?,0)',
+          'INSERT INTO community_challenges (id,wallet,symbol,message,expires_at,consumed,handoff_id) VALUES (?,?,?,?,?,0,?)',
         )
-        .bind(id, wallet, '*', message, expires)
+        .bind(id, wallet, '*', message, expires, handoffId)
         .run();
       return json({
         id,
@@ -228,13 +232,6 @@ async function handler(req: Request) {
       });
     }
     if (path[0] === 'verify' && post) {
-      const handoffId = b.handoffId === undefined ? null : textValue(b.handoffId, 36, 36, 'Handoff');
-      if (handoffId) {
-        const validHandoff = await db().prepare(
-          'SELECT id FROM wallet_handoffs WHERE id=? AND member_id IS NULL AND expires_at>?',
-        ).bind(handoffId, Date.now()).first();
-        if (!validHandoff) throw new AppError('Return to Float and start wallet connection again.', 401);
-      }
       const c = await db()
         .prepare(
           'SELECT * FROM community_challenges WHERE id=? AND consumed=0 AND expires_at>?',
@@ -245,12 +242,20 @@ async function handler(req: Request) {
           wallet: string;
           symbol: string;
           message: string;
+          handoff_id: string | null;
         }>();
       if (!c)
         throw new AppError(
           'This verification expired or was already used. Please sign again.',
           401,
         );
+      const requestedHandoff = b.handoffId === undefined ? null : textValue(b.handoffId, 36, 36, 'Handoff');
+      if (c.handoff_id && requestedHandoff && c.handoff_id !== requestedHandoff)
+        throw new AppError('The app sign-in request changed. Start again.', 400);
+      // New clients bind at challenge creation. Keep old in-flight clients compatible.
+      const handoffId = c.handoff_id || requestedHandoff;
+      if (handoffId && !await db().prepare('SELECT id FROM wallet_handoffs WHERE id=? AND member_id IS NULL AND expires_at>?').bind(handoffId, Date.now()).first())
+        throw new AppError('Return to Float and start wallet connection again.', 400);
       await verifySignature(c.wallet, c.message, b.signature);
       const consumed = await db()
         .prepare(
@@ -300,7 +305,7 @@ async function handler(req: Request) {
           403,
         );
       const session = crypto.randomUUID() + crypto.randomUUID();
-      await db().batch([
+      const committed = await db().batch([
         db()
           .prepare(
             'UPDATE community_members SET value_tier=NULL,value_tier_expires_at=0 WHERE id=?',
@@ -351,7 +356,9 @@ async function handler(req: Request) {
           'UPDATE wallet_handoffs SET member_id=?,wallet=? WHERE id=? AND member_id IS NULL AND expires_at>?',
         ).bind(member.id, c.wallet, handoffId, Date.now())] : []),
       ]);
-      return json({ ok: true }, 200, sessionCookie(session, req));
+      if (handoffId && committed.at(-1)?.meta.changes !== 1)
+        throw new AppError('App sign-in expired. Reopen Float and connect again.', 400);
+      return json({ ok: true, handoffReady: !!handoffId }, 200, sessionCookie(session, req));
     }
     if (path[0] === 'logout' && post) {
       const cookie = communityCookie(req);

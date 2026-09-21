@@ -27,7 +27,7 @@ import { selectedWallet, walletLabel } from '@/lib/wallet-provider';
 import { readWalletHandoff, walletReturnContext, WALLET_RETURN_KEY, type WalletReturn as WalletReturnState, WALLET_HANDOFF_KEY } from '@/lib/wallet-handoff';
 import { isMobileBrowser } from '@/lib/wallet-browser-link';
 
-export function Community() {
+export function Community({ appHandoffId }: { appHandoffId?: string } = {}) {
   const [status, setStatus] = useState<CommunityStatus | null>(null);
   const [error, setError] = useState('');
   const [joinError, setJoinError] = useState('');
@@ -35,8 +35,8 @@ export function Community() {
   const [busy, setBusy] = useState(false);
   const [join, setJoin] = useState(
     () =>
-      typeof window !== 'undefined' &&
-      new URLSearchParams(window.location.search).get('join') === '1',
+      !!appHandoffId || (typeof window !== 'undefined' &&
+      new URLSearchParams(window.location.search).get('join') === '1'),
   );
   const [provider, setProvider] = useState('backpack');
   const [stage, setStage] = useState('');
@@ -58,6 +58,9 @@ export function Community() {
   const returnContext = useRef<WalletReturnState | null>(null);
   useEffect(() => {
     returnContext.current = walletReturnContext(sessionStorage, window.location.href);
+    if (appHandoffId && returnContext.current?.id !== appHandoffId) {
+      returnContext.current = { id: appHandoffId, completed: false, expiresAt: Date.now() + 600000 };
+    }
     const context = returnContext.current;
     const timer = setTimeout(() => {
       setReturnLinked(!!context?.id);
@@ -65,48 +68,47 @@ export function Community() {
       else if (context?.id) setJoin(true);
     }, 0);
     return () => clearTimeout(timer);
-  }, []);
+  }, [appHandoffId]);
 
   const walletUnsubscribe = useRef<(() => void) | null>(null);
   useEffect(() => () => walletUnsubscribe.current?.(), []);
+  // Foreground reads may start before a handoff claim sets the session cookie.
+  // Only the newest request may publish membership state.
+  const statusRequest = useRef(0);
+  const invalidateStatus = useCallback(() => { ++statusRequest.current; }, []);
   const refresh = useCallback(async () => {
-    const s = await api<CommunityStatus>('community/status');
-    setStatus(s);
-    setError('');
+    const request = ++statusRequest.current;
+    try {
+      const s = await api<CommunityStatus>('community/status');
+      if (request === statusRequest.current) { setStatus(s); setError(''); }
+    } catch (e) {
+      if (request === statusRequest.current) setError((e as Error).message);
+      throw e;
+    }
   }, []);
   useEffect(() => {
-    let active = true;
-    const update = () =>
-      api<CommunityStatus>('community/status')
-        .then((s) => {
-          if (active) {
-            setStatus(s);
-            setError('');
-          }
-        })
-        .catch((e) => {
-          if (active) setError(e.message);
-        });
-    void update();
+    const update = () => { void refresh().catch(() => {}); };
+    update();
     const timer = setInterval(() => {
-      if (document.visibilityState === 'visible') void update();
+      if (document.visibilityState === 'visible') update();
     }, 60000);
     const visible = () => {
-      if (document.visibilityState === 'visible') void update();
+      if (document.visibilityState === 'visible') update();
     };
     const expired = () => {
+      invalidateStatus();
       setStatus((s) => (s ? { ...s, member: null } : s));
       setError('Your membership session ended. Verify your wallet to return.');
     };
     document.addEventListener('visibilitychange', visible);
     window.addEventListener('hp-session-expired', expired);
     return () => {
-      active = false;
+      invalidateStatus();
       clearInterval(timer);
       document.removeEventListener('visibilitychange', visible);
       window.removeEventListener('hp-session-expired', expired);
     };
-  }, []);
+  }, [refresh, invalidateStatus]);
   useEffect(() => {
     const standalone = window.matchMedia('(display-mode: standalone)').matches ||
       (navigator as Navigator & { standalone?: boolean }).standalone === true;
@@ -208,6 +210,9 @@ export function Community() {
     const flowId = crypto.randomUUID();
     let phase = 'connect';
     try {
+      const context = appHandoffId
+        ? { id: appHandoffId, completed: false, expiresAt: Date.now() + 600000 }
+        : walletReturnContext(sessionStorage, window.location.href) || returnContext.current;
       const p = selectedWallet(providerName);
       if (providerName === 'phantom' && 'requireSignIn' in p) p.requireSignIn();
       setStage(`Connecting to ${walletLabel(providerName)}…`);
@@ -226,6 +231,7 @@ export function Community() {
         signInInput?: CommunitySignInInput;
       }>('community/challenge', {
         wallet: connected.publicKey.toString(),
+        ...(context?.id ? { handoffId: context.id } : {}),
         ...(providerName === 'phantom' ? { authMethod: 'signIn' } : {}),
       });
       if (!p.accountUnchanged())
@@ -237,7 +243,7 @@ export function Community() {
         provider: providerName,
         connection: p,
         flowId,
-        returnContext: returnContext.current || walletReturnContext(sessionStorage, window.location.href),
+        returnContext: context,
       });
       diagnostic(providerName, phase, 'ok', flowId);
       setStage('');
@@ -286,11 +292,14 @@ export function Community() {
       diagnostic(pending.provider, phase, 'ok', pending.flowId);
       phase = 'verify';
       setStage('Confirming your holdings and opening your home…');
-      await api('community/verify', {
+      const verified = await api<{ ok: boolean; handoffReady?: boolean }>('community/verify', {
         challengeId: pending.id,
         signature,
         ...(pending.returnContext?.id ? { handoffId: pending.returnContext.id } : {}),
       });
+      if (pending.returnContext?.id && !verified.handoffReady) {
+        throw new Error('Your app sign-in was not linked. Reopen Float from your Home Screen and connect again.');
+      }
       if (!pending.connection.accountUnchanged()) {
         await api('community/logout', {});
         throw new Error(
@@ -388,6 +397,10 @@ export function Community() {
       const url = new URL(window.location.href);
       url.searchParams.delete('float_handoff');
       url.searchParams.delete('join');
+      if (appHandoffId) {
+        window.location.replace('/' + url.search + url.hash);
+        return;
+      }
       window.history.replaceState(null, '', url.pathname + url.search + url.hash);
       returnContext.current = null;
       setHandoffDone(false);

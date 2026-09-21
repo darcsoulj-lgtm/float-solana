@@ -32,7 +32,8 @@ export type WalletHandoff = {
 
 export function walletHandoffId(currentUrl: string) {
   try {
-    const id = new URL(currentUrl).searchParams.get(WALLET_HANDOFF_PARAM);
+    const url = new URL(currentUrl);
+    const id = /^\/wallet\/connect\/([a-f0-9-]{36})\/?$/.exec(url.pathname)?.[1] || url.searchParams.get(WALLET_HANDOFF_PARAM);
     return id && /^[a-f0-9-]{36}$/.test(id) ? id : null;
   } catch {
     return null;

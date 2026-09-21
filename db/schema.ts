@@ -121,6 +121,7 @@ export const communityMembers = sqliteTable(
   (t) => [uniqueIndex('idx_community_wallet').on(t.walletHash)],
 );
 export const communityChallenges = sqliteTable('community_challenges', {
+  handoffId: text('handoff_id'),
   id: text('id').primaryKey(),
   wallet: text('wallet').notNull(),
   symbol: text('symbol').notNull(),

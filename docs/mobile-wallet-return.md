@@ -5,8 +5,15 @@ app creates a short-lived handoff and retains the claim secret locally. The
 wallet browser receives only its ID. Fresh wallet verification binds that ID
 to a member; only the original app can claim the session using its secret.
 
-Wallet links with a handoff always enter the root authentication flow with
-`join=1`, including when the wallet browser already has a member cookie.
+Wallet links with a handoff enter `/wallet/connect/:handoffId` with `join=1`,
+including when the wallet browser already has a member cookie. The route passes
+the ID as a component prop, so stripped query parameters cannot remove it.
+The server stores the ID on the signing challenge and uses that stored value at
+verification, even if the final client request loses its navigation context.
+Conflicting IDs are rejected. The response confirms the handoff was written
+before the UI reports the app return is ready. Older in-flight clients remain
+compatible. The private claim secret never leaves the originating app except
+when sent directly to Float to claim its session.
 Navigation context is retained in wallet-browser session storage and captured
 before signing, so URL changes do not silently discard the handoff. This
 context contains no claim secret and cannot authenticate a user by itself.
@@ -27,3 +34,14 @@ links, both return-screen choices, and server secret/replay tests. The actual
 return component was checked at 390x844 in a local browser; both buttons were
 exercised with no console errors. Signing and switching with real iPhone wallet
 apps remains unverified in this environment.
+
+Foreground status refreshes use request ordering so a stale guest response cannot
+overwrite a newer authenticated response. Continue in wallet leaves the dedicated
+connect route. The September 21 production observation showed an unbound app flow
+and a Backpack session created eight seconds later; this suggests omitted handoff
+context, but does not prove which wallet navigation discarded it.
+
+Additional verification uses isolated SQLite with all migrations and the actual
+challenge, verify, and claim handlers. Wallet signatures/holdings are simulated;
+all three wallet request shapes, missing final context, conflicting IDs, invalid
+signatures, expired flows, wrong secrets, and replay are covered.
