@@ -1,0 +1,50 @@
+[
+  {
+    "width": 390,
+    "height": 844,
+    "theme": "light",
+    "status": 200,
+    "landingOverflow": false,
+    "marketOverflow": false,
+    "walletDialog": true,
+    "escapeDismisses": true,
+    "keyboardMarketNavigation": true,
+    "errors": []
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "theme": "dark",
+    "status": 200,
+    "landingOverflow": false,
+    "marketOverflow": false,
+    "walletDialog": true,
+    "escapeDismisses": true,
+    "keyboardMarketNavigation": true,
+    "errors": []
+  },
+  {
+    "width": 1440,
+    "height": 1000,
+    "theme": "light",
+    "status": 200,
+    "landingOverflow": false,
+    "marketOverflow": false,
+    "walletDialog": true,
+    "escapeDismisses": true,
+    "keyboardMarketNavigation": true,
+    "errors": []
+  },
+  {
+    "width": 1440,
+    "height": 1000,
+    "theme": "dark",
+    "status": 200,
+    "landingOverflow": false,
+    "marketOverflow": false,
+    "walletDialog": true,
+    "escapeDismisses": true,
+    "keyboardMarketNavigation": true,
+    "errors": []
+  }
+]

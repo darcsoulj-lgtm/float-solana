@@ -1,83 +1,103 @@
-# Float community launch
-
-The primary product is now a wallet-gated community. Read [COMMUNITY.md](COMMUNITY.md) for current behavior, operations, privacy and test coverage. The research documentation below describes retained legacy survey tools.
-
-The member experience includes markets, discussions, news with upcoming events, and profiles. Administrators publish sourced stories and events, manage reports and members, and inspect request counters at `/admin`. See [editorial operations](docs/EDITORIAL.md) for publishing instructions and coverage limitations. Legacy survey administration has moved to `/admin/research`.
-
 # Float
 
-A community and market dashboard for holders of tokenized stocks on Solana, with retained legacy research tools. Built with React 19, Vinext, Cloudflare Workers and D1 SQLite. Holders sign in with a wallet; the administrative workspace uses platform-managed Sign in with ChatGPT. See the [September 13 engineering repair](docs/engineering-repair-2026-09-13.md) for architecture, measured checks and remaining limits.
+A community and market dashboard for people who hold tokenized stocks on Solana.
+
+**[Live product](https://float-solana.darcsoulj.workers.dev)** · **[Explore markets](https://float-solana.darcsoulj.workers.dev/markets)** · **[Submission package](docs/hackathon/README.md)**
+
+![Float: A community for tokenized stock holders. Built on Solana.](public/og.png)
+
+Float connects wallet ownership to community access. A holder signs a message; the server checks supported Solana token balances. Members can discuss markets under a nickname, see their portfolio, follow relevant news and events, and optionally display a holder tier. Public Markets can be explored without a wallet.
+
+## Try it in 60 seconds
+
+1. Open **Explore markets**. Search for a company, filter by issuer or asset type, and expand a row for sources and market details. No wallet is required.
+2. To use the community, choose **Join the community** with a supported token in a Solana wallet. Phantom, Backpack and Solflare integrations are implemented. Sign the membership message; no transaction or transfer is requested.
+3. Visit **Discussions**, select a channel and open a post. Replies live in the detail view. Use the three-dot menu to manage your own post or report/block another author.
+4. In **Profile**, set a nickname and bio and choose whether to show your tier. Every eligible verified holder has at least Bronze; higher tiers depend on supported valuation data.
+5. On iPhone, install from Safari. After signing in the wallet, reopen Float from the Home Screen to complete the session transfer. Browsers cannot reliably force iOS to reopen an installed web app.
+
+Community content remains gated. There is no demo bypass or shared funded wallet. Reviewers without an eligible token can inspect public Markets and the repository. Do not buy a token solely to review the product.
+
+## What is implemented
+
+- **Home:** private portfolio, relevant news and upcoming events when available.
+- **Discussions:** channels including Crypto and Off Topic, posts, replies, polls, saved posts, My posts, author bios, deletion, reporting and user blocking.
+- **Markets:** multi-issuer Solana tokenized-stock coverage with price, valuation basis, DEX volume, liquidity and source/freshness explanations. Coverage is partial and some quotes can be delayed.
+- **Profile:** nickname, bio, appearance, notifications and optional Bronze / Silver / Gold / Platinum / Diamond badge.
+- **Installed app:** PWA manifest/icons, installation guidance and server-mediated wallet sign-in handoff.
+
+## Why Solana
+
+Solana supplies the ownership evidence: wallet signatures and public SPL / Token-2022 token accounts identified by exact mint address. Float verifies the signature and finalized holdings on the server. A ticker alone never establishes eligibility. This allows supported holdings to be checked across compatible wallets without asking for brokerage credentials.
+
+Float deploys no custom onchain program. Posts, profiles, sessions and moderation are stored offchain in Cloudflare D1. It does not trade, custody assets, issue investment tokens, or send a transaction for sign-in. A verified wallet is not proof of a unique person, expertise, continuous ownership or registered shareholder status.
+
+## Architecture
+
+| Layer | Implementation |
+| --- | --- |
+| UI | React 19, TypeScript, Vinext with Next.js-style routes, Tailwind CSS, Base UI |
+| Runtime | Cloudflare Workers; dedicated public hackathon deployment |
+| Storage | Cloudflare D1 / SQLite; Drizzle migrations |
+| Wallet proof | Ed25519 signature verification, one-use challenges, finalized RPC balance/mint checks |
+| Session | Server-owned membership, 24-hour HttpOnly cookie; wallet-to-PWA handoff |
+| Registry | Reviewed issuer seeds plus verified, demand-driven Backpack discovery |
+| Public data | Provider adapters and shared source caches with timestamps and failure states |
+
+Read [engineering decisions](docs/engineering-repair-2026-09-13.md), [Cloudflare deployment](docs/cloudflare-hackathon-deployment.md), and the current [release evidence](docs/hackathon/release-checklist.md). Older release documents describe the state at their date.
+
+## Membership, tiers and privacy
+
+A positive balance of a supported token qualifies for membership. Membership expires after 24 hours; holdings refresh while active and sensitive actions enforce server-side rules. This is not a continuous real-time ownership guarantee.
+
+Bronze is the base tier for verified membership. Silver starts at $100, Gold at $1,000, Platinum at $10,000 and Diamond at $100,000 in supported verified holdings value. Missing or ambiguous pricing cannot establish a higher tier and falls back to Bronze. Bronze therefore does not assert that a wallet's total value is below $100. Public badges are optional and never show an exact balance.
+
+The service processes wallet addresses and balances to verify membership and provide the private portfolio. Other members see the chosen alias, bio and optional badge, not the private wallet/portfolio view. Do not describe this as zero-knowledge or as the server never seeing an address. Read the live [Privacy page](https://float-solana.darcsoulj.workers.dev/trust) for storage and retention details.
+
+## Registry and data limits
+
+The base registry review date is September 13, 2026. Backpack additions are checked on demand every five minutes, verified against issuer metadata and finalized mint data, then retained in D1. An idle site catches up on the next request. Other issuers use reviewed seed lists; they are not all automatically rediscovered.
+
+See [September 21 registry reconciliation](docs/hackathon/registry-review.json) for the live Backpack comparison. This comparison does not re-audit every issuer or every token's legal rights. `pnpm audit:tokens` intentionally checks seed drift only; a seed drift warning is not proof that the runtime registry missed a listing.
+
+Market values are not guaranteed executable prices or complete market coverage. News/events depend on upstream availability; missing events do not prove that no event exists. The public Cloudflare deployment has no R2 avatar storage binding, so avatar upload is unavailable there.
 
 ## Run locally
 
-Use Node 22.13+ and the bundled pnpm runtime. Install with `pnpm install`; preserve the lockfile and dependency security policy. This environment may report ignored optional dependency build scripts even after installing packages; the supplied binaries were sufficient for our successful build. Do not globally enable arbitrary install scripts.
+Requires Node 22.13+ and pnpm. Preserve the lockfile.
 
-1. Copy `.env.example` to `.env`.
-2. Create an ignored `.dev.vars` file with `ADMIN_EMAILS=seedy@sites.test` for local testing. The Sites dev plugin signs in as this fixed local identity. Never use this local identity as a production administrator.
-3. `pnpm db:local` applies generated migrations to the local database.
-4. `pnpm dev` starts the app; use its printed URL. Sign in from the workspace.
-5. Visit `/admin` for the editorial workspace. Use `/admin/research` → **Add labeled example studies** only if you need legacy survey examples locally.
+```sh
+pnpm install --frozen-lockfile
+cp .env.example .env
+# Create an ignored .dev.vars with local Worker settings.
+# Local Sites admin identity only: ADMIN_EMAILS=seedy@sites.test
+pnpm db:local
+pnpm dev
+```
 
-The Vite plugin reads `.dev.vars` for local Worker bindings. Restart the server after editing it. `.env` and `.env.example` document the same supported configuration keys; production values belong in Sites settings. No local test data is deployed.
+Use the URL printed by the dev server. `SOLANA_RPC_URL` must be an authenticated mainnet RPC endpoint for reliable live wallet verification; keep it server-side. The public RPC fallback can reject hosted traffic. Never commit `.env`, `.dev.vars`, RPC API keys or wallet secrets. Restart after changing local Worker settings. No paid data key is required for the core flow; provider coverage can be limited.
 
-## Configuration
+The Sites deployment and the separate Cloudflare hackathon deployment have different databases and sessions. `/admin` uses the configured trusted admin identity; a local test email is never a production admin.
 
-- `ADMIN_EMAILS`: comma-separated exact emails supplied by the trusted Sites dispatcher. Empty means nobody has administrator privileges. Researchers are identified by stable site-specific user IDs; every study access is checked on the server.
-- `SOLANA_RPC_URL`: server-only authenticated Solana mainnet JSON-RPC endpoint. Defaults to `https://api.mainnet-beta.solana.com`. Use a dedicated provider for production throughput. Public RPC can return 403/429 from hosted runtimes; errors never grant eligibility. Keep API keys secret.
+## Verify and deploy
 
-Configure hosted values through Sites environment settings and deploy the saved version to apply them. Sites provisions the logical `DB` D1 binding and applies `drizzle/` migrations. `.openai/hosting.json` preserves the Site project ID. Never deploy the test-only `.dev.vars` file or its localhost RPC fixture.
+```sh
+pnpm build           # strict types, full lint, all tests/*.test.mjs, production build
+pnpm audit --prod --audit-level=high
+pnpm prepare:cloudflare
+# Deploy dist/server/wrangler.float.json using your authorized Cloudflare account.
+```
 
-## Main workflows
+`node scripts/check-repair-runtime.mjs` runs isolated Worker/D1 scenarios with synthetic users and simulated providers. It does not prove real-device wallet behavior or production capacity. Additional legacy integration commands are documented in [the historical README](docs/hackathon/legacy-readme.md). Do not point test fixtures at production.
 
-- Public landing, studies, pricing, enterprise request, methodology, trust, docs, and about pages.
-- Researchers: authenticated private workspace; create and edit drafts; submit for review; pause/close studies; view analytics; export JSON.
-- Administrators: explicit allowlist; approve/reject/pause/resume surveys; review commercial requests; audit trail; seed examples.
-- Participants: choose a wallet provider; sign a single-use challenge; finalized ownership check; answer; fresh check at submission; atomic insert and proof consumption; duplicate-wallet prevention.
-- Commercial requests: persisted per-survey or enterprise interest. No actual checkout or paid entitlement.
-- Rewards: planned amounts and an unfunded ledger entry associated with accepted responses. Claims return a clear disabled response; no transfers or custody.
+See [device test matrix](docs/hackathon/device-qa.md): Phantom and Backpack Home Screen return success was reported by the founder. Solflare real-device completion is still pending; provider simulations are not a substitute.
 
-## Verification semantics
+## Development history and AI assistance
 
-See [research](docs/RESEARCH.md), [architecture](docs/ARCHITECTURE.md), [operations](docs/OPERATIONS.md), and [verification report](docs/VERIFICATION.md).
+This repository includes work begun before September 14, 2026 under the earlier HolderPulse name, including survey/research tools. The directory and some internal identifiers retain that name. Those modules remain for history and are not the submitted core experience. See [development disclosure](docs/hackathon/development-history.md) for the dated boundary and subsequent work.
 
-The reviewed registry contains 1,300 Solana mints across Backpack (44), xStocks (832), Ondo (416), PreStocks (7), and Tessera (1). See [multi-issuer coverage](docs/multi-issuer-coverage.md) for sources, limits, and valuation methodology. See the [September 11 audit](docs/token-audit-2026-09-11.md) for every mint, evidence and two corrected omissions. The [September 13 refresh](research/token-audit/2026-09-13.json) reconciles all 44 enabled Backpack listings and verifies the new DKNG, FLWS and WEN mint accounts at finalized commitment. Symbols alone are never accepted as token identity. Positive raw balances qualify; cohorts are raw token units, not adjusted economic shares. No exact balance is stored with answers.
+RJ directed product decisions, tested the app and used ChatGPT/Codex to assist implementation, debugging, design iteration and documentation. This is an AI-assisted solo-founder project; role names used during design reviews are not additional human teammates.
 
-## Tests
+## Current limits
 
-See [the current member experience](docs/release-26-holder-experience.md) for dark mode, private portfolio values, photos, automatic news and verification limits.
-
-- `pnpm audit:tokens`: read-only live Backpack registry check before a release. Exits unsuccessfully if entries are missing, removed or mismatched. Review exact Solana mints before changing the allowlist; update the review date and evidence together. This is not a scheduled monitor.
-- `pnpm test:markets`: source parsing, coverage, supply validation and market-row selection regressions.
-- `pnpm test`: discovers every `tests/*.test.mjs` regression suite, including validation, signatures, mint checks, market caches, listings, authorization and database behavior.
-- `pnpm test:integration`: local persistence, lifecycle, access boundaries, CSRF, demo isolation, commercial requests, server-rendered routes.
-- `node tests/authorization.mjs`: local researcher/admin/foreign-owner boundaries and forged-header rejection.
-- `pnpm test:wallet`: temporary local RPC fixture with genuine key generation/signatures; tests proof replay, fresh balance checks, duplicate wallets, analytics, reward refusal. Restores `.env` and `.dev.vars` afterward.
-- `pnpm build` (also `pnpm verify`): requires strict types, repository-wide lint and all regression suites to pass before producing the production build. A failed check stops the release build.
-- The [metadata-parser security patch](docs/dependency-security-2026-09-13.md) removes two vulnerable build-time parser paths. Keep its regression tests and review bundled dependencies before upgrading Vinext.
-- `node scripts/check-repair-runtime.mjs`: isolated Worker/D1 test with real application routes and sessions, synthetic users, and simulated slow/rate-limited providers. It does not load project secrets or contact providers. Reports latency, database work and request isolation. Local results do not establish regional production capacity.
-
-Integration tests require a running local server, applied migrations, and local admin configuration. They create only local test studies. Wallet tests never mint tokens, transact, or use a user's private keys. Do not run the fixture against a production database.
-
-## Remaining integrations
-
-A successful mainnet holder submission from an actual funded user wallet has not been tested. A dedicated RPC URL, real wallet-browser compatibility testing, payment/subscription processing, USDC funding and payout worker, historical indexer, operator privacy procedures, monitoring, backups, and independent security review remain necessary before paid institutional operation. Mobile currently requires a compatible wallet browser; deep-link pairing is not included. The public site is an initial working release, not a claim of audited institutional readiness.
-
-Initial provisioning used a temporary fixed-data bootstrap route. That route has been removed from the published application; subsequent demo seeding is available only to signed-in administrators.
-
-### Client release continuity
-
-The Vite client build retains immutable JavaScript, CSS and related assets from the three preceding builds. Keep `.float-build-cache/client-assets/` (ignored) between release builds; a clean checkout has no previous assets to retain. Only manifest-referenced static files are carried forward, never old HTML, manifests, server code or configuration. The current build plus three prior dependency graphs are tested before packaging. Purge this cache and old build output when an urgent client security fix requires invalidating old code.
-
-Home and Markets have independent error boundaries. Module download failures retry twice; render errors are not automatically retried. Failures report only section, category, React error code and static chunk paths to the rate-limited, same-origin `/api/client-error` endpoint. Raw messages, page URLs, wallet identifiers and form contents are not sent. Inspect Sites Worker logs for `Client section failed` to diagnose a recurrence; source-refresh timeouts alone do not establish a client crash cause.
-
-### Automatic Backpack listings
-
-Backpack dashboard and all-market discovery now use a durable runtime registry, not only the seed snapshot. Public requests schedule a shared check every five minutes; an idle site catches up on the next visit. Existing pages poll and pick up new rows and page counts without a redeploy. No external scheduler or paid provider is required.
-
-A new candidate must have an enabled Solana address in Backpack's official assets endpoint and a finalized initialized mint with matching symbol, decimals, metadata mint, Backpack Securities name and pinned Backpack metadata authority. Duplicate identities, conflicting existing mints and non-Solana assets are rejected. New verified entries are appended in D1; provider errors retain the last-good list and honor retry delays. Market cache keys include the exact batch mints so new listings cannot inherit an older batch's data. Verification handles up to 80 new candidates per check and rotates large backlogs.
-
-This discovery currently covers Backpack. Other issuers retain their reviewed seed registries. The same server-validated registry now supplies market parsing, holdings verification, holder tiers, community topics and news matching. A discovered token can qualify a holder only after the existing signed-wallet and finalized ownership checks; client-supplied symbols never grant access. The public market listing is not an assertion that a token is available to every jurisdiction.
-
-Markets, the public Backpack dashboard and holder-tier valuation share canonical mint batches and the same price/supply/history cache entries. A warm batch reads its source snapshots in one database query. Normal market polling is every two minutes while a view is active; registry checks remain demand-driven every five minutes. Cache timestamps and delayed-source status remain visible. Full market summaries still load the tracked universe in bounded batches; a dedicated summary endpoint is a remaining scaling improvement.
-
-Backpack's official API docs also distinguish `source=Venue` trading statistics from `source=External` stock-market statistics. Neither is labeled total Solana DEX volume in Float.
+Early working product: no independently audited security claim, institutional-scale benchmark, paid subscription flow or demonstrated external-user traction is asserted. Real-device Solflare QA, independently recruited user validation and final video recording remain founder tasks. The current release checklist distinguishes automated checks, rendered QA and reported device results.

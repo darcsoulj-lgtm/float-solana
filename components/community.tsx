@@ -429,8 +429,11 @@ export function Community({ appHandoffId }: { appHandoffId?: string } = {}) {
             </p>
             <div className="hero-actions">
               <Button onClick={openJoin}>
-                Connect wallet <ArrowUpRight size={18} />
+                Join the community <ArrowUpRight size={18} />
               </Button>
+              <Link className="hero-market-link" href="/markets">
+                Explore markets
+              </Link>
             </div>
             {error && (
               <div className="club-error" role="alert">

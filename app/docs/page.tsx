@@ -5,13 +5,14 @@ export default function Page() {
       <section className="panel">
         <h2>Join</h2>
         <p>
-          Choose Connect wallet. We detect supported tokens in your Solana
+          Choose Join the community. We detect supported tokens in your Solana
           wallet. Accept the guidelines, then sign the membership message. No
           transaction or transfer is required.
         </p>
         <p>
-          On mobile, choosing a wallet opens this page in that wallet’s browser.
-          On desktop, use a browser with the wallet extension enabled.
+          On mobile, sign in your wallet, then reopen Float from your Home
+          Screen to finish signing in there. You can also choose to continue
+          in the wallet browser. On desktop, use a supported wallet extension.
         </p>
       </section>
       <section className="panel">
@@ -50,7 +51,7 @@ export default function Page() {
           headlines.
         </p>
         <p>
-          Markets combines your portfolio with Solana-wide metrics. Use Only my
+          Your portfolio is on Home. Markets shows Solana-wide metrics. Use My
           holdings to narrow the token table. Issuer cards filter the table;
           overall market totals stay Solana-wide.
         </p>

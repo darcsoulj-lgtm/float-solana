@@ -9,8 +9,10 @@ export default function Page() {
           readable, one-use membership message signature and reads token
           balances through Helius. It does not request transaction signing,
           spending approvals, token transfers, or your recovery phrase. Check
-          that the signing domain is holderpulse.glossy-kid-6048.chatgpt.site
-          and that the message names Float and describes community access.
+          that the signing domain matches the Float address you opened:
+          float-solana.darcsoulj.workers.dev or
+          holderpulse.glossy-kid-6048.chatgpt.site. The message should name Float
+          and describe community access.
           Cancel any unexpected transaction request.
         </p>
         <p>
@@ -75,7 +77,8 @@ export default function Page() {
           can be matched to its hash. The RPC provider receives wallet addresses
           to check holdings. An HttpOnly session cookie lasts up to 24 hours;
           signing in again invalidates your previous session. Administrators
-          authenticate through ChatGPT and a server-side allowlist.
+          authenticate through an explicitly allowed ChatGPT identity or
+          administrator wallet. Access is checked on the server.
         </p>
       </section>
       <section className="panel">

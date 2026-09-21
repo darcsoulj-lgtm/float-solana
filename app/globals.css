@@ -1692,6 +1692,7 @@ body:has(.community-entry) > footer {
 }
 .hero-actions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
   gap: 25px;
   align-items: center;
@@ -1704,6 +1705,21 @@ body:has(.community-entry) > footer {
 }
 .hero-actions a {
   font-size: 14px;
+}
+.hero-actions .hero-market-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+  padding: 0 24px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--foreground);
+  text-decoration: none;
+  font-weight: 500;
+}
+.hero-actions .hero-market-link:hover {
+  background: var(--muted);
 }
 .hero-proof {
   display: flex;

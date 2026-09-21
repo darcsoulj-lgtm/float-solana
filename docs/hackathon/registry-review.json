@@ -1,0 +1,68 @@
+{
+  "checkedAt": "2026-09-21T09:20:51.496Z",
+  "scope": "Backpack enabled Solana assets compared with Float seeds plus live verified additions; no new independent onchain audit or other issuer review",
+  "sources": [
+    "https://api.backpack.exchange/api/v1/assets",
+    "https://float-solana.darcsoulj.workers.dev/api/market-data?batch=0"
+  ],
+  "baseReviewDateUnchanged": "2026-09-13",
+  "seedCount": 44,
+  "officialCount": 56,
+  "runtimeCount": 56,
+  "runtimeCheckedAt": "2026-09-21T09:18:00.689Z",
+  "fresh": true,
+  "duplicates": false,
+  "missing": [],
+  "extra": [],
+  "additions": [
+    {
+      "symbol": "PTN",
+      "mint": "PTNzAfFAB4LvoUQEUUGrFMyUoRLExMYjH6CcfyQfsVP"
+    },
+    {
+      "symbol": "SCHH",
+      "mint": "SCHHJ3jRdSjeFEVAaLrnYdx3Brphn92Ys7z1qkiCtPX"
+    },
+    {
+      "symbol": "BROS",
+      "mint": "BRVaZKg6J9iF2BEsdpsxJ9NyvN9PPxPZuoQUX2v8qqkk"
+    },
+    {
+      "symbol": "FLY",
+      "mint": "FLYRq3en8r2Z69gN3KyAnDrvnitEJNkwPYY7favinHeD"
+    },
+    {
+      "symbol": "AMD",
+      "mint": "AMD8XwJXgQ9WV45Wyj9yFLejxzf2J6VM1PJY8bJEjeES"
+    },
+    {
+      "symbol": "FWDI",
+      "mint": "FWDtiB5fXHdVAewPqvHPL2dh4aBC1C6GacQbePoQXKjz"
+    },
+    {
+      "symbol": "LUV",
+      "mint": "LUV9GB51PNZNRyzzyYK3rtqFfvDvWtRiXZ34wVq2HrX"
+    },
+    {
+      "symbol": "RUM",
+      "mint": "RUMsPfFZFnN1ZmGANwP7FNMJMjKH4m9RiMePrtVtLe7"
+    },
+    {
+      "symbol": "WULF",
+      "mint": "WULFeyfrj1VJKD9HhRTcW8R4g5HefUA11HDEdBv2WxD"
+    },
+    {
+      "symbol": "CYPH",
+      "mint": "CYPHuMmCL1GxJWa2tsPhLKykC7GrHJTCHwbXD4g5uawK"
+    },
+    {
+      "symbol": "USO",
+      "mint": "USNv3NkKA27Dh4nsHJDPhW4VoEcTQmjoZyJt2dqdwFu"
+    },
+    {
+      "symbol": "BB",
+      "mint": "BBosJLw8ZzoATiEyywiifx7AgmrD2Cm3XjFWbhbRhChy"
+    }
+  ],
+  "passed": true
+}
