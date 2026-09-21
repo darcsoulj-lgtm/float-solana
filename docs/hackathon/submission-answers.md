@@ -64,7 +64,7 @@ Keep the core holder community free while testing whether active users will pay 
 
 ## Project website
 
-https://float-solana.darcsoulj.workers.dev
+https://joinfloat.xyz
 
 ## GitHub
 
