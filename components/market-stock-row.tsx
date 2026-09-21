@@ -22,9 +22,9 @@ export function MarketStockRow({
     <tr
       className={selected ? 'is-selected' : ''}
       onClick={(event: MouseEvent<HTMLTableRowElement>) => {
-        if (href) {
-          if (!(event.target as HTMLElement).closest('a')) window.location.assign(href);
-        } else onSelect?.(symbol);
+        if ((event.target as HTMLElement).closest('a, button, input, select, [role=button], [role=dialog]')) return;
+        if (href) window.location.assign(href);
+        else onSelect?.(symbol);
       }}
     >
       <td>

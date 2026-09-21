@@ -38,7 +38,7 @@ void test('Clicking any SPCX metric cell reaches the row action and selects SPCX
   });
   assert.equal(row.type, 'tr');
   assert.equal(row.props.role, undefined);
-  row.props.onClick();
+  row.props.onClick({ target: { closest: () => null } });
   assert.equal(selected, 'SPCX');
 });
 
@@ -64,6 +64,15 @@ void test('Stock-name activation stays keyboard accessible and prevents duplicat
       stopped = true;
     },
   });
-  if (!stopped) row.props.onClick();
+  if (!stopped) row.props.onClick({ target: { closest: () => null } });
   assert.deepEqual(calls, ['SPCX']);
+});
+
+void test('quote details buttons and popovers do not navigate the stock row', () => {
+  const calls = [];
+  const row = MarketStockRow({symbol:'MU', name:'Micron', selected:false, held:false, onSelect:s=>calls.push(s), children:null});
+  for (const tag of ['button','[role=dialog]']) {
+    row.props.onClick({target:{closest: selector => {assert.ok(selector.includes(tag)); return {};}}});
+  }
+  assert.deepEqual(calls, []);
 });

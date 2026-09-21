@@ -1,16 +1,21 @@
 import { TOKENS, TOKEN_REVIEW_DATE } from '@/lib/tokens';
+import { verifiedRegistry } from '@/lib/registry-server';
 import { TokenDirectory } from '@/components/token-directory';
-export default function Page() {
+export const dynamic = 'force-dynamic';
+export default async function Page() {
+  let tokens = TOKENS;
+  let unavailable = false;
+  try { tokens = (await verifiedRegistry()).tokens; } catch { unavailable = true; }
   return (
     <div className="page">
       <p className="eyebrow">SUPPORTED TOKENS</p>
       <h1>One holding. Every channel.</h1>
       <p>
-        {TOKENS.length.toLocaleString()} Solana tokenized stocks. Registry
-        review: {TOKEN_REVIEW_DATE}.
+        {tokens.length.toLocaleString()} eligible Solana tokens.
       </p>
       <details className="market-methodology">
-        <summary>Coverage & verification</summary>
+        <summary>Membership eligibility</summary>
+        <p>Base list reviewed {TOKEN_REVIEW_DATE}. Verified Backpack additions use the same refreshed registry as Markets and membership checks.{unavailable ? ' Registry refresh is unavailable; the base list is shown.' : ''}</p>
         <p>
           xStocks uses its official assets API. Backpack uses its official
           Solana asset registry. Ondo, PreStocks and Tessera use Solana
@@ -24,7 +29,7 @@ export default function Page() {
           products; some provide indirect private-company exposure.
         </p>
       </details>
-      <TokenDirectory />
+      <TokenDirectory tokens={tokens} />
     </div>
   );
 }

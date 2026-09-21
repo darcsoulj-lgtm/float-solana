@@ -1,3 +1,4 @@
+import { InstallFloat } from '@/components/install-float';
 export const metadata = {
   title: 'Install Float',
   description: 'Save Float to your home screen for quick access.',
@@ -10,6 +11,7 @@ export default function Page() {
       <p className="lede">
         Save Float to your home screen so it opens quickly like an app.
       </p>
+      <InstallFloat />
       <section className="panel">
         <h2>iPhone or iPad</h2>
         <ol>
@@ -27,12 +29,14 @@ export default function Page() {
         </ol>
       </section>
       <section className="panel">
-        <h2>Computer</h2>
+        <h2>Computer · Chrome</h2>
         <ol>
-          <li>Open Float in Chrome or Edge.</li>
-          <li>Look for the install icon in the address bar.</li>
-          <li>Select <strong>Install</strong>.</li>
+          <li>Open Float in a regular Chrome window.</li>
+          <li>Open <strong>⋮ → Cast, save, and share</strong>.</li>
+          <li>Choose <strong>Install page as app</strong>, then Install.</li>
         </ol>
+        <p>The address-bar install icon may also appear. If neither option is available, update Chrome and check that you’re not in Incognito or a managed browser that blocks installation.</p>
+        <p>In Edge, use <strong>⋯ → Apps → Install this site as an app</strong>.</p>
       </section>
     </div>
   );

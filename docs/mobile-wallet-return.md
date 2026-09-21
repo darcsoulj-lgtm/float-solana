@@ -45,3 +45,15 @@ Additional verification uses isolated SQLite with all migrations and the actual
 challenge, verify, and claim handlers. Wallet signatures/holdings are simulated;
 all three wallet request shapes, missing final context, conflicting IDs, invalid
 signatures, expired flows, wrong secrets, and replay are covered.
+
+User device confirmation (September 21): the user reported Backpack now signs
+in the Home Screen app when they return. No authentication changes were made in
+the subsequent UI cleanup. The instructional control is now labeled “How to
+return to Float” and the manual-return hint is always visible; “Continue in
+wallet” remains available.
+
+Installation cleanup: explicit 192/512 PNG app icons and a separate maskable icon
+were added. Chrome's address-bar Install Float control and native install dialog
+were observed against localhost in the user's Chrome. Desktop menu instructions
+follow Google Chrome Help (answer 9658361); a native prompt button is shown only
+when beforeinstallprompt is offered. No localhost app was intentionally installed.

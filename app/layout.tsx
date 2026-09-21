@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: { url: '/favicon.svg?v=float-refined-03', type: 'image/svg+xml' },
-    apple: { url: '/favicon.svg?v=float-refined-03', type: 'image/svg+xml' },
+    apple: { url: '/brand/float-192.png', type: 'image/png' },
   },
   manifest: '/manifest.webmanifest',
   appleWebApp: {
@@ -58,11 +58,9 @@ export default function RootLayout({
           <nav aria-label="Main navigation">
             <Link href="/markets">Markets</Link>
             <Link href="/?view=home">Community</Link>
+            <Link href="/install">Install Float</Link>
           </nav>
           <ThemeToggle />
-          <Link className="nav-cta" href="/#inside">
-            How it works
-          </Link>
         </header>
         <main id="main">{children}</main>
         <footer>
@@ -77,7 +75,6 @@ export default function RootLayout({
             <Link href="/about">About</Link>
             <Link href="/trust">Privacy</Link>
             <Link href="/methodology">Membership</Link>
-            <Link href="/tokens">Supported stocks</Link>
             <Link href="/docs">Help</Link>
           </div>
           <p className="legal">

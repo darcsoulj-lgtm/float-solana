@@ -1143,3 +1143,6 @@ fieldset.holding-filter-chips {
 .ecosystem-stats .holdings-info-trigger:focus-visible {
   outline-color: currentColor;
 }
+
+.quote-delay { display: inline-flex; align-items: center; gap: .2rem; margin-left: .4rem; font-size: .72rem; font-weight: 400; color: var(--muted-foreground); vertical-align: middle; white-space: nowrap; }
+.quote-delay .holdings-info-trigger { margin: 0; }

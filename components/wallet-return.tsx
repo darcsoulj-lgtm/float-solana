@@ -13,15 +13,15 @@ export function WalletReturn({ linked, onContinue }: { linked: boolean; onContin
     <p>Choose where you’d like to continue.</p>
     <div className="wallet-return-actions">
       <Button onClick={() => setInstructions((value) => !value)} aria-expanded={instructions} aria-controls="wallet-return-instructions">
-        <ArrowLeft size={18} aria-hidden="true" /> Return to Float app
+        <ArrowLeft size={18} aria-hidden="true" /> How to return to Float
       </Button>
       <Button variant="outline" onClick={onContinue}>Continue in wallet</Button>
     </div>
-    <span className="wallet-return-hint">Returning to the app requires a manual switch.</span>
+    <span className="wallet-return-hint">Tap ‹ Float above, or open Float from your Home Screen.</span>
     {instructions && <div id="wallet-return-instructions" className="wallet-return-instructions" aria-live="polite">
       <strong>Tap ‹ Float at the top-left of your screen.</strong>
       <p>Or open Float from your Home Screen.</p>
-      <p>{linked ? 'Your app will finish signing in when you return.' : 'Start wallet connection from the Float app to sign in there.'}</p>
+      <p>{linked ? 'Your sign-in is ready for Float to collect when you return.' : 'Start wallet connection from the Float app to sign in there.'}</p>
     </div>}
   </section>;
 }

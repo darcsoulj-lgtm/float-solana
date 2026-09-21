@@ -312,9 +312,7 @@ export function MarketOverviewPanel({
             <span>Token price</span>
             <strong>{money(observation.price)}</strong>
             {observation.priceDelayed && (
-              <small className="quote-age">
-                Last quote · {time(observation.priceTime)}
-              </small>
+              <span className="quote-delay">Delayed <MetricInfo label="Quote timestamp">Last available quote: {time(observation.priceTime)}. This is not a live price.</MetricInfo></span>
             )}
           </div>
           <div>
@@ -780,7 +778,7 @@ export function MarketOverviewPanel({
           <td>
             <span className="market-mobile-label">Token price</span>
             {money(row.price)}
-            {row.priceDelayed && <small className="quote-age" title={time(row.priceTime)}>Last quote · {time(row.priceTime)}</small>}
+            {row.priceDelayed && <span className="quote-delay">Delayed <MetricInfo label={`Quote timestamp for ${t.symbol}`}>Last available quote: {time(row.priceTime)}. This is not a live price.</MetricInfo></span>}
           </td>
           <td className={change === null ? undefined : change < 0 ? 'market-negative' : 'market-positive'}>
             <span className="market-mobile-label">24h change</span>
@@ -988,7 +986,7 @@ export function MarketOverviewPanel({
           <p>
             Backpack prices and 24h changes: official Backpack external ticker.
             Other prices: CoinMarketCap, fresh DefiLlama, then DEX pool. Older
-            DefiLlama references are labeled Last quote (up to 96 hours). DEX
+            DefiLlama references are labeled Delayed (up to 96 hours). DEX
             volume and liquidity: eligible DEX Screener pools, with partial
             coverage.
             {POOL_SCOPE} Missing data is shown as —. Supply and valuation

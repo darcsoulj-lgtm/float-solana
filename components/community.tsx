@@ -515,9 +515,6 @@ export function Community({ appHandoffId }: { appHandoffId?: string } = {}) {
                   : `Sign in ${walletLabel(pending.provider)}`}
                 <ArrowUpRight size={18} />
               </Button>
-              <p className="wallet-policy-links">
-                <Link href="/trust">Privacy</Link>
-              </p>
               <Button
                 className="wallet-back-button"
                 variant="ghost"

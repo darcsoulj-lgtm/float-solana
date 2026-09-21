@@ -1,11 +1,11 @@
 'use client';
 import { useState } from 'react';
-import { TOKENS, ISSUERS, issuerName, type IssuerId } from '@/lib/tokens';
-export function TokenDirectory() {
+import { ISSUERS, issuerName, type IssuerId, type StockToken } from '@/lib/tokens';
+export function TokenDirectory({ tokens }: { tokens: readonly StockToken[] }) {
   const [query, setQuery] = useState(''),
     [issuer, setIssuer] = useState<IssuerId | 'all'>('all'),
     [page, setPage] = useState(0);
-  const matches = TOKENS.filter(
+  const matches = tokens.filter(
     (t) =>
       (issuer === 'all' || t.issuer === issuer) &&
       (t.symbol + ' ' + t.name + ' ' + t.mint)
