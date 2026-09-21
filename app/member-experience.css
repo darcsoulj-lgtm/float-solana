@@ -549,6 +549,10 @@
     display: none;
   }
   .market-search-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+    gap: 12px;
     margin-top: 0;
   }
   .market-search-row > label {
@@ -558,6 +562,25 @@
   .market-search-row input {
     margin-top: 0;
     border-radius: 10px;
+  }
+  .market-table-filters {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+    gap: 10px;
+  }
+  .market-search-row .holdings-toggle {
+    width: fit-content;
+    min-height: 40px;
+  }
+  .market-sort-select {
+    width: 100%;
+  }
+  .market-sort-select select {
+    width: 100%;
+  }
+  .market-table-filters > span {
+    font-size: 12px;
   }
   .market-browse-filters {
     margin: 16px 0;

@@ -917,7 +917,7 @@ export function MarketOverviewPanel({
                   setPage(0);
                 }}
               />
-              Only my holdings
+              My holdings
             </label>
           )}
           {listingView === 'tokens' && <label className="market-sort-select">

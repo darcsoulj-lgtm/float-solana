@@ -1009,6 +1009,12 @@ void test('Home news starts with five headlines, expands on demand, and Discuss 
   let tree = render();
   assert.equal(elements(tree, SourceCard).length, 5);
   const source = elements(tree, SourceCard)[0];
+  const sourceTree = SourceCard(source.props);
+  const sourceLink = findElement(
+    sourceTree,
+    (e) => e.type === 'a' && e.props.href === items[0].url,
+  );
+  assert.equal(sourceLink.props.target, undefined);
   source.props.onDiscuss(source.props.item);
   assert.equal(selected.url, items[0].url);
   findElement(
