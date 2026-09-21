@@ -288,9 +288,12 @@ function namedWallet(name: 'backpack' | 'solflare', providers: WalletProviders) 
   const p = nativeNamed(name, providers);
   const label = WALLET_NAMES[name];
   if (!p) throw new Error(`${label} is not available in this browser.`);
-  // oxlint-disable-next-line typescript/unbound-method -- Retained for identity checks; invoked with its provider below.
+  // Capture each operation before opening the wallet. Some mobile wallets replace
+  // their method wrappers as connection state changes; the account key is the
+  // stable identity and the signature is independently verified below.
+  // oxlint-disable-next-line typescript/unbound-method -- Invoked with its provider below.
   const connectMethod = p.connect;
-  // oxlint-disable-next-line typescript/unbound-method -- Retained for identity checks; invoked with its provider below.
+  // oxlint-disable-next-line typescript/unbound-method -- Invoked with its provider below.
   const signMethod = p.signMessage;
   let address = '';
   let publicKey: Uint8Array | undefined;
@@ -307,8 +310,7 @@ function namedWallet(name: 'backpack' | 'solflare', providers: WalletProviders) 
     try {
       const current = currentKey();
       return !!publicKey && nativeNamed(name, providers) === p &&
-        p.connect === connectMethod && p.signMessage === signMethod &&
-        p.isConnected !== false && !!current && current.address === address &&
+        !!current && current.address === address &&
         equalBytes(current.key, publicKey);
     } catch { return false; }
   };

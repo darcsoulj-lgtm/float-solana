@@ -659,7 +659,11 @@ function namedNativeFixture(name, options = {}) {
     async connect() {
       calls.push('connect');
       this.publicKey = key;
-      this.isConnected = true;
+      this.isConnected = !options.delayedConnected;
+      if (options.replaceMethods) {
+        this.connect = async () => { throw new Error('Unexpected second connect'); };
+        this.signMessage = async () => { throw new Error('Unexpected replacement signer'); };
+      }
       return { publicKey: key };
     },
     async signMessage(input) {
@@ -693,6 +697,14 @@ for (const name of ['backpack', 'solflare']) {
     f.provider.publicKey = null;
     await assert.rejects(connection.signMessage(message), /account changed/);
     assert.deepEqual(f.calls, ['connect']);
+  });
+  void test(`Native ${name} keeps the verified account when mobile connection flags and wrappers lag`, async () => {
+    const f = namedNativeFixture(name, { delayedConnected: true, replaceMethods: true });
+    const connection = routeWallet(name, [], { [name]: f.provider });
+    await connection.connect();
+    assert.equal(connection.accountUnchanged(), true);
+    assert.equal((await connection.signMessage(message)).length, 64);
+    assert.deepEqual(f.calls, ['connect', 'sign']);
   });
 }
 void test('Named native wallets never substitute for each other or Phantom', () => {
