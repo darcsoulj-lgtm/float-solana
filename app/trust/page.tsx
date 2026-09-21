@@ -10,9 +10,8 @@ export default function Page() {
           balances through Helius. It does not request transaction signing,
           spending approvals, token transfers, or your recovery phrase. Check
           that the signing domain matches the Float address you opened:
-          float-solana.darcsoulj.workers.dev or
-          holderpulse.glossy-kid-6048.chatgpt.site. The message should name Float
-          and describe community access.
+          joinfloat.xyz. The message should name Float and describe community
+          access.
           Cancel any unexpected transaction request.
         </p>
         <p>
