@@ -12,8 +12,8 @@ Prepared September 21, 2026. This folder is for the founder and judges, not an e
 
 ## Links and upload assets
 
-- Product: https://float-solana.darcsoulj.workers.dev
-- Public no-wallet route: https://float-solana.darcsoulj.workers.dev/markets
+- Product: https://joinfloat.xyz
+- Public no-wallet route: https://joinfloat.xyz/markets
 - GitHub: https://github.com/darcsoulj-lgtm/float-solana
 - Project graphic: [public/og.png](../../public/og.png), 1734 × 907 PNG
 - Square logo: [public/brand/float-512.png](../../public/brand/float-512.png), 512 × 512 PNG
