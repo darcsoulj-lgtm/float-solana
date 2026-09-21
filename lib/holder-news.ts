@@ -242,7 +242,7 @@ async function fetchHeadlineFeed(
     headers: {
       Accept: 'application/rss+xml, application/xml;q=0.9',
       'Accept-Language': 'en-US,en;q=0.8',
-      'User-Agent': 'Float/1.0 (+https://float-solana.darcsoulj.workers.dev)',
+      'User-Agent': 'Float/1.0 (+https://joinfloat.xyz)',
     },
   });
   if (!r.ok) throw new SourceHttpError(url.hostname, r);
