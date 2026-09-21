@@ -79,7 +79,7 @@ export function UpcomingAgenda({
   useEffect(() => {
     let active = true;
     void readThenRefresh({
-      refresh: () => api('editorial/initialize', {}),
+      refresh: () => api('editorial/refresh-events', {}),
       read: () =>
         api<BriefData>(
           `editorial/brief?kind=event&scope=personal&symbol=${encodeURIComponent(symbol)}&today=${today}&offset=${page * 20}`,
@@ -163,7 +163,7 @@ export function UpcomingAgenda({
           </output>
         ) : !items.length ? (
           <p className="agenda-status">
-            No upcoming events for these holdings.
+            No tracked upcoming events for these holdings.
           </p>
         ) : expanded ? (
           <>

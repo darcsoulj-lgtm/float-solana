@@ -12,6 +12,7 @@ import {
   editorialColumns,
   editorialRow,
   initializeEditorial,
+  refreshEarningsCalendar,
 } from '@/lib/editorial-server';
 import { verifiedRegistry } from '@/lib/registry-server';
 export const dynamic = 'force-dynamic';
@@ -54,6 +55,15 @@ async function handler(req: Request) {
         throw new AppError('Administrator access is required.', 403);
       await initializeEditorial();
       return json({ ok: true });
+    }
+    if (path === 'refresh-events' && post) {
+      if (Object.keys(b).length)
+        throw new AppError('This action takes no options.');
+      const member = await communityMember(req, false);
+      if (!member && !(await actor()).admin)
+        throw new AppError('Member access is required.', 403);
+      const result = await refreshEarningsCalendar();
+      return json({ ok: true, ...result });
     }
     if (path === 'brief' && !post) {
       const member = await communityMember(req);

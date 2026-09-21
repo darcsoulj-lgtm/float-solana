@@ -58,7 +58,9 @@ export function SourceCard({
           </p>
         )}
         <h2>
-          <a href={`/read?${new URLSearchParams({ url: item.url, title: item.title, publisher: item.publisher, summary: item.summary || '' })}`}>
+          <a
+            href={`/read?${new URLSearchParams({ url: item.url, title: item.title, publisher: item.publisher, summary: item.summary || '' })}`}
+          >
             {item.title}
             <ChevronRight size={16} />
           </a>
@@ -107,7 +109,10 @@ export function EventCard({ item }: { item: EditorialItem }) {
         </p>
         <p>{item.summary}</p>
         <a href={item.url} target="_blank" rel="noopener noreferrer">
-          View announcement <ArrowUpRight size={14} />
+          {item.certainty === 'estimated'
+            ? 'View calendar'
+            : 'View announcement'}{' '}
+          <ArrowUpRight size={14} />
         </a>
       </div>
     </article>
@@ -181,7 +186,7 @@ export function MemberBrief({
       refresh: () =>
         kind === 'news'
           ? api('holder-news', { symbol })
-          : api('editorial/initialize', {}),
+          : api('editorial/refresh-events', {}),
       publish: (feed) => {
         if (active) {
           setError('');
@@ -278,7 +283,7 @@ export function MemberBrief({
 
       {kind === 'news' && (
         <UpcomingAgenda
-          symbol={symbol}
+          symbol="all"
           holdingsKey={holdingsKey}
           refresh={retry}
         />

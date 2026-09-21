@@ -758,7 +758,7 @@ void test('sorting token price reorders the visible issuer rows', async () => {
   assert.match(html, /aria-sort="descending"/);
 });
 
-void test('News keeps its agenda visible when the headline request fails', async () => {
+void test('News keeps the all-holdings agenda visible when a filtered headline request fails', async () => {
   let index = 0;
   const key = 'holder-news?symbol=MU&offset=0&holdings=MU';
   const states = [
@@ -798,7 +798,7 @@ void test('News keeps its agenda visible when the headline request fails', async
     }),
   );
   assert.match(html, /Headline request failed/);
-  assert.match(html, /Agenda for MU/);
+  assert.match(html, /Agenda for all/);
 });
 
 void test('issuer multi-selection filters rows and leaves market totals intact', async () => {
