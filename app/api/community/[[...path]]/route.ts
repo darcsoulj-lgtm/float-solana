@@ -14,6 +14,7 @@ import {
 } from '@/lib/server';
 import { AppError, textValue } from '@/lib/validation';
 import { validWallet, verifySignature, detectHoldings } from '@/lib/solana';
+import { WALLET_HANDOFF_MS } from '@/lib/wallet-handoff';
 
 import {
   communitySignInInput,
@@ -150,6 +151,36 @@ async function handler(req: Request) {
         threadCount: counts[1].results[0]?.count || 0,
       });
     }
+    if (path[0] === 'handoff' && path[1] === 'start' && post) {
+      const secret = textValue(b.secret, 64, 64, 'Handoff secret');
+      if (!/^[a-f0-9]{64}$/.test(secret)) throw new AppError('Invalid handoff secret.');
+      const id = crypto.randomUUID();
+      const expiresAt = Date.now() + WALLET_HANDOFF_MS;
+      await db().prepare(
+        'INSERT INTO wallet_handoffs (id,secret_hash,expires_at) VALUES (?,?,?)',
+      ).bind(id, await digest(secret), expiresAt).run();
+      return json({ id, expiresAt });
+    }
+    if (path[0] === 'handoff' && path[1] === 'claim' && post) {
+      const id = textValue(b.id, 36, 36, 'Handoff');
+      const secret = textValue(b.secret, 64, 64, 'Handoff secret');
+      if (!/^[a-f0-9-]{36}$/.test(id) || !/^[a-f0-9]{64}$/.test(secret))
+        throw new AppError('Invalid handoff.');
+      const secretHash = await digest(secret);
+      const handoff = await db().prepare(
+        'SELECT h.member_id,h.wallet FROM wallet_handoffs h JOIN community_members m ON m.id=h.member_id WHERE h.id=? AND h.secret_hash=? AND h.expires_at>? AND m.verified_until>? AND m.suspended=0',
+      ).bind(id, secretHash, Date.now(), Date.now()).first<{ member_id: string; wallet: string }>();
+      if (!handoff) return json({ ready: false });
+      const consumed = await db().prepare(
+        'DELETE FROM wallet_handoffs WHERE id=? AND secret_hash=? AND member_id=? AND expires_at>? RETURNING id',
+      ).bind(id, secretHash, handoff.member_id, Date.now()).first();
+      if (!consumed) return json({ ready: false });
+      const session = crypto.randomUUID() + crypto.randomUUID();
+      await db().prepare(
+        'INSERT INTO community_sessions (hash,member_id,expires_at,wallet) VALUES (?,?,?,?)',
+      ).bind(await digest(session), handoff.member_id, Date.now() + MEMBERSHIP_MS, handoff.wallet).run();
+      return json({ ready: true }, 200, sessionCookie(session, req));
+    }
     if (path[0] === 'challenge' && post) {
       if (b.authMethod !== undefined && b.authMethod !== 'signIn')
         throw new AppError('Unsupported authentication method.');
@@ -197,6 +228,13 @@ async function handler(req: Request) {
       });
     }
     if (path[0] === 'verify' && post) {
+      const handoffId = b.handoffId === undefined ? null : textValue(b.handoffId, 36, 36, 'Handoff');
+      if (handoffId) {
+        const validHandoff = await db().prepare(
+          'SELECT id FROM wallet_handoffs WHERE id=? AND member_id IS NULL AND expires_at>?',
+        ).bind(handoffId, Date.now()).first();
+        if (!validHandoff) throw new AppError('Return to Float and start wallet connection again.', 401);
+      }
       const c = await db()
         .prepare(
           'SELECT * FROM community_challenges WHERE id=? AND consumed=0 AND expires_at>?',
@@ -309,6 +347,9 @@ async function handler(req: Request) {
             c.wallet,
           ),
         db().prepare('DELETE FROM community_challenges WHERE id=?').bind(c.id),
+        ...(handoffId ? [db().prepare(
+          'UPDATE wallet_handoffs SET member_id=?,wallet=? WHERE id=? AND member_id IS NULL AND expires_at>?',
+        ).bind(member.id, c.wallet, handoffId, Date.now())] : []),
       ]);
       return json({ ok: true }, 200, sessionCookie(session, req));
     }

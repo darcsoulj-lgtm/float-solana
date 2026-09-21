@@ -23,6 +23,7 @@ import { api, ApiError } from '@/lib/client';
 import type { CommunityStatus } from '@/lib/community-types';
 import type { CommunitySignInInput } from '@/lib/community-sign-in';
 import { selectedWallet, walletLabel } from '@/lib/wallet-provider';
+import { readWalletHandoff, walletHandoffId, WALLET_HANDOFF_KEY } from '@/lib/wallet-handoff';
 
 export function Community() {
   const [status, setStatus] = useState<CommunityStatus | null>(null);
@@ -47,6 +48,8 @@ export function Community() {
     connection: ReturnType<typeof selectedWallet>;
     flowId: string;
   } | null>(null);
+  const [handoffDone, setHandoffDone] = useState(false);
+  const [handoffWaiting, setHandoffWaiting] = useState(false);
   const inFlight = useRef(false);
 
   const walletUnsubscribe = useRef<(() => void) | null>(null);
@@ -89,6 +92,46 @@ export function Community() {
       window.removeEventListener('hp-session-expired', expired);
     };
   }, []);
+  useEffect(() => {
+    const standalone = window.matchMedia('(display-mode: standalone)').matches ||
+      (navigator as Navigator & { standalone?: boolean }).standalone === true;
+    if (!standalone) return;
+    let active = true;
+    let checking = false;
+    const claim = async () => {
+      if (!active || checking || document.visibilityState !== 'visible') return;
+      const flow = readWalletHandoff(localStorage);
+      if (!flow) {
+        setHandoffWaiting(false);
+        return;
+      }
+      setHandoffWaiting(true);
+      checking = true;
+      try {
+        const result = await api<{ ready: boolean }>('community/handoff/claim', flow);
+        if (active && result.ready) {
+          localStorage.removeItem(WALLET_HANDOFF_KEY);
+          setHandoffWaiting(false);
+          setJoin(false);
+          await refresh();
+        }
+      } catch {
+        // Keep the pending flow for the next foreground check.
+      } finally {
+        checking = false;
+      }
+    };
+    void claim();
+    const interval = setInterval(() => { void claim(); }, 4000);
+    document.addEventListener('visibilitychange', claim);
+    window.addEventListener('focus', claim);
+    return () => {
+      active = false;
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', claim);
+      window.removeEventListener('focus', claim);
+    };
+  }, [refresh]);
   useEffect(() => {
     if (!status?.member) return;
     const timer = setTimeout(
@@ -230,6 +273,7 @@ export function Community() {
       await api('community/verify', {
         challengeId: pending.id,
         signature,
+        ...(walletHandoffId(window.location.href) ? { handoffId: walletHandoffId(window.location.href) } : {}),
       });
       if (!pending.connection.accountUnchanged()) {
         await api('community/logout', {});
@@ -247,6 +291,7 @@ export function Community() {
         void api('community/logout', {}).catch(() => {});
       });
       await refresh();
+      if (walletHandoffId(window.location.href)) setHandoffDone(true);
       setJoin(false);
       setStage('');
       setPending(null);
@@ -313,8 +358,17 @@ export function Community() {
       </section>
     );
   }
+  if (handoffDone) {
+    return <section className="community-entry" aria-label="Wallet verified">
+      <FloatLogo />
+      <h1>Wallet verified</h1>
+      <p>Open Float from your Home Screen to finish signing in there.</p>
+      <Button variant="outline" onClick={() => setHandoffDone(false)}>Continue in wallet browser</Button>
+    </section>;
+  }
   return (
     <>
+      {handoffWaiting && !status.member && <output className="wallet-handoff-status">After signing, reopen Float from your Home Screen. We’ll finish here.</output>}
       {status?.member ? (
         <MemberDashboard
           key={status.member.id}

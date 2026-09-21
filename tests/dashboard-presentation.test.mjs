@@ -54,6 +54,8 @@ async function component(file, overrides) {
               : overrides[id]) ??
       (id === '@/lib/stock-pools'
         ? stockPools
+        : id === '@/lib/wallet-handoff'
+          ? { readWalletHandoff: () => null, walletHandoffId: () => null, WALLET_HANDOFF_KEY: 'float-wallet-handoff' }
         : id === './metric-info'
           ? {
               MetricInfo: ({ label }) =>

@@ -97,6 +97,9 @@ export async function communityCleanup() {
     db()
       .prepare('DELETE FROM community_sessions WHERE expires_at<?')
       .bind(Date.now()),
+    db()
+      .prepare('DELETE FROM wallet_handoffs WHERE expires_at<?')
+      .bind(Date.now()),
     db().prepare('DELETE FROM limits WHERE expires_at<?').bind(Date.now()),
   ]);
 }

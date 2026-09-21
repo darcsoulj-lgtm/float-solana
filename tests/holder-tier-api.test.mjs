@@ -10,6 +10,11 @@ async function fixture() {
   sqlite.exec(
     `CREATE TABLE community_members (id TEXT,alias TEXT,bio TEXT,show_badge INTEGER,qualifying_symbol TEXT,notify_replies INTEGER,show_value_badge INTEGER); INSERT INTO community_members VALUES ('verified-wallet-owner','Alice','',0,'MU',1,0)`,
   );
+  sqlite.exec(`ALTER TABLE community_members ADD COLUMN verified_until INTEGER DEFAULT 0;
+    ALTER TABLE community_members ADD COLUMN suspended INTEGER DEFAULT 0;
+    CREATE TABLE wallet_handoffs (id TEXT PRIMARY KEY, secret_hash TEXT, member_id TEXT, wallet TEXT, expires_at INTEGER);
+    CREATE TABLE community_sessions (hash TEXT PRIMARY KEY, member_id TEXT, expires_at INTEGER, wallet TEXT);
+    UPDATE community_members SET verified_until=${Date.now() + 3600000};`);
   const database = {
     prepare(sql) {
       return {
@@ -56,6 +61,7 @@ async function fixture() {
     '@/app/chatgpt-auth': {},
     '@/lib/server': {
       db: () => database,
+      digest: async (value) => 'hash:' + value,
       rateLimit: async () => {},
       runtime: () => ({}),
     },
@@ -76,6 +82,7 @@ async function fixture() {
     },
     '@/lib/tokens': {},
     '@/lib/community-sign-in': {},
+    '@/lib/wallet-handoff': { WALLET_HANDOFF_MS: 600000 },
     '@/lib/admin-wallet': {
       adminWallet: async () => null,
     },
@@ -86,6 +93,8 @@ async function fixture() {
         return sqlite.prepare('SELECT * FROM community_members').get();
       },
       communityCleanup: async () => {},
+      MEMBERSHIP_MS: 86400000,
+      sessionCookie: (session) => 'hp_member=' + session,
       validateAlias: (x) => x,
     },
   };
@@ -128,6 +137,26 @@ async function fixture() {
     },
   };
 }
+void test('installed Float claims a signed wallet only with its private one-time secret', async () => {
+  const f = await fixture();
+  try {
+    const secret = 'a'.repeat(64);
+    const started = await f.post('handoff/start', { secret });
+    assert.equal(started.status, 200);
+    const { id } = await started.json();
+    assert.equal(f.sqlite.prepare('SELECT secret_hash FROM wallet_handoffs WHERE id=?').get(id).secret_hash, 'hash:' + secret);
+    assert.deepEqual(await (await f.post('handoff/claim', { id, secret })).json(), { ready: false });
+    f.sqlite.prepare('UPDATE wallet_handoffs SET member_id=?,wallet=? WHERE id=?').run('verified-wallet-owner', 'test-wallet', id);
+    assert.deepEqual(await (await f.post('handoff/claim', { id, secret: 'b'.repeat(64) })).json(), { ready: false });
+    const claimed = await f.post('handoff/claim', { id, secret });
+    assert.deepEqual(await claimed.json(), { ready: true });
+    assert.match(claimed.headers.get('Set-Cookie'), /^hp_member=/);
+    assert.equal(f.sqlite.prepare('SELECT wallet FROM community_sessions').get().wallet, 'test-wallet');
+    assert.deepEqual(await (await f.post('handoff/claim', { id, secret })).json(), { ready: false });
+  } finally {
+    f.sqlite.close();
+  }
+});
 void test('tier endpoint ignores client-supplied identity, total and tier', async () => {
   const f = await fixture();
   const r = await f.post('holder-tier', {

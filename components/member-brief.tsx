@@ -58,9 +58,9 @@ export function SourceCard({
           </p>
         )}
         <h2>
-          <a href={`/read?url=${encodeURIComponent(item.url)}`}>
+          <a href={`/read?${new URLSearchParams({ url: item.url, title: item.title, publisher: item.publisher, summary: item.summary || '' })}`}>
             {item.title}
-            <ArrowUpRight size={16} />
+            <ChevronRight size={16} />
           </a>
         </h2>
       </div>

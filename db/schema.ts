@@ -128,6 +128,17 @@ export const communityChallenges = sqliteTable('community_challenges', {
   expiresAt: integer('expires_at').notNull(),
   consumed: integer('consumed').notNull().default(0),
 });
+export const walletHandoffs = sqliteTable(
+  'wallet_handoffs',
+  {
+    id: text('id').primaryKey(),
+    secretHash: text('secret_hash').notNull(),
+    memberId: text('member_id').references(() => communityMembers.id),
+    wallet: text('wallet'),
+    expiresAt: integer('expires_at').notNull(),
+  },
+  (t) => [index('wallet_handoffs_expiry').on(t.expiresAt)],
+);
 export const communitySessions = sqliteTable(
   'community_sessions',
   {

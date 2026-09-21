@@ -27,7 +27,7 @@ export function isMobileBrowser(
   );
 }
 
-export function walletBrowserLink(wallet: string, currentUrl: string) {
+export function walletBrowserLink(wallet: string, currentUrl: string, handoffId?: string) {
   const base = Object.hasOwn(MOBILE_WALLET_BROWSE_BASE, wallet)
     ? MOBILE_WALLET_BROWSE_BASE[wallet]
     : null;
@@ -41,5 +41,6 @@ export function walletBrowserLink(wallet: string, currentUrl: string) {
   if (page.protocol !== 'https:' && page.hostname !== 'localhost') return null;
   page.hash = '';
   page.searchParams.set(WALLET_LAUNCH_PARAM, wallet);
+  if (handoffId) page.searchParams.set('float_handoff', handoffId);
   return `${base}${encodeURIComponent(page.href)}?ref=${encodeURIComponent(page.origin)}`;
 }
