@@ -359,11 +359,12 @@ export function Community() {
     );
   }
   if (handoffDone) {
-    return <section className="community-entry" aria-label="Wallet verified">
+    return <section className="community-entry wallet-return" aria-label="Return to Float">
       <FloatLogo />
-      <h1>Wallet verified</h1>
-      <p>Open Float from your Home Screen to finish signing in there.</p>
-      <Button variant="outline" onClick={() => setHandoffDone(false)}>Continue in wallet browser</Button>
+      <span className="wallet-return-verified"><ShieldCheck size={18} aria-hidden="true" /> Wallet verified</span>
+      <h1>Open Float on your Home Screen</h1>
+      <p>Tap the Float app icon to finish signing in and continue there.</p>
+      <span className="wallet-return-hint">You can close this wallet browser now.</span>
     </section>;
   }
   return (

@@ -645,6 +645,66 @@ void test('Wallet picker requires native Phantom and detects missing capabilitie
   assert.deepEqual(backpack.calls, []);
 });
 
+function namedNativeFixture(name, options = {}) {
+  const pair = ed25519.keygen();
+  const key = {
+    toBytes: () => new Uint8Array(pair.publicKey),
+    toString: () => toBase58(pair.publicKey),
+  };
+  const calls = [];
+  const provider = {
+    [name === 'backpack' ? 'isBackpack' : 'isSolflare']: true,
+    publicKey: null,
+    isConnected: false,
+    async connect() {
+      calls.push('connect');
+      this.publicKey = key;
+      this.isConnected = true;
+      return { publicKey: key };
+    },
+    async signMessage(input) {
+      calls.push('sign');
+      return { signature: ed25519.sign(input, options.wrongKey ? ed25519.keygen().secretKey : pair.secretKey) };
+    },
+  };
+  return { provider, calls };
+}
+for (const name of ['backpack', 'solflare']) {
+  void test(`Native ${name} connects and signs when Wallet Standard is absent`, async () => {
+    const f = namedNativeFixture(name);
+    const providers = { [name]: f.provider };
+    assert.equal(walletAvailability([], providers).find((w) => w.id === name).state, 'detected');
+    const connection = routeWallet(name, [], providers);
+    await connection.connect();
+    assert.equal(connection.accountUnchanged(), true);
+    assert.equal((await connection.signMessage(message)).length, 64);
+    assert.deepEqual(f.calls, ['connect', 'sign']);
+  });
+  void test(`Native ${name} rejects a signature from another key`, async () => {
+    const f = namedNativeFixture(name, { wrongKey: true });
+    const connection = routeWallet(name, [], { [name]: f.provider });
+    await connection.connect();
+    await assert.rejects(connection.signMessage(message), /different account or message/);
+  });
+  void test(`Native ${name} refuses an account switch before signing`, async () => {
+    const f = namedNativeFixture(name);
+    const connection = routeWallet(name, [], { [name]: f.provider });
+    await connection.connect();
+    f.provider.publicKey = null;
+    await assert.rejects(connection.signMessage(message), /account changed/);
+    assert.deepEqual(f.calls, ['connect']);
+  });
+}
+void test('Named native wallets never substitute for each other or Phantom', () => {
+  const backpack = namedNativeFixture('backpack');
+  const providers = { backpack: backpack.provider, solflare: backpack.provider, phantom: { solana: backpack.provider } };
+  assert.equal(walletAvailability([], providers).find((w) => w.id === 'backpack').state, 'missing');
+  assert.equal(walletAvailability([], providers).find((w) => w.id === 'solflare').state, 'missing');
+  assert.throws(() => routeWallet('solflare', [], providers), /not available/);
+  assert.throws(() => routeWallet('phantom', [], providers), /unavailable/);
+  assert.deepEqual(backpack.calls, []);
+});
+
 void test('Wallet account-change subscriptions invalidate the captured account and can be removed', async () => {
   const p = fixture();
   let onChange,

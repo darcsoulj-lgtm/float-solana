@@ -33,10 +33,20 @@ type PhantomProvider = {
   on?: (event: string, listener: () => void) => void;
   removeListener?: (event: string, listener: () => void) => void;
 };
+type NativeNamedProvider = {
+  isBackpack?: boolean;
+  isSolflare?: boolean;
+  publicKey?: PublicKey | string | null;
+  isConnected?: boolean;
+  connect(): Promise<{ publicKey?: PublicKey | string } | void>;
+  signMessage(message: Uint8Array, display?: 'utf8'): Promise<Uint8Array | { signature: Uint8Array | string }>;
+  on?: (event: string, listener: () => void) => void;
+  removeListener?: (event: string, listener: () => void) => void;
+};
 export type WalletProviders = {
   phantom?: { solana?: PhantomProvider };
-  backpack?: Partial<PhantomProvider>;
-  solflare?: Partial<PhantomProvider>;
+  backpack?: Partial<PhantomProvider & NativeNamedProvider>;
+  solflare?: Partial<PhantomProvider & NativeNamedProvider>;
 };
 function browserProviders(): WalletProviders {
   return typeof window === 'undefined' ? {} : (window as WalletProviders);
@@ -54,6 +64,14 @@ function nativePhantom(providers: WalletProviders) {
   )
     return undefined;
   return p;
+}
+function nativeNamed(name: 'backpack' | 'solflare', providers: WalletProviders) {
+  const p = providers[name];
+  if (!p || p[name === 'backpack' ? 'isBackpack' : 'isSolflare'] !== true ||
+      typeof p.connect !== 'function' || typeof p.signMessage !== 'function' ||
+      p === providers.phantom?.solana || p === providers[name === 'backpack' ? 'solflare' : 'backpack'])
+    return undefined;
+  return p as NativeNamedProvider;
 }
 export const WALLET_NAMES: Record<string, string> = {
   phantom: 'Phantom',
@@ -77,6 +95,8 @@ export function walletAvailability(
           ? ('detected' as const)
           : ('missing' as const),
       };
+    if (nativeNamed(id as 'backpack' | 'solflare', providers))
+      return { id, label: WALLET_NAMES[id], state: 'detected' as const };
     const matches = wallets.filter(
       (w) =>
         w.name === WALLET_NAMES[id] &&
@@ -246,6 +266,86 @@ function base58(input: Uint8Array) {
     encoded = '1' + encoded;
   }
   return encoded;
+}
+function unbase58(input: string) {
+  if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(input))
+    throw new Error('The wallet returned an invalid Solana address.');
+  let value = 0n;
+  for (const char of input) value = value * 58n + BigInt(BASE58.indexOf(char));
+  const decoded: number[] = [];
+  while (value) {
+    decoded.unshift(Number(value % 256n));
+    value /= 256n;
+  }
+  for (const char of input) {
+    if (char !== '1') break;
+    decoded.unshift(0);
+  }
+  if (decoded.length !== 32) throw new Error('The wallet returned an invalid Solana address.');
+  return Uint8Array.from(decoded);
+}
+function namedWallet(name: 'backpack' | 'solflare', providers: WalletProviders) {
+  const p = nativeNamed(name, providers);
+  const label = WALLET_NAMES[name];
+  if (!p) throw new Error(`${label} is not available in this browser.`);
+  // oxlint-disable-next-line typescript/unbound-method -- Retained for identity checks; invoked with its provider below.
+  const connectMethod = p.connect;
+  // oxlint-disable-next-line typescript/unbound-method -- Retained for identity checks; invoked with its provider below.
+  const signMethod = p.signMessage;
+  let address = '';
+  let publicKey: Uint8Array | undefined;
+  const currentKey = () => {
+    const current = p.publicKey;
+    if (!current) return undefined;
+    const text = current.toString();
+    const key = typeof current === 'string' ? unbase58(current) :
+      typeof current.toBytes === 'function' ? bytes(current.toBytes(), 'account') : unbase58(text);
+    if (key.length !== 32 || base58(key) !== text) return undefined;
+    return { address: text, key };
+  };
+  const unchanged = () => {
+    try {
+      const current = currentKey();
+      return !!publicKey && nativeNamed(name, providers) === p &&
+        p.connect === connectMethod && p.signMessage === signMethod &&
+        p.isConnected !== false && !!current && current.address === address &&
+        equalBytes(current.key, publicKey);
+    } catch { return false; }
+  };
+  return {
+    accountUnchanged: unchanged,
+    onAccountChange(callback: () => void) {
+      const listener = () => { if (!unchanged()) callback(); };
+      p.on?.('accountChanged', listener);
+      p.on?.('disconnect', listener);
+      return () => {
+        p.removeListener?.('accountChanged', listener);
+        p.removeListener?.('disconnect', listener);
+      };
+    },
+    async connect() {
+      const result = await connectMethod.call(p);
+      const current = currentKey();
+      if (!current || (result?.publicKey && result.publicKey.toString() !== current.address))
+        throw new Error(`${label} returned an inconsistent Solana account.`);
+      address = current.address;
+      publicKey = new Uint8Array(current.key);
+      if (!unchanged()) throw new Error(`The ${label} account changed. Connect again.`);
+      return { publicKey: { toString: () => address } };
+    },
+    async signMessage(message: Uint8Array) {
+      if (!unchanged()) throw new Error(`The ${label} account changed. Connect again.`);
+      const requested = new Uint8Array(message);
+      const result = await signMethod.call(p, new Uint8Array(requested), 'utf8');
+      if (!unchanged()) throw new Error(`The ${label} account changed during signing. Connect again.`);
+      const signature = typeof result === 'object' && result !== null && 'signature' in result
+        ? typeof result.signature === 'string' ? phantomSignature(result.signature) : bytes(result.signature, 'signature')
+        : bytes(result, 'signature');
+      if (signature.length !== 64 || !ed25519.verify(signature, requested, publicKey!, { zip215: false }))
+        throw new Error(`${label} returned a signature for a different account or message. Verification was stopped.`);
+      return signature;
+    },
+  };
 }
 function phantomSignature(input: unknown) {
   if (typeof input !== 'string') return bytes(input, 'signature');
@@ -424,8 +524,11 @@ export function selectedWallet(
   name: string,
   wallets: readonly RegisteredWallet[] = getWallets().get(),
   providers: WalletProviders = browserProviders(),
-): ReturnType<typeof phantomWallet> | ReturnType<typeof standardWallet> {
-  return name === 'phantom'
-    ? phantomWallet(providers)
-    : standardWallet(name, wallets);
+): ReturnType<typeof phantomWallet> | ReturnType<typeof standardWallet> | ReturnType<typeof namedWallet> {
+  if (name === 'phantom') return phantomWallet(providers);
+  if (name === 'backpack' || name === 'solflare') {
+    if (nativeNamed(name, providers)) return namedWallet(name, providers);
+    return standardWallet(name, wallets);
+  }
+  throw new Error('Choose a supported wallet.');
 }
