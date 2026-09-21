@@ -306,6 +306,22 @@ export const communityBookmarks = sqliteTable(
     ),
   ],
 );
+export const communityBlocks = sqliteTable(
+  'community_blocks',
+  {
+    blockerId: text('blocker_id')
+      .notNull()
+      .references(() => communityMembers.id),
+    blockedId: text('blocked_id')
+      .notNull()
+      .references(() => communityMembers.id),
+    createdAt: integer('created_at').notNull(),
+  },
+  (t) => [
+    uniqueIndex('idx_community_blocks_pair').on(t.blockerId, t.blockedId),
+    index('idx_community_blocks_blocked').on(t.blockedId),
+  ],
+);
 export const communitySources = sqliteTable('community_sources', {
   id: text('id').primaryKey(),
   symbol: text('symbol').notNull(),

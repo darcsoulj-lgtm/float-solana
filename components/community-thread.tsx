@@ -2,8 +2,21 @@
 import { HolderTierBadge } from './holder-tier-badge';
 import { MemberAvatar } from './member-avatar';
 import { useCallback, useEffect, useState } from 'react';
-import { Bookmark } from 'lucide-react';
+import {
+  Bookmark,
+  Flag,
+  MessageCircle,
+  MoreHorizontal,
+  Trash2,
+  UserX,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
   Dialog,
   DialogContent,
@@ -64,6 +77,7 @@ export function Thread({
   showChannel = true,
   detail = false,
   onOpen,
+  onThreadBlocked,
 }: {
   thread: CommunityThread;
   memberId: string;
@@ -71,6 +85,7 @@ export function Thread({
   showChannel?: boolean;
   detail?: boolean;
   onOpen?: () => void;
+  onThreadBlocked?: () => void;
 }) {
   const [now, setNow] = useState(() => Date.now()),
     [page, setPage] = useState<ReplyPage>({ replies: [], nextCursor: null }),
@@ -78,6 +93,11 @@ export function Thread({
     [busy, setBusy] = useState(false),
     [report, setReport] = useState<{ type: string; id: string } | null>(null),
     [remove, setRemove] = useState<{ type: string; id: string } | null>(null),
+    [block, setBlock] = useState<{
+      memberId: string;
+      alias: string;
+      source: 'thread' | 'reply';
+    } | null>(null),
     [reason, setReason] = useState('');
   async function run(fn: () => Promise<void>) {
     setBusy(true);
@@ -127,23 +147,43 @@ export function Thread({
       className={`thread-post ${detail ? 'is-detail' : 'is-feed'}`}
       id={'thread-' + t.id}
     >
-      <div className="thread-meta">
-        <MemberAvatar
-          alias={t.alias}
-          memberId={t.member_id}
-          version={t.avatar_key}
-        />
-        <strong>{t.alias}</strong>
-        {t.value_tier && (
-          <HolderTierBadge
-            tier={t.value_tier}
-            expiresAt={t.value_tier_expires_at}
-          />
+      <div className="thread-topline">
+        <div className="thread-meta">
+          <MemberAvatar alias={t.alias} memberId={t.member_id} version={t.avatar_key} />
+          <strong>{t.alias}</strong>
+          {t.value_tier && (
+            <HolderTierBadge tier={t.value_tier} expiresAt={t.value_tier_expires_at} />
+          )}
+          {t.bio && <span className="thread-author-bio">{t.bio}</span>}
+          {showChannel && <span>{t.room_name || t.topic}</span>}
+          {showChannel && <span aria-hidden="true">·</span>}
+          <DiscussionTimestamp timestamp={t.created_at} now={now} />
+        </div>
+        {detail && (
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={<Button type="button" size="icon-sm" variant="ghost" className="thread-overflow" aria-label="Discussion options" />}
+            >
+              <MoreHorizontal aria-hidden="true" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="thread-options-menu">
+              {t.member_id === memberId ? (
+                <DropdownMenuItem variant="destructive" onClick={() => setRemove({ type: 'threads', id: t.id })}>
+                  <Trash2 /> Delete post
+                </DropdownMenuItem>
+              ) : (
+                <>
+                  <DropdownMenuItem onClick={() => setReport({ type: 'thread', id: t.id })}>
+                    <Flag /> Report post
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setBlock({ memberId: t.member_id, alias: t.alias, source: 'thread' })}>
+                    <UserX /> Block user
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
-        {t.bio && <span className="thread-author-bio">{t.bio}</span>}
-        {showChannel && <span>{t.room_name || t.topic}</span>}
-        {showChannel && <span aria-hidden="true">·</span>}
-        <DiscussionTimestamp timestamp={t.created_at} now={now} />
       </div>
       <h3>
         {detail || !onOpen ? (
@@ -213,19 +253,29 @@ export function Thread({
         </section>
       )}
       <div className="thread-bottom">
-        {detail ? (
-          <strong className="thread-reply-heading">
-            {t.reply_count} {t.reply_count === 1 ? 'reply' : 'replies'}
-          </strong>
-        ) : (
-          <Button variant="ghost" disabled={busy} onClick={onOpen}>
-            {t.reply_count} {t.reply_count === 1 ? 'reply' : 'replies'} →
-          </Button>
-        )}
         <Button
+          type="button"
+          className="thread-icon-action"
+          variant="ghost"
+          disabled={busy}
+          aria-label={`${t.reply_count} ${t.reply_count === 1 ? 'reply' : 'replies'}`}
+          title={`${t.reply_count} ${t.reply_count === 1 ? 'reply' : 'replies'}`}
+          onClick={() => {
+            if (!detail) onOpen?.();
+            else document.getElementById(`reply-${t.id}`)?.focus();
+          }}
+        >
+          <MessageCircle aria-hidden="true" />
+          <span>{t.reply_count}</span>
+        </Button>
+        <Button
+          type="button"
+          className="thread-icon-action thread-save-action"
           variant="ghost"
           disabled={busy}
           aria-pressed={!!t.saved}
+          aria-label={t.saved ? 'Remove bookmark' : 'Save discussion'}
+          title={t.saved ? 'Remove bookmark' : 'Save discussion'}
           onClick={() =>
             run(async () => {
               await api('community/save', {
@@ -238,22 +288,7 @@ export function Thread({
           }
         >
           <Bookmark size={16} fill={t.saved ? 'currentColor' : 'none'} />
-          {t.saved ? 'Saved' : 'Save'}
         </Button>
-        <Button
-          variant="ghost"
-          onClick={() => setReport({ type: 'thread', id: t.id })}
-        >
-          Report
-        </Button>
-        {t.member_id === memberId && (
-          <Button
-            variant="ghost"
-            onClick={() => setRemove({ type: 'threads', id: t.id })}
-          >
-            Remove
-          </Button>
-        )}
       </div>
       {detail && (
         <>
@@ -265,36 +300,38 @@ export function Thread({
                 version={r.avatar_key}
               />
               <div className="reply-content">
-                <div className="reply-author">
-                  <strong>{r.alias}</strong>
-                  {r.value_tier && (
-                    <HolderTierBadge
-                      tier={r.value_tier}
-                      expiresAt={r.value_tier_expires_at}
-                    />
-                  )}
-                  {r.bio && <span className="thread-author-bio">{r.bio}</span>}
-                  <DiscussionTimestamp timestamp={r.created_at} now={now} />
+                <div className="reply-header">
+                  <div className="reply-author">
+                    <strong>{r.alias}</strong>
+                    {r.value_tier && <HolderTierBadge tier={r.value_tier} expiresAt={r.value_tier_expires_at} />}
+                    {r.bio && <span className="thread-author-bio">{r.bio}</span>}
+                    <DiscussionTimestamp timestamp={r.created_at} now={now} />
+                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger
+                      render={<Button type="button" size="icon-xs" variant="ghost" className="reply-overflow" aria-label={`Options for ${r.alias}'s reply`} />}
+                    >
+                      <MoreHorizontal aria-hidden="true" />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="thread-options-menu">
+                      {r.member_id === memberId ? (
+                        <DropdownMenuItem variant="destructive" onClick={() => setRemove({ type: 'replies', id: r.id })}>
+                          <Trash2 /> Delete reply
+                        </DropdownMenuItem>
+                      ) : (
+                        <>
+                          <DropdownMenuItem onClick={() => setReport({ type: 'reply', id: r.id })}>
+                            <Flag /> Report reply
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setBlock({ memberId: r.member_id, alias: r.alias, source: 'reply' })}>
+                            <UserX /> Block user
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
                 <p>{r.body}</p>
-                <div className="reply-actions">
-                  <Button
-                    size="xs"
-                    variant="ghost"
-                    onClick={() => setReport({ type: 'reply', id: r.id })}
-                  >
-                    Report
-                  </Button>
-                  {r.member_id === memberId && (
-                    <Button
-                      size="xs"
-                      variant="ghost"
-                      onClick={() => setRemove({ type: 'replies', id: r.id })}
-                    >
-                      Remove
-                    </Button>
-                  )}
-                </div>
               </div>
             </div>
           ))}
@@ -334,6 +371,7 @@ export function Thread({
             }}
           >
             <textarea
+              id={`reply-${t.id}`}
               name="body"
               aria-label="Your reply"
               placeholder="Write a reply…"
@@ -379,6 +417,35 @@ export function Thread({
             }
           >
             Submit report
+          </Button>
+          {error && <p role="alert">{error}</p>}
+        </DialogContent>
+      </Dialog>
+      <Dialog
+        open={!!block}
+        onOpenChange={(v) => {
+          if (!v) setBlock(null);
+        }}
+      >
+        <DialogContent>
+          <DialogTitle>Block {block?.alias}?</DialogTitle>
+          <DialogDescription>
+            Their discussions and replies will be hidden from you. You can unblock them later in Profile.
+          </DialogDescription>
+          <Button
+            variant="destructive"
+            disabled={busy}
+            onClick={() => void run(async () => {
+              if (!block) return;
+              const blocked = block;
+              await api('community/blocks', { memberId: blocked.memberId, block: true });
+              setBlock(null);
+              if (blocked.source === 'reply') await replies();
+              await refresh();
+              if (blocked.source === 'thread') onThreadBlocked?.();
+            })}
+          >
+            Block user
           </Button>
           {error && <p role="alert">{error}</p>}
         </DialogContent>

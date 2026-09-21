@@ -2346,6 +2346,22 @@ body:has(.community-entry) > footer {
   font-weight: 550;
   line-height: 1.4;
 }
+.member-shell .thread-topline {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.member-shell .thread-topline .thread-meta {
+  min-width: 0;
+  flex: 1;
+}
+.member-shell .thread-overflow {
+  flex: 0 0 auto;
+  color: var(--hp-ink-7e7e7e, #7e7e7e);
+}
+.thread-options-menu {
+  min-width: 168px;
+}
 .member-shell .thread-meta {
   font-size: 12px;
   color: var(--hp-ink-848484, #848484);
@@ -2375,6 +2391,17 @@ body:has(.community-entry) > footer {
 }
 .member-shell .thread-bottom button[aria-pressed='true'] {
   color: var(--hp-ink-4b4b4b, #4b4b4b);
+}
+.member-shell .thread-bottom .thread-icon-action {
+  min-width: 36px;
+  height: 36px;
+  gap: 6px;
+  padding: 0 9px;
+  border-radius: 999px;
+}
+.member-shell .thread-bottom .thread-save-action {
+  width: 36px;
+  padding: 0;
 }
 .member-shell .pill {
   color: var(--hp-ink-686868, #686868);

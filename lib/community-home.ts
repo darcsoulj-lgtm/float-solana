@@ -25,22 +25,28 @@ export async function communityHome(
       .bind(memberId),
     database
       .prepare(
-        'SELECT n.id,n.thread_id,n.read,n.created_at,t.title,m.alias FROM community_notifications n JOIN community_threads t ON t.id=n.thread_id JOIN community_replies r ON r.id=n.reply_id JOIN community_members m ON m.id=r.member_id WHERE n.member_id=? AND t.hidden=0 AND r.hidden=0 ORDER BY n.created_at DESC LIMIT 30',
+        'SELECT n.id,n.thread_id,n.read,n.created_at,t.title,m.alias FROM community_notifications n JOIN community_threads t ON t.id=n.thread_id JOIN community_replies r ON r.id=n.reply_id JOIN community_members m ON m.id=r.member_id WHERE n.member_id=? AND t.hidden=0 AND r.hidden=0 AND r.member_id NOT IN (SELECT blocked_id FROM community_blocks WHERE blocker_id=?) ORDER BY n.created_at DESC LIMIT 30',
       )
-      .bind(memberId),
+      .bind(memberId, memberId),
     database
       .prepare(
         'SELECT 1 FROM community_sessions WHERE hash=? AND member_id=? AND wallet IS NOT NULL',
       )
       .bind(sessionHash, memberId),
+    database
+      .prepare(
+        'SELECT m.id,m.alias,m.avatar_key FROM community_blocks b JOIN community_members m ON m.id=b.blocked_id WHERE b.blocker_id=? ORDER BY m.alias,m.id',
+      )
+      .bind(memberId),
   ]);
-  const [holdings, follows, links, notifications, session] = result;
+  const [holdings, follows, links, notifications, session, blocks] = result;
   return {
     holdingsRefreshAvailable: !!session.results.length,
     holdings: holdings.results,
     follows: follows.results.map((row) => row.symbol),
     sources: links.results,
     notifications: notifications.results,
+    blockedMembers: blocks.results,
     rooms: COMMUNITY_CHANNELS.map((channel) => ({
       ...channel,
       thread_count: 0,

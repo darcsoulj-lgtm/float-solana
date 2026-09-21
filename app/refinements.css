@@ -437,6 +437,19 @@
   align-items: center;
   gap: 8px;
 }
+.member-shell .reply-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.member-shell .reply-header .reply-author {
+  min-width: 0;
+  flex: 1;
+}
+.member-shell .reply-overflow {
+  flex: 0 0 auto;
+  color: var(--muted-foreground);
+}
 .member-shell .reply {
   display: grid;
   grid-template-columns: 34px minmax(0, 1fr);
@@ -475,16 +488,6 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
-.member-shell .reply-actions {
-  display: flex;
-  gap: 2px;
-  margin: 6px 0 0 -8px;
-}
-.member-shell .reply-actions button {
-  color: var(--muted-foreground);
-  font-size: 12px;
-  font-weight: 500;
-}
 @media (max-width: 700px) {
   .member-shell .reply {
     grid-template-columns: 30px minmax(0, 1fr);
@@ -505,6 +508,39 @@
 .compact-sources {
   padding: 8px 20px;
   border-top: 1px solid var(--border);
+}
+.member-shell .profile-blocked {
+  display: grid;
+  gap: 14px;
+  padding: 24px 0;
+  border-top: 1px solid var(--border);
+}
+.member-shell .profile-blocked h3,
+.member-shell .profile-blocked p {
+  margin: 0;
+}
+.member-shell .profile-blocked p {
+  margin-top: 4px;
+  color: var(--muted-foreground);
+  font-size: 14px;
+}
+.member-shell .blocked-user-list {
+  display: grid;
+  gap: 8px;
+}
+.member-shell .blocked-user-row {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+.member-shell .blocked-user-row .member-avatar {
+  width: 34px;
+  height: 34px;
+}
+.member-shell .blocked-user-row strong {
+  font-size: 14px;
+  font-weight: 550;
 }
 .compact-sources p {
   font-size: 12px;

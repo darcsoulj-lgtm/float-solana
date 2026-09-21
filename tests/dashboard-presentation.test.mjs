@@ -121,6 +121,12 @@ void test('discussion feed stays compact and dedicated detail owns replies', asy
       DialogTitle: ({ children }) => children,
       DialogDescription: ({ children }) => children,
     },
+    '@/components/ui/dropdown-menu': {
+      DropdownMenu: ({ children }) => children,
+      DropdownMenuTrigger: ({ children, render }) => React.cloneElement(render, {}, children),
+      DropdownMenuContent: ({ children }) => children,
+      DropdownMenuItem: ({ children, ...props }) => React.createElement('button', props, children),
+    },
     '@/lib/client': { api: async () => ({ replies: [], nextCursor: null }) },
   });
   const thread = {
@@ -147,7 +153,10 @@ void test('discussion feed stays compact and dedicated detail owns replies', asy
   const feed = renderToStaticMarkup(
     React.createElement(Thread, { ...common, onOpen: () => {} }),
   );
-  assert.match(feed, /27 replies →/);
+  assert.match(feed, /aria-label="27 replies"/);
+  assert.match(feed, /lucide-message-circle/);
+  assert.match(feed, /aria-label="Save discussion"/);
+  assert.doesNotMatch(feed, />Save</);
   assert.match(feed, /thread-body-preview/);
   assert.doesNotMatch(feed, /Write a reply/);
   const detail = renderToStaticMarkup(

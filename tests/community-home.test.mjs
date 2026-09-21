@@ -118,6 +118,15 @@ void test('home loads in one database batch and isolates holdings, session and b
     assert.equal(a.holdingsRefreshAvailable, true);
     assert.equal(a.rooms.length, 10);
     assert.ok(a.rooms.every((room) => room.id.startsWith('channel-')));
+    assert.deepEqual(a.blockedMembers, []);
+    sql.exec(
+      "INSERT INTO community_blocks(blocker_id,blocked_id,created_at) VALUES('a','b',1)",
+    );
+    const blockedHome = await communityHome(database, 'a', 'sa');
+    assert.deepEqual(
+      blockedHome.blockedMembers.map((member) => member.alias),
+      ['Bob'],
+    );
     sql.exec(
       "INSERT INTO community_bookmarks(member_id,target_type,target_id,created_at) VALUES('a','source','micron-ir',1)",
     );

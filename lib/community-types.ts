@@ -177,6 +177,11 @@ export type CommunityNotification = {
   read: number;
   created_at: number;
 };
+export type BlockedMember = {
+  id: string;
+  alias: string;
+  avatar_key?: string | null;
+};
 export type CommunityRoom = {
   id: string;
   name: string;
@@ -191,4 +196,5 @@ export type MemberHome = {
   follows: string[];
   sources: CommunitySource[];
   notifications: CommunityNotification[];
+  blockedMembers: BlockedMember[];
 };

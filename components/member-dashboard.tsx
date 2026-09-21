@@ -902,6 +902,34 @@ export function MemberDashboard({
                     onCheckedChange={(v) => setNotifyReplies(v === true)}
                   />
                 </div>
+                {!!data?.blockedMembers.length && (
+                  <section className="profile-blocked" aria-labelledby="blocked-users-heading">
+                    <div>
+                      <h3 id="blocked-users-heading">Blocked users</h3>
+                      <p>Their discussions and replies are hidden from you.</p>
+                    </div>
+                    <div className="blocked-user-list">
+                      {data.blockedMembers.map((blocked) => (
+                        <div key={blocked.id} className="blocked-user-row">
+                          <MemberAvatar alias={blocked.alias} memberId={blocked.id} version={blocked.avatar_key} />
+                          <strong>{blocked.alias}</strong>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            disabled={busy}
+                            onClick={() => void run(async () => {
+                              await api('community/blocks', { memberId: blocked.id, block: false });
+                              await refresh();
+                              setNotice(`${blocked.alias} has been unblocked.`);
+                            })}
+                          >
+                            Unblock
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                )}
                 <div className="profile-actions">
                   <Button type="submit" disabled={busy}>
                     Save profile <Check size={16} />
@@ -986,6 +1014,7 @@ export function MemberDashboard({
                       refresh={refresh}
                       detail={!!threadId}
                       onOpen={() => openDiscussion(t.id)}
+                      onThreadBlocked={closeDiscussion}
                       showChannel={!!threadId || feed === 'saved' || topic === 'all'}
                     />
                   ))

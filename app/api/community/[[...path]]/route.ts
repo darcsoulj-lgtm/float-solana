@@ -738,9 +738,11 @@ async function handler(req: Request) {
       const rows = (
         await db()
           .prepare(
-            `SELECT t.id,t.member_id,t.topic,(SELECT name FROM community_rooms WHERE id=t.topic) room_name,t.title,t.body,t.created_at,t.hidden,${authorColumns},EXISTS(SELECT 1 FROM community_bookmarks b WHERE b.member_id=? AND b.target_type='thread' AND b.target_id=t.id) saved,(SELECT count(*) FROM community_replies r WHERE r.thread_id=t.id AND r.hidden=0) reply_count FROM community_threads t JOIN community_members m ON m.id=t.member_id WHERE t.hidden=0 AND (?='all' OR t.topic=?) AND (?='' OR t.id=?) AND (?!='personal' OR t.topic='general' OR t.topic IN (SELECT symbol FROM community_holdings WHERE member_id=? UNION SELECT symbol FROM community_follows WHERE member_id=?)) AND (?!='saved' OR EXISTS(SELECT 1 FROM community_bookmarks b WHERE b.member_id=? AND b.target_type='thread' AND b.target_id=t.id)) AND (t.created_at<? OR (t.created_at=? AND t.id<?)) ORDER BY t.created_at DESC,t.id DESC LIMIT 31`,
+            `SELECT t.id,t.member_id,t.topic,(SELECT name FROM community_rooms WHERE id=t.topic) room_name,t.title,t.body,t.created_at,t.hidden,${authorColumns},EXISTS(SELECT 1 FROM community_bookmarks b WHERE b.member_id=? AND b.target_type='thread' AND b.target_id=t.id) saved,(SELECT count(*) FROM community_replies r WHERE r.thread_id=t.id AND r.hidden=0 AND r.member_id NOT IN (SELECT blocked_id FROM community_blocks WHERE blocker_id=?)) reply_count FROM community_threads t JOIN community_members m ON m.id=t.member_id WHERE t.hidden=0 AND t.member_id NOT IN (SELECT blocked_id FROM community_blocks WHERE blocker_id=?) AND (?='all' OR t.topic=?) AND (?='' OR t.id=?) AND (?!='personal' OR t.topic='general' OR t.topic IN (SELECT symbol FROM community_holdings WHERE member_id=? UNION SELECT symbol FROM community_follows WHERE member_id=?)) AND (?!='saved' OR EXISTS(SELECT 1 FROM community_bookmarks b WHERE b.member_id=? AND b.target_type='thread' AND b.target_id=t.id)) AND (t.created_at<? OR (t.created_at=? AND t.id<?)) ORDER BY t.created_at DESC,t.id DESC LIMIT 31`,
           )
           .bind(
+            member.id,
+            member.id,
             member.id,
             topic,
             topic,
@@ -831,10 +833,51 @@ async function handler(req: Request) {
           rows.length > 30 ? rows[29].created_at + ':' + rows[29].id : null,
       });
     }
+    if (path[0] === 'blocks') {
+      if (!post) {
+        const blockedMembers = (
+          await db()
+            .prepare(
+              'SELECT m.id,m.alias,m.avatar_key FROM community_blocks b JOIN community_members m ON m.id=b.blocked_id WHERE b.blocker_id=? ORDER BY m.alias,m.id',
+            )
+            .bind(member.id)
+            .all()
+        ).results;
+        return json({ blockedMembers });
+      }
+      const blockedId = textValue(b.memberId, 36, 36, 'Member');
+      if (blockedId === member.id)
+        throw new AppError('You cannot block yourself.');
+      if (
+        !(await db()
+          .prepare('SELECT id FROM community_members WHERE id=?')
+          .bind(blockedId)
+          .first())
+      )
+        throw new AppError('Member unavailable.', 404);
+      if (b.block === true)
+        await db()
+          .prepare(
+            'INSERT INTO community_blocks(blocker_id,blocked_id,created_at) VALUES(?,?,?) ON CONFLICT(blocker_id,blocked_id) DO NOTHING',
+          )
+          .bind(member.id, blockedId, Date.now())
+          .run();
+      else if (b.block === false)
+        await db()
+          .prepare(
+            'DELETE FROM community_blocks WHERE blocker_id=? AND blocked_id=?',
+          )
+          .bind(member.id, blockedId)
+          .run();
+      else throw new AppError('Choose whether to block this member.');
+      return json({ ok: true });
+    }
     if (path[0] === 'threads' && path[1]) {
       const thread = await db()
-        .prepare('SELECT id,member_id,hidden FROM community_threads WHERE id=?')
-        .bind(path[1])
+        .prepare(
+          'SELECT id,member_id,hidden FROM community_threads WHERE id=? AND member_id NOT IN (SELECT blocked_id FROM community_blocks WHERE blocker_id=?)',
+        )
+        .bind(path[1], member.id)
         .first<{ id: string; member_id: string; hidden: number }>();
       if (!thread || thread.hidden)
         throw new AppError('Discussion unavailable.', 404);
@@ -893,11 +936,13 @@ async function handler(req: Request) {
           if (thread.member_id !== member.id)
             await db()
               .prepare(
-                'INSERT INTO community_notifications (id,member_id,thread_id,reply_id,read,created_at) SELECT ?,?,?,?,0,? WHERE EXISTS(SELECT 1 FROM community_members WHERE id=? AND notify_replies=1 AND suspended=0)',
+                'INSERT INTO community_notifications (id,member_id,thread_id,reply_id,read,created_at) SELECT ?,?,?,?,0,? WHERE EXISTS(SELECT 1 FROM community_members WHERE id=? AND notify_replies=1 AND suspended=0) AND NOT EXISTS(SELECT 1 FROM community_blocks WHERE blocker_id=? AND blocked_id=?)',
               )
               .bind(
                 crypto.randomUUID(),
                 thread.member_id,
+                thread.member_id,
+                member.id,
                 thread.id,
                 id,
                 now,
@@ -915,9 +960,9 @@ async function handler(req: Request) {
         const rows = (
           await db()
             .prepare(
-              `SELECT r.id,r.member_id,r.thread_id,r.body,r.hidden,r.created_at,${authorColumns} FROM community_replies r JOIN community_members m ON m.id=r.member_id WHERE r.thread_id=? AND r.hidden=0 AND (r.created_at>? OR (r.created_at=? AND r.id>?)) ORDER BY r.created_at,r.id LIMIT 51`,
+              `SELECT r.id,r.member_id,r.thread_id,r.body,r.hidden,r.created_at,${authorColumns} FROM community_replies r JOIN community_members m ON m.id=r.member_id WHERE r.thread_id=? AND r.hidden=0 AND r.member_id NOT IN (SELECT blocked_id FROM community_blocks WHERE blocker_id=?) AND (r.created_at>? OR (r.created_at=? AND r.id>?)) ORDER BY r.created_at,r.id LIMIT 51`,
             )
-            .bind(thread.id, cursor, cursor, key)
+            .bind(thread.id, member.id, cursor, cursor, key)
             .all<CommunityReply>()
         ).results;
         return json({
