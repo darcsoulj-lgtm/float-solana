@@ -1069,45 +1069,39 @@ export function MemberDashboard({
               {!loading && !holdings.length && (
                 <p>Refresh verification to detect all your holdings.</p>
               )}
-              <div className="verification-note">
+              <div className="verification-status">
                 <span className="small-dot" />
-                <div>
-                  Verified until
-                  <br />
-                  <strong>
-                    {new Date(member.verified_until).toLocaleString(undefined, {
-                      month: 'short',
-                      day: 'numeric',
-                      hour: 'numeric',
-                      minute: '2-digit',
-                    })}
-                  </strong>
-                </div>
+                <span>Verified</span>
+                <time>
+                  until{' '}
+                  {new Date(member.verified_until).toLocaleString(undefined, {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                  })}
+                </time>
               </div>
-              <button
-                className="text-action"
-                disabled={holdingsChecking}
-                onClick={() =>
-                  data?.holdingsRefreshAvailable
-                    ? void refreshWalletHoldings(true).catch((e) =>
-                        setHoldingsError(e.message),
-                      )
-                    : renew()
-                }
-              >
-                {holdingsChecking ? 'Checking holdings…' : 'Refresh holdings'}{' '}
-                <RefreshCw size={13} />
-              </button>
-              <button className="text-action" onClick={renew}>
-                Manage wallet
-              </button>
+              <div className="holding-actions">
+                <button
+                  className="holding-action"
+                  disabled={holdingsChecking}
+                  onClick={() =>
+                    data?.holdingsRefreshAvailable
+                      ? void refreshWalletHoldings(true).catch((e) =>
+                          setHoldingsError(e.message),
+                        )
+                      : renew()
+                  }
+                >
+                  <RefreshCw size={13} />
+                  {holdingsChecking ? 'Checking…' : 'Refresh'}
+                </button>
+                <button className="holding-action" onClick={renew}>
+                  Wallet
+                </button>
+              </div>
             </section>
-            <div className="context-principle">
-              <small>
-                Independent of token issuers. Discussions are not investment
-                advice.
-              </small>
-            </div>
           </aside>
         </div>
         <div className="member-footer">

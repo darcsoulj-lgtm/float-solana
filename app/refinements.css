@@ -1147,6 +1147,90 @@ fieldset.holding-filter-chips {
 .quote-delay { display: inline-flex; align-items: center; gap: .2rem; margin-left: .4rem; font-size: .72rem; font-weight: 400; color: var(--muted-foreground); vertical-align: middle; white-space: nowrap; }
 .quote-delay .holdings-info-trigger { margin: 0; }
 
+/* The discussion is a continuous reading surface; only structured content
+   inside a post, such as polls, gets its own container. */
+.member-shell .thread-post {
+  margin: 0;
+  padding: 26px 0;
+  border-width: 0 0 1px;
+  border-radius: 0;
+  background: transparent;
+}
+.member-shell .thread-post:first-of-type {
+  border-top: 1px solid var(--hp-edge-e1e1e1, #e1e1e1);
+}
+.member-shell .thread-post h3 {
+  margin: 16px 0 10px;
+}
+.member-shell .thread-post > p {
+  margin: 0;
+}
+.member-shell .thread-bottom {
+  justify-content: flex-start;
+  gap: 4px;
+  margin-top: 18px;
+  padding-top: 10px;
+}
+.member-shell .thread-bottom button {
+  padding-inline: 6px;
+}
+
+/* Holdings are a short session summary, not a second dashboard. */
+.member-shell .holdings-card {
+  padding: 18px;
+}
+.member-shell .holdings-card > .holding-tags {
+  margin-top: 10px;
+}
+.member-shell .holding-tags button {
+  gap: 6px;
+  padding: 5px 8px;
+  background: var(--card);
+  border: 1px solid var(--border);
+}
+.member-shell .verification-status {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  color: var(--foreground);
+  font-size: 12px;
+}
+.member-shell .verification-status .small-dot {
+  margin: 0 2px 0 0;
+}
+.member-shell .verification-status time {
+  color: var(--muted-foreground);
+}
+.member-shell .holding-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 14px;
+}
+.member-shell .holding-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 500;
+}
+.member-shell .holding-action:hover:not(:disabled) {
+  border-color: var(--foreground);
+  color: var(--foreground);
+}
+.member-shell .holding-action:disabled {
+  cursor: wait;
+  opacity: .65;
+}
+
 /* Mobile discussions use a roomy feed instead of stacked, narrow cards. */
 @media (max-width: 700px) {
   .member-shell .channel-filters {
@@ -1160,28 +1244,6 @@ fieldset.holding-filter-chips {
     margin-left: 6px;
   }
   .member-shell .thread-post {
-    margin: 0;
     padding: 22px 0;
-    border-width: 0 0 1px;
-    border-radius: 0;
-    background: transparent;
-  }
-  .member-shell .thread-post:first-of-type {
-    border-top: 1px solid var(--hp-edge-e1e1e1, #e1e1e1);
-  }
-  .member-shell .thread-post h3 {
-    margin: 16px 0 10px;
-  }
-  .member-shell .thread-post > p {
-    margin: 0;
-  }
-  .member-shell .thread-bottom {
-    justify-content: flex-start;
-    gap: 4px;
-    margin-top: 18px;
-    padding-top: 10px;
-  }
-  .member-shell .thread-bottom button {
-    padding-inline: 6px;
   }
 }
