@@ -17,7 +17,7 @@ export function MemberProfile({ author, avatarOnly = false, nameOnly = false }: 
       {!avatarOnly && <span>{author.alias}</span>}
     </button>
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="member-profile-card">
+      <DialogContent placement="responsive-sheet" className="member-profile-card">
         <MemberAvatar alias={author.alias} memberId={author.member_id} version={author.avatar_key} />
         <DialogTitle>{author.alias}</DialogTitle>
         <HolderTierBadge tier={author.value_tier} expiresAt={author.value_tier_expires_at} />

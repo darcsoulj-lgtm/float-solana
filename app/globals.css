@@ -5351,6 +5351,24 @@ body:has(.community-entry) > footer {
 .member-profile-trigger:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; border-radius: 6px; }
 .member-profile-card .holder-tier-badge { align-self: flex-start; }
 .member-profile-bio { white-space: pre-wrap; overflow-wrap: anywhere; }
+/* Sheet geometry owns its positioning; never combine with centering translate utilities.
+   Production CSS optimization can fold translate:none into transform without
+   clearing an underlying individual translate property. */
+[data-slot='dialog-content'].dialog-responsive-sheet {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
 @media (max-width: 640px) {
-  [data-slot='dialog-content'].member-profile-card { top: auto; bottom: 0; left: 0; transform: none; translate: none; width: 100%; max-width: 100%; border-radius: 20px 20px 0 0; padding: 24px 24px max(24px, env(safe-area-inset-bottom)); }
+  [data-slot='dialog-content'].dialog-responsive-sheet {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    transform: none;
+    width: 100%;
+    max-width: 100%;
+    max-height: calc(100dvh - env(safe-area-inset-top) - 16px);
+    border-radius: 20px 20px 0 0;
+    padding: 24px 24px max(24px, env(safe-area-inset-bottom));
+  }
 }
