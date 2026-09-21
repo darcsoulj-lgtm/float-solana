@@ -29,10 +29,9 @@ export function TesseraContext({ mint }: { mint: string }) {
     : null;
   return (
     <details className="market-methodology">
-      <summary>Tessera issuer context · private-company exposure</summary>
+      <summary>About this pre-IPO token</summary>
       <p>
-        Issuer terms determine the rights attached to this token. It should not
-        be treated as direct ownership of the underlying company’s shares.
+        The issuer decides what this token gives you. It is not direct ownership of the company’s shares.
       </p>
       {item && (
         <p>
@@ -51,7 +50,7 @@ export function TesseraContext({ mint }: { mint: string }) {
       )}
       <p>
         {item
-          ? 'The issuer supplies no price observation timestamp. This mark is informational, not a live DEX price; it is excluded from Float’s price and valuation calculations.'
+          ? 'The issuer does not provide a time for this price. It is for context only, not a live DEX price, and Float does not use it in totals.'
           : 'Issuer pricing context is currently unavailable.'}
       </p>
       {item && source?.fetchedAt && (

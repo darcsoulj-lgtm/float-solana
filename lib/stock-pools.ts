@@ -4,7 +4,7 @@ import type { Pool } from './market-data';
 // Bump whenever eligibility changes: old broad snapshots must never be reused.
 export const POOL_POLICY_VERSION = 'stonkfun-v2';
 export const POOL_SCOPE =
-  'Verified stock pools with reviewed settlement assets or other verified stocks, plus pools pairing an official Stonkfun launch mint with its verified stock quote mint. Stonkfun-linked volume is launch-token trading against a stock token, not stock purchases. Each pool address is counted once; coverage is partial.';
+  'Only reviewed Solana pools are counted. Each pool is counted once, so this is a partial view. Stonkfun volume is launch-token trading, not stock purchases.';
 
 export type StonkfunPoolIdentity = {
   address: string;

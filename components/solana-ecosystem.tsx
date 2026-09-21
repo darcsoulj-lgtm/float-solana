@@ -114,9 +114,7 @@ export function SolanaEcosystem({
           <span className="metric-label">
             <span>Tracked value · est.</span>
             <MetricInfo label="About tracked value">
-              Estimated value on Solana. Issuers use different supply bases;
-              this is not company market capitalization. See Coverage &amp;
-              methodology.
+              An estimate for tracked tokens on Solana. Issuers count supply differently, so this is not a company market cap.
             </MetricInfo>
           </span>
           <strong>{usd(coverage.total)}</strong>
@@ -129,7 +127,7 @@ export function SolanaEcosystem({
           <span className="metric-label">
             <span>DEX volume · 24h</span>
             <MetricInfo label="About market volume">
-              {POOL_SCOPE} Each pool is counted once across the market.
+              {POOL_SCOPE}
             </MetricInfo>
           </span>
           <strong>{usd(marketActivity.volume24h)}</strong>
@@ -138,8 +136,7 @@ export function SolanaEcosystem({
           <span className="metric-label">
             <span>Pool liquidity</span>
             <MetricInfo label="About market liquidity">
-              Both assets in observed eligible pools. Shared pools are counted
-              once. Coverage is partial.
+              Money in the reviewed Solana pools we found. Each pool is counted once.
             </MetricInfo>
           </span>
           <strong>{usd(marketActivity.liquidity)}</strong>
@@ -214,15 +211,14 @@ export function SolanaEcosystem({
             <>
               Mixed supply bases{' '}
               <MetricInfo label="About issuer values">
-                Issuer values use different, explicitly labelled supply bases. They are estimates, not a uniform market-cap measure.
+                Issuers count supply differently. These are estimates, not comparable market caps.
               </MetricInfo>
             </>
           ) : (
             <>
               Observed DEX pool coverage · partial{' '}
               <MetricInfo label="About issuer activity">
-                {POOL_SCOPE} Shared pools may contribute to two issuers; issuer
-                totals must not be added together.
+                {POOL_SCOPE} A shared pool can appear for two issuers, so do not add issuer totals together.
               </MetricInfo>
             </>
           )}
@@ -253,7 +249,7 @@ export function SolanaEcosystem({
         )}
       </section>
       <details className="market-methodology coverage-diagnostics">
-        <summary>Market coverage &amp; methodology</summary>
+        <summary>What this market total means</summary>
         <p>
           <strong>Tracked value · est.: {usd(coverage.total)}</strong> ·{' '}
           {coverage.issuerCount} / {ISSUERS.length} issuers
@@ -262,10 +258,7 @@ export function SolanaEcosystem({
           {coverage.mixedBases && ' · Mixed supply bases'}
         </p>
         <p>
-          This is the sum for Float’s tracked issuers, not the total Solana
-          market or a circulating market-cap measure. All quantities are on
-          Solana. Supply bases differ: it is not a uniform measure of
-          circulating value. Missing values are excluded, never counted as zero.
+          This is the combined estimate for issuers Float tracks. It is not the whole Solana market or a standard market-cap number. Missing values are left out, not counted as zero.
         </p>
         <div className="market-table-scroll">
           <table className="market-table">
@@ -293,10 +286,10 @@ export function SolanaEcosystem({
                       {c.total === null
                         ? 'Unavailable'
                         : c.delayed
-                          ? `Last verified ${new Date(c.observedAt!).toLocaleString()}`
+                        ? `Checked ${new Date(c.observedAt!).toLocaleString()}`
                           : c.valued.some((r) => r.priceDelayed)
-                            ? 'Includes dated reference prices'
-                            : 'Within freshness limits'}
+                          ? 'Includes older prices'
+                            : 'Recently checked'}
                     </td>
                   </tr>
                 );
@@ -305,19 +298,7 @@ export function SolanaEcosystem({
           </table>
         </div>
         <p>
-          xStocks: issuer-adjusted circulating quantities and collateral
-          reference prices, using the same units as its dashboard. HKD quotes
-          are converted with dated ECB reference rates. Updated every 10
-          minutes; reference prices may be up to 72 hours old. During an outage,
-          the last verified circulation snapshot is shown with its original date
-          for up to 24 hours. No multiplier is applied twice. Ondo uses
-          DefiLlama’s paired Solana token supplies and USD valuations, with the
-          original snapshot timestamp (at most 36 hours old). This avoids mixing
-          raw token units with adjusted share prices. It includes supported
-          stocks and ETFs; cash tokens are excluded. Other issuers use price ×
-          Solana mint supply, subject to price freshness, unit and conflict
-          checks. Their minted estimates can include issuer inventory. Adding
-          them gives an estimated tracked value, not circulating AUM.
+          xStocks uses its reported circulating tokens and reference prices. Ondo uses its reported Solana supply and USD value. Other issuers use price × tokens minted on Solana. Those estimates can include issuer-held tokens, so the total is not circulating AUM.
         </p>
         <h3>Largest tracked values</h3>
         {leaders.map((r) => (
@@ -336,17 +317,12 @@ export function SolanaEcosystem({
           </button>
         ))}
         {!leaders.length && <p>Waiting for current prices and supply.</p>}
-        <h3>Methodology &amp; rights</h3>
+        <h3>Important limits</h3>
         <p>
-          Each mint is counted once. Different issuers’ tokens remain separate
-          products, even when they reference the same company. No cross-chain
-          balances or underlying-company market caps are included. Missing or
-          unit-ambiguous valuations are excluded.
+          Each token is counted once. Tokens from different issuers are different products, even when they track the same company. Other chains and unclear values are left out.
         </p>
         <p>
-          Membership verifies a token balance, not registered shareholder
-          status. Custody, redemption, eligibility and economic rights differ by
-          issuer. Private-company products can provide indirect exposure.
+          Membership checks a token balance. It does not prove shareholder status. Rights and eligibility depend on the issuer.
         </p>
         <nav>
           <a

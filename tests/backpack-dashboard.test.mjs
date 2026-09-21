@@ -385,7 +385,7 @@ void test('Public initial render contains accessible search, sort and detail con
   assert.match(html, /aria-sort="descending"/);
   assert.match(html, /aria-expanded="false"/);
   assert.match(html, /no wallet required/);
-  assert.match(html, /Sources &amp; coverage/);
+  assert.match(html, /Sources and important limits/);
   assert.doesNotMatch(html, /Sign in to view|data-theme="light"/);
 });
 
@@ -397,7 +397,7 @@ void test('Embedded Backpack keeps dashboard controls without the public join pr
   );
   assert.match(html, /backpack-dashboard bp-embedded/);
   assert.match(html, /aria-label="Search stocks"/);
-  assert.match(html, /Sources &amp; coverage/);
+  assert.match(html, /Sources and important limits/);
   assert.doesNotMatch(html, /Join the holder community|FLOAT \/ SOLANA/);
   const publicHtml = renderToStaticMarkup(
     React.createElement(BackpackDashboardPage),
@@ -466,7 +466,7 @@ void test('Issuer dashboards place valuation before volume and liquidity, keepin
       'Pool liquidity',
       '24h change',
       'Search stocks',
-      'Sources &amp; coverage',
+      'Sources and important limits',
     ])
       assert.ok(html.includes(label));
     assert.ok(

@@ -312,7 +312,7 @@ export function MarketOverviewPanel({
             <span>Token price</span>
             <strong>{money(observation.price)}</strong>
             {observation.priceDelayed && (
-              <span className="quote-delay">Delayed <MetricInfo label="Quote timestamp">Last available quote: {time(observation.priceTime)}. This is not a live price.</MetricInfo></span>
+              <span className="quote-delay">Delayed <MetricInfo label="Quote timestamp">Last quote: {time(observation.priceTime)}. It may not be current.</MetricInfo></span>
             )}
           </div>
           <div>
@@ -384,13 +384,13 @@ export function MarketOverviewPanel({
             {observation.circulation && (
               <>
                 <div>
-                  <dt>Circulating supply · Solana</dt>
+                  <dt>Tokens in circulation · Solana</dt>
                   <dd>
                     {observation.circulation.circulatingSupply.toLocaleString(
                       'en-US',
                       { maximumFractionDigits: 5 },
                     )}{' '}
-                    adjusted units
+                    tokens
                   </dd>
                 </div>
                 <div>
@@ -404,8 +404,7 @@ export function MarketOverviewPanel({
                     >
                       xStocks issuer data ↗
                     </a>
-                    . Retrieved {time(observation.circulationTime)}; reference
-                    prices may be up to 72 hours old.
+                    . Checked {time(observation.circulationTime)}. This reference price can be up to 72 hours old.
                   </dd>
                 </div>
                 {observation.circulation.fxDate && (
@@ -443,10 +442,9 @@ export function MarketOverviewPanel({
               </div>
             )}
             <div>
-              <dt>Gross minted value · not AUM</dt>
+              <dt>Total minted value · est.</dt>
               <dd>
-                {money(observation.issuedValue, true)} · includes inventory;
-                token-price estimate
+                {money(observation.issuedValue, true)} · includes issuer-held tokens. This is not AUM.
               </dd>
             </div>
             {detailVolume !== null && (
@@ -494,14 +492,13 @@ export function MarketOverviewPanel({
           </dl>
           {detailVolume !== null && (
             <p>
-              {POOL_SCOPE} Volume sums eligible returned pools over 24 hours;
-              discovery is partial and excludes RFQ and centralized exchanges.
+              {POOL_SCOPE} It excludes RFQ and centralized exchanges.
             </p>
           )}
         </details>
         <div className="market-metrics token-metrics market-secondary-metrics">
           <div>
-            <span title="Minted tokens on Solana, net of burns. Unadjusted for display multipliers; excludes other chains.">
+            <span title="All tokens minted on Solana, after burns. It does not include other chains.">
               Solana supply
             </span>
             <strong>
@@ -511,7 +508,7 @@ export function MarketOverviewPanel({
                   }).format(observation.supply.supply)
                 : 'Not available'}
             </strong>
-            <small>Unadjusted tokens · excludes other chains</small>
+            <small>All minted tokens on Solana</small>
           </div>
           <div>
             <span>
@@ -522,37 +519,36 @@ export function MarketOverviewPanel({
             </strong>
             <small>
               {token.issuer === 'xstocks'
-                ? 'Pre-minted inventory excluded'
-                : 'Includes minted inventory · not AUM'}
+                ? 'Issuer inventory excluded'
+                : 'Includes issuer-held tokens · not AUM'}
             </small>
           </div>
           <div>
-            <span>Observed pool liquidity</span>
+            <span>Pool liquidity found</span>
             <strong>{money(poolLiquidity, true)}</strong>
-            <small>{pools.length} eligible pools · partial coverage</small>
+            <small>{pools.length} reviewed pools · not the full market</small>
           </div>
         </div>
         <p className="market-footnote market-source-line">
           {token.issuer !== 'xstocks' &&
             !observation.valuationSource &&
             observation.priceConflict &&
-            'Price sources differ by more than 5%. Valuation is withheld pending reconciliation. '}
+            'Price sources differ by more than 5%, so this value is hidden for now. '}
           {token.issuer === 'xstocks'
-            ? 'Circulating value excludes pre-minted inventory. '
-            : 'Minted value includes all outstanding mint supply; circulating value is not yet verified. '}
-          Solana only. Not AUM or an executable quote.
+            ? 'This value excludes issuer inventory. '
+            : 'This value includes all minted tokens, including issuer inventory. '}
+          Solana only. Not AUM and not a guaranteed trade price.
           {observation.priceSource === 'DEX pool' &&
-            ' Pool prices may move sharply when liquidity is thin.'}
+            ' Thin pools can move sharply.'}
           {observation.valuationUnavailableReason === 'units' &&
-            ' Gross mint valuation is unavailable while token quote units are unconfirmed.'}
+            ' We need to confirm the token units before estimating its value.'}
           {observation.price === null &&
             ' No recent price is available from the connected sources.'}
         </p>
         {observed && (
           <details className="market-methodology market-cmc-detail">
             <summary>
-              CoinMarketCap · circulating supply, market cap and longer-term
-              performance
+              CoinMarketCap details
             </summary>
             <dl className="market-facts">
               <div>
@@ -564,7 +560,7 @@ export function MarketOverviewPanel({
                 </dd>
               </div>
               <div>
-                <dt>Circulating token market cap</dt>
+              <dt>Token market cap in circulation</dt>
                 <dd>{money(observed.marketCap, true)}</dd>
               </div>
               <div>
@@ -614,9 +610,7 @@ export function MarketOverviewPanel({
                 </div>
               </dl>
               <p className="market-footnote">
-                Registry retrieved {time(data?.catalog.fetchedAt)}. Account and
-                regional eligibility still apply. An open book is not a promise
-                of execution.
+                Checked {time(data?.catalog.fetchedAt)}. Your account and region may still affect access. An open book does not guarantee a trade.
               </p>
               <a
                 href="https://docs.backpack.exchange/#tag/Markets"
@@ -651,9 +645,7 @@ export function MarketOverviewPanel({
                     </div>
                   </dl>
                   <p className="market-footnote">
-                    Book time: {time(quote.timestamp)}. Refreshes every 30
-                    seconds. 100 bps = 1%. Spot depth excludes RFQ quotes;
-                    available liquidity can change.
+                    Checked {time(quote.timestamp)}. Updates every 30 seconds. 100 bps = 1%. RFQ quotes are not included, and liquidity can change.
                   </p>
                 </>
               ) : (
@@ -682,11 +674,8 @@ export function MarketOverviewPanel({
             </span>
           </div>
           <p className="market-footnote">
-            {pools.length} eligible pools · {time(detailedPools?.fetchedAt)}
-            {detailedPools?.stale ? ' · Delayed' : ''}. DEX Screener may limit
-            results. {POOL_SCOPE} Pool addresses are counted once, including
-            pairs where this token is on either side. Liquidity includes both
-            assets in each pool; excludes unreturned pools and RFQ.
+            {pools.length} reviewed pools · {time(detailedPools?.fetchedAt)}
+            {detailedPools?.stale ? ' · Delayed' : ''}. DEX Screener may not return every pool. {POOL_SCOPE} Liquidity includes both tokens in each pool and excludes RFQ.
           </p>
           {pools.slice(0, 5).map((p) => (
             <a
@@ -708,7 +697,7 @@ export function MarketOverviewPanel({
               {detailedPools?.stale
                 ? 'Pool data is temporarily unavailable.'
                 : detailedPools
-                  ? 'No eligible pools returned by DEX Screener. Other liquidity may exist.'
+                  ? 'No reviewed pools were returned. Other pools may exist.'
                   : 'Loading pools…'}
             </p>
           )}
@@ -817,17 +806,17 @@ export function MarketOverviewPanel({
           <th aria-sort={sortable ? sortAria('symbol') : undefined}>{sortable ? sortHeader('symbol', 'Token / issuer') : 'Token / issuer'}</th>
           <th aria-sort={sortable ? sortAria('supply') : undefined}><span className="metric-label">
             {sortable ? sortHeader('supply', 'Supply') : 'Supply'}
-            <MetricInfo label="About token supply">xStocks shows circulating Solana supply. Other issuers show minted onchain supply, which may include issuer inventory.</MetricInfo>
+            <MetricInfo label="About token supply">xStocks shows tokens in circulation. Other issuers show all tokens minted on Solana, which can include issuer-held tokens.</MetricInfo>
           </span></th>
           <th aria-sort={sortable ? sortAria('price') : undefined}>{sortable ? sortHeader('price', 'Token price') : 'Token price'}</th>
           <th aria-sort={sortable ? sortAria('change') : undefined}>{sortable ? sortHeader('change', '24h change') : '24h change'}</th>
           <th aria-sort={sortable ? sortAria('volume') : undefined}><span className="metric-label">
             {sortable ? sortHeader('volume', 'DEX volume · 24h') : 'DEX volume · 24h'}
-            <MetricInfo label="About DEX volume">{POOL_SCOPE} Volume sums eligible returned pools. Coverage is partial; missing values are not zero.</MetricInfo>
+            <MetricInfo label="About DEX volume">{POOL_SCOPE} A blank value means we do not have data; it does not mean zero.</MetricInfo>
           </span></th>
           <th aria-sort={sortable ? sortAria('liquidity') : undefined}><span className="metric-label">
             {sortable ? sortHeader('liquidity', 'Pool liquidity') : 'Pool liquidity'}
-            <MetricInfo label="About pool liquidity">Liquidity in observed Solana pools, including both assets in each pool. Coverage is partial. Shared pools can appear under more than one token, so rows should not be added together.</MetricInfo>
+            <MetricInfo label="About pool liquidity">Money in the Solana pools we found. A shared pool can show under two tokens, so do not add token rows together.</MetricInfo>
           </span></th>
         </tr></thead>
         <tbody>{rows.map(renderTokenRow)}</tbody>
@@ -1001,16 +990,9 @@ export function MarketOverviewPanel({
       )}
       <div className="market-pagination">
         <details className="market-methodology">
-          <summary>Table sources</summary>
+          <summary>How table numbers are sourced</summary>
           <p>
-            Backpack prices and 24h changes: official Backpack external ticker.
-            Other prices: CoinMarketCap, fresh DefiLlama, then DEX pool. Older
-            DefiLlama references are labeled Delayed (up to 96 hours). DEX
-            volume and liquidity: eligible DEX Screener pools, with partial
-            coverage.
-            {POOL_SCOPE} Missing data is shown as —. Supply and valuation
-            estimates are available in stock details and Coverage &amp;
-            methodology.
+            Backpack prices come from Backpack. Other prices come from CoinMarketCap, then recent DefiLlama data, then a DEX pool. DEX volume and liquidity come from DEX Screener. {POOL_SCOPE} A dash means no data was available.
           </p>
         </details>
         <div>
@@ -1036,7 +1018,7 @@ export function MarketOverviewPanel({
         </div>
       </div>
       <details className="market-methodology">
-        <summary>Data sources & methodology</summary>
+        <summary>Sources and important limits</summary>
         <p className="market-attribution">
           Sources:{' '}
           <a
@@ -1073,47 +1055,19 @@ export function MarketOverviewPanel({
           .
         </p>
         <p>
-          Price listings and reviewed registries are matched by exact Solana
-          mint, not ticker name. Backpack-issued stocks use Backpack’s official
-          external ticker for price and 24-hour change; its venue ticker is kept
-          separate from DEX activity. CoinMarketCap supplies aggregate token
-          prices, circulating supply, token market cap, volume and price
-          changes. We display observations no older than 15 minutes; missing
-          listings use separately labeled pool or onchain data where available.
-          CMC market cap measures circulating tokens at the provider’s price,
-          not the underlying company’s market cap. Without a CMC price, we
-          prefer a recent DefiLlama reference with confidence of at least 0.8; a
-          single DEX pool is the final fallback. Reference prices are not
-          executable quotes. Neither source proves backing or solvency. A
-          difference above 5% between available price sources triggers a review
-          flag and excludes the token from valuation totals. This is our review
-          threshold, not an accuracy guarantee.
+          We match tokens by their exact Solana address, not only by ticker. Backpack prices and 24-hour changes come from Backpack. For other tokens, we use CoinMarketCap first, then recent DefiLlama data, then a DEX pool. Prices are observations, not guaranteed trade prices or proof that an issuer is backed.
         </p>
         <p>
-          DefiLlama 24h changes compare prices for the same mint from the same
-          source, with timestamps within 15 minutes of a 24-hour interval. We
-          never combine a pool price with another provider’s historical price.
-          {POOL_SCOPE} DEX liquidity sums unique eligible returned pool
-          addresses, including either side of a pair. The provider may limit the
-          returned set; this is not total Solana liquidity or volume.
+          A 24-hour change always compares the same token from the same source. {POOL_SCOPE} These numbers are not the whole Solana market.
         </p>
         <p>
-          Fetched timestamps show when we retrieved data. DEX Screener does not
-          supply a quote timestamp in this response. Missing values stay blank;
-          an unavailable source is never treated as zero. Your exact wallet
-          balances are not sent to these providers.
+          Times show when Float checked the source. A dash means data was unavailable, not zero. We do not send your exact wallet balance to these sources.
         </p>
         <p>
-          Gross unadjusted supply comes from validated Solana mint accounts. Its
-          value includes inventory and appears only in source details. The
-          headline and table use issuer-adjusted circulating quantities,
-          excluding pre-minted inventory, multiplied by issuer reference prices.
-          No other chains, unverified issuers or gross mint values enter this
-          aggregate.
+          “Tracked value” only covers tokens Float tracks on Solana. Issuers use different supply methods, so it is an estimate, not a company market cap or a single market-cap number.
         </p>
         <p>
-          Token rights, conversion and eligibility depend on the issuer’s terms.
-          Review{' '}
+          Your token’s rights, redemption and eligibility come from its issuer, not from Float. Review{' '}
           <a
             href="https://learn.backpack.exchange/blog/introducing-backpack-securities"
             target="_blank"
@@ -1141,9 +1095,7 @@ export function MarketOverviewPanel({
           </a>
         </nav>
         <p>
-          Those industry dashboards are external resources. Token Terminal data
-          and DefiLlama’s paid RWA dataset are not imported here. Backpack
-          exchange TVL is not tokenized-stock backing.
+          These are outside resources. Float does not import Token Terminal data or treat Backpack exchange TVL as token backing.
         </p>
       </details>
     </div>

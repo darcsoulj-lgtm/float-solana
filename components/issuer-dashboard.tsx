@@ -494,11 +494,11 @@ export function IssuerDashboardContent({
             Onchain value · est.{' '}
             <MetricInfo label="Onchain value source and coverage">
               {issuer === 'xstocks'
-                ? 'Official Solana circulating supply × issuer reference price. Pre-minted inventory is excluded.'
+                ? 'xStocks-reported tokens in circulation × its reference price. Issuer inventory is excluded.'
                 : issuer === 'ondo'
-                  ? 'Solana issued-token values from DefiLlama’s Ondo Global Markets breakdown, using paired supplies and USD values. May include issuer inventory; not circulating market cap. Stocks and ETFs only.'
-                  : 'Solana mint supply × compatible token price. May include issuer inventory; not circulating market cap.'}{' '}
-              Missing valuations are excluded, never counted as zero.
+                  ? 'Ondo-reported Solana token values from DefiLlama. It can include issuer-held tokens and is not a market cap.'
+                  : 'Tokens minted on Solana × token price. It can include issuer-held tokens and is not a market cap.'}{' '}
+              Missing values are left out, not counted as zero.
             </MetricInfo>
           </span>
           <strong>{dollars(dashboard.value)}</strong>
@@ -511,9 +511,9 @@ export function IssuerDashboardContent({
           <span>
             DEX pool volume · 24h{' '}
             <MetricInfo label="Volume source and coverage">
-              {`${POOL_SCOPE} DEX Screener pool trades only. Excludes Backpack Exchange, RFQ trades, direct issuer trades and other centralized exchanges. Pool discovery is partial; this is not total issuer volume.`}{' '}
+              {`${POOL_SCOPE} This only covers DEX Screener pools. It excludes Backpack, RFQ, direct issuer and other centralized trades.`}{' '}
               {issuer === 'xstocks'
-                ? 'The xStocks API supplies circulation and reference valuations, not this volume figure.'
+                ? 'The xStocks API does not supply this volume figure.'
                 : ''}
             </MetricInfo>
           </span>
@@ -765,7 +765,7 @@ export function IssuerDashboardContent({
         </section>
       ) : null}
       <details className="bp-method">
-        <summary>Sources & coverage</summary>
+        <summary>Sources and important limits</summary>
         <div>
           {issuer === 'ondo' && data?.valuations?.data && (
             <p>
@@ -776,14 +776,7 @@ export function IssuerDashboardContent({
               >
                 DefiLlama · Ondo Global Markets ↗
               </a>{' '}
-              · Solana snapshot{' '}
-              {new Date(data.valuations.data.observedAt).toLocaleString()}. Only
-              supported stocks and ETFs are included. Source coverage:{' '}
-              {Object.keys(data.valuations.data.rows).length} valued;{' '}
-              {data.valuations.data.excluded.length} unsupported products
-              excluded. Refreshed every ten minutes while viewed; original
-              source timestamps are preserved. This is an issued-token
-              valuation, not verified circulating market cap.
+              · Checked {new Date(data.valuations.data.observedAt).toLocaleString()}. It includes supported stocks and ETFs only: {Object.keys(data.valuations.data.rows).length} valued and {data.valuations.data.excluded.length} left out. It is an issued-token estimate, not a circulating market cap.
             </p>
           )}
           <p>
@@ -795,43 +788,33 @@ export function IssuerDashboardContent({
           </p>
           {issuer === 'backpack' && (
             <p>
-              Listings are checked every five minutes while Float is in use. New
-              entries must match Backpack’s registry and verified Solana mint
-              metadata.{' '}
+              Float checks listings every five minutes while you use it. New entries must match Backpack’s registry and verified Solana token address.{' '}
               {data?.registry?.checkedAt
                 ? `Last checked ${new Date(data.registry.checkedAt).toLocaleString()}.`
                 : 'Checking the latest listings.'}
             </p>
           )}
           <p>
-            {POOL_SCOPE} DEX Screener supplies pool volume and liquidity. Each
-            eligible returned Solana pool is counted once in the overview,
-            including pools shared by two stocks. Coverage is partial; routed
-            swaps can involve several pool trades. RFQ trades, direct issuer
-            trades and centralized exchange trades are not included. These
-            figures are not total issuer trading volume.{' '}
+            {POOL_SCOPE} DEX Screener supplies pool volume and liquidity. RFQ, direct issuer and centralized exchange trades are not included. This is not total issuer trading volume.{' '}
             {issuer !== 'backpack'
-              ? 'The overview uses batch-discovered pools. Open a stock for additional per-token pool discovery; those details may have broader coverage than the overview.'
+              ? 'Open a stock to look for more pools for that token.'
               : ''}
           </p>
           <p>
-            Solana RPC supplies minted quantities. CoinMarketCap, where covered,
-            supplies prices and changes. DefiLlama provides reference prices; a
-            pool price is used when needed.{' '}
+            Solana supplies token quantities. CoinMarketCap supplies prices and changes when available. DefiLlama is the next price source, then a pool price.{' '}
             {issuer === 'backpack'
-              ? 'Backpack supplies the official venue ticker price, 24-hour change, and venue volume for Backpack-issued stocks.'
+              ? 'Backpack supplies its listed token price, 24-hour change and venue volume.'
               : ''}{' '}
             {issuer === 'xstocks'
-              ? 'Value uses the official xStocks API for Solana circulating supply and issuer reference prices. Pre-minted inventory and other chains are excluded. Last verified circulation may be retained for up to 24 hours and is marked delayed.'
-              : 'Minted value may include issuer inventory and must not be read as circulating market cap or assets under management.'}{' '}
+              ? 'xStocks value uses its reported Solana circulation and reference prices. Issuer inventory and other chains are left out. Older checked data is labelled delayed.'
+              : 'Minted value can include issuer-held tokens. It is not a circulating market cap or AUM.'}{' '}
             Unknown values are shown as —.
           </p>
           <p>
             {issuer === 'backpack'
-              ? 'Prices and supply refresh on demand about every 2 minutes; pools about every 4 minutes. The page checks for updates every minute while visible.'
-              : 'The page checks every 30 seconds while visible. Prices and supply are cached for 2 minutes; overview pools for 4 minutes; xStocks circulation for 10 minutes.'}{' '}
-            The reviewed token registry is dated September 12, 2026; new
-            listings require mint verification.
+              ? 'Prices and supply refresh about every two minutes; pools about every four minutes.'
+              : 'This page checks for updates every 30 seconds while open.'}{' '}
+            New listings need token-address verification.
           </p>
           <a
             href="https://docs.dexscreener.com/api/reference"
