@@ -522,9 +522,6 @@ export function MemberDashboard({
             </button>
           ))}
         </nav>
-        <div className="sidebar-appearance">
-          <ThemeToggle />
-        </div>
         <div className="sidebar-bottom">
           <Link href="/trust">
             Privacy <ArrowUpRight size={15} />
@@ -551,7 +548,6 @@ export function MemberDashboard({
             </span>
           </span>
           <div>
-            <ThemeToggle />
             <span className="private-label">
               <LockKeyhole size={13} /> Holders only
             </span>
@@ -774,6 +770,13 @@ export function MemberDashboard({
                     placeholder="A little about you"
                   />
                 </label>
+                <section className="profile-appearance" aria-labelledby="appearance-heading">
+                  <div>
+                    <h3 id="appearance-heading">Appearance</h3>
+                    <p>Choose your preferred color mode.</p>
+                  </div>
+                  <ThemeToggle />
+                </section>
                 <section className="profile-tier" aria-label="Holder tier">
                   <div className="profile-tier-heading">
                     <h3>Your holder tier</h3>
