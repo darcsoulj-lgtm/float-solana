@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     description:
       'A private community for people who hold tokenized stocks on Solana.',
     images: [{
-      url: 'https://float-solana.darcsoulj.workers.dev/og.png',
+      url: 'https://joinfloat.xyz/og.png',
       width: 1734,
       height: 907,
       alt: 'Float — A community for tokenized stock holders. Built on Solana.',
@@ -39,7 +39,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Float — For Solana tokenized stock holders',
     description: 'A private community for people who hold tokenized stocks on Solana.',
-    images: ['https://float-solana.darcsoulj.workers.dev/og.png'],
+    images: ['https://joinfloat.xyz/og.png'],
   },
   description:
     'A private community for people who hold tokenized stocks on Solana.',
