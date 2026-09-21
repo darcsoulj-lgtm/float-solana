@@ -114,7 +114,7 @@ export function WalletList({
               // Mobile wallet browsers can expose another wallet's provider.
               // First move through the selected wallet's own deep link, then
               // require its named provider before requesting a signature.
-              if (mobile && launchIntent !== id) {
+              if (mobile && (standalone || launchIntent !== id)) {
                 const walletUrl = walletBrowserLink(id, window.location.href, standalone ? handoff?.id : undefined);
                 if (walletUrl) {
                   window.location.assign(walletUrl);

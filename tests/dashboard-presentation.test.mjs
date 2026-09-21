@@ -1262,6 +1262,8 @@ async function renderCommunity(
     './wallet-list': {
       WalletList: () => React.createElement('div', null, 'Wallet choices'),
     },
+    './wallet-return': { WalletReturn: Empty },
+    '@/lib/wallet-browser-link': { isMobileBrowser: () => false },
     './member-dashboard': {
       MemberDashboard: () => React.createElement('div', null, 'Member home'),
     },
@@ -1317,4 +1319,38 @@ void test('Clicking the logo while already Home does not add duplicate history e
     logo.props.onClick({ button: 0, preventDefault: () => {} });
     assert.equal(pushed.length, 0);
   });
+});
+
+void test('Wallet return offers both choices and keeps wallet navigation explicit', async () => {
+  let instructions = false;
+  let continued = false;
+  const Button = ({ children, ...props }) => React.createElement('button', props, children);
+  const { WalletReturn } = await component('wallet-return.tsx', {
+    react: { ...React, useState: () => [instructions, (value) => { instructions = typeof value === 'function' ? value(instructions) : value; }] },
+    './float-logo': { FloatLogo: () => React.createElement('span', null, 'Float') },
+    './ui/button': { Button },
+  });
+  const props = { linked: true, onContinue: () => { continued = true; } };
+  const tree = WalletReturn(props);
+  const buttons = [];
+  const visit = (node) => {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === Button) buttons.push(node);
+    React.Children.forEach(node.props?.children, visit);
+  };
+  visit(tree);
+  assert.equal(buttons.length, 2);
+  assert.match(renderToStaticMarkup(tree), /Return to Float app/);
+  assert.match(renderToStaticMarkup(tree), /Continue in wallet/);
+  assert.equal(continued, false);
+  buttons[0].props.onClick();
+  const expanded = renderToStaticMarkup(WalletReturn(props));
+  assert.match(expanded, /Tap ‹ Float at the top-left/);
+  assert.match(expanded, /Your app will finish signing in/);
+  assert.equal(continued, false);
+  buttons[1].props.onClick();
+  assert.equal(continued, true);
+  const unlinked = renderToStaticMarkup(WalletReturn({ ...props, linked: false }));
+  assert.match(unlinked, /Start wallet connection from the Float app/);
+  assert.doesNotMatch(unlinked, /Your app will finish signing in/);
 });

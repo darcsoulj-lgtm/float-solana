@@ -41,6 +41,11 @@ export function walletBrowserLink(wallet: string, currentUrl: string, handoffId?
   if (page.protocol !== 'https:' && page.hostname !== 'localhost') return null;
   page.hash = '';
   page.searchParams.set(WALLET_LAUNCH_PARAM, wallet);
-  if (handoffId) page.searchParams.set('float_handoff', handoffId);
+  if (handoffId) {
+    // Always land on the authentication owner, including launches from /markets.
+    page.pathname = '/';
+    page.searchParams.set('float_handoff', handoffId);
+    page.searchParams.set('join', '1');
+  }
   return `${base}${encodeURIComponent(page.href)}?ref=${encodeURIComponent(page.origin)}`;
 }

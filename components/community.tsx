@@ -18,12 +18,14 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { WalletList } from './wallet-list';
+import { WalletReturn } from './wallet-return';
 import { MemberDashboard } from './member-dashboard';
 import { api, ApiError } from '@/lib/client';
 import type { CommunityStatus } from '@/lib/community-types';
 import type { CommunitySignInInput } from '@/lib/community-sign-in';
 import { selectedWallet, walletLabel } from '@/lib/wallet-provider';
-import { readWalletHandoff, walletHandoffId, WALLET_HANDOFF_KEY } from '@/lib/wallet-handoff';
+import { readWalletHandoff, walletReturnContext, WALLET_RETURN_KEY, type WalletReturn as WalletReturnState, WALLET_HANDOFF_KEY } from '@/lib/wallet-handoff';
+import { isMobileBrowser } from '@/lib/wallet-browser-link';
 
 export function Community() {
   const [status, setStatus] = useState<CommunityStatus | null>(null);
@@ -47,10 +49,23 @@ export function Community() {
     provider: string;
     connection: ReturnType<typeof selectedWallet>;
     flowId: string;
+    returnContext: WalletReturnState | null;
   } | null>(null);
   const [handoffDone, setHandoffDone] = useState(false);
   const [handoffWaiting, setHandoffWaiting] = useState(false);
+  const [returnLinked, setReturnLinked] = useState(false);
   const inFlight = useRef(false);
+  const returnContext = useRef<WalletReturnState | null>(null);
+  useEffect(() => {
+    returnContext.current = walletReturnContext(sessionStorage, window.location.href);
+    const context = returnContext.current;
+    const timer = setTimeout(() => {
+      setReturnLinked(!!context?.id);
+      if (context?.completed) setHandoffDone(true);
+      else if (context?.id) setJoin(true);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, []);
 
   const walletUnsubscribe = useRef<(() => void) | null>(null);
   useEffect(() => () => walletUnsubscribe.current?.(), []);
@@ -222,6 +237,7 @@ export function Community() {
         provider: providerName,
         connection: p,
         flowId,
+        returnContext: returnContext.current || walletReturnContext(sessionStorage, window.location.href),
       });
       diagnostic(providerName, phase, 'ok', flowId);
       setStage('');
@@ -273,7 +289,7 @@ export function Community() {
       await api('community/verify', {
         challengeId: pending.id,
         signature,
-        ...(walletHandoffId(window.location.href) ? { handoffId: walletHandoffId(window.location.href) } : {}),
+        ...(pending.returnContext?.id ? { handoffId: pending.returnContext.id } : {}),
       });
       if (!pending.connection.accountUnchanged()) {
         await api('community/logout', {});
@@ -290,8 +306,16 @@ export function Community() {
         );
         void api('community/logout', {}).catch(() => {});
       });
+      // Show the choice before refreshing membership can mount the dashboard.
+      // Capture the flow before signing; don't rediscover it from a changed URL.
+      if (pending.returnContext || isMobileBrowser(navigator.userAgent, navigator.platform, navigator.maxTouchPoints)) {
+        const context: WalletReturnState = { id: pending.returnContext?.id || null, completed: true, expiresAt: pending.expiresAt };
+        returnContext.current = context;
+        setReturnLinked(!!context.id);
+        try { sessionStorage.setItem(WALLET_RETURN_KEY, JSON.stringify(context)); } catch { /* Keep the in-memory choice. */ }
+        setHandoffDone(true);
+      }
       await refresh();
-      if (walletHandoffId(window.location.href)) setHandoffDone(true);
       setJoin(false);
       setStage('');
       setPending(null);
@@ -358,14 +382,16 @@ export function Community() {
       </section>
     );
   }
-  if (handoffDone) {
-    return <section className="community-entry wallet-return" aria-label="Return to Float">
-      <FloatLogo />
-      <span className="wallet-return-verified"><ShieldCheck size={18} aria-hidden="true" /> Wallet verified</span>
-      <h1>Open Float on your Home Screen</h1>
-      <p>Tap the Float app icon to finish signing in and continue there.</p>
-      <span className="wallet-return-hint">You can close this wallet browser now.</span>
-    </section>;
+  if (handoffDone && status.member) {
+    return <WalletReturn linked={returnLinked} onContinue={() => {
+      try { sessionStorage.removeItem(WALLET_RETURN_KEY); } catch { /* Continue in this page. */ }
+      const url = new URL(window.location.href);
+      url.searchParams.delete('float_handoff');
+      url.searchParams.delete('join');
+      window.history.replaceState(null, '', url.pathname + url.search + url.hash);
+      returnContext.current = null;
+      setHandoffDone(false);
+    }} />;
   }
   return (
     <>

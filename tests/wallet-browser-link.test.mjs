@@ -5,7 +5,33 @@ import {
   walletBrowserLink,
   walletLaunchIntent,
 } from '../lib/wallet-browser-link.ts';
-import { readWalletHandoff, walletHandoffId, WALLET_HANDOFF_KEY } from '../lib/wallet-handoff.ts';
+import { readWalletHandoff, walletHandoffId, walletReturnContext, WALLET_RETURN_KEY, WALLET_HANDOFF_KEY } from '../lib/wallet-handoff.ts';
+
+void test('all wallet handoffs enter authentication even from a stock page with an existing session', () => {
+  for (const wallet of ['phantom', 'backpack', 'solflare']) {
+    const id = '85e158b6-5f36-4732-983c-54dd80d9a4ef';
+    const link = walletBrowserLink(wallet, 'https://float.example/markets/BB?view=markets', id);
+    const page = new URL(decodeURIComponent(link.split('/browse/')[1].split('?ref=')[0]));
+    assert.equal(page.pathname, '/');
+    assert.equal(page.searchParams.get('join'), '1');
+    assert.equal(page.searchParams.get('float_handoff'), id);
+    assert.equal(page.searchParams.get('float_wallet'), wallet);
+  }
+});
+void test('wallet-browser context survives a removed query and refresh, but is replaced for a new flow', () => {
+  const values = new Map();
+  const storage = { getItem: (k) => values.get(k) || null, setItem: (k, v) => values.set(k, v), removeItem: (k) => values.delete(k) };
+  const id = '85e158b6-5f36-4732-983c-54dd80d9a4ef';
+  const url = `https://float.example/?float_wallet=backpack&float_handoff=${id}`;
+  const initial = walletReturnContext(storage, url, 1000);
+  assert.equal(initial.id, id);
+  assert.deepEqual(walletReturnContext(storage, 'https://float.example/?view=home', 2000), initial);
+  storage.setItem(WALLET_RETURN_KEY, JSON.stringify({ ...initial, completed: true }));
+  assert.equal(walletReturnContext(storage, url, 3000).completed, true);
+  const next = walletReturnContext(storage, url.replace(id, '95e158b6-5f36-4732-983c-54dd80d9a4ef'), 4000);
+  assert.equal(next.completed, false);
+  assert.equal(walletReturnContext(storage, 'https://float.example/', next.expiresAt), null);
+});
 
 void test('mobile wallet buttons open the current Float page in the selected wallet', () => {
   const page =
