@@ -1146,3 +1146,42 @@ fieldset.holding-filter-chips {
 
 .quote-delay { display: inline-flex; align-items: center; gap: .2rem; margin-left: .4rem; font-size: .72rem; font-weight: 400; color: var(--muted-foreground); vertical-align: middle; white-space: nowrap; }
 .quote-delay .holdings-info-trigger { margin: 0; }
+
+/* Mobile discussions use a roomy feed instead of stacked, narrow cards. */
+@media (max-width: 700px) {
+  .member-shell .channel-filters {
+    display: block;
+  }
+  .member-shell .channel-filter-scroll {
+    width: 100%;
+    padding-bottom: 4px;
+  }
+  .member-shell .channel-saved {
+    margin-left: 6px;
+  }
+  .member-shell .thread-post {
+    margin: 0;
+    padding: 22px 0;
+    border-width: 0 0 1px;
+    border-radius: 0;
+    background: transparent;
+  }
+  .member-shell .thread-post:first-of-type {
+    border-top: 1px solid var(--hp-edge-e1e1e1, #e1e1e1);
+  }
+  .member-shell .thread-post h3 {
+    margin: 16px 0 10px;
+  }
+  .member-shell .thread-post > p {
+    margin: 0;
+  }
+  .member-shell .thread-bottom {
+    justify-content: flex-start;
+    gap: 4px;
+    margin-top: 18px;
+    padding-top: 10px;
+  }
+  .member-shell .thread-bottom button {
+    padding-inline: 6px;
+  }
+}

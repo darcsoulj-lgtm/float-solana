@@ -2210,6 +2210,7 @@ body:has(.community-entry) > footer {
 .channel-filter-scroll {
   display: flex;
   gap: 6px;
+  width: 100%;
   min-width: 0;
   overflow-x: auto;
   scrollbar-width: thin;
@@ -2236,7 +2237,7 @@ body:has(.community-entry) > footer {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  margin-left: auto;
+  margin-left: 6px;
 }
 .discussion-back {
   display: block;
@@ -2246,15 +2247,8 @@ body:has(.community-entry) > footer {
   cursor: pointer;
 }
 @media (max-width: 680px) {
-  .channel-filters {
-    flex-wrap: wrap;
-  }
-  .channel-filter-scroll {
-    flex-basis: 100%;
-  }
-  .channel-filters .channel-saved {
-    margin-left: 0;
-  }
+  .channel-filters { display: block; }
+  .channel-filter-scroll { padding-bottom: 4px; }
 }
 .feed-tabs {
   display: flex;

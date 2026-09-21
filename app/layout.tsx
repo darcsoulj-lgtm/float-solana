@@ -57,7 +57,7 @@ export default function RootLayout({
           </Link>
           <nav aria-label="Main navigation">
             <Link href="/markets">Markets</Link>
-            <Link href="/?view=home">Community</Link>
+            <Link href="/?view=home&join=1">Community</Link>
             <Link href="/install">Install Float</Link>
           </nav>
           <ThemeToggle />

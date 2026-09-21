@@ -886,18 +886,18 @@ export function MemberDashboard({
                         {channel.name}
                       </button>
                     ))}
+                    <button
+                      className="channel-saved"
+                      aria-pressed={feed === 'saved'}
+                      onClick={() => {
+                        setFeed('saved');
+                        setTopic('all');
+                        setThreadId('');
+                      }}
+                    >
+                      <Bookmark size={15} aria-hidden="true" /> Saved
+                    </button>
                   </div>
-                  <button
-                    className="channel-saved"
-                    aria-pressed={feed === 'saved'}
-                    onClick={() => {
-                      setFeed('saved');
-                      setTopic('all');
-                      setThreadId('');
-                    }}
-                  >
-                    <Bookmark size={15} aria-hidden="true" /> Saved
-                  </button>
                 </div>
                 {threadId && (
                   <button
