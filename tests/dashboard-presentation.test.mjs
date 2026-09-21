@@ -901,6 +901,9 @@ void test('issuer multi-selection filters rows and leaves market totals intact',
   assert.match(renderToStaticMarkup(tree), /Alphabet/);
   assert.match(renderToStaticMarkup(tree), /About DEX volume/);
   assert.match(renderToStaticMarkup(tree), /Pool liquidity/);
+  assert.match(renderToStaticMarkup(tree), /Where each number comes from/);
+  assert.match(renderToStaticMarkup(tree), /Token price and 24h change/);
+  assert.match(renderToStaticMarkup(tree), /Tracked value · est\./);
 });
 
 void test('Ecosystem overview keeps valuation estimates and their caveats inside collapsed coverage', async () => {

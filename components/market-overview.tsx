@@ -953,6 +953,64 @@ export function MarketOverviewPanel({
           setDetailOpen(false);
         }}
       />
+      <section className="market-source-map" aria-labelledby="market-source-map-title">
+        <header>
+          <div>
+            <span className="market-source-map-kicker">Source map</span>
+            <h2 id="market-source-map-title">Where each number comes from</h2>
+            <p>Match a table number to its source and simple calculation.</p>
+          </div>
+          <p className="market-source-map-key">A dash means we could not get a reliable number.</p>
+        </header>
+        <ol>
+          <li>
+            <span className="market-source-map-number" aria-hidden="true">1</span>
+            <div>
+              <strong>Token price and 24h change</strong>
+              <p>
+                Backpack tokens use{' '}
+                <a href="https://docs.backpack.exchange/" target="_blank" rel="noopener noreferrer">Backpack</a>.
+                {' '}Other tokens use{' '}
+                <a href="https://coinmarketcap.com/" target="_blank" rel="noopener noreferrer">CoinMarketCap</a>,
+                {' '}then{' '}
+                <a href="https://defillama.com/" target="_blank" rel="noopener noreferrer">DefiLlama</a>,
+                {' '}then a DEX pool. We use the same source for both numbers.
+              </p>
+            </div>
+          </li>
+          <li>
+            <span className="market-source-map-number" aria-hidden="true">2</span>
+            <div>
+              <strong>Supply</strong>
+              <p>
+                Read from the token&apos;s{' '}
+                <a href="https://explorer.solana.com/" target="_blank" rel="noopener noreferrer">Solana mint account</a>.
+                {' '}xStocks instead shows its issuer-reported tokens in circulation.
+              </p>
+            </div>
+          </li>
+          <li>
+            <span className="market-source-map-number" aria-hidden="true">3</span>
+            <div>
+              <strong>DEX volume and pool liquidity</strong>
+              <p>
+                From{' '}
+                <a href="https://dexscreener.com/" target="_blank" rel="noopener noreferrer">DEX Screener</a>.
+                {' '}Only reviewed Solana pools are counted, so this is not all trading everywhere.
+              </p>
+            </div>
+          </li>
+          <li>
+            <span className="market-source-map-number" aria-hidden="true">4</span>
+            <div>
+              <strong>Tracked value · est.</strong>
+              <p>
+                Token price × supply. xStocks uses its circulating supply; other issuers use minted Solana supply. It is an estimate, not a company value or AUM.
+              </p>
+            </div>
+          </li>
+        </ol>
+      </section>
       <div className="market-results-heading">
         <fieldset className="market-view-switch">
           <legend className="sr-only">Browse markets by</legend>
@@ -992,7 +1050,7 @@ export function MarketOverviewPanel({
         <details className="market-methodology">
           <summary>How table numbers are sourced</summary>
           <p>
-            Backpack prices come from Backpack. Other prices come from CoinMarketCap, then recent DefiLlama data, then a DEX pool. DEX volume and liquidity come from DEX Screener. {POOL_SCOPE} A dash means no data was available.
+            Use the source map above for each column. {POOL_SCOPE} A dash means no data was available.
           </p>
         </details>
         <div>
