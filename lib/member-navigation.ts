@@ -25,7 +25,9 @@ export function memberLocation(search: string) {
     feed:
       requested === 'saved'
         ? 'saved'
-        : params.get('feed') === 'saved'
+        : params.get('feed') === 'mine'
+          ? 'mine'
+          : params.get('feed') === 'saved'
           ? 'saved'
           : 'all',
     agenda: requested === 'calendar' || params.get('agenda') === 'open',

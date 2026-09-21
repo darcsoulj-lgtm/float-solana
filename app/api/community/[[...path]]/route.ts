@@ -496,15 +496,11 @@ async function handler(req: Request) {
     if (!member) throw new AppError('Membership required.', 401);
     if (path[0] === 'holder-tier' && post) {
       await rateLimit('holder-tier:' + member.id, 10);
-      return json(
-        await updateHolderTier(
-          db(),
-          member.id,
-          runtime().SOLANA_RPC_URL,
-          runtime().CMC_API_KEY,
-          (await registry()).registry,
-        ),
+      const result = await updateHolderTier(
+        db(), member.id, runtime().SOLANA_RPC_URL,
+        runtime().CMC_API_KEY, (await registry()).registry,
       );
+      return json(result.tier ? result : { tier: 'bronze', expiresAt: member.verified_until });
     }
     if (path[0] === 'rooms' && !post) {
       await rateLimit('community-rooms:' + member.id, 60);
@@ -715,7 +711,7 @@ async function handler(req: Request) {
       }
       const topic = url.searchParams.get('topic') || 'all';
       const feed = url.searchParams.get('feed') || 'all';
-      if (!['all', 'personal', 'saved'].includes(feed))
+      if (!['all', 'personal', 'saved', 'mine'].includes(feed))
         throw new AppError('Unknown feed.');
       const threadId = url.searchParams.get('thread') || '';
       if (threadId.length > 100) throw new AppError('Invalid discussion.');
@@ -738,7 +734,7 @@ async function handler(req: Request) {
       const rows = (
         await db()
           .prepare(
-            `SELECT t.id,t.member_id,t.topic,(SELECT name FROM community_rooms WHERE id=t.topic) room_name,t.title,t.body,t.created_at,t.hidden,${authorColumns},EXISTS(SELECT 1 FROM community_bookmarks b WHERE b.member_id=? AND b.target_type='thread' AND b.target_id=t.id) saved,(SELECT count(*) FROM community_replies r WHERE r.thread_id=t.id AND r.hidden=0 AND r.member_id NOT IN (SELECT blocked_id FROM community_blocks WHERE blocker_id=?)) reply_count FROM community_threads t JOIN community_members m ON m.id=t.member_id WHERE t.hidden=0 AND t.member_id NOT IN (SELECT blocked_id FROM community_blocks WHERE blocker_id=?) AND (?='all' OR t.topic=?) AND (?='' OR t.id=?) AND (?!='personal' OR t.topic='general' OR t.topic IN (SELECT symbol FROM community_holdings WHERE member_id=? UNION SELECT symbol FROM community_follows WHERE member_id=?)) AND (?!='saved' OR EXISTS(SELECT 1 FROM community_bookmarks b WHERE b.member_id=? AND b.target_type='thread' AND b.target_id=t.id)) AND (t.created_at<? OR (t.created_at=? AND t.id<?)) ORDER BY t.created_at DESC,t.id DESC LIMIT 31`,
+            `SELECT t.id,t.member_id,t.topic,(SELECT name FROM community_rooms WHERE id=t.topic) room_name,t.title,t.body,t.created_at,t.hidden,${authorColumns},EXISTS(SELECT 1 FROM community_bookmarks b WHERE b.member_id=? AND b.target_type='thread' AND b.target_id=t.id) saved,(SELECT count(*) FROM community_replies r WHERE r.thread_id=t.id AND r.hidden=0 AND r.member_id NOT IN (SELECT blocked_id FROM community_blocks WHERE blocker_id=?)) reply_count FROM community_threads t JOIN community_members m ON m.id=t.member_id WHERE t.hidden=0 AND t.member_id NOT IN (SELECT blocked_id FROM community_blocks WHERE blocker_id=?) AND (?='all' OR t.topic=?) AND (?='' OR t.id=?) AND (?!='personal' OR t.topic='general' OR t.topic IN (SELECT symbol FROM community_holdings WHERE member_id=? UNION SELECT symbol FROM community_follows WHERE member_id=?)) AND (?!='saved' OR EXISTS(SELECT 1 FROM community_bookmarks b WHERE b.member_id=? AND b.target_type='thread' AND b.target_id=t.id)) AND (?!='mine' OR t.member_id=?) AND (t.created_at<? OR (t.created_at=? AND t.id<?)) ORDER BY t.created_at DESC,t.id DESC LIMIT 31`,
           )
           .bind(
             member.id,
@@ -750,6 +746,8 @@ async function handler(req: Request) {
             threadId,
             feed,
             member.id,
+            member.id,
+            feed,
             member.id,
             feed,
             member.id,

@@ -27,3 +27,9 @@ Holdings refreshes and new verification clear previous tiers atomically. A slow 
 165 automated tests passed, including threshold boundaries, incomplete and stale valuation, SQL migration defaults, author privacy, snapshot races, authenticated route behavior, forged client inputs, opt-in/revocation, Saved deep links, and rendered Profile/badge markup. Type checking passed.
 
 Rendered-component tests are not browser visual QA. Browser automation was administratively blocked in this session; authenticated production appearance and interactions could not be independently checked in a browser.
+
+## September 21: community navigation and base tier
+
+Verified members have Bronze as their base tier, even when prices are unavailable. Bronze is labeled Base tier, not Under $100. Higher tiers retain the existing conservative valuation checks. Public badges still require opt-in, active verification, and a non-suspended account. Expired value tiers fall back to Bronze while membership remains valid; no unknown price is recorded as zero.
+
+Publishing returns to the selected channel feed. My posts is scoped to the authenticated member on the server. Authors can delete their own posts through the visible overflow menu on feed cards or details; server ownership checks and confirmation remain. Author names and avatars open a compact profile with the existing public bio and opt-in tier; wallet addresses and balances are never added to that profile.

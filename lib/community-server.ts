@@ -104,4 +104,4 @@ export async function communityCleanup() {
   ]);
 }
 export const authorColumns =
-  'm.alias,m.bio,m.avatar_key, CASE WHEN m.show_value_badge=1 AND m.verified_until>unixepoch()*1000 AND m.value_tier_expires_at>unixepoch()*1000 AND m.suspended=0 THEN m.value_tier ELSE NULL END value_tier, m.value_tier_expires_at';
+  `m.alias,m.bio,m.avatar_key, CASE WHEN m.show_value_badge=1 AND m.verified_until>unixepoch()*1000 AND m.suspended=0 THEN CASE WHEN m.value_tier_expires_at>unixepoch()*1000 THEN COALESCE(m.value_tier,'bronze') ELSE 'bronze' END ELSE NULL END value_tier, CASE WHEN m.value_tier IS NOT NULL AND m.value_tier_expires_at>unixepoch()*1000 THEN MIN(m.value_tier_expires_at,m.verified_until) ELSE m.verified_until END value_tier_expires_at`;

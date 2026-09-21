@@ -413,9 +413,9 @@ export function MemberDashboard({
     .map((h) => `${h.symbol}:${h.raw_amount}:${h.verified_at}`)
     .join('|');
   const holderTier =
-    tierResult.holdingsKey === holdingsKey
+    tierResult.holdingsKey === holdingsKey && tierResult.tier
       ? tierResult
-      : { tier: null, expiresAt: 0 };
+      : { tier: 'bronze' as const, expiresAt: member.verified_until };
   useEffect(() => {
     if (!holdingsKey) return;
     let active = true;
@@ -847,8 +847,7 @@ export function MemberDashboard({
                     )}
                   </div>
                   <p>
-                    Based on verified tokenized stock value in this wallet. A
-                    tier appears when prices support a clear range.
+                    Every verified holder starts at Bronze. Higher tiers use the verified value of your holdings.
                   </p>
                   <div className="holder-tier-scale">
                     {HOLDER_TIERS.map((t) => (
@@ -863,14 +862,14 @@ export function MemberDashboard({
                   </div>
                   <div className="profile-setting">
                     <div>
-                      <h3>Show value badge</h3>
+                      <h3>Show tier badge</h3>
                       <p>
-                        Others can see your tier and its value range. Exact
+                        Others can see your tier. Exact
                         balances stay private. Saves automatically.
                       </p>
                     </div>
                     <Checkbox
-                      aria-label="Show value badge"
+                      aria-label="Show tier badge"
                       checked={showValueBadge}
                       disabled={busy}
                       onCheckedChange={(v) => {
@@ -952,7 +951,7 @@ export function MemberDashboard({
                 >
                   <div className="channel-filter-scroll">
                     <button
-                      aria-pressed={topic === 'all' && feed !== 'saved'}
+                      aria-pressed={topic === 'all' && feed === 'all'}
                       onClick={() => {
                         setTopic('all');
                         setFeed('all');
@@ -964,7 +963,7 @@ export function MemberDashboard({
                     {COMMUNITY_CHANNELS.map((channel) => (
                       <button
                         key={channel.id}
-                        aria-pressed={topic === channel.id && feed !== 'saved'}
+                        aria-pressed={topic === channel.id && feed === 'all'}
                         onClick={() => {
                           setTopic(channel.id);
                           setFeed('all');
@@ -974,6 +973,9 @@ export function MemberDashboard({
                         {channel.name}
                       </button>
                     ))}
+                    <button aria-pressed={feed === 'mine'} onClick={() => {
+                      setFeed('mine'); setTopic('all'); setThreadId('');
+                    }}>My posts</button>
                     <button
                       className="channel-saved"
                       aria-pressed={feed === 'saved'}
@@ -1024,7 +1026,9 @@ export function MemberDashboard({
                     <h3>
                       {threadId
                         ? 'This discussion is unavailable.'
-                        : feed === 'saved'
+                        : feed === 'mine'
+                          ? 'No posts yet.'
+                          : feed === 'saved'
                           ? 'No saved discussions.'
                           : topic === 'all'
                             ? 'No discussions yet.'
@@ -1261,12 +1265,18 @@ export function MemberDashboard({
               posting.current = true;
               setDraftPosting(true);
               try {
-                const result = await api<{ id: string }>(
+                await api<{ id: string }>(
                   'community/threads',
                   payload,
                 );
                 setCommunityRevision((n) => n + 1);
-                openDiscussion(result.id, false, draftTopic);
+                setFeed('all');
+                setTopic(draftTopic);
+                setThreadId('');
+                setView('home');
+                scrollPositions.current[`home:feed:all:${draftTopic}`] = 0;
+                window.scrollTo({ top: 0, behavior: 'instant' });
+                await refreshFeed().catch(() => { /* The feed exposes its own retry. Posting already succeeded. */ });
                 setNotice('Discussion posted.');
                 setCompose(false);
               } catch (e) {

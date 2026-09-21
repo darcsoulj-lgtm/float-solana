@@ -38,7 +38,8 @@ async function fixture() {
     }
   }
   let signedIn = true,
-    providerDown = false;
+    providerDown = false,
+    missingPrice = false;
   const calls = [];
   const dependencies = {
     '@/lib/community-rooms': {},
@@ -54,7 +55,7 @@ async function fixture() {
       updateHolderTier: async (db, id) => {
         assert.equal(db, database);
         calls.push(id);
-        return { tier: 'bronze', expiresAt: 123 };
+        return missingPrice ? { tier: null, expiresAt: 0 } : { tier: 'bronze', expiresAt: 123 };
       },
     },
     '@/lib/holdings-refresh': {},
@@ -129,6 +130,7 @@ async function fixture() {
     sqlite,
     post,
     calls,
+    losePrice: () => { missingPrice = true; },
     failProvider: () => {
       providerDown = true;
     },
@@ -250,4 +252,16 @@ void test('Member room creation is blocked because channels are curated', async 
   } finally {
     f.sqlite.close();
   }
+});
+
+void test('verified membership receives Bronze when prices cannot establish a value tier', async () => {
+  const f = await fixture();
+  try {
+    f.losePrice();
+    const r = await f.post('holder-tier', {});
+    const result = await r.json();
+    assert.equal(r.status, 200);
+    assert.equal(result.tier, 'bronze');
+    assert.equal(result.expiresAt, f.sqlite.prepare('SELECT verified_until FROM community_members').get().verified_until);
+  } finally { f.sqlite.close(); }
 });

@@ -1274,7 +1274,7 @@ void test('public author queries reveal tiers only with opt-in, fresh verificati
     new URL('../lib/community-server.ts', import.meta.url),
     'utf8',
   );
-  const sql = raw.match(/export const authorColumns =\s*'([^']+)'/)[1];
+  const sql = raw.match(/export const authorColumns =\s*`([^`]+)`/)[1];
   const db = new DatabaseSync(':memory:');
   db.exec(
     'CREATE TABLE community_members (alias TEXT,bio TEXT,avatar_key TEXT,show_badge INTEGER,show_value_badge INTEGER,qualifying_symbol TEXT,verified_until INTEGER,suspended INTEGER,value_tier TEXT,value_tier_expires_at INTEGER)',
@@ -1298,7 +1298,10 @@ void test('public author queries reveal tiers only with opt-in, fresh verificati
   db.exec('UPDATE community_members SET show_value_badge=1');
   assert.equal(get().value_tier, 'gold');
   db.exec('UPDATE community_members SET value_tier_expires_at=0');
-  assert.equal(get().value_tier, null);
+  assert.equal(get().value_tier, 'bronze');
+  assert.equal(get().value_tier_expires_at, now + 60000);
+  db.exec('UPDATE community_members SET value_tier=NULL');
+  assert.equal(get().value_tier, 'bronze');
   db.prepare(
     'UPDATE community_members SET value_tier_expires_at=?,verified_until=0',
   ).run(now + 60000);

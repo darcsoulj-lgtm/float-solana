@@ -1,6 +1,6 @@
 'use client';
 import { HolderTierBadge } from './holder-tier-badge';
-import { MemberAvatar } from './member-avatar';
+import { MemberProfile } from './member-profile';
 import { useCallback, useEffect, useState } from 'react';
 import {
   Bookmark,
@@ -149,17 +149,15 @@ export function Thread({
     >
       <div className="thread-topline">
         <div className="thread-meta">
-          <MemberAvatar alias={t.alias} memberId={t.member_id} version={t.avatar_key} />
-          <strong>{t.alias}</strong>
+          <MemberProfile author={t} />
           {t.value_tier && (
             <HolderTierBadge tier={t.value_tier} expiresAt={t.value_tier_expires_at} />
           )}
-          {t.bio && <span className="thread-author-bio">{t.bio}</span>}
           {showChannel && <span>{t.room_name || t.topic}</span>}
           {showChannel && <span aria-hidden="true">·</span>}
           <DiscussionTimestamp timestamp={t.created_at} now={now} />
         </div>
-        {detail && (
+        {(detail || t.member_id === memberId) && (
           <DropdownMenu>
             <DropdownMenuTrigger
               render={<Button type="button" size="icon-sm" variant="ghost" className="thread-overflow" aria-label="Discussion options" />}
@@ -294,17 +292,12 @@ export function Thread({
         <>
           {page.replies.map((r) => (
             <div className="reply" key={r.id}>
-              <MemberAvatar
-                alias={r.alias}
-                memberId={r.member_id}
-                version={r.avatar_key}
-              />
+              <MemberProfile author={r} avatarOnly />
               <div className="reply-content">
                 <div className="reply-header">
                   <div className="reply-author">
-                    <strong>{r.alias}</strong>
+                    <MemberProfile author={r} nameOnly />
                     {r.value_tier && <HolderTierBadge tier={r.value_tier} expiresAt={r.value_tier_expires_at} />}
-                    {r.bio && <span className="thread-author-bio">{r.bio}</span>}
                     <DiscussionTimestamp timestamp={r.created_at} now={now} />
                   </div>
                   <DropdownMenu>
@@ -472,10 +465,11 @@ export function Thread({
                 setRemove(null);
                 if (detail && remove?.type !== 'threads') await replies();
                 await refresh();
+                if (detail && remove?.type === 'threads') onThreadBlocked?.();
               })
             }
           >
-            Remove contribution
+            Delete
           </Button>
           {error && <p role="alert">{error}</p>}
         </DialogContent>

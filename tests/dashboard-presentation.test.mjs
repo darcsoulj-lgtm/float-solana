@@ -114,6 +114,7 @@ void test('discussion feed stays compact and dedicated detail owns replies', asy
   const { Thread } = await component('community-thread.tsx', {
     './holder-tier-badge': { HolderTierBadge: Empty },
     './member-avatar': { MemberAvatar: Empty },
+    './member-profile': { MemberProfile: Empty },
     '@/components/ui/button': { Button: Wrap },
     '@/components/ui/dialog': {
       Dialog: ({ children }) => children,
@@ -381,6 +382,7 @@ async function renderDashboard(search, interact) {
     './market-overview': { MarketOverviewPanel: Empty },
     './theme-toggle': { ThemeToggle: Empty },
     './member-avatar': { MemberAvatar: Empty },
+    './member-profile': { MemberProfile: Empty },
     './member-brief': { MemberBrief: Empty },
     './holder-tier-badge': { HolderTierBadge: Empty },
     '@/lib/holder-tier': { HOLDER_TIERS: tierLevels },
@@ -522,7 +524,7 @@ void test('Discussion channels filter one feed without a separate directory', as
 void test('Profile stays Profile after navigation and displays the private value badge control', async () => {
   const html = await renderDashboard('?view=profile');
   assert.match(html, /<h1>Profile<\/h1>/);
-  assert.match(html, /Show value badge/);
+  assert.match(html, /Show tier badge/);
   assert.match(html, /Exact balances stay private/);
 });
 

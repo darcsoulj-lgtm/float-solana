@@ -27,7 +27,7 @@ export function HolderTierBadge({
   return (
     <span
       className={'holder-tier-badge ' + level.id}
-      title={`${level.range} in verified tokenized stocks · estimated USD value`}
+      title={level.id === 'bronze' ? 'Base tier for verified stock holders' : `${level.range} in verified tokenized stocks · estimated USD value`}
     >
       <Gem size={13} aria-hidden="true" />
       {level.label}

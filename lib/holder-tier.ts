@@ -4,7 +4,7 @@ import { tokenObservation } from './token-observation';
 import { marketTokens } from './market-data';
 
 export const HOLDER_TIERS = [
-  { id: 'bronze', label: 'Bronze', minimum: 0, range: 'Under $100' },
+  { id: 'bronze', label: 'Bronze', minimum: 0, range: 'Base tier' },
   { id: 'silver', label: 'Silver', minimum: 100, range: '$100–$999' },
   { id: 'gold', label: 'Gold', minimum: 1000, range: '$1k–$9,999' },
   { id: 'platinum', label: 'Platinum', minimum: 10000, range: '$10k–$99,999' },
