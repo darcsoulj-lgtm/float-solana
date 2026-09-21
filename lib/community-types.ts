@@ -7,6 +7,11 @@ export const COMMUNITY_CHANNELS = [
     description: 'Market moves, the economy, portfolios and investing.',
   },
   {
+    id: 'channel-crypto',
+    name: 'Crypto',
+    description: 'Crypto markets, tokens, protocols, DeFi and regulation.',
+  },
+  {
     id: 'channel-technology',
     name: 'Technology',
     description: 'AI, semiconductors, software, cloud and hardware.',
@@ -40,6 +45,11 @@ export const COMMUNITY_CHANNELS = [
     id: 'channel-onchain-stocks',
     name: 'Onchain Stocks',
     description: 'Issuers, token rights, custody, minting and redemption.',
+  },
+  {
+    id: 'channel-off-topic',
+    name: 'Off Topic',
+    description: 'Everyday conversation, questions, humor and everything else.',
   },
 ] as const;
 export const communityTopics = (tokens: readonly StockToken[] = TOKENS) => [

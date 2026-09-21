@@ -427,12 +427,21 @@ async function renderDashboard(search, interact) {
     else globalThis.window = previous;
   }
 }
-void test('discussion composer offers only the eight curated channels and normalizes legacy topics', async () => {
+void test('discussion composer offers the curated channels and normalizes legacy topics', async () => {
   const expected = communityTypes.COMMUNITY_CHANNELS.map(({ id, name }) => ({
     value: id,
     label: name,
   }));
-  assert.equal(expected.length, 8);
+  assert.equal(expected.length, 10);
+  assert.deepEqual(
+    expected.filter(({ value }) =>
+      ['channel-crypto', 'channel-off-topic'].includes(value),
+    ),
+    [
+      { value: 'channel-crypto', label: 'Crypto' },
+      { value: 'channel-off-topic', label: 'Off Topic' },
+    ],
+  );
   for (const topic of [
     'all',
     'general',

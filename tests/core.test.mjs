@@ -82,7 +82,9 @@ void test('Discussion validation uses trimmed lengths and accepts every availabl
   for (const topic of [
     'general',
     'channel-market-talk',
+    'channel-crypto',
     'channel-technology',
+    'channel-off-topic',
     ...TOKENS.map((t) => t.symbol),
   ])
     assert.deepEqual(

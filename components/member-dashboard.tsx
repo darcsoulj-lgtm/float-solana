@@ -952,8 +952,9 @@ export function MemberDashboard({
                   <button
                     className="discussion-back"
                     onClick={closeDiscussion}
+                    aria-label="Back to discussions"
                   >
-                    ← Back to discussions
+                    ‹ Discussions
                   </button>
                 )}
                 {feedError && (
