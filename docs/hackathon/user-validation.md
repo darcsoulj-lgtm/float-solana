@@ -6,7 +6,7 @@ Recruit 5–10 people who already hold supported Solana tokenized stocks. Do not
 
 ## Invitation draft
 
-I'm testing Float, a community and market dashboard for Solana tokenized-stock holders. If you already hold a supported token, would you try the wallet sign-in, read a discussion and tell me what is confusing or missing? Signing is a message only, with no transaction or transfer. You can also explore Markets without a wallet. The test takes about 10 minutes: https://float-solana.darcsoulj.workers.dev
+I'm testing Float, a community and market dashboard for Solana tokenized-stock holders. If you already hold a supported token, would you try the wallet sign-in, read a discussion and tell me what is confusing or missing? Signing is a message only, with no transaction or transfer. You can also explore Markets without a wallet. The test takes about 10 minutes: https://joinfloat.xyz
 
 ## Tasks and questions
 
