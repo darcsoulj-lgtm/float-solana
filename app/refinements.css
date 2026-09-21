@@ -459,9 +459,9 @@
   line-height: 1.4;
 }
 .member-shell .reply-author strong {
-  color: var(--foreground);
+  color: var(--hp-ink-575757, #575757);
   font-size: 14px;
-  font-weight: 650;
+  font-weight: 550;
 }
 .member-shell .reply-author time {
   color: var(--muted-foreground);
