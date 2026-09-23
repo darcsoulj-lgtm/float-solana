@@ -39,3 +39,13 @@ Snapshot times differ between discovery and individual response capture. Their d
 - Recorded SPCX fixture checks all 21 eligible pools and deduplication.
 - Regression checks cover third-ranked/zero-volume tokens, spoof pairs, shared-pool deduplication, failed detail refresh, 30-mint chunks, RPC cooldown propagation, invalid private job inputs and the extended lease preventing duplicate in-flight refreshes.
 - Production and rendered-page verification recorded after deployment below.
+
+## Production verification
+
+Deployed Worker version `fa5e1bb9-83e1-4b31-ba49-a9e42a2ab377`. Observed all four scheduled slots, covering all 15 canonical batches, with no thrown job failures and no pool-refresh errors. All 1,338 pool-scope timestamps in the public overview advanced to 08:48:28–08:51:25 UTC on 23 September. This verifies execution of the new collector, not nonempty pools for every token.
+
+The public response confirmed SPCX 21 pools ($1,423,711.37), GOOGLx 22 ($695,674.02), AAPLx 15 ($853,279.93), and ANTHROPIC 12 ($883,185.91) in the captured post-deployment snapshot. These are dated observations, not live promises. The browser also updated SPCX to $1.42M without a reload. Desktop and 390px mobile market search/rendering checked; keyboard focus remained visible and no browser console errors were captured.
+
+A separate existing `Ondo valuation snapshot is missing or expired` error remains in the global valuation job. The current repair does not address that valuation source; scheduled outer success does not mean every independent source is fresh.
+
+Reference limits consulted: [DEX Screener API](https://docs.dexscreener.com/api/reference), [Cloudflare Worker limits](https://developers.cloudflare.com/workers/platform/limits/), [private service bindings](https://developers.cloudflare.com/workers/runtime-apis/bindings/service-bindings/).
