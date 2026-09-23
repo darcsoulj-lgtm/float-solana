@@ -517,22 +517,11 @@ export async function fetchPools(
     throw new Error('Invalid pool response');
   const exact = await exactStonkfunPairs(fetcher, tokens, official);
   const discovered = parsePools([...data.flat(), ...exact], tokens, verifiedStocks, official);
-  // The multi-token endpoint is a discovery snapshot, not a complete pool
-  // list. Spend a bounded number of additional free requests on the most
-  // active verified tokens in each 30-mint group. Other tokens retain their
-  // eligible discovery pools. A failed detail refresh preserves the previous
-  // cached batch instead of publishing reduced coverage as a fresh result.
-  const discoveredVolume = (token: StockToken) =>
-    (discovered[token.symbol] ?? []).reduce(
-      (sum, pool) => sum + (pool.volume24h ?? 0),
-      0,
-    );
-  const selected = batches.flatMap((batch) =>
-    [...batch]
-      .filter((token) => discoveredVolume(token) > 0)
-      .sort((a, b) => discoveredVolume(b) - discoveredVolume(a))
-      .slice(0, 2),
-  );
+  // Discovery is not exhaustive. Enrich every eligible discovered token,
+  // including zero-volume pools: ranking by incomplete volume hides markets.
+  // A failed detail refresh rejects the whole snapshot so the cache retains
+  // its previous data and timestamp. Scheduled callers split work into 30 mints.
+  const selected = tokens.filter((token) => discovered[token.symbol]?.length);
   const detail = await Promise.allSettled(
     selected.map((token) => fetchTokenPools(token, fetcher, verifiedStocks, official, false)),
   );

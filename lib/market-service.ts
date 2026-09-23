@@ -47,6 +47,8 @@ export async function readMarketBatch(
     defer?: (work: Promise<unknown>) => void;
     pools?: boolean;
     poolRefreshMs?: number;
+    poolLoader?: () => ReturnType<typeof fetchPools>;
+    poolLeaseMs?: number;
     history?: boolean;
     cacheOnly?: boolean;
     fetcher?: typeof fetch;
@@ -85,6 +87,7 @@ export async function readMarketBatch(
           loader,
           Date.now(),
           saved.get(prefix + key) ?? null,
+          prefix === poolPrefix ? options.poolLeaseMs : undefined,
         );
   const [prices, supplies, history, pools] = await Promise.all([
     read('llama-prices-v3:', MARKET_REFRESH_MS, () =>
@@ -101,7 +104,7 @@ export async function readMarketBatch(
     options.pools === false
       ? emptySource({})
       : read(poolPrefix, options.poolRefreshMs ?? POOL_REFRESH_MS, () =>
-          fetchPools(options.fetcher ?? fetch, tokens, options.verifiedStocks),
+          options.poolLoader?.() ?? fetchPools(options.fetcher ?? fetch, tokens, options.verifiedStocks),
         ),
   ]);
   return { prices, supplies, history, pools };

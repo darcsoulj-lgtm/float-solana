@@ -88,3 +88,41 @@ void test('duplicate cron delivery does not duplicate jobs and a failed job does
   assert.equal(jobs.length,count);
   raw.close();
 });
+
+void test('90-token caches use bounded sequential chunks and publish only a complete result', async () => {
+  const mints = Array.from({length:90}, (_,i)=>String(i));
+  const calls = [];
+  const data = await api.scheduledPools(mints, {async pools(chunk) {
+    calls.push(chunk);
+    return {data:Object.fromEntries(chunk.map(mint=>[mint,[]]))};
+  }});
+  assert.deepEqual(calls.map(chunk=>chunk.length),[30,30,30]);
+  assert.equal(Object.keys(data).length,90);
+  assert.deepEqual(calls.flat(),mints);
+  let count=0;
+  await assert.rejects(api.scheduledPools(mints,{async pools() {
+    count++;
+    return count===1 ? {data:{MU:[]}} : {error:{message:'limited',status:429,retryAfterMs:600000}};
+  }}), error=>error instanceof api.SourceHttpError && error.status===429 && error.retryAfterMs===600000);
+  assert.equal(count,2, 'no later chunk after a failed provider');
+});
+void test('private pool jobs reject unknown, duplicate, or oversized mint lists', async () => {
+  const {raw,d1}=database();
+  for (const mints of [[],Array(31).fill('x'),['x','x'],['not-a-stock']]) {
+    const result = await api.runPoolChunk({DB:d1},mints);
+    assert.ok(result.error);
+  }
+  raw.close();
+});
+void test('extended pool lease prevents a second refresh while chunked collection is in flight', async () => {
+  const {raw,d1}=database();const now=Date.now();let finish;
+  const pending=api.cachedMarket(d1,'dex-pools-lease:test',240000,
+    ()=>new Promise(resolve=>{finish=resolve;}),now,undefined,120000);
+  while(!finish) await new Promise(resolve=>setTimeout(resolve,1));
+  let duplicate=0;
+  await api.cachedMarket(d1,'dex-pools-lease:test',240000,async()=>{duplicate++;return {};},now+21000);
+  assert.equal(duplicate,0);
+  finish({MU:[{volume24h:100}]});await pending;
+  assert.equal(JSON.parse(raw.prepare('SELECT payload FROM market_cache WHERE key=?').get('dex-pools-lease:test').payload).MU[0].volume24h,100);
+  raw.close();
+});

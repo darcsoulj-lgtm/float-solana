@@ -163,11 +163,12 @@ void test('Cross-issuer and newly verified stocks qualify outside the requested 
   );
 });
 
-void test('Active tokens gain eligible detail pools without counting spoof pairs or duplicating discovery pools', async () => {
+void test('Every discovered token gains detail pools regardless of rank or zero volume, without spoof pairs or duplicates', async () => {
   const [a, b, c] = api.TOKENS.filter((token) => token.mint).slice(0, 3);
   const first = pair(a.mint, usdc.mint, 100);
   const second = pair(b.mint, usdc.mint, 90);
-  const third = pair(c.mint, usdc.mint, 10);
+  const third = pair(c.mint, usdc.mint, 0);
+  const extraThird = pair(c.mint, usdc.mint, 50);
   const extra = pair(a.mint, usdc.mint, 60);
   const spoof = pair(a.mint, meme, 1000000);
   const requested = [];
@@ -178,17 +179,18 @@ void test('Active tokens gain eligible detail pools without counting spoof pairs
     if (String(url).endsWith('/' + a.mint))
       return Response.json([first, extra, spoof]);
     if (String(url).endsWith('/' + b.mint)) return Response.json([second]);
+    if (String(url).endsWith('/' + c.mint)) return Response.json([third, extraThird]);
     return new Response('', { status: 429 });
   };
   const pools = await api.fetchPools(fetcher, [a, b, c]);
   assert.equal(api.poolMetrics(pools[a.symbol]).volume24h, 160);
   assert.equal(api.poolMetrics(pools[b.symbol]).volume24h, 90);
-  assert.equal(api.poolMetrics(pools[c.symbol]).volume24h, 10);
+  assert.equal(api.poolMetrics(pools[c.symbol]).volume24h, 50);
   assert.equal(pools[a.symbol].length, 2);
-  assert.equal(requested.length, 4);
+  assert.equal(requested.length, 5);
   assert.ok(requested.some((url) => url.endsWith('/' + a.mint)));
   assert.ok(requested.some((url) => url.endsWith('/' + b.mint)));
-  assert.ok(!requested.some((url) => url.endsWith('/' + c.mint)));
+  assert.ok(requested.some((url) => url.endsWith('/' + c.mint)));
 });
 
 void test('A stock-stock pool counts for both stocks but only once in an issuer total', () => {
@@ -265,4 +267,21 @@ void test('Failed detail enrichment does not publish a smaller pool snapshot as 
     return new Response('',{status:429,headers:{'Retry-After':'600'}});
   };
   await assert.rejects(api.fetchPools(fetcher,[a,b]),/HTTP 429/);
+});
+void test('recorded SPCX response restores all 21 eligible returned pools, not just its single discovery pool', async () => {
+  const {readFile}=await import('node:fs/promises');
+  const fixture=JSON.parse(await readFile(new URL('./fixtures/pool-discovery-spcx.json',import.meta.url),'utf8'));
+  const calls=[];
+  const fetcher=async input=>{
+    const url=new URL(input);calls.push(url.pathname);
+    if(url.hostname==='www.stonkfun.xyz') return Response.json({data:{tokens:[]}});
+    if(url.pathname.includes('/tokens/v1/')) return Response.json(fixture.discovery);
+    const detail=fixture.details[url.pathname.split('/').at(-1)];
+    assert.ok(detail, 'unexpected provider request');return Response.json(detail);
+  };
+  const pools=await api.fetchPools(fetcher,fixture.tokens);
+  assert.equal(api.parsePools(fixture.discovery,fixture.tokens).SPCX.length,1);
+  assert.equal(pools.SPCX.length,21);
+  assert.equal(new Set(pools.SPCX.map(p=>p.address)).size,21);
+  assert.equal(calls.filter(p=>p.includes('/token-pairs/')).length,3);
 });

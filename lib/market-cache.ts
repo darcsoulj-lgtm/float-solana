@@ -88,6 +88,7 @@ export async function cachedMarket<T>(
   loader: () => Promise<T>,
   now = Date.now(),
   savedRow?: CacheRow | null,
+  leaseMs = 20000,
 ): Promise<SourceResult<T>> {
   const row =
     savedRow !== undefined
@@ -141,7 +142,7 @@ export async function cachedMarket<T>(
     .prepare(
       'INSERT INTO market_cache (key,payload,fetched_at,retry_after) VALUES (?,NULL,0,?) ON CONFLICT(key) DO UPDATE SET retry_after=excluded.retry_after WHERE market_cache.retry_after<=? RETURNING key',
     )
-    .bind(key, now + 20000, now)
+    .bind(key, now + leaseMs, now)
     .first();
   if (!lease) return previous();
   try {
@@ -151,7 +152,7 @@ export async function cachedMarket<T>(
       .prepare(
         'UPDATE market_cache SET payload=?,fetched_at=?,retry_after=? WHERE key=? AND retry_after=?',
       )
-      .bind(JSON.stringify(data), fetchedAt, fetchedAt + ttl, key, now + 20000)
+      .bind(JSON.stringify(data), fetchedAt, fetchedAt + ttl, key, now + leaseMs)
       .run();
     return { data, fetchedAt, stale: false, error: null };
   } catch (error) {
@@ -180,7 +181,7 @@ export async function cachedMarket<T>(
         Date.now() +
           (error instanceof SourceHttpError ? error.retryAfterMs : 30000),
         key,
-        now + 20000,
+        now + leaseMs,
       )
       .run();
     return previous();
