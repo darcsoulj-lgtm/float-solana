@@ -844,6 +844,19 @@ async function handler(req: Request) {
         .first<{ id: string; member_id: string; hidden: number }>();
       if (!thread || thread.hidden)
         throw new AppError('Discussion unavailable.', 404);
+      if (path[2] === 'edit' && post) {
+        if (thread.member_id !== member.id)
+          throw new AppError('You can only edit your own discussion.', 403);
+        const title = textValue(b.title, 1, 140, 'Title');
+        const body = textValue(b.body, 0, 4000, 'Message');
+        const updated = await db()
+          .prepare('UPDATE community_threads SET title=?,body=?,updated_at=? WHERE id=? AND member_id=? AND hidden=0')
+          .bind(title, body, Date.now(), thread.id, member.id)
+          .run();
+        if (!updated.meta.changes)
+          throw new AppError('Discussion unavailable.', 404);
+        return json({ ok: true });
+      }
       if (path[2] === 'remove' && post) {
         if (thread.member_id !== member.id)
           throw new AppError('You can only remove your own discussion.', 403);

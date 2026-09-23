@@ -7,6 +7,7 @@ import {
   Flag,
   MessageCircle,
   MoreHorizontal,
+  Pencil,
   Trash2,
   UserX,
 } from 'lucide-react';
@@ -93,6 +94,9 @@ export function Thread({
     [page, setPage] = useState<ReplyPage>({ replies: [], nextCursor: null }),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false),
+    [editing, setEditing] = useState(false),
+    [editTitle, setEditTitle] = useState(t.title),
+    [editBody, setEditBody] = useState(t.body),
     [report, setReport] = useState<{ type: string; id: string } | null>(null),
     [remove, setRemove] = useState<{ type: string; id: string } | null>(null),
     [block, setBlock] = useState<{
@@ -163,6 +167,7 @@ export function Thread({
           {showChannel && <span>{t.room_name || t.topic}</span>}
           {showChannel && <span aria-hidden="true">·</span>}
           <DiscussionTimestamp timestamp={t.created_at} now={now} />
+          {t.updated_at && t.updated_at > t.created_at && <span title={`Edited ${discussionTime(t.updated_at)}`}>Edited</span>}
         </div>
         {(detail || t.member_id === memberId) && (
           <DropdownMenu>
@@ -173,9 +178,19 @@ export function Thread({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="thread-options-menu">
               {t.member_id === memberId ? (
-                <DropdownMenuItem variant="destructive" onClick={() => setRemove({ type: 'threads', id: t.id })}>
-                  <Trash2 /> Delete post
-                </DropdownMenuItem>
+                <>
+                  <DropdownMenuItem onClick={() => {
+                    setEditTitle(t.title);
+                    setEditBody(t.body);
+                    setError('');
+                    setEditing(true);
+                  }}>
+                    <Pencil /> Edit post
+                  </DropdownMenuItem>
+                  <DropdownMenuItem variant="destructive" onClick={() => setRemove({ type: 'threads', id: t.id })}>
+                    <Trash2 /> Delete post
+                  </DropdownMenuItem>
+                </>
               ) : (
                 <>
                   <DropdownMenuItem onClick={() => memberAction(() => setReport({ type: 'thread', id: t.id }))}>
@@ -390,6 +405,33 @@ export function Thread({
           {error}
         </p>
       )}
+      <Dialog open={editing} onOpenChange={(open) => { if (!open && !busy) setEditing(false); }}>
+        <DialogContent className="compose-dialog">
+          <DialogTitle>Edit post</DialogTitle>
+          <DialogDescription>Update the title and message. Existing replies and poll votes stay in place.</DialogDescription>
+          <form className="discussion-form" onSubmit={(event) => {
+            event.preventDefault();
+            void run(async () => {
+              await api('community/threads/' + t.id + '/edit', { title: editTitle, body: editBody });
+              setEditing(false);
+              await refresh();
+            });
+          }}>
+            <div className="discussion-field">
+              <label htmlFor={`edit-title-${t.id}`}>Title</label>
+              <input id={`edit-title-${t.id}`} value={editTitle} onChange={(event) => setEditTitle(event.target.value)} maxLength={140} required />
+            </div>
+            <div className="discussion-field">
+              <label htmlFor={`edit-body-${t.id}`}>Message</label>
+              <textarea id={`edit-body-${t.id}`} value={editBody} onChange={(event) => setEditBody(event.target.value)} maxLength={4000} />
+            </div>
+            {error && <p className="field-error" role="alert">{error}</p>}
+            <Button type="submit" disabled={busy || !editTitle.trim() || (editTitle.trim() === t.title && editBody.trim() === t.body)}>
+              {busy ? 'Saving…' : 'Save changes'}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
       <Dialog
         open={!!report}
         onOpenChange={(v) => {

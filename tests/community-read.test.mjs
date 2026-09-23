@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
 import { DatabaseSync } from 'node:sqlite';
 import { bundle } from './helpers/bundle.mjs';
-const { readCommunityThreads, readCommunityReplies, AppError } = await bundle(
-  "export * from './lib/community-read'; export { AppError } from './lib/validation';",
+const { readCommunityThreads, readCommunityReplies, AppError, textValue } = await bundle(
+  "export * from './lib/community-read'; export { AppError, textValue } from './lib/validation';",
 );
 async function fixture(run) {
   const sql = new DatabaseSync(':memory:');
@@ -37,6 +37,10 @@ async function fixture(run) {
           async first() {
             assert.match(query, /^SELECT/);
             return sql.prepare(query).get(...this.args) ?? null;
+          },
+          async run() {
+            const result = sql.prepare(query).run(...this.args);
+            return { meta: { changes: result.changes } };
           },
         };
       },
@@ -126,7 +130,7 @@ void test('guest replies respect hidden thread and reply boundaries; member bloc
   }));
 
 void test('HTTP routes permit guest reading but reject every member mutation and private endpoint', () =>
-  fixture(async (database) => {
+  fixture(async (database, sql) => {
     const { compileFunction } = await import('node:vm');
     const { default: ts } = await import('typescript');
     // Compile the actual route. Provider/auth dependencies are isolated; the real read
@@ -135,7 +139,9 @@ void test('HTTP routes permit guest reading but reject every member mutation and
       '@/lib/editorial-server': { recordOperation: async () => {} },
       '@/lib/community-read': { readCommunityThreads, readCommunityReplies },
       '@/lib/community-server': {
-        communityMember: async (_req, required = true) => {
+        communityMember: async (req, required = true) => {
+          const id = req.headers.get('x-test-member');
+          if (id === 'a' || id === 'b') return { id };
           if (required) throw new AppError('Verify your wallet', 401);
           return null;
         },
@@ -144,7 +150,7 @@ void test('HTTP routes permit guest reading but reject every member mutation and
         verifiedRegistry: async () => ({ tokens: [] }),
       },
       '@/lib/server': { db: () => database, rateLimit: async () => {} },
-      '@/lib/validation': { AppError },
+      '@/lib/validation': { AppError, textValue },
       '@/lib/request-body': { readBoundedText: async (req) => req.text() },
       '@/lib/community-rooms': {},
       '@/lib/community-home': {},
@@ -209,6 +215,7 @@ void test('HTTP routes permit guest reading but reject every member mutation and
       'threads',
       'threads/visible/replies',
       'threads/visible/remove',
+      'threads/visible/edit',
       'threads/visible/poll/vote',
       'replies/reply/remove',
       'save',
@@ -229,4 +236,18 @@ void test('HTTP routes permit guest reading but reject every member mutation and
       );
       assert.equal(response.status, 401, path);
     }
+    const edit = (id, member, body) => compiled.exports.POST(new Request(`https://float.example/api/community/threads/${id}/edit`, {
+      method: 'POST',
+      headers: { origin: 'https://float.example', 'content-type': 'application/json', 'x-test-member': member },
+      body: JSON.stringify(body),
+    }));
+    assert.equal((await edit('visible', 'b', { title: 'Stolen', body: 'No' })).status, 403);
+    assert.equal((await edit('visible', 'a', { title: ' ', body: 'No' })).status, 400);
+    assert.equal((await edit('hidden', 'a', { title: 'Hidden edit', body: '' })).status, 404);
+    assert.equal((await edit('visible', 'a', { title: 'Edited title', body: 'Edited body' })).status, 200);
+    const updated = sql.prepare("SELECT title,body,updated_at FROM community_threads WHERE id='visible'").get();
+    assert.equal(updated.title, 'Edited title');
+    assert.equal(updated.body, 'Edited body');
+    assert.ok(updated.updated_at > 10);
+    assert.equal(sql.prepare("SELECT COUNT(*) count FROM community_replies WHERE thread_id='visible'").get().count, 2);
   }));

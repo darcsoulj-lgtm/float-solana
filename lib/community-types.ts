@@ -107,6 +107,7 @@ export type CommunityThread = CommunityAuthor & {
   title: string;
   body: string;
   created_at: number;
+  updated_at?: number;
   reply_count: number;
   hidden: number;
   saved: number;

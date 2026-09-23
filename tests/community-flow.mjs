@@ -463,6 +463,14 @@ try {
   assert.equal(afterSecondVote.poll.total_votes, 2);
   assert.equal(afterSecondVote.poll.options[1].selected, true);
   checks += 7;
+  await call('threads/' + t.id + '/edit', { title: 'Not mine', body: 'No change' }, { session: secondCookie, status: 403 });
+  await call('threads/' + t.id + '/edit', { title: ' ', body: 'No change' }, { status: 400 });
+  await call('threads/' + t.id + '/edit', { title: 'Updated discussion', body: 'The updated body.' });
+  const editedThread = (await call('threads?topic=general&thread=' + t.id)).d.threads[0];
+  assert.equal(editedThread.title, 'Updated discussion');
+  assert.equal(editedThread.body, 'The updated body.');
+  assert.ok(editedThread.updated_at >= editedThread.created_at);
+  checks += 6;
   await call(
     'threads/' + t.id + '/remove',
     {},

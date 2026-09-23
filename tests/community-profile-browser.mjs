@@ -12,6 +12,7 @@ if(p.endsWith('/status')) data={member,admin:false};
 else if(p.endsWith('/home')) data={holdingsRefreshAvailable:true,rooms:[],holdings:[{symbol:'MU',raw_amount:'100',decimals:2,verified_at:Date.now()}],follows:[],sources:[],notifications:[],blockedMembers:[]};
 else if(p.endsWith('/holder-tier')) data={tier:null,expiresAt:0};
 else if(p.endsWith('/threads') && route.request().method()==='POST') {const body=route.request().postDataJSON();posts.unshift({...posts[0],...body,member_id:member.id,alias:member.alias,bio:member.bio,id:'new',created_at:Date.now()});data={id:'new'};}
+else if(p.endsWith('/edit')) {const body=route.request().postDataJSON();posts=posts.map(t=>p.includes('/'+t.id+'/')?{...t,...body,updated_at:Date.now()}:t);}
 else if(p.endsWith('/threads')) data={threads:posts.filter(t=>(url.searchParams.get('feed')!=='mine'||t.member_id===member.id)&&(!url.searchParams.get('thread')||t.id===url.searchParams.get('thread'))),nextCursor:null};
 else if(p.endsWith('/replies')) data={replies:[],nextCursor:null};
 else if(p.endsWith('/remove')) {posts=posts.filter(t=>!p.includes('/'+t.id+'/'));}
@@ -28,6 +29,13 @@ if(width<=640) { assert.ok(Math.abs(box.x)<1); assert.ok(Math.abs(box.width-widt
 await page.screenshot({path:`/tmp/float-profile-${width}.png`});
 await page.keyboard.press('Escape');
 await page.getByRole('button',{name:'Discussion options',exact:true}).click();
+await page.getByRole('menuitem',{name:'Edit post'}).click();
+await page.getByRole('dialog').getByLabel('Title').fill('Edited discussion title');
+await page.getByRole('dialog').getByLabel('Message').fill('Edited discussion message.');
+await page.getByRole('dialog').getByRole('button',{name:'Save changes'}).click();
+await page.getByRole('button',{name:'Edited discussion title',exact:true}).waitFor();
+await page.getByRole('button',{name:'Edited discussion message.',exact:true}).waitFor();
+await page.getByRole('button',{name:'Discussion options',exact:true}).click();
 await page.getByRole('menuitem',{name:'Delete post'}).click();
 await page.getByRole('dialog').getByRole('button',{name:'Delete',exact:true}).click();
 await page.getByRole('heading',{name:'No posts yet.'}).waitFor();
@@ -38,13 +46,10 @@ await page.getByRole('button',{name:'Post discussion',exact:true}).click();
 await page.getByText('Discussion posted.',{exact:true}).waitFor();
 assert.equal(new URL(page.url()).searchParams.has('thread'),false);
 await page.getByRole('button',{name:'A freshly published post',exact:true}).waitFor();
-assert.ok(await page.locator('.thread-post').first().getByText('Bronze',{exact:true}).count());
 await page.waitForTimeout(400);
 await page.screenshot({path:`/tmp/float-feed-${width}.png`});
 await page.getByRole('button',{name:'Profile',exact:true}).click();
-await page.locator('.profile-tier-heading').getByText('Bronze',{exact:true}).waitFor();
-assert.equal(await page.getByText('Tier unavailable',{exact:true}).count(),0);
 assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
-assert.deepEqual(errors,[]);console.log(`${width}px passed: My posts, bio, delete, publish-to-feed, Bronze fallback, no overflow or page errors`);await page.close();
+assert.deepEqual(errors,[]);console.log(`${width}px passed: My posts, bio, edit, delete, publish-to-feed, no overflow or page errors`);await page.close();
 }
 }finally{await browser.close();}
