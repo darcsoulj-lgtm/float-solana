@@ -1,21 +1,23 @@
-/* Backpack-inspired accent palette; Float remains an independent product. */
+/* Float palette: warm neutral surfaces, ink text, restrained red actions. */
 :root {
-  --brand-red: #e33e3f;
-  --brand-accent: #c92d35;
-  --brand-accent-ink: #b3222b;
-  --background: #f7f7f8;
-  --foreground: #0e0f14;
+  --brand-red: #c93646;
+  --brand-accent: #c93646;
+  --brand-accent-ink: #ad2938;
+  --background: #f7f7f5;
+  --foreground: #191b20;
   --card: #fff;
-  --card-foreground: #0e0f14;
+  --card-foreground: #191b20;
+  --popover: #fff;
+  --popover-foreground: #191b20;
   --primary: var(--brand-accent);
   --primary-foreground: #fff;
-  --secondary: #f0f0f2;
+  --secondary: #efefed;
   --secondary-foreground: #292a30;
-  --muted: #f0f0f2;
-  --muted-foreground: #62636b;
-  --accent: #f0f0f2;
-  --accent-foreground: #0e0f14;
-  --border: #dedee3;
+  --muted: #efefed;
+  --muted-foreground: #686d76;
+  --accent: #efefed;
+  --accent-foreground: #191b20;
+  --border: #e3e4e7;
   --input: #cacbd2;
   --ring: var(--brand-accent);
 }
@@ -26,7 +28,7 @@ body,
 }
 .member-sidebar,
 .preview-nav {
-  background: var(--hp-bg-f0f0f2, #f0f0f2);
+  background: var(--hp-bg-f0f0f2, #efefed);
   border-color: var(--border);
 }
 .brand,
@@ -85,7 +87,7 @@ body,
 .member-nav :is(button, a),
 .sidebar-bottom,
 .sidebar-note a {
-  color: var(--hp-ink-62636b, #62636b);
+  color: var(--hp-ink-62636b, #686d76);
 }
 .member-nav :is(button, a):hover {
   background: var(--hp-bg-e7e7eb, #e7e7eb);
@@ -104,14 +106,14 @@ body,
 .holding-tags button,
 .following-tags button,
 .preview-tags span {
-  background: var(--hp-bg-f0f0f2, #f0f0f2);
+  background: var(--hp-bg-f0f0f2, #efefed);
   color: var(--hp-ink-3b3c44, #3b3c44);
 }
 .text-action,
 .sidebar-note a:hover,
 .source-item a,
 .source-heading a {
-  color: var(--brand-accent-ink);
+  color: var(--foreground);
 }
 .market-table tr.is-selected {
   background: var(--hp-bg-fff0f0, #fff0f0);
@@ -133,10 +135,10 @@ body,
 }
 .eyebrow,
 .market-kicker {
-  color: var(--hp-ink-62636b, #62636b);
+  color: var(--hp-ink-62636b, #686d76);
 }
 [data-slot='dialog-content'].wallet-connect-dialog {
-  background: #0e0f14;
+  background: #191b20;
   border-color: var(--hp-edge-35363e, #35363e);
 }
 .wallet-list .wallet-option,
