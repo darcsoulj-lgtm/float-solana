@@ -2281,7 +2281,7 @@ body:has(.community-entry) > footer {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
-.member-shell .discussion-title-row h1 {
+:is(.member-shell, .public-discussions) .discussion-title-row h1 {
   margin: 0;
 }
 @media (max-width: 680px) {
@@ -2350,39 +2350,39 @@ body:has(.community-entry) > footer {
   color: var(--hp-ink-7e7e7e, #7e7e7e);
   font-size: 14px;
 }
-.member-shell .thread-post {
+:is(.member-shell, .public-discussions) .thread-post {
   margin: 0 0 14px;
   padding: 24px;
   border-color: var(--hp-edge-e1e1e1, #e1e1e1);
   background: var(--hp-bg-fffefa, #fffefa);
   border-radius: 8px;
 }
-.member-shell .thread-post h3 {
+:is(.member-shell, .public-discussions) .thread-post h3 {
   font-size: 19px;
   font-weight: 550;
   line-height: 1.4;
 }
-.member-shell .thread-topline {
+:is(.member-shell, .public-discussions) .thread-topline {
   display: flex;
   align-items: flex-start;
   gap: 12px;
 }
-.member-shell .thread-topline .thread-meta {
+:is(.member-shell, .public-discussions) .thread-topline .thread-meta {
   min-width: 0;
   flex: 1;
 }
-.member-shell .thread-overflow {
+:is(.member-shell, .public-discussions) .thread-overflow {
   flex: 0 0 auto;
   color: var(--hp-ink-7e7e7e, #7e7e7e);
 }
 .thread-options-menu {
   min-width: 168px;
 }
-.member-shell .thread-meta {
+:is(.member-shell, .public-discussions) .thread-meta {
   font-size: 12px;
   color: var(--hp-ink-848484, #848484);
 }
-.member-shell .thread-meta strong {
+:is(.member-shell, .public-discussions) .thread-meta strong {
   color: var(--hp-ink-575757, #575757);
   font-weight: 550;
 }
@@ -2390,32 +2390,32 @@ body:has(.community-entry) > footer {
   background: var(--hp-bg-efefef, #efefef);
   color: var(--hp-ink-707070, #707070);
 }
-.member-shell .thread-post p {
+:is(.member-shell, .public-discussions) .thread-post p {
   font-size: 15px;
   color: var(--hp-ink-6d6d6d, #6d6d6d);
 }
-.member-shell .thread-bottom {
+:is(.member-shell, .public-discussions) .thread-bottom {
   justify-content: flex-start;
   gap: 8px;
   flex-wrap: wrap;
   border-top-color: var(--hp-edge-ededed, #ededed);
 }
-.member-shell .thread-bottom button {
+:is(.member-shell, .public-discussions) .thread-bottom button {
   font-size: 12px;
   color: var(--hp-ink-7e7e7e, #7e7e7e);
   padding-inline: 9px;
 }
-.member-shell .thread-bottom button[aria-pressed='true'] {
+:is(.member-shell, .public-discussions) .thread-bottom button[aria-pressed='true'] {
   color: var(--hp-ink-4b4b4b, #4b4b4b);
 }
-.member-shell .thread-bottom .thread-icon-action {
+:is(.member-shell, .public-discussions) .thread-bottom .thread-icon-action {
   min-width: 36px;
   height: 36px;
   gap: 6px;
   padding: 0 9px;
   border-radius: 999px;
 }
-.member-shell .thread-bottom .thread-save-action {
+:is(.member-shell, .public-discussions) .thread-bottom .thread-save-action {
   width: 36px;
   padding: 0;
 }
@@ -3172,13 +3172,13 @@ body:has(.community-entry) > footer {
   .conversation-prompt > div {
     gap: 13px;
   }
-  .member-shell .thread-post {
+  :is(.member-shell, .public-discussions) .thread-post {
     padding: 20px;
   }
-  .member-shell .thread-bottom {
+  :is(.member-shell, .public-discussions) .thread-bottom {
     gap: 0;
   }
-  .member-shell .thread-bottom button {
+  :is(.member-shell, .public-discussions) .thread-bottom button {
     padding-inline: 8px;
   }
   .member-context {
@@ -3320,7 +3320,7 @@ body:has(.community-entry) > footer {
   font-size: 13px;
 }
 .member-page-heading p:not(.eyebrow),
-.member-shell .thread-post p {
+:is(.member-shell, .public-discussions) .thread-post p {
   font-size: 16px;
 }
 .member-page-heading > button,
@@ -3331,8 +3331,8 @@ body:has(.community-entry) > footer {
 .member-empty button {
   font-size: 14px;
 }
-.member-shell .thread-meta,
-.member-shell .thread-bottom button {
+:is(.member-shell, .public-discussions) .thread-meta,
+:is(.member-shell, .public-discussions) .thread-bottom button {
   font-size: 13px;
 }
 .context-heading {
@@ -3713,7 +3713,7 @@ body:has(.community-entry) > footer {
   color: var(--hp-ink-696969, #696969);
   letter-spacing: 0.7px;
 }
-.member-shell .member-avatar {
+:is(.member-shell, .public-discussions) .member-avatar {
   font-family: var(--font-geist-sans);
   font-size: 20px;
   font-weight: 600;

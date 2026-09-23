@@ -88,6 +88,7 @@ async function fixture() {
       adminWallet: async () => null,
     },
     '@/lib/community-types': {},
+    '@/lib/community-read': {},
     '@/lib/community-server': {
       communityMember: async () => {
         if (!signedIn) throw new AppError('Sign in', 401);
@@ -254,14 +255,14 @@ void test('Member room creation is blocked because channels are curated', async 
   }
 });
 
-void test('verified membership receives Bronze when prices cannot establish a value tier', async () => {
+void test('verified membership does not invent Bronze when prices cannot establish a value tier', async () => {
   const f = await fixture();
   try {
     f.losePrice();
     const r = await f.post('holder-tier', {});
     const result = await r.json();
     assert.equal(r.status, 200);
-    assert.equal(result.tier, 'bronze');
-    assert.equal(result.expiresAt, f.sqlite.prepare('SELECT verified_until FROM community_members').get().verified_until);
+    assert.equal(result.tier, null);
+    assert.equal(result.expiresAt, 0);
   } finally { f.sqlite.close(); }
 });

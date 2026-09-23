@@ -5,7 +5,7 @@ import { ArrowUpRight, ChevronRight, LoaderCircle } from 'lucide-react';
 import { Button } from './ui/button';
 import { walletAvailability, subscribeWallets } from '@/lib/wallet-provider';
 import { api } from '@/lib/client';
-import { readWalletHandoff, WALLET_HANDOFF_KEY, type WalletHandoff } from '@/lib/wallet-handoff';
+import { readWalletHandoff, walletHandoffId, WALLET_HANDOFF_KEY, type WalletHandoff } from '@/lib/wallet-handoff';
 import {
   isMobileBrowser,
   walletBrowserLink,
@@ -42,6 +42,7 @@ export function WalletList({
   const [mobile, setMobile] = useState(false);
   const [launchIntent, setLaunchIntent] = useState<string | null>(null);
   const [installedApp, setInstalledApp] = useState(false);
+  const [needsHandoff, setNeedsHandoff] = useState(false);
   const [handoff, setHandoff] = useState<WalletHandoff | null>(null);
   const [handoffError, setHandoffError] = useState('');
   useEffect(() => {
@@ -72,7 +73,12 @@ export function WalletList({
       const standalone = window.matchMedia('(display-mode: standalone)').matches ||
         (navigator as Navigator & { standalone?: boolean }).standalone === true;
       setInstalledApp(standalone);
-      if (!standalone) return;
+      // Any mobile browser has a separate cookie jar from the wallet browser.
+      // Receiver pages reuse their incoming handoff instead of starting another.
+      const needsTransfer = standalone || (isMobileBrowser(navigator.userAgent, navigator.platform, navigator.maxTouchPoints) &&
+        !walletLaunchIntent(window.location.href) && !walletHandoffId(window.location.href));
+      setNeedsHandoff(needsTransfer);
+      if (!needsTransfer) return;
       const existing = readWalletHandoff(localStorage);
       if (existing) {
         setHandoff(existing);
@@ -102,11 +108,11 @@ export function WalletList({
             key={id}
             variant="ghost"
             className="wallet-option"
-            disabled={disabled || (installedApp && !handoff)}
+            disabled={disabled || (needsHandoff && !handoff)}
             onClick={() => {
               const standalone = window.matchMedia('(display-mode: standalone)').matches ||
                 (navigator as Navigator & { standalone?: boolean }).standalone === true;
-              if (standalone && (!handoff || handoff.expiresAt <= Date.now())) {
+              if (needsHandoff && (!handoff || handoff.expiresAt <= Date.now())) {
                 setHandoffError('Wallet connection expired. Close and reopen this panel.');
                 return;
               }
@@ -115,7 +121,7 @@ export function WalletList({
               // First move through the selected wallet's own deep link, then
               // require its named provider before requesting a signature.
               if (mobile && (standalone || launchIntent !== id)) {
-                const walletUrl = walletBrowserLink(id, window.location.href, standalone ? handoff?.id : undefined);
+                const walletUrl = walletBrowserLink(id, window.location.href, needsHandoff ? handoff?.id : walletHandoffId(window.location.href) || undefined);
                 if (walletUrl) {
                   window.location.assign(walletUrl);
                   return;
@@ -134,7 +140,7 @@ export function WalletList({
             <span className="wallet-detected">
               {disabled && selected === id ? (
                 <LoaderCircle size={18} className="animate-spin" />
-              ) : installedApp && !handoff ? (
+              ) : needsHandoff && !handoff ? (
                 'Preparing…'
               ) : mobile && launchIntent !== id ? (
                 'Open app'
@@ -153,7 +159,7 @@ export function WalletList({
         );
       })}
       {handoffError && <p role="alert" className="error">{handoffError}</p>}
-      {installedApp && handoff && <p className="wallet-handoff-note">After signing, reopen Float from your Home Screen.</p>}
+      {needsHandoff && handoff && <p className="wallet-handoff-note">{installedApp ? "After signing, reopen Float from your Home Screen." : "After signing, return to this page to finish connecting."}</p>}
       {help && (
         <div className="wallet-browser-help" role="alert">
           <strong>

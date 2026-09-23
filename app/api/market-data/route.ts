@@ -1,4 +1,5 @@
 import { POOL_POLICY_VERSION } from '@/lib/stock-pools';
+import { readMarketOverview } from '@/lib/market-overview-server';
 import { readMarketBatch } from '@/lib/market-service';
 import {
   backpackRegistry,
@@ -38,7 +39,9 @@ const json = (data: unknown, status = 200) =>
 export async function GET(req: Request) {
   const started = performance.now();
   try {
-    const member = await communityMember(req, false);
+    const overview = new URL(req.url).searchParams.get('overview') === '1';
+    const scheduled = runtime().MARKET_SCHEDULED === '1';
+    const member = overview ? null : await communityMember(req, false);
     const audience =
       member?.id || req.headers.get('cf-connecting-ip') || 'anonymous';
     await rateLimit('market-data:' + audience, 120);
@@ -47,8 +50,14 @@ export async function GET(req: Request) {
       database,
       waitUntil,
       runtime().SOLANA_RPC_URL,
+      fetch, Date.now(), overview || scheduled,
     );
     const registryList = registryTokens(registry);
+    if (overview) {
+      const response = json(await readMarketOverview(runtime(), registryList, registry));
+      response.headers.set('Server-Timing', `market_snapshot;dur=${(performance.now() - started).toFixed(1)}`);
+      return response;
+    }
     if (new URL(req.url).searchParams.get('history') === '1')
       return json({ points: await readMarketDailyActivity(database, registryList) });
     const snapshot = <T>(key: string, ttl: number, loader: () => Promise<T>) =>
@@ -64,6 +73,8 @@ export async function GET(req: Request) {
           : key.startsWith('book:') || key.startsWith('token-pairs-')
             ? ttl
             : Math.max(ttl, MARKET_MAX_AGE_MS),
+        undefined,
+        !scheduled || key.startsWith('book:') || key.startsWith('token-pairs-'),
       );
     const symbol = new URL(req.url).searchParams.get('symbol');
     if (symbol && !registryList.some((t) => t.symbol === symbol))
@@ -137,6 +148,7 @@ export async function GET(req: Request) {
         verifiedStocks: registryList,
         rpcUrl: runtime().SOLANA_RPC_URL,
         defer: waitUntil,
+        cacheOnly: scheduled,
       }),
       batch > 0
         ? Promise.resolve({
@@ -149,7 +161,7 @@ export async function GET(req: Request) {
             fetchTokenMarkets(runtime().CMC_API_KEY),
           ),
       batch === 0
-        ? circulationSnapshot(database, waitUntil)
+        ? circulationSnapshot(database, waitUntil, Date.now(), fetch, scheduled)
         : Promise.resolve(undefined),
       batch === 0
         ? snapshot(backpackTickerKey, BACKPACK_TICKER_REFRESH_MS, () =>

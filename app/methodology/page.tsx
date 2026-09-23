@@ -7,8 +7,9 @@ export default function Page() {
       <section className="panel">
         <h2>Eligibility</h2>
         <p>
-          Hold any of the {TOKENS.length} supported stock or ETF tokens in a
-          Solana wallet you control. One holding gives access to every channel.
+          Anyone can read discussions. To post, reply or vote, hold any of the
+          {TOKENS.length} supported stock or ETF tokens in a Solana wallet you
+          control and verify your wallet. One holding qualifies for every channel.
           Exchange balances and perpetual positions do not qualify.{' '}
           <Link href="/tokens">Supported tokens</Link>.
         </p>
@@ -26,15 +27,16 @@ export default function Page() {
         <p>
           A session lasts 24 hours. Holdings are checked every minute while the
           site is open. If a successful check finds no supported holdings,
-          access ends. Checks are periodic, so changes are not instant.
+          posting, replying and voting end. Reading remains open to everyone.
+          Checks are periodic, so changes are not instant.
         </p>
       </section>
       <section className="panel">
         <h2>Privacy</h2>
         <p>
           Holdings personalize your news feed. Exact balances and wallet
-          addresses are not shown to other members. Your wallet address is
-          stored during the session for automatic checks. Token badges are
+          addresses are not shown publicly. Your wallet address is
+          stored during the session for automatic checks. Value badges are
           optional and hidden by default.
         </p>
         <p>
@@ -46,14 +48,16 @@ export default function Page() {
         <h2>Holder tiers</h2>
         <p>
           Tiers use the estimated USD value of supported tokenized stocks in
-          your verified wallet: Bronze under $100; Silver $100–$999; Gold
-          $1,000–$9,999; Platinum $10,000–$99,999; Diamond $100,000 or more.
+          your verified wallet: no badge under $100; Bronze $100–$999;
+          Silver $1,000–$9,999; Gold
+          $10,000–$99,999; Platinum $100,000–$999,999; Diamond $1 million or more.
         </p>
         <p>
-          Every holding needs a reliable price. A reference up to four hours
-          old can qualify only when a 25% price change would leave the wallet
-          in the same tier. Tiers expire when checks become stale. They do not
-          indicate expertise or total wealth, and do not change posting rights.
+          Badges require reliable prices and current holdings checks. If value
+          cannot be determined reliably, no value badge is shown. This does
+          not mean the wallet holds less than $100. A verified supported
+          holding still lets you post, reply and vote, with or without a badge.
+          Tiers do not indicate expertise or total wealth.
         </p>
         <p>
           Value badges are private by default. Enable Show value badge in

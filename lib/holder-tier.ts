@@ -4,11 +4,11 @@ import { tokenObservation } from './token-observation';
 import { marketTokens } from './market-data';
 
 export const HOLDER_TIERS = [
-  { id: 'bronze', label: 'Bronze', minimum: 0, range: 'Base tier' },
-  { id: 'silver', label: 'Silver', minimum: 100, range: '$100–$999' },
-  { id: 'gold', label: 'Gold', minimum: 1000, range: '$1k–$9,999' },
-  { id: 'platinum', label: 'Platinum', minimum: 10000, range: '$10k–$99,999' },
-  { id: 'diamond', label: 'Diamond', minimum: 100000, range: '$100k+' },
+  { id: 'bronze', label: 'Bronze', minimum: 100, range: '$100–$999' },
+  { id: 'silver', label: 'Silver', minimum: 1000, range: '$1k–$9,999' },
+  { id: 'gold', label: 'Gold', minimum: 10000, range: '$10k–$99,999' },
+  { id: 'platinum', label: 'Platinum', minimum: 100000, range: '$100k–$999,999' },
+  { id: 'diamond', label: 'Diamond', minimum: 1000000, range: '$1M+' },
 ] as const;
 export type HolderTier = (typeof HOLDER_TIERS)[number]['id'];
 export type HolderTierResult = { tier: HolderTier | null; expiresAt: number };
@@ -16,7 +16,7 @@ const DATED_TIER_PRICE_MAX_AGE_MS = 4 * 60 * 60 * 1000;
 const DATED_TIER_PRICE_BUFFER = 0.25;
 export function tierForValue(value: number): HolderTier | null {
   if (!Number.isFinite(value) || value <= 0) return null;
-  return [...HOLDER_TIERS].reverse().find((t) => value >= t.minimum)!.id;
+  return [...HOLDER_TIERS].reverse().find((t) => value >= t.minimum)?.id ?? null;
 }
 
 // Use fresh quotes directly. A dated, high-confidence issuer reference can

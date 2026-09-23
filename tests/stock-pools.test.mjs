@@ -177,6 +177,7 @@ void test('Active tokens gain eligible detail pools without counting spoof pairs
       return Response.json([first, second, third]);
     if (String(url).endsWith('/' + a.mint))
       return Response.json([first, extra, spoof]);
+    if (String(url).endsWith('/' + b.mint)) return Response.json([second]);
     return new Response('', { status: 429 });
   };
   const pools = await api.fetchPools(fetcher, [a, b, c]);
@@ -253,4 +254,15 @@ void test('A warm legacy pool cache cannot reintroduce excluded activity, includ
     globalThis.fetch = original;
     sql.close();
   }
+});
+
+void test('Failed detail enrichment does not publish a smaller pool snapshot as a fresh observation', async () => {
+  const [a,b] = api.TOKENS.filter(token=>token.mint).slice(0,2);
+  const discovery=[pair(a.mint,usdc.mint,100),pair(b.mint,usdc.mint,90)];
+  const fetcher=async url=>{
+    if(String(url).includes('/tokens/v1/'))return Response.json(discovery);
+    if(String(url).endsWith('/'+a.mint))return Response.json([discovery[0]]);
+    return new Response('',{status:429,headers:{'Retry-After':'600'}});
+  };
+  await assert.rejects(api.fetchPools(fetcher,[a,b]),/HTTP 429/);
 });

@@ -1067,6 +1067,38 @@ void test('Old batches do not age out fresh prices and supply in another batch',
   assert.equal(tokenObservation(merged, 'SPCX', now).issuedValue, 20);
 });
 
+void test('last observations remain display-only while a batch refreshes', async () => {
+  const { mergeMarketPages } = await import(
+    pathToFileURL(dir + '/market-data.mjs')
+  );
+  const now = Date.now(), old = now - 10 * 60 * 1000;
+  const page = {
+    catalog: source([], old),
+    markets: source({}, old),
+    prices: { ...source({ MU: { price: 2, timestamp: old, confidence: 1 } }, old), stale: true },
+    pools: { ...source({ MU: [{ address: 'pool', price: 2, volume24h: 100, liquidity: 500 }] }, old), stale: true },
+    supplies: { ...source({ MU: { supply: 10, valuationSafe: true } }, old), stale: true },
+  };
+  const row = tokenObservation(mergeMarketPages([page], true), 'MU', now);
+  assert.equal(row.price, null);
+  assert.equal(row.lastPrice, 2);
+  assert.equal(row.lastPriceTime, old);
+  assert.equal(row.lastPoolVolume24h, 100);
+  assert.equal(row.lastPoolLiquidity, 500);
+  assert.equal(row.lastSupply, 10);
+  assert.equal(row.issuedValue, null);
+  const delayed = tokenObservation(mergeMarketPages([page], true), 'MU', now + 2 * 60 * 60 * 1000);
+  assert.equal(delayed.lastPrice, 2);
+  assert.equal(delayed.lastPriceTime, old);
+  assert.equal(delayed.lastPoolVolume24h, 100);
+  assert.equal(delayed.lastSupply, 10);
+  assert.equal(delayed.price, null);
+  assert.equal(delayed.issuedValue, null);
+  const expired = tokenObservation(mergeMarketPages([page], true), 'MU', now + 25 * 60 * 60 * 1000);
+  assert.equal(expired.lastPrice, null);
+  assert.equal(expired.lastPoolLiquidity, null);
+});
+
 void test('Low-confidence prices and stale historical sources cannot manufacture a daily change', () => {
   const now = Date.now();
   const data = {
@@ -1113,23 +1145,13 @@ const { calculateHolderTier, tierForValue } = await import(
 const { TIER_WRITE_SQL } = await import(
   pathToFileURL(dir + '/holder-tier-server.mjs')
 );
-void test('holder tiers cover each boundary and never rank zero or invalid values', () => {
+void test('holder tiers cover each boundary and no badge below 100', () => {
   for (const [value, tier] of [
-    [0, null],
-    [-1, null],
-    [NaN, null],
-    [Infinity, null],
-    [0.01, 'bronze'],
-    [99.99, 'bronze'],
-    [100, 'silver'],
-    [999.99, 'silver'],
-    [1000, 'gold'],
-    [9999.99, 'gold'],
-    [10000, 'platinum'],
-    [99999.99, 'platinum'],
-    [100000, 'diamond'],
-  ])
-    assert.equal(tierForValue(value), tier);
+    [0, null], [-1, null], [NaN, null], [Infinity, null], [0.01, null], [99.99, null],
+    [100, 'bronze'], [999.99, 'bronze'], [1000, 'silver'], [9999.99, 'silver'],
+    [10000, 'gold'], [99999.99, 'gold'], [100000, 'platinum'],
+    [999000, 'platinum'], [999999.99, 'platinum'], [1000000, 'diamond'],
+  ]) assert.equal(tierForValue(value), tier);
 });
 function tierFixture() {
   const now = Date.now();
@@ -1162,11 +1184,11 @@ function tierFixture() {
 void test('holder tier uses verified raw units, prices all holdings and bounds expiry', () => {
   const { now, holdings, data } = tierFixture();
   assert.deepEqual(calculateHolderTier(holdings, data, now), {
-    tier: 'gold',
+    tier: 'silver',
     expiresAt: now + 120000,
   });
   holdings[0].ui_amount = '999999999';
-  assert.equal(calculateHolderTier(holdings, data, now).tier, 'gold');
+  assert.equal(calculateHolderTier(holdings, data, now).tier, 'silver');
   holdings.push({ ...holdings[0], symbol: 'SPCX' });
   assert.equal(calculateHolderTier(holdings, data, now).tier, null);
 });
@@ -1174,7 +1196,7 @@ void test('Backpack reference price qualifies a tier with its own fresh observat
   const { now, holdings, data } = tierFixture();
   data.prices.data = {};
   data.backpack = {
-    data: { MU: { externalPrice: 40, externalChange24h: null } },
+    data: { MU: { externalPrice: 60, externalChange24h: null } },
     fetchedAt: now,
     stale: false,
     error: null,
@@ -1200,7 +1222,7 @@ void test('a newly verified Backpack listing can use its issuer ticker for a hol
   data.prices.data = {};
   data.supplies.data = { NEW: { supply: 10000, valuationSafe: true } };
   data.backpack = {
-    data: { NEW: { externalPrice: 40, externalChange24h: null } },
+    data: { NEW: { externalPrice: 60, externalChange24h: null } },
     fetchedAt: now,
     stale: false,
     error: null,
@@ -1209,12 +1231,12 @@ void test('a newly verified Backpack listing can use its issuer ticker for a hol
 });
 void test('A dated reliable quote qualifies only when a 25 percent range stays within one tier', () => {
   const f = tierFixture();
-  f.data.prices.data.MU.price = 39;
+  f.data.prices.data.MU.price = 80;
   f.data.prices.data.MU.timestamp = f.now - 2 * 60 * 60 * 1000;
   assert.equal(calculateHolderTier(f.holdings, f.data, f.now).tier, 'bronze');
-  f.data.prices.data.MU.price = 40;
+  f.data.prices.data.MU.price = 50;
   assert.equal(calculateHolderTier(f.holdings, f.data, f.now).tier, null);
-  f.data.prices.data.MU.price = 39;
+  f.data.prices.data.MU.price = 80;
   f.data.prices.data.MU.timestamp = f.now - 4 * 60 * 60 * 1000 - 1;
   assert.equal(calculateHolderTier(f.holdings, f.data, f.now).tier, null);
 });
@@ -1271,7 +1293,7 @@ void test('tier migration preserves users, defaults private, and rejects writes 
 });
 void test('public author queries reveal tiers only with opt-in, fresh verification and fresh tier', async () => {
   const raw = await readFile(
-    new URL('../lib/community-server.ts', import.meta.url),
+    new URL('../lib/community-read.ts', import.meta.url),
     'utf8',
   );
   const sql = raw.match(/export const authorColumns =\s*`([^`]+)`/)[1];
@@ -1298,10 +1320,10 @@ void test('public author queries reveal tiers only with opt-in, fresh verificati
   db.exec('UPDATE community_members SET show_value_badge=1');
   assert.equal(get().value_tier, 'gold');
   db.exec('UPDATE community_members SET value_tier_expires_at=0');
-  assert.equal(get().value_tier, 'bronze');
-  assert.equal(get().value_tier_expires_at, now + 60000);
+  assert.equal(get().value_tier, null);
+  assert.equal(get().value_tier_expires_at, 0);
   db.exec('UPDATE community_members SET value_tier=NULL');
-  assert.equal(get().value_tier, 'bronze');
+  assert.equal(get().value_tier, null);
   db.prepare(
     'UPDATE community_members SET value_tier_expires_at=?,verified_until=0',
   ).run(now + 60000);
@@ -1515,6 +1537,7 @@ void test('holder news route returns cached MU and SPCX stories with pagination 
       }),
     },
     '@/lib/request-body': { readBoundedText: async (req) => req.text() },
+    '@/lib/community-read': {},
     '@/lib/community-server': {
       communityMember: async () => {
         if (!signedIn) throw new AppError('Sign in', 401);

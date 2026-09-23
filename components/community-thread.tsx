@@ -78,6 +78,7 @@ export function Thread({
   detail = false,
   onOpen,
   onThreadBlocked,
+  onRequireVerification,
 }: {
   thread: CommunityThread;
   memberId: string;
@@ -86,6 +87,7 @@ export function Thread({
   detail?: boolean;
   onOpen?: () => void;
   onThreadBlocked?: () => void;
+  onRequireVerification?: () => void;
 }) {
   const [now, setNow] = useState(() => Date.now()),
     [page, setPage] = useState<ReplyPage>({ replies: [], nextCursor: null }),
@@ -99,7 +101,12 @@ export function Thread({
       source: 'thread' | 'reply';
     } | null>(null),
     [reason, setReason] = useState('');
-  async function run(fn: () => Promise<void>) {
+  function memberAction(action: () => void) {
+    if (!memberId) { onRequireVerification?.(); return; }
+    action();
+  }
+  async function run(fn: () => Promise<void>, readOnly = false) {
+    if (!memberId && !readOnly) { onRequireVerification?.(); return; }
     setBusy(true);
     setError('');
     try {
@@ -171,10 +178,10 @@ export function Thread({
                 </DropdownMenuItem>
               ) : (
                 <>
-                  <DropdownMenuItem onClick={() => setReport({ type: 'thread', id: t.id })}>
+                  <DropdownMenuItem onClick={() => memberAction(() => setReport({ type: 'thread', id: t.id }))}>
                     <Flag /> Report post
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setBlock({ memberId: t.member_id, alias: t.alias, source: 'thread' })}>
+                  <DropdownMenuItem onClick={() => memberAction(() => setBlock({ memberId: t.member_id, alias: t.alias, source: 'thread' }))}>
                     <UserX /> Block user
                   </DropdownMenuItem>
                 </>
@@ -246,7 +253,7 @@ export function Thread({
           <p className="thread-poll-note">
             {poll.results_visible
               ? `${poll.total_votes} verified member${poll.total_votes === 1 ? '' : 's'} voted.`
-              : 'Vote to reveal results.'}
+              : memberId ? 'Vote to reveal results.' : 'Verify your holdings to vote.'}
           </p>
         </section>
       )}
@@ -260,6 +267,7 @@ export function Thread({
           title={`${t.reply_count} ${t.reply_count === 1 ? 'reply' : 'replies'}`}
           onClick={() => {
             if (!detail) onOpen?.();
+            else if (!memberId) onRequireVerification?.();
             else document.getElementById(`reply-${t.id}`)?.focus();
           }}
         >
@@ -313,10 +321,10 @@ export function Thread({
                         </DropdownMenuItem>
                       ) : (
                         <>
-                          <DropdownMenuItem onClick={() => setReport({ type: 'reply', id: r.id })}>
+                          <DropdownMenuItem onClick={() => memberAction(() => setReport({ type: 'reply', id: r.id }))}>
                             <Flag /> Report reply
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setBlock({ memberId: r.member_id, alias: r.alias, source: 'reply' })}>
+                          <DropdownMenuItem onClick={() => memberAction(() => setBlock({ memberId: r.member_id, alias: r.alias, source: 'reply' }))}>
                             <UserX /> Block user
                           </DropdownMenuItem>
                         </>
@@ -343,13 +351,13 @@ export function Thread({
                     replies: [...a.replies, ...p.replies],
                     nextCursor: p.nextCursor,
                   }));
-                })
+                }, true)
               }
             >
               More replies
             </Button>
           )}
-          <form
+          {!memberId ? <Button variant="outline" onClick={onRequireVerification}>Verify wallet to reply</Button> : <form
             className="form"
             onSubmit={(e) => {
               e.preventDefault();
@@ -374,7 +382,7 @@ export function Thread({
             <Button disabled={busy} type="submit">
               Reply
             </Button>
-          </form>
+          </form>}
         </>
       )}
       {error && (

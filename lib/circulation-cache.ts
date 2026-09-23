@@ -30,6 +30,7 @@ export async function circulationSnapshot(
   defer: (p: Promise<unknown>) => void,
   now = Date.now(),
   fetcher: typeof fetch = fetch,
+  cacheOnly = false,
 ): Promise<SourceResult<Record<string, IssuerCirculation>>> {
   const saved = await database
     .prepare(
@@ -40,6 +41,11 @@ export async function circulationSnapshot(
   const old = read(saved);
   const age =
     saved && saved.fetched_at <= now ? now - saved.fetched_at : Infinity;
+  if (cacheOnly) return {
+    data: old, fetchedAt: saved?.fetched_at || null,
+    stale: !old || age >= CIRCULATION_MAX_AGE_MS, refreshing: false,
+    error: age < CIRCULATION_MAX_AGE_MS ? null : 'Issuer observations are delayed.',
+  };
   if (old && age < CIRCULATION_REFRESH_MS)
     return {
       data: old,

@@ -413,9 +413,9 @@ export function MemberDashboard({
     .map((h) => `${h.symbol}:${h.raw_amount}:${h.verified_at}`)
     .join('|');
   const holderTier =
-    tierResult.holdingsKey === holdingsKey && tierResult.tier
+    tierResult.holdingsKey === holdingsKey
       ? tierResult
-      : { tier: 'bronze' as const, expiresAt: member.verified_until };
+      : { tier: null, expiresAt: 0 };
   useEffect(() => {
     if (!holdingsKey) return;
     let active = true;
@@ -843,11 +843,11 @@ export function MemberDashboard({
                         expiresAt={holderTier.expiresAt}
                       />
                     ) : (
-                      <span className="tier-unavailable">Tier unavailable</span>
+                      <span className="tier-unavailable">No value badge</span>
                     )}
                   </div>
                   <p>
-                    Every verified holder starts at Bronze. Higher tiers use the verified value of your holdings.
+                    Badges start at $100 in verified holdings. Under $100, or when value cannot be confirmed, no badge is shown. Any verified holding unlocks all member features.
                   </p>
                   <div className="holder-tier-scale">
                     {HOLDER_TIERS.map((t) => (
@@ -1223,6 +1223,7 @@ export function MemberDashboard({
       >
         <DialogContent className="compose-dialog">
           <DialogTitle>New discussion</DialogTitle>
+          <p className="public-reading-note">Posts and replies are public. Your wallet holdings stay private.</p>
           <DialogDescription>
             Visible to all verified members.
           </DialogDescription>

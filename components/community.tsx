@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/dialog';
 import { WalletList } from './wallet-list';
 import { WalletReturn } from './wallet-return';
+import { PublicDiscussions } from './public-discussions';
 import { MemberDashboard } from './member-dashboard';
 import { api, ApiError } from '@/lib/client';
 import type { CommunityStatus } from '@/lib/community-types';
@@ -38,6 +39,7 @@ export function Community({ appHandoffId }: { appHandoffId?: string } = {}) {
       !!appHandoffId || (typeof window !== 'undefined' &&
       new URLSearchParams(window.location.search).get('join') === '1'),
   );
+  const publicReading = typeof window !== 'undefined' && (new URLSearchParams(window.location.search).get('view') === 'home' || new URLSearchParams(window.location.search).has('thread'));
   const [provider, setProvider] = useState('backpack');
   const [stage, setStage] = useState('');
   const [pending, setPending] = useState<{
@@ -110,9 +112,8 @@ export function Community({ appHandoffId }: { appHandoffId?: string } = {}) {
     };
   }, [refresh, invalidateStatus]);
   useEffect(() => {
-    const standalone = window.matchMedia('(display-mode: standalone)').matches ||
-      (navigator as Navigator & { standalone?: boolean }).standalone === true;
-    if (!standalone) return;
+    // Resume in the originating browser too (including in-app browsers), not
+    // only installed PWAs. The local claim secret is the authorization boundary.
     let active = true;
     let checking = false;
     const claim = async () => {
@@ -142,11 +143,13 @@ export function Community({ appHandoffId }: { appHandoffId?: string } = {}) {
     const interval = setInterval(() => { void claim(); }, 4000);
     document.addEventListener('visibilitychange', claim);
     window.addEventListener('focus', claim);
+    window.addEventListener('pageshow', claim);
     return () => {
       active = false;
       clearInterval(interval);
       document.removeEventListener('visibilitychange', claim);
       window.removeEventListener('focus', claim);
+      window.removeEventListener('pageshow', claim);
     };
   }, [refresh]);
   useEffect(() => {
@@ -408,7 +411,7 @@ export function Community({ appHandoffId }: { appHandoffId?: string } = {}) {
   }
   return (
     <>
-      {handoffWaiting && !status.member && <output className="wallet-handoff-status">After signing, reopen Float from your Home Screen. We’ll finish here.</output>}
+      {handoffWaiting && !status.member && <output className="wallet-handoff-status">After signing, return to this page. We’ll finish connecting here.</output>}
       {status?.member ? (
         <MemberDashboard
           key={status.member.id}
@@ -416,6 +419,8 @@ export function Community({ appHandoffId }: { appHandoffId?: string } = {}) {
           refreshStatus={refresh}
           renew={openJoin}
         />
+      ) : publicReading ? (
+        <PublicDiscussions verify={openJoin} />
       ) : (
         <div className="club public-club">
           <section className="public-hero">
@@ -424,13 +429,12 @@ export function Community({ appHandoffId }: { appHandoffId?: string } = {}) {
             </div>
             <h1>The community for people who hold tokenized stocks.</h1>
             <p>
-              Verify your holdings privately. Follow the market and hear from
-              people who actually own the asset.
+              Read conversations from tokenized stock holders. Verify your holdings privately to join in.
             </p>
             <div className="hero-actions">
-              <Button onClick={openJoin}>
-                Join the community <ArrowUpRight size={18} />
-              </Button>
+              <Link className="public-discussion-link" href="/?view=home">
+                Explore discussions <ArrowUpRight size={18} />
+              </Link>
               <Link className="hero-market-link" href="/markets">
                 Explore markets
               </Link>
@@ -481,8 +485,7 @@ export function Community({ appHandoffId }: { appHandoffId?: string } = {}) {
               {pending ? 'Verify membership' : 'Connect your wallet'}
             </DialogTitle>
             <DialogDescription>
-              We detect your holdings. Any supported token gives access to all
-              channels.
+              Reading is open to everyone. Hold a supported token and verify your wallet to post, reply, and vote.
             </DialogDescription>
           </div>
           {pending ? (

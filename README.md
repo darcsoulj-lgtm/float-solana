@@ -6,17 +6,17 @@ A community and market dashboard for people who hold tokenized stocks on Solana.
 
 ![Float: A community for tokenized stock holders. Built on Solana.](public/og.png)
 
-Float connects wallet ownership to community access. A holder signs a message; the server checks supported Solana token balances. Members can discuss markets under a nickname, see their portfolio, follow relevant news and events, and optionally display a holder tier. Public Markets can be explored without a wallet.
+Float connects wallet ownership to community participation. A holder signs a message; the server checks supported Solana token balances. Members can discuss markets under a nickname, see their portfolio, follow relevant news and events, and optionally display a holder tier. Discussions and Markets can be explored without a wallet.
 
 ## Try it in 60 seconds
 
 1. Open **Explore markets**. Search for a company, filter by issuer or asset type, and expand a row for sources and market details. No wallet is required.
-2. To use the community, choose **Join the community** with a supported token in a Solana wallet. Phantom, Backpack and Solflare integrations are implemented. Sign the membership message; no transaction or transfer is requested.
+2. To post, reply or vote, choose **Join the community** with a supported token in a Solana wallet. Phantom, Backpack and Solflare integrations are implemented. Sign the membership message; no transaction or transfer is requested.
 3. Visit **Discussions**, select a channel and open a post. Replies live in the detail view. Use the three-dot menu to manage your own post or report/block another author.
-4. In **Profile**, set a nickname and bio and choose whether to show your tier. Every eligible verified holder has at least Bronze; higher tiers depend on supported valuation data.
+4. In **Profile**, set a nickname and bio and choose whether to show your tier. Badges start at $100 of reliably valued supported holdings; a verified holder can participate with or without a badge.
 5. On iPhone, install from Safari. After signing in the wallet, reopen Float from the Home Screen to complete the session transfer. Browsers cannot reliably force iOS to reopen an installed web app.
 
-Community content remains gated. There is no demo bypass or shared funded wallet. Reviewers without an eligible token can inspect public Markets and the repository. Do not buy a token solely to review the product.
+Discussions and replies are public; writing and voting require verified holdings. There is no demo bypass or shared funded wallet. Reviewers without an eligible token can read Discussions and explore Markets. Do not buy a token solely to review the product.
 
 ## What is implemented
 
@@ -50,9 +50,9 @@ Read [engineering decisions](docs/engineering-repair-2026-09-13.md), [Cloudflare
 
 A positive balance of a supported token qualifies for membership. Membership expires after 24 hours; holdings refresh while active and sensitive actions enforce server-side rules. This is not a continuous real-time ownership guarantee.
 
-Bronze is the base tier for verified membership. Silver starts at $100, Gold at $1,000, Platinum at $10,000 and Diamond at $100,000 in supported verified holdings value. Missing or ambiguous pricing cannot establish a higher tier and falls back to Bronze. Bronze therefore does not assert that a wallet's total value is below $100. Public badges are optional and never show an exact balance.
+No value badge is shown below $100 of supported verified holdings value. Bronze starts at $100, Silver at $1,000, Gold at $10,000, Platinum at $100,000 and Diamond at $1,000,000. Missing or ambiguous valuation also means no value badge; it does not establish that a wallet holds less than $100. Verified supported holdings grant posting, replying and voting rights independently of badges. Public badges are optional and never show an exact balance.
 
-The service processes wallet addresses and balances to verify membership and provide the private portfolio. Other members see the chosen alias, bio and optional badge, not the private wallet/portfolio view. Do not describe this as zero-knowledge or as the server never seeing an address. Read the live [Privacy page](https://joinfloat.xyz/trust) for storage and retention details.
+The service processes wallet addresses and balances to verify membership and provide the private portfolio. Public readers see the chosen alias, profile photo, bio, contributions and optional badge, not the private wallet/portfolio view. Do not describe this as zero-knowledge or as the server never seeing an address. Read the live [Privacy page](https://joinfloat.xyz/trust) for storage and retention details.
 
 ## Registry and data limits
 

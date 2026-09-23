@@ -18,8 +18,9 @@ export default function Page() {
       <section className="panel">
         <h2>Participate</h2>
         <p>
-          Browse curated channels, post discussions and reply. All verified
-          members can access every channel. Save posts and sources for later.
+          Anyone can read discussions and replies without a wallet. Verify a
+          supported holding to post, reply or vote. Signed-in members can also
+          save posts and sources for later.
         </p>
         <p>
           Set your display name and reply notifications in Profile.

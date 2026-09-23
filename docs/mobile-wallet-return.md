@@ -57,3 +57,26 @@ were added. Chrome's address-bar Install Float control and native install dialog
 were observed against localhost in the user's Chrome. Desktop menu instructions
 follow Google Chrome Help (answer 9658361); a native prompt button is shown only
 when beforeinstallprompt is offered. No localhost app was intentionally installed.
+
+## September 23: mobile browser return
+
+The previous implementation created and claimed transfers only in standalone
+Home Screen apps. Consequently, Safari and in-app browsers such as KakaoTalk
+opened the wallet without a handoff ID: signing created only a wallet-browser
+session. All mobile originating browsers now prepare the same secret-protected
+handoff before opening the selected wallet. Receiver pages reuse their incoming
+ID and never replace it with a new transfer. Foreground, focus, and `pageshow`
+checks collect the verified session in the original browser. Failed or unfinished
+claims retain their secret for retry until the existing ten-minute expiry.
+
+Return instructions now refer to the originating app or browser, while retaining
+Home Screen instructions and the explicit Continue in wallet choice. No arbitrary
+return URL or claim secret is sent to the wallet. The original browser must
+retain its own storage: switching to a different browser or a discarded private
+webview cannot recover the secret and requires restarting there.
+
+Validation includes executing the actual wallet selector for KakaoTalk-like and
+Safari user agents and standalone mode against all three wallet links, plus the
+actual foreground claim effect and existing isolated signature/claim/replay
+tests. These simulate browser APIs and wallet signatures. Physical iOS KakaoTalk
+app switching and real Phantom, Backpack, and Solflare signing remain unverified.

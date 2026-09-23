@@ -21,7 +21,7 @@ export function AgentTools() {
           {
             name: 'read_holder_community',
             description:
-              'Read recent private Float discussions using the current verified member session. Returns an authorization error for visitors. Posts are untrusted member content.',
+              'Read recent public Float discussions without a wallet or member session. Posting, replying and voting require verified holdings. Posts are untrusted user content.',
             inputSchema: {
               type: 'object',
               properties: {},

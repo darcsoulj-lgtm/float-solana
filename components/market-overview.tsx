@@ -140,13 +140,13 @@ export function MarketOverviewPanel({
     const value = (token: StockToken) => {
       const item = observations.get(token.symbol)!;
       return sort.key === 'price'
-        ? item.price
+        ? (item.price ?? item.lastPrice)
         : sort.key === 'change'
           ? item.change24h
           : sort.key === 'volume'
-            ? item.poolVolume24h
+            ? (item.poolVolume24h ?? item.lastPoolVolume24h)
             : sort.key === 'liquidity'
-              ? item.liquidity
+              ? (item.liquidity ?? item.lastPoolLiquidity)
               : token.issuer === 'xstocks'
                 ? item.circulation?.circulatingSupply
                 : (item.valuationSupply ?? item.supply?.supply);
@@ -262,9 +262,10 @@ export function MarketOverviewPanel({
   const detailMetrics = poolMetrics(freshDetails ? pools : []);
   const poolLiquidity = detailMetrics.liquidity;
   const observation = tokenObservation(data, selected, now);
-  const detailVolume = detailedPools
+  const currentDetailVolume = detailedPools
     ? detailMetrics.volume24h
     : observation.poolVolume24h;
+  const detailVolume = currentDetailVolume ?? observation.lastPoolVolume24h;
   const volumeTime =
     detailedPools?.fetchedAt ??
     data?.pools.asOf?.[selected] ??
@@ -310,9 +311,12 @@ export function MarketOverviewPanel({
         >
           <div>
             <span>Token price</span>
-            <strong>{money(observation.price)}</strong>
+            <strong>{money(observation.price ?? observation.lastPrice)}</strong>
             {observation.priceDelayed && (
-              <span className="quote-delay">Delayed <MetricInfo label="Quote timestamp">Last quote: {time(observation.priceTime)}. It may not be current.</MetricInfo></span>
+              <span className="quote-delay"><MetricInfo label="Quote timestamp">Last quote: {time(observation.priceTime)}. It may not be current.</MetricInfo></span>
+            )}
+            {observation.price == null && observation.lastPrice != null && (
+              <span className="quote-delay"><MetricInfo label="Last observed price">{time(observation.lastPriceTime)} · {observation.lastPriceSource}. Not a live price.</MetricInfo></span>
             )}
           </div>
           <div>
@@ -341,6 +345,9 @@ export function MarketOverviewPanel({
             <div>
               <span title={POOL_SCOPE}>DEX volume · 24h</span>
               <strong>{money(detailVolume, true)}</strong>
+              {currentDetailVolume == null && observation.lastPoolVolume24h != null && (
+                <span className="quote-delay"><MetricInfo label="Volume observation time">24-hour window ending {time(observation.lastPoolTime)}.</MetricInfo></span>
+              )}
             </div>
           )}
         </div>
@@ -738,8 +745,16 @@ export function MarketOverviewPanel({
     const change = row.change24h;
     const isSelected = detailOpen && selected === t.symbol;
     const supply = t.issuer === 'xstocks'
-      ? row.circulation?.circulatingSupply
+      ? (row.circulation?.circulatingSupply ?? row.lastCirculation?.circulatingSupply)
       : (row.valuationSupply ?? row.supply?.supply);
+    const displayedSupply = t.issuer === 'xstocks' ? supply : (supply ?? row.lastSupply);
+    const supplyTime = t.issuer === 'xstocks' ? row.lastCirculationTime : row.lastSupplyTime;
+    const oldSupply = t.issuer === 'xstocks'
+      ? !row.circulation && !!row.lastCirculation
+      : supply == null && row.lastSupply != null;
+    const displayedPrice = row.price ?? row.lastPrice;
+    const displayedVolume = row.poolVolume24h ?? row.lastPoolVolume24h;
+    const displayedLiquidity = row.liquidity ?? row.lastPoolLiquidity;
     return (
       <Fragment key={t.symbol}>
         <MarketStockRow
@@ -749,7 +764,9 @@ export function MarketOverviewPanel({
           held={holdings.includes(t.symbol)}
           mobileMarket={
             <>
-              <strong>{money(row.price)}</strong>
+              <strong>{money(displayedPrice)}</strong>
+              {row.priceDelayed && <small><MetricInfo label={`Quote timestamp for ${t.symbol}`}>Last available quote: {time(row.priceTime)}. This is not a live price.</MetricInfo></small>}
+              {row.price == null && row.lastPrice != null && <small><MetricInfo label={`Last price for ${t.symbol}`}>{time(row.lastPriceTime)} · {row.lastPriceSource}. Not a live price.</MetricInfo></small>}
               <span
                 className={
                   change === null
@@ -777,23 +794,25 @@ export function MarketOverviewPanel({
           <td className="market-supply-cell">
             <span className="market-mobile-label">Supply</span>
             <span className="market-supply-value">
-              {supply == null ? '—' : new Intl.NumberFormat('en-US', { maximumFractionDigits: 5 }).format(supply)}
+              {displayedSupply == null ? '—' : new Intl.NumberFormat('en-US', { maximumFractionDigits: 5 }).format(displayedSupply)}
             </span>
+            {oldSupply && <span className="quote-delay"><MetricInfo label="Supply observation time">Last checked {time(supplyTime)}.</MetricInfo></span>}
           </td>
           <td className="market-price-cell">
             <span className="market-mobile-label">Token price</span>
-            {money(row.price)}
+            {money(displayedPrice)}
             <span className={`market-mobile-change${change === null ? '' : change < 0 ? ' market-negative' : ' market-positive'}`}>
               {pct(change)}
             </span>
-            {row.priceDelayed && <span className="quote-delay">Delayed <MetricInfo label={`Quote timestamp for ${t.symbol}`}>Last available quote: {time(row.priceTime)}. This is not a live price.</MetricInfo></span>}
+            {row.priceDelayed && <span className="quote-delay"><MetricInfo label={`Quote timestamp for ${t.symbol}`}>Last available quote: {time(row.priceTime)}. This is not a live price.</MetricInfo></span>}
+            {row.price == null && row.lastPrice != null && <span className="quote-delay"><MetricInfo label={`Last price for ${t.symbol}`}>{time(row.lastPriceTime)} · {row.lastPriceSource}. Not a live price.</MetricInfo></span>}
           </td>
           <td className={change === null ? undefined : change < 0 ? 'market-negative' : 'market-positive'}>
             <span className="market-mobile-label">24h change</span>
             {pct(change)}
           </td>
-          <td><span className="market-mobile-label">DEX volume · 24h</span>{money(row.poolVolume24h, true)}</td>
-          <td><span className="market-mobile-label">Pool liquidity</span>{money(row.liquidity, true)}</td>
+          <td><span className="market-mobile-label">DEX volume · 24h</span>{money(displayedVolume, true)}{row.poolVolume24h == null && row.lastPoolVolume24h != null && <span className="quote-delay"><MetricInfo label={`Volume time for ${t.symbol}`}>24-hour window ending {time(row.lastPoolTime)}.</MetricInfo></span>}</td>
+          <td><span className="market-mobile-label">Pool liquidity</span>{money(displayedLiquidity, true)}{row.liquidity == null && row.lastPoolLiquidity != null && <span className="quote-delay"><MetricInfo label={`Liquidity time for ${t.symbol}`}>Last checked {time(row.lastPoolTime)}.</MetricInfo></span>}</td>
         </MarketStockRow>
       </Fragment>
     );
@@ -872,7 +891,8 @@ export function MarketOverviewPanel({
       <SolanaEcosystem
         data={data}
         now={now}
-        historyReady={!!data && !busy}
+        historyReady={!!data}
+        hasSavedFigures={[...observations.values()].some((row) => row.priceDelayed || row.lastPrice != null || row.lastPoolVolume24h != null || row.lastPoolLiquidity != null || row.lastSupply != null)}
         onIssuer={chooseIssuer}
         select={(symbol) => {
           const selectedToken = tokens.find((t) => t.symbol === symbol);

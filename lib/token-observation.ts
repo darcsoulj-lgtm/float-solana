@@ -24,6 +24,39 @@ function recent(
 // A dated reference may inform an estimate through a long market weekend.
 // This is not a live quote and must never qualify a holder tier.
 export const LAST_PRICE_MAX_AGE_MS = 96 * 60 * 60 * 1000;
+// Last-good display retention is separate from current-data validity. A
+// provider outage must not blank the table after a few missed refresh cycles.
+const LAST_OBSERVATION_DISPLAY_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+const lastObserved = (
+  timestamp: number | null | undefined,
+  now: number,
+  maxAge = LAST_OBSERVATION_DISPLAY_MAX_AGE_MS,
+) => !!timestamp && timestamp <= now + 60000 && now - timestamp <= maxAge;
+
+// Display-only pool summaries share the row retention policy. They do not
+// enter daily history, portfolio valuation, or holder-tier calculations.
+export function displayPoolActivity(
+  data: MarketOverview | null,
+  symbols: readonly string[],
+  now = Date.now(),
+) {
+  const observations = symbols.flatMap((symbol) => {
+    const time = data?.pools?.asOf?.[symbol] ?? data?.pools?.fetchedAt;
+    if (!lastObserved(time, now)) return [];
+    return (data?.pools?.data?.[symbol] ?? []).map((pool) => ({
+      pool, time: time!, saved: !recent(data?.pools, now, symbol),
+    }));
+  });
+  // A shared pool can have multiple token observations. Keep its newest one.
+  observations.sort((a, b) => a.time - b.time);
+  const unique = [...new Map(observations.map((item) => [item.pool.address, item])).values()];
+  return {
+    ...poolMetrics(unique.map((item) => item.pool)),
+    saved: unique.some((item) => item.saved),
+    oldestAt: unique.length ? Math.min(...unique.map((item) => item.time)) : null,
+    newestAt: unique.length ? Math.max(...unique.map((item) => item.time)) : null,
+  };
+}
 
 // Keep metrics from different scopes distinct: total minted value is never circulating market cap.
 export function tokenObservation(
@@ -181,6 +214,39 @@ export function tokenObservation(
       : undefined;
   const circulatingValue = circulation?.valueUsd ?? null;
   const metrics = poolMetrics(pools);
+  // Display-only fallbacks. They never enter valuation, tier, or current-volume
+  // calculations; each value keeps the timestamp of its original observation.
+  const oldBackpackTime = data?.backpack?.asOf?.[symbol] ?? data?.backpack?.fetchedAt;
+  const oldBackpack = lastObserved(oldBackpackTime, now)
+    ? data?.backpack?.data?.[symbol]
+    : undefined;
+  const oldCmc = data?.markets?.data?.[symbol];
+  const oldReference = data?.prices?.data?.[symbol];
+  const oldPoolTime = data?.pools?.asOf?.[symbol] ?? data?.pools?.fetchedAt;
+  const oldPools = lastObserved(oldPoolTime, now)
+    ? data?.pools?.data?.[symbol] ?? []
+    : [];
+  const oldPoolPrice = oldPools.find((pool) => pool.price != null);
+  const lastQuote = [
+    token?.issuer === 'backpack' && oldBackpack?.externalPrice != null
+      ? { value: oldBackpack.externalPrice, time: oldBackpackTime, source: 'Backpack · external' }
+      : null,
+    oldCmc?.price != null && lastObserved(oldCmc.timestamp, now)
+      ? { value: oldCmc.price, time: oldCmc.timestamp, source: 'CoinMarketCap' }
+      : null,
+    oldReference?.price && (oldReference.confidence ?? 0) >= 0.8 &&
+      lastObserved(oldReference.timestamp, now)
+      ? { value: oldReference.price, time: oldReference.timestamp, source: 'DefiLlama' }
+      : null,
+    oldPoolPrice?.price != null && lastObserved(oldPoolTime, now)
+      ? { value: oldPoolPrice.price, time: oldPoolTime, source: 'DEX pool' }
+      : null,
+  ].find((quote) => quote && Number.isFinite(quote.value) && quote.value > 0);
+  const oldSupplyTime = data?.supplies?.asOf?.[symbol] ?? data?.supplies?.fetchedAt;
+  const lastSupply = lastObserved(oldSupplyTime, now)
+    ? data?.supplies?.data?.[symbol]
+    : undefined;
+  const lastPoolMetrics = poolMetrics(oldPools);
   return {
     symbol,
     lastCirculation,
@@ -206,6 +272,16 @@ export function tokenObservation(
     top,
     supply,
     price,
+    lastPrice: price == null ? (lastQuote?.value ?? null) : null,
+    lastPriceTime: price == null ? (lastQuote?.time ?? null) : null,
+    lastPriceSource: price == null ? (lastQuote?.source ?? null) : null,
+    lastSupply: supply ? null : (lastSupply?.supply ?? null),
+    lastSupplyTime: supply ? null : (lastSupply ? oldSupplyTime : null),
+    lastPoolVolume24h: metrics.volume24h == null ? lastPoolMetrics.volume24h : null,
+    lastPoolLiquidity: metrics.liquidity == null ? lastPoolMetrics.liquidity : null,
+    lastPoolTime: metrics.volume24h == null || metrics.liquidity == null
+      ? (oldPools.length ? oldPoolTime : null)
+      : null,
     priceSource,
     priceDelayed,
     priceConflict,

@@ -1,5 +1,5 @@
 import { waitUntil } from 'cloudflare:workers';
-import { db, rateLimit } from '@/lib/server';
+import { db, rateLimit, runtime } from '@/lib/server';
 import { circulationSnapshot } from '@/lib/circulation-cache';
 import { AppError } from '@/lib/validation';
 export const dynamic = 'force-dynamic';
@@ -11,7 +11,7 @@ export async function GET(req: Request) {
         (req.headers.get('cf-connecting-ip') || 'anonymous'),
       60,
     );
-    const circulation = await circulationSnapshot(db(), waitUntil);
+    const circulation = await circulationSnapshot(db(), waitUntil, Date.now(), fetch, runtime().MARKET_SCHEDULED === '1');
     return Response.json(
       { circulation },
       {

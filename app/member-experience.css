@@ -562,6 +562,10 @@
   .market-search-row input {
     margin-top: 0;
     border-radius: 10px;
+    color: var(--foreground);
+  }
+  .market-search-row input::placeholder {
+    color: var(--muted-foreground);
   }
   .market-table-filters {
     display: grid;
@@ -676,10 +680,10 @@
   .market-token-table .quote-delay {
     display: none;
   }
-  .member-shell .thread-post {
+  :is(.member-shell, .public-discussions) .thread-post {
     padding: 20px 0;
   }
-  .member-shell .thread-post:first-of-type {
+  :is(.member-shell, .public-discussions) .thread-post:first-of-type {
     border-top: 0;
   }
 }

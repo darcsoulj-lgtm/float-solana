@@ -168,6 +168,7 @@ export async function backpackRegistry(
   rpc?: string,
   fetcher: typeof fetch = fetch,
   now = Date.now(),
+  cacheOnly = false,
 ): Promise<RegistryStatus> {
   // Durable last-good additions survive provider outages, deployments and idle periods.
   const state = await marketSnapshot(
@@ -191,6 +192,8 @@ export async function backpackRegistry(
     defer,
     now,
     Number.MAX_SAFE_INTEGER,
+    undefined,
+    !cacheOnly,
   );
   return {
     additions: Array.isArray(state.data) ? state.data : [],

@@ -48,7 +48,7 @@ export default function Page() {
           successful holdings check.
         </p>
         <p>
-          Photos and bios are visible to members; uploaded photos are resized
+          Profile photos and bios are public; uploaded photos are resized
           and stripped of metadata.
         </p>
         <p>
@@ -61,12 +61,13 @@ export default function Page() {
       <section className="panel">
         <h2>What others see</h2>
         <p>
-          Member discussions require an active verified session. Other members
-          see your alias, contributions, and your optional value badge. Public visitors see the dashboard layout with no
-          member data. Your full holdings list, followed topics, saved items,
+          Discussions and replies are public. Anyone can see your alias, profile
+          photo, bio, contributions and optional value badge without signing
+          in. Posting, replying and voting require a verified holding. Your
+          full holdings list, followed topics, saved items,
           and notifications are returned only to your own active session.
           Administrators can review content, reports, and member records.
-          Members can copy content, so this is not a confidential channel.
+          Anyone can copy or share public content. Do not post private information.
         </p>
       </section>
       <section className="panel">
@@ -84,7 +85,7 @@ export default function Page() {
         <h2>Retention and requests</h2>
         <p>
           Contributions and moderation records persist until operator deletion.
-          Removing a contribution hides it from members but retains it for
+          Removing a contribution hides it from readers but retains it for
           moderation. Contact{' '}
           <a href="mailto:elcresearch.support@gmail.com">support</a> for
           privacy, deletion, or appeal requests. Automatic long-term retention
@@ -106,13 +107,16 @@ export default function Page() {
         <h2>Holder tiers</h2>
         <p>
           Tiers use the estimated USD value of supported tokenized stocks in
-          your verified wallet: Bronze under $100; Silver $100–$999; Gold
-          $1,000–$9,999; Platinum $10,000–$99,999; Diamond $100,000 or more.
+          your verified wallet: no badge under $100; Bronze $100–$999;
+          Silver $1,000–$9,999; Gold
+          $10,000–$99,999; Platinum $100,000–$999,999; Diamond $1 million or more.
         </p>
         <p>
-          Every holding needs a reliable current price. Tiers expire when checks
-          become stale. They do not indicate expertise or total wealth, and do
-          not change posting rights.
+          Badges require reliable prices and current holdings checks. If value
+          cannot be determined reliably, no value badge is shown. This does
+          not mean the wallet holds less than $100. A verified supported
+          holding still lets you post, reply and vote, with or without a badge.
+          Tiers do not indicate expertise or total wealth.
         </p>
         <p>
           Value badges are private by default. Enable Show value badge in

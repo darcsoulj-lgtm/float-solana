@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { DatabaseSync } from 'node:sqlite';
 
 void test('My posts query isolates ownership, excludes deleted posts and preserves pagination', async () => {
-  const source = await readFile(new URL('../app/api/community/[[...path]]/route.ts', import.meta.url), 'utf8');
+  const source = await readFile(new URL('../lib/community-read.ts', import.meta.url), 'utf8');
   const query = source.match(/`(SELECT t.id,t.member_id,t.topic,[^`]+)`/)[1].replace('${authorColumns}', 'm.alias');
   const db = new DatabaseSync(':memory:');
   try {

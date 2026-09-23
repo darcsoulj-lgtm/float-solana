@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { bundle } from './helpers/bundle.mjs';
-const { retainRefreshingSources, MARKET_RECHECK_DELAYS } = await bundle(
+const { retainRefreshingSources } = await bundle(
   "export * from './lib/market-refresh';",
 );
 void test('a newer pool snapshot is displayed even while another refresh is running', () => {
@@ -30,9 +30,8 @@ void test('missing refresh payload retains its timestamp; a confirmed empty resu
   const empty = { pools: { data: {}, fetchedAt: 200, refreshing: true } };
   retainRefreshingSources(empty, previous);
   assert.deepEqual(empty.pools.data, {});
-});
-void test('bounded follow-up checks cover a ten-second provider timeout without a two-minute wait', () => {
-  const elapsed = MARKET_RECHECK_DELAYS.reduce((n, delay) => n + delay, 0);
-  assert.ok(elapsed >= 20000 && elapsed <= 40000);
-  assert.ok(MARKET_RECHECK_DELAYS.length <= 5);
+  const failed = { pools: { data: null, stale: true, refreshing: false } };
+  retainRefreshingSources(failed, previous);
+  assert.equal(failed.pools.data.MU.length, 0);
+  assert.equal(failed.pools.stale, true);
 });

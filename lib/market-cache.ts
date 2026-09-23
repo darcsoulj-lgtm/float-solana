@@ -1,6 +1,6 @@
 import type { SourceResult } from './market-data';
 import { SourceHttpError } from './market-data';
-type CacheRow = {
+export type CacheRow = {
   payload: string | null;
   fetched_at: number;
   retry_after: number;
@@ -27,6 +27,7 @@ export async function marketSnapshot<T>(
   now = Date.now(),
   maxAge = ttl,
   savedRow?: CacheRow | null,
+  refresh = true,
 ): Promise<SourceResult<T>> {
   const row =
     savedRow !== undefined
@@ -55,10 +56,10 @@ export async function marketSnapshot<T>(
     !!row &&
     row.fetched_at <= now &&
     now - row.fetched_at < Math.max(ttl, maxAge);
-  const due = !fresh && (!row || row.retry_after <= now);
+  const due = refresh && !fresh && (!row || row.retry_after <= now);
   const refreshing =
     due ||
-    (!fresh &&
+    (refresh && !fresh &&
       !!row &&
       row.retry_after > now &&
       row.retry_after <= now + 20000);

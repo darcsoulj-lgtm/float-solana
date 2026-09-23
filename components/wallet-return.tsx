@@ -17,11 +17,11 @@ export function WalletReturn({ linked, onContinue }: { linked: boolean; onContin
       </Button>
       <Button variant="outline" onClick={onContinue}>Continue in wallet</Button>
     </div>
-    <span className="wallet-return-hint">Tap ‹ Float above, or open Float from your Home Screen.</span>
+    <span className="wallet-return-hint">Return to the app or browser where you started connecting.</span>
     {instructions && <div id="wallet-return-instructions" className="wallet-return-instructions" aria-live="polite">
-      <strong>Tap ‹ Float at the top-left of your screen.</strong>
-      <p>Or open Float from your Home Screen.</p>
-      <p>{linked ? 'Your sign-in is ready for Float to collect when you return.' : 'Start wallet connection from the Float app to sign in there.'}</p>
+      <strong>Switch back to the app or browser you came from.</strong>
+      <p>If you started from your Home Screen, reopen the Float app.</p>
+      <p>{linked ? 'Your sign-in will finish on the original page when you return.' : 'To connect in another app or browser, start the connection there.'}</p>
     </div>}
   </section>;
 }

@@ -6,7 +6,7 @@ import { compileFunction } from 'node:vm';
 import ts from 'typescript';
 import { communitySignInInput, communitySignInMessage } from '../lib/community-sign-in.ts';
 
-function fixture() {
+function fixture({ holdings = () => [{symbol:'MU',verifiedAt:Date.now(),slot:1,rawAmount:'1',decimals:0,uiAmount:1}] } = {}) {
   const sqlite = new DatabaseSync(':memory:');
   for (const file of readdirSync('drizzle').filter(f => f.endsWith('.sql')).sort()) sqlite.exec(readFileSync('drizzle/' + file, 'utf8'));
   const database = {
@@ -27,7 +27,8 @@ function fixture() {
     '@/lib/request-body': { readBoundedText: r => r.text() },
     '@/lib/validation': { AppError, textValue(v,min,max) { if (typeof v !== 'string' || v.length < min || v.length > max) throw new AppError('Invalid'); return v; } },
     '@/lib/registry-server': { verifiedRegistry: async () => ({tokens: []}) },
-    '@/lib/solana': { validWallet: v => v, detectHoldings: async () => [{symbol:'MU',verifiedAt:Date.now(),slot:1,rawAmount:'1',decimals:0,uiAmount:1}], verifySignature: async (_wallet,message,signature) => { if (signature !== message) throw new AppError('Invalid signature',401); } },
+    '@/lib/solana': { validWallet: v => v, detectHoldings: async () => holdings(), verifySignature: async (_wallet,message,signature) => { if (signature !== message) throw new AppError('Invalid signature',401); } },
+    '@/lib/community-read': {},
     '@/lib/community-server': { communityCleanup: async () => {}, MEMBERSHIP_MS:86400000, sessionCookie: s => 'hp_member=' + s },
     '@/lib/community-sign-in': { communitySignInInput, communitySignInMessage },
     '@/lib/wallet-handoff': { WALLET_HANDOFF_MS:600000 },
@@ -70,5 +71,40 @@ void test('a challenge cannot be redirected to another app handoff or completed 
     assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM wallet_handoffs WHERE member_id IS NOT NULL').get().n,0);
     f.sqlite.prepare('UPDATE wallet_handoffs SET expires_at=0 WHERE id=?').run(a);
     assert.equal((await f.post('verify',{challengeId:c.id,signature:c.message})).status,400);
+  } finally {f.sqlite.close();}
+});
+
+void test('a fractional holder without a value tier can verify and complete a browser handoff', async () => {
+  const f = fixture({holdings: () => [{symbol:'MU',verifiedAt:Date.now(),slot:1,rawAmount:'1',decimals:9,uiAmount:0.000000001}]});
+  try {
+    const secret='a'.repeat(64);
+    const {id}=await (await f.post('handoff/start',{secret})).json();
+    const c=await (await f.post('challenge',{wallet:'6zGGkXABVt52pEvsLSvMokwJW9xwkoFX4Nw5UoFHFKmH',handoffId:id})).json();
+    assert.equal((await f.post('verify',{challengeId:c.id,signature:c.message})).status,200);
+    const member=f.sqlite.prepare('SELECT value_tier,verified_until FROM community_members').get();
+    assert.equal(member.value_tier,null);
+    assert.ok(member.verified_until>Date.now());
+    const claim=await f.post('handoff/claim',{id,secret});
+    assert.deepEqual(await claim.json(),{ready:true});
+    assert.ok(claim.headers.get('Set-Cookie'));
+  } finally {f.sqlite.close();}
+});
+void test('zero holdings cannot start verification or create a member/session',async()=>{
+  const f=fixture({holdings:()=>[]});
+  try {
+    assert.equal((await f.post('challenge',{wallet:'6zGGkXABVt52pEvsLSvMokwJW9xwkoFX4Nw5UoFHFKmH'})).status,403);
+    for(const table of ['community_members','community_challenges','community_sessions']) assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM '+table).get().n,0);
+  } finally {f.sqlite.close();}
+});
+void test('holdings lost after challenge cannot complete verification or bind a handoff',async()=>{
+  let held=true;
+  const f=fixture({holdings:()=>held?[{symbol:'MU',verifiedAt:Date.now(),slot:1,rawAmount:'1',decimals:9,uiAmount:0.000000001}]:[]});
+  try {
+    const secret='a'.repeat(64);const {id}=await(await f.post('handoff/start',{secret})).json();
+    const c=await(await f.post('challenge',{wallet:'6zGGkXABVt52pEvsLSvMokwJW9xwkoFX4Nw5UoFHFKmH',handoffId:id})).json();held=false;
+    assert.equal((await f.post('verify',{challengeId:c.id,signature:c.message})).status,403);
+    assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM community_members').get().n,0);
+    assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM community_sessions').get().n,0);
+    assert.deepEqual(await(await f.post('handoff/claim',{id,secret})).json(),{ready:false});
   } finally {f.sqlite.close();}
 });

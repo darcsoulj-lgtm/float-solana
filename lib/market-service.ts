@@ -1,5 +1,5 @@
 import { POOL_POLICY_VERSION } from './stock-pools';
-import { cachedMarket, marketSnapshot, marketCacheRows } from './market-cache';
+import { cachedMarket, marketSnapshot, marketCacheRows, type CacheRow } from './market-cache';
 import { tokenBatchKey } from './backpack-registry';
 import {
   MARKET_BATCH_SIZE,
@@ -46,7 +46,11 @@ export async function readMarketBatch(
     verifiedStocks?: readonly StockToken[];
     defer?: (work: Promise<unknown>) => void;
     pools?: boolean;
+    poolRefreshMs?: number;
     history?: boolean;
+    cacheOnly?: boolean;
+    fetcher?: typeof fetch;
+    saved?: Map<string, CacheRow>;
   } = {},
 ) {
   const key = TOKEN_REVIEW_DATE + ':' + (await tokenBatchKey(tokens));
@@ -57,21 +61,22 @@ export async function readMarketBatch(
     ...(options.history === false ? [] : ['llama-history-v1:']),
     ...(options.pools === false ? [] : [poolPrefix]),
   ];
-  const saved = await marketCacheRows(
+  const saved = options.saved ?? await marketCacheRows(
     database,
     prefixes.map((prefix) => prefix + key),
   );
   const read = <T>(prefix: string, ttl: number, loader: () => Promise<T>) =>
-    options.defer
+    options.defer || options.cacheOnly
       ? marketSnapshot(
           database,
           prefix + key,
           ttl,
           loader,
-          options.defer,
+          options.defer ?? (() => {}),
           Date.now(),
           MARKET_MAX_AGE_MS,
           saved.get(prefix + key) ?? null,
+          !options.cacheOnly,
         )
       : cachedMarket(
           database,
@@ -83,20 +88,20 @@ export async function readMarketBatch(
         );
   const [prices, supplies, history, pools] = await Promise.all([
     read('llama-prices-v3:', MARKET_REFRESH_MS, () =>
-      fetchPrices(fetch, tokens),
+      fetchPrices(options.fetcher ?? fetch, tokens),
     ),
     read('solana-supplies-v4:', MARKET_REFRESH_MS, () =>
-      fetchSupplies(options.rpcUrl, fetch, tokens),
+      fetchSupplies(options.rpcUrl, options.fetcher ?? fetch, tokens),
     ),
     options.history === false
       ? emptySource({})
       : read('llama-history-v1:', MARKET_REFRESH_MS, () =>
-          fetchHistoricalPrices(fetch, tokens),
+          fetchHistoricalPrices(options.fetcher ?? fetch, tokens),
         ),
     options.pools === false
       ? emptySource({})
-      : read(poolPrefix, POOL_REFRESH_MS, () =>
-          fetchPools(fetch, tokens, options.verifiedStocks),
+      : read(poolPrefix, options.poolRefreshMs ?? POOL_REFRESH_MS, () =>
+          fetchPools(options.fetcher ?? fetch, tokens, options.verifiedStocks),
         ),
   ]);
   return { prices, supplies, history, pools };

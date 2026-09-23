@@ -96,7 +96,7 @@ export async function updateHolderTier(
   }
   // A temporary quote outage must not erase a still-valid result for the
   // same holdings. Changed balances clear the stored tier during refresh.
-  if (!result.tier) {
+  if (!result.tier && result.expiresAt === 0) {
     const previous = await database
       .prepare(
         'SELECT value_tier,value_tier_expires_at FROM community_members WHERE id=?',

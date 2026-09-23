@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     title: 'Float — For Solana tokenized stock holders',
     siteName: 'Float',
     description:
-      'A private community for people who hold tokenized stocks on Solana.',
+      'Public discussions from verified Solana tokenized stock holders. Read freely; verify holdings to join in.',
     images: [{
       url: 'https://joinfloat.xyz/og.png',
       width: 1734,
@@ -38,11 +38,11 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Float — For Solana tokenized stock holders',
-    description: 'A private community for people who hold tokenized stocks on Solana.',
+    description: 'Public discussions from verified Solana tokenized stock holders. Read freely; verify holdings to join in.',
     images: ['https://joinfloat.xyz/og.png'],
   },
   description:
-    'A private community for people who hold tokenized stocks on Solana.',
+    'Public discussions from verified Solana tokenized stock holders. Read freely; verify holdings to join in.',
 };
 export default function RootLayout({
   children,
@@ -69,7 +69,7 @@ export default function RootLayout({
           </Link>
           <nav aria-label="Main navigation">
             <Link href="/markets">Markets</Link>
-            <Link href="/?view=home&join=1">Community</Link>
+            <Link href="/?view=home">Community</Link>
             <Link href="/install">Install Float</Link>
           </nav>
           <ThemeToggle />

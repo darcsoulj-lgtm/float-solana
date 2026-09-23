@@ -1,17 +1,20 @@
+import {
+  readCommunityThreads,
+  readCommunityReplies,
+} from '@/lib/community-read';
 import { readRooms } from '@/lib/community-rooms';
 import { verifiedRegistry } from '@/lib/registry-server';
 import { readBoundedText } from '@/lib/request-body';
 import { communityHome } from '@/lib/community-home';
 import { updateHolderTier } from '@/lib/holder-tier-server';
 import { refreshHoldings } from '@/lib/holdings-refresh';
-import { adminWallet, adminChallenge, adminVerify, adminLogout } from '@/lib/admin-wallet';
 import {
-  auditStatement,
-  db,
-  digest,
-  rateLimit,
-  runtime,
-} from '@/lib/server';
+  adminWallet,
+  adminChallenge,
+  adminVerify,
+  adminLogout,
+} from '@/lib/admin-wallet';
+import { auditStatement, db, digest, rateLimit, runtime } from '@/lib/server';
 import { AppError, textValue } from '@/lib/validation';
 import { validWallet, verifySignature, detectHoldings } from '@/lib/solana';
 import { WALLET_HANDOFF_MS } from '@/lib/wallet-handoff';
@@ -21,15 +24,11 @@ import {
   communitySignInMessage,
 } from '@/lib/community-sign-in';
 import {
-  communityTopics,
   COMMUNITY_CHANNELS,
   type CommunityMember,
-  type CommunityThread,
-  type CommunityReply,
   type CommunityReport,
 } from '@/lib/community-types';
 import {
-  authorColumns,
   communityCookie,
   communityMember,
   communityCleanup,
@@ -125,7 +124,11 @@ async function handler(req: Request) {
       if (path[1] === 'challenge' && post)
         return json(await adminChallenge(req, b.wallet));
       if (path[1] === 'verify' && post)
-        return json({ ok: true }, 200, await adminVerify(req, b.challengeId, b.signature));
+        return json(
+          { ok: true },
+          200,
+          await adminVerify(req, b.challengeId, b.signature),
+        );
       if (path[1] === 'logout' && post)
         return json({ ok: true }, 200, await adminLogout(req));
       throw new AppError('Unknown administrator request.', 404);
@@ -153,12 +156,16 @@ async function handler(req: Request) {
     }
     if (path[0] === 'handoff' && path[1] === 'start' && post) {
       const secret = textValue(b.secret, 64, 64, 'Handoff secret');
-      if (!/^[a-f0-9]{64}$/.test(secret)) throw new AppError('Invalid handoff secret.');
+      if (!/^[a-f0-9]{64}$/.test(secret))
+        throw new AppError('Invalid handoff secret.');
       const id = crypto.randomUUID();
       const expiresAt = Date.now() + WALLET_HANDOFF_MS;
-      await db().prepare(
-        'INSERT INTO wallet_handoffs (id,secret_hash,expires_at) VALUES (?,?,?)',
-      ).bind(id, await digest(secret), expiresAt).run();
+      await db()
+        .prepare(
+          'INSERT INTO wallet_handoffs (id,secret_hash,expires_at) VALUES (?,?,?)',
+        )
+        .bind(id, await digest(secret), expiresAt)
+        .run();
       return json({ id, expiresAt });
     }
     if (path[0] === 'handoff' && path[1] === 'claim' && post) {
@@ -167,24 +174,52 @@ async function handler(req: Request) {
       if (!/^[a-f0-9-]{36}$/.test(id) || !/^[a-f0-9]{64}$/.test(secret))
         throw new AppError('Invalid handoff.');
       const secretHash = await digest(secret);
-      const handoff = await db().prepare(
-        'SELECT h.member_id,h.wallet FROM wallet_handoffs h JOIN community_members m ON m.id=h.member_id WHERE h.id=? AND h.secret_hash=? AND h.expires_at>? AND m.verified_until>? AND m.suspended=0',
-      ).bind(id, secretHash, Date.now(), Date.now()).first<{ member_id: string; wallet: string }>();
+      const handoff = await db()
+        .prepare(
+          'SELECT h.member_id,h.wallet FROM wallet_handoffs h JOIN community_members m ON m.id=h.member_id WHERE h.id=? AND h.secret_hash=? AND h.expires_at>? AND m.verified_until>? AND m.suspended=0',
+        )
+        .bind(id, secretHash, Date.now(), Date.now())
+        .first<{ member_id: string; wallet: string }>();
       if (!handoff) return json({ ready: false });
-      const consumed = await db().prepare(
-        'DELETE FROM wallet_handoffs WHERE id=? AND secret_hash=? AND member_id=? AND expires_at>? RETURNING id',
-      ).bind(id, secretHash, handoff.member_id, Date.now()).first();
+      const consumed = await db()
+        .prepare(
+          'DELETE FROM wallet_handoffs WHERE id=? AND secret_hash=? AND member_id=? AND expires_at>? RETURNING id',
+        )
+        .bind(id, secretHash, handoff.member_id, Date.now())
+        .first();
       if (!consumed) return json({ ready: false });
       const session = crypto.randomUUID() + crypto.randomUUID();
-      await db().prepare(
-        'INSERT INTO community_sessions (hash,member_id,expires_at,wallet) VALUES (?,?,?,?)',
-      ).bind(await digest(session), handoff.member_id, Date.now() + MEMBERSHIP_MS, handoff.wallet).run();
+      await db()
+        .prepare(
+          'INSERT INTO community_sessions (hash,member_id,expires_at,wallet) VALUES (?,?,?,?)',
+        )
+        .bind(
+          await digest(session),
+          handoff.member_id,
+          Date.now() + MEMBERSHIP_MS,
+          handoff.wallet,
+        )
+        .run();
       return json({ ready: true }, 200, sessionCookie(session, req));
     }
     if (path[0] === 'challenge' && post) {
-      const handoffId = b.handoffId === undefined ? null : textValue(b.handoffId, 36, 36, 'Handoff');
-      if (handoffId && !await db().prepare('SELECT id FROM wallet_handoffs WHERE id=? AND member_id IS NULL AND expires_at>?').bind(handoffId, Date.now()).first()) {
-        throw new AppError('Return to Float and start wallet connection again.', 400);
+      const handoffId =
+        b.handoffId === undefined
+          ? null
+          : textValue(b.handoffId, 36, 36, 'Handoff');
+      if (
+        handoffId &&
+        !(await db()
+          .prepare(
+            'SELECT id FROM wallet_handoffs WHERE id=? AND member_id IS NULL AND expires_at>?',
+          )
+          .bind(handoffId, Date.now())
+          .first())
+      ) {
+        throw new AppError(
+          'Return to Float and start wallet connection again.',
+          400,
+        );
       }
       if (b.authMethod !== undefined && b.authMethod !== 'signIn')
         throw new AppError('Unsupported authentication method.');
@@ -249,13 +284,30 @@ async function handler(req: Request) {
           'This verification expired or was already used. Please sign again.',
           401,
         );
-      const requestedHandoff = b.handoffId === undefined ? null : textValue(b.handoffId, 36, 36, 'Handoff');
+      const requestedHandoff =
+        b.handoffId === undefined
+          ? null
+          : textValue(b.handoffId, 36, 36, 'Handoff');
       if (c.handoff_id && requestedHandoff && c.handoff_id !== requestedHandoff)
-        throw new AppError('The app sign-in request changed. Start again.', 400);
+        throw new AppError(
+          'The app sign-in request changed. Start again.',
+          400,
+        );
       // New clients bind at challenge creation. Keep old in-flight clients compatible.
       const handoffId = c.handoff_id || requestedHandoff;
-      if (handoffId && !await db().prepare('SELECT id FROM wallet_handoffs WHERE id=? AND member_id IS NULL AND expires_at>?').bind(handoffId, Date.now()).first())
-        throw new AppError('Return to Float and start wallet connection again.', 400);
+      if (
+        handoffId &&
+        !(await db()
+          .prepare(
+            'SELECT id FROM wallet_handoffs WHERE id=? AND member_id IS NULL AND expires_at>?',
+          )
+          .bind(handoffId, Date.now())
+          .first())
+      )
+        throw new AppError(
+          'Return to Float and start wallet connection again.',
+          400,
+        );
       await verifySignature(c.wallet, c.message, b.signature);
       const consumed = await db()
         .prepare(
@@ -352,13 +404,26 @@ async function handler(req: Request) {
             c.wallet,
           ),
         db().prepare('DELETE FROM community_challenges WHERE id=?').bind(c.id),
-        ...(handoffId ? [db().prepare(
-          'UPDATE wallet_handoffs SET member_id=?,wallet=? WHERE id=? AND member_id IS NULL AND expires_at>?',
-        ).bind(member.id, c.wallet, handoffId, Date.now())] : []),
+        ...(handoffId
+          ? [
+              db()
+                .prepare(
+                  'UPDATE wallet_handoffs SET member_id=?,wallet=? WHERE id=? AND member_id IS NULL AND expires_at>?',
+                )
+                .bind(member.id, c.wallet, handoffId, Date.now()),
+            ]
+          : []),
       ]);
       if (handoffId && committed.at(-1)?.meta.changes !== 1)
-        throw new AppError('App sign-in expired. Reopen Float and connect again.', 400);
-      return json({ ok: true, handoffReady: !!handoffId }, 200, sessionCookie(session, req));
+        throw new AppError(
+          'App sign-in expired. Reopen Float and connect again.',
+          400,
+        );
+      return json(
+        { ok: true, handoffReady: !!handoffId },
+        200,
+        sessionCookie(session, req),
+      );
     }
     if (path[0] === 'logout' && post) {
       const cookie = communityCookie(req);
@@ -478,6 +543,53 @@ async function handler(req: Request) {
       ]);
       return json({ ok: true });
     }
+    // Public reading uses the same query and moderation rules as member reading.
+    // Private feeds and every mutation remain behind the verified-session check below.
+    if (
+      !post &&
+      (path[0] === 'threads' || path[0] === 'channels' || path[0] === 'rooms')
+    ) {
+      const viewer = await communityMember(req, false);
+      const viewerId = viewer?.id ?? null;
+      if (path[0] === 'threads' && !path[1])
+        return json(
+          await readCommunityThreads(
+            db(),
+            url,
+            viewerId,
+            (await registry()).tokens,
+          ),
+        );
+      if (path[0] === 'threads' && path[1] && path[2] === 'replies' && !path[3])
+        return json(await readCommunityReplies(db(), url, path[1], viewerId));
+      if (path[0] === 'rooms' && !post) {
+        return json(
+          await readRooms(
+            db(),
+            url.searchParams.get('cursor') || '',
+            url.searchParams.get('q') || '',
+          ),
+        );
+      }
+      if (path[0] === 'channels' && !post) {
+        const counts = (
+          await db()
+            .prepare(
+              'SELECT topic,COUNT(*) thread_count FROM community_threads WHERE hidden=0 GROUP BY topic',
+            )
+            .all<{ topic: string; thread_count: number }>()
+        ).results;
+        const countByTopic = new Map(
+          counts.map((row) => [row.topic, Number(row.thread_count)]),
+        );
+        return json({
+          channels: COMMUNITY_CHANNELS.map((channel) => ({
+            ...channel,
+            thread_count: countByTopic.get(channel.id) || 0,
+          })),
+        });
+      }
+    }
     const member = await communityMember(req);
     if (path[0] === 'holdings-refresh' && post) {
       await rateLimit('holdings-refresh:' + member!.id, 10);
@@ -497,42 +609,16 @@ async function handler(req: Request) {
     if (path[0] === 'holder-tier' && post) {
       await rateLimit('holder-tier:' + member.id, 10);
       const result = await updateHolderTier(
-        db(), member.id, runtime().SOLANA_RPC_URL,
-        runtime().CMC_API_KEY, (await registry()).registry,
+        db(),
+        member.id,
+        runtime().SOLANA_RPC_URL,
+        runtime().CMC_API_KEY,
+        (await registry()).registry,
       );
-      return json(result.tier ? result : { tier: 'bronze', expiresAt: member.verified_until });
-    }
-    if (path[0] === 'rooms' && !post) {
-      await rateLimit('community-rooms:' + member.id, 60);
-      return json(
-        await readRooms(
-          db(),
-          url.searchParams.get('cursor') || '',
-          url.searchParams.get('q') || '',
-        ),
-      );
+      return json(result);
     }
     if (path[0] === 'rooms' && post) {
       throw new AppError('Only Float can create channels.', 403);
-    }
-    if (path[0] === 'channels' && !post) {
-      await rateLimit('community-channels:' + member.id, 60);
-      const counts = (
-        await db()
-          .prepare(
-            'SELECT topic,COUNT(*) thread_count FROM community_threads WHERE hidden=0 GROUP BY topic',
-          )
-          .all<{ topic: string; thread_count: number }>()
-      ).results;
-      const countByTopic = new Map(
-        counts.map((row) => [row.topic, Number(row.thread_count)]),
-      );
-      return json({
-        channels: COMMUNITY_CHANNELS.map((channel) => ({
-          ...channel,
-          thread_count: countByTopic.get(channel.id) || 0,
-        })),
-      });
     }
     if (path[0] === 'channels' && post)
       throw new AppError('Channels are curated by Float.', 403);
@@ -709,127 +795,6 @@ async function handler(req: Request) {
         ]);
         return json({ id }, 201);
       }
-      const topic = url.searchParams.get('topic') || 'all';
-      const feed = url.searchParams.get('feed') || 'all';
-      if (!['all', 'personal', 'saved', 'mine'].includes(feed))
-        throw new AppError('Unknown feed.');
-      const threadId = url.searchParams.get('thread') || '';
-      if (threadId.length > 100) throw new AppError('Invalid discussion.');
-      if (
-        !communityTopics((await registry()).tokens).some(
-          (t) => t.id === topic,
-        ) &&
-        !(await db()
-          .prepare('SELECT id FROM community_rooms WHERE id=?')
-          .bind(topic)
-          .first())
-      )
-        throw new AppError('Unknown topic.');
-      const [stamp, key = '~'] = (
-        url.searchParams.get('cursor') || String(Date.now() + 1)
-      ).split(':');
-      const cursor = Number(stamp);
-      if (!Number.isSafeInteger(cursor) || cursor < 0 || key.length > 40)
-        throw new AppError('Invalid cursor.');
-      const rows = (
-        await db()
-          .prepare(
-            `SELECT t.id,t.member_id,t.topic,(SELECT name FROM community_rooms WHERE id=t.topic) room_name,t.title,t.body,t.created_at,t.hidden,${authorColumns},EXISTS(SELECT 1 FROM community_bookmarks b WHERE b.member_id=? AND b.target_type='thread' AND b.target_id=t.id) saved,(SELECT count(*) FROM community_replies r WHERE r.thread_id=t.id AND r.hidden=0 AND r.member_id NOT IN (SELECT blocked_id FROM community_blocks WHERE blocker_id=?)) reply_count FROM community_threads t JOIN community_members m ON m.id=t.member_id WHERE t.hidden=0 AND t.member_id NOT IN (SELECT blocked_id FROM community_blocks WHERE blocker_id=?) AND (?='all' OR t.topic=?) AND (?='' OR t.id=?) AND (?!='personal' OR t.topic='general' OR t.topic IN (SELECT symbol FROM community_holdings WHERE member_id=? UNION SELECT symbol FROM community_follows WHERE member_id=?)) AND (?!='saved' OR EXISTS(SELECT 1 FROM community_bookmarks b WHERE b.member_id=? AND b.target_type='thread' AND b.target_id=t.id)) AND (?!='mine' OR t.member_id=?) AND (t.created_at<? OR (t.created_at=? AND t.id<?)) ORDER BY t.created_at DESC,t.id DESC LIMIT 31`,
-          )
-          .bind(
-            member.id,
-            member.id,
-            member.id,
-            topic,
-            topic,
-            threadId,
-            threadId,
-            feed,
-            member.id,
-            member.id,
-            feed,
-            member.id,
-            feed,
-            member.id,
-            cursor,
-            cursor,
-            key,
-          )
-          .all<CommunityThread>()
-      ).results;
-      const pageRows = rows.slice(0, 30);
-      const pollOptions = new Map<
-        string,
-        {
-          closes_at: number | null;
-          id: string;
-          label: string;
-          position: number;
-          vote_count: number;
-          selected: number;
-        }[]
-      >();
-      if (pageRows.length) {
-        const placeholders = pageRows.map(() => '?').join(',');
-        const optionRows = (
-          await db()
-            .prepare(
-              `SELECT p.thread_id,p.closes_at,o.id,o.label,o.position,COUNT(v.member_id) vote_count,MAX(CASE WHEN v.member_id=? THEN 1 ELSE 0 END) selected FROM community_polls p JOIN community_poll_options o ON o.thread_id=p.thread_id LEFT JOIN community_poll_votes v ON v.option_id=o.id WHERE p.thread_id IN (${placeholders}) GROUP BY p.thread_id,p.closes_at,o.id,o.label,o.position ORDER BY o.position`,
-            )
-            .bind(member.id, ...pageRows.map((row) => row.id))
-            .all<{
-              thread_id: string;
-              closes_at: number | null;
-              id: string;
-              label: string;
-              position: number;
-              vote_count: number;
-              selected: number;
-            }>()
-        ).results;
-        for (const option of optionRows) {
-          const list = pollOptions.get(option.thread_id) || [];
-          list.push(option);
-          pollOptions.set(option.thread_id, list);
-        }
-      }
-      return json({
-        threads: pageRows.map((row) => {
-          const options = pollOptions.get(row.id);
-          const selected = !!options?.some((option) => option.selected);
-          const closed = !!options?.[0]?.closes_at && options[0].closes_at <= Date.now();
-          const resultsVisible = selected || closed;
-          return {
-          ...row,
-          room_name:
-            row.room_name ||
-            COMMUNITY_CHANNELS.find((channel) => channel.id === row.topic)
-              ?.name ||
-            row.room_name,
-          ...(options
-            ? {
-                poll: {
-                  closes_at: options[0].closes_at,
-                  closed,
-                  results_visible: resultsVisible,
-                  total_votes: resultsVisible
-                    ? options.reduce((sum, option) => sum + option.vote_count, 0)
-                    : null,
-                  options: options.map((option) => ({
-                    id: option.id,
-                    label: option.label,
-                    position: option.position,
-                    vote_count: resultsVisible ? option.vote_count : null,
-                    selected: !!option.selected,
-                  })),
-                },
-              }
-            : {}),
-        };
-        }),
-        nextCursor:
-          rows.length > 30 ? rows[29].created_at + ':' + rows[29].id : null,
-      });
     }
     if (path[0] === 'blocks') {
       if (!post) {
@@ -891,9 +856,7 @@ async function handler(req: Request) {
       if (path[2] === 'poll' && path[3] === 'vote' && post) {
         await rateLimit('community-poll:' + member.id, 10);
         const poll = await db()
-          .prepare(
-            'SELECT closes_at FROM community_polls WHERE thread_id=?',
-          )
+          .prepare('SELECT closes_at FROM community_polls WHERE thread_id=?')
           .bind(thread.id)
           .first<{ closes_at: number | null }>();
         if (!poll) throw new AppError('Poll unavailable.', 404);
@@ -949,25 +912,6 @@ async function handler(req: Request) {
               .run();
           return json({ id }, 201);
         }
-        const [stamp, key = ''] = (url.searchParams.get('cursor') || '0').split(
-          ':',
-        );
-        const cursor = Number(stamp);
-        if (!Number.isSafeInteger(cursor) || cursor < 0 || key.length > 40)
-          throw new AppError('Invalid cursor.');
-        const rows = (
-          await db()
-            .prepare(
-              `SELECT r.id,r.member_id,r.thread_id,r.body,r.hidden,r.created_at,${authorColumns} FROM community_replies r JOIN community_members m ON m.id=r.member_id WHERE r.thread_id=? AND r.hidden=0 AND r.member_id NOT IN (SELECT blocked_id FROM community_blocks WHERE blocker_id=?) AND (r.created_at>? OR (r.created_at=? AND r.id>?)) ORDER BY r.created_at,r.id LIMIT 51`,
-            )
-            .bind(thread.id, member.id, cursor, cursor, key)
-            .all<CommunityReply>()
-        ).results;
-        return json({
-          replies: rows.slice(0, 50),
-          nextCursor:
-            rows.length > 50 ? rows[49].created_at + ':' + rows[49].id : null,
-        });
       }
     }
     if (path[0] === 'replies' && path[1] && path[2] === 'remove' && post) {

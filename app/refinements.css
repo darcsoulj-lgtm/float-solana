@@ -437,50 +437,50 @@
   align-items: center;
   gap: 8px;
 }
-.member-shell .reply-header {
+:is(.member-shell, .public-discussions) .reply-header {
   display: flex;
   align-items: flex-start;
   gap: 8px;
 }
-.member-shell .reply-header .reply-author {
+:is(.member-shell, .public-discussions) .reply-header .reply-author {
   min-width: 0;
   flex: 1;
 }
-.member-shell .reply-overflow {
+:is(.member-shell, .public-discussions) .reply-overflow {
   flex: 0 0 auto;
   color: var(--muted-foreground);
 }
-.member-shell .reply {
+:is(.member-shell, .public-discussions) .reply {
   display: grid;
   grid-template-columns: 34px minmax(0, 1fr);
   column-gap: 12px;
   padding: 18px 4px;
 }
-.member-shell .reply > .member-avatar {
+:is(.member-shell, .public-discussions) .reply > .member-avatar {
   width: 34px;
   height: 34px;
   font-size: 13px;
 }
-.member-shell .reply-content {
+:is(.member-shell, .public-discussions) .reply-content {
   min-width: 0;
 }
-.member-shell .reply-author {
+:is(.member-shell, .public-discussions) .reply-author {
   min-height: 24px;
   gap: 7px;
   color: var(--muted-foreground);
   font-size: 13px;
   line-height: 1.4;
 }
-.member-shell .reply-author strong {
+:is(.member-shell, .public-discussions) .reply-author strong {
   color: var(--hp-ink-575757, #575757);
   font-size: 14px;
   font-weight: 550;
 }
-.member-shell .reply-author time {
+:is(.member-shell, .public-discussions) .reply-author time {
   color: var(--muted-foreground);
   font-size: 12px;
 }
-.member-shell .thread-post .reply-content > p {
+:is(.member-shell, .public-discussions) .thread-post .reply-content > p {
   margin: 6px 0 0;
   color: var(--foreground);
   font-size: 15px;
@@ -489,17 +489,17 @@
   overflow-wrap: anywhere;
 }
 @media (max-width: 700px) {
-  .member-shell .reply {
+  :is(.member-shell, .public-discussions) .reply {
     grid-template-columns: 30px minmax(0, 1fr);
     column-gap: 10px;
     padding: 16px 0;
   }
-  .member-shell .reply > .member-avatar {
+  :is(.member-shell, .public-discussions) .reply > .member-avatar {
     width: 30px;
     height: 30px;
     font-size: 12px;
   }
-  .member-shell .reply-author {
+  :is(.member-shell, .public-discussions) .reply-author {
     align-items: baseline;
     flex-wrap: wrap;
     gap: 4px 7px;
@@ -534,7 +534,7 @@
   align-items: center;
   gap: 10px;
 }
-.member-shell .blocked-user-row .member-avatar {
+:is(.member-shell, .public-discussions) .blocked-user-row .member-avatar {
   width: 34px;
   height: 34px;
 }
@@ -1202,18 +1202,18 @@ fieldset.holding-filter-chips {
 
 /* The discussion is a continuous reading surface; only structured content
    inside a post, such as polls, gets its own container. */
-.member-shell .thread-post {
+:is(.member-shell, .public-discussions) .thread-post {
   margin: 0;
   padding: 26px 0;
   border-width: 0 0 1px;
   border-radius: 0;
   background: transparent;
 }
-.member-shell .thread-post.is-feed:has(.thread-open:hover),
-.member-shell .thread-post.is-feed:has(.thread-body-preview:hover) {
+:is(.member-shell, .public-discussions) .thread-post.is-feed:has(.thread-open:hover),
+:is(.member-shell, .public-discussions) .thread-post.is-feed:has(.thread-body-preview:hover) {
   background: color-mix(in srgb, var(--foreground) 3%, transparent);
 }
-.member-shell .thread-body-preview {
+:is(.member-shell, .public-discussions) .thread-body-preview {
   display: block;
   width: 100%;
   margin: 0;
@@ -1226,13 +1226,13 @@ fieldset.holding-filter-chips {
   overflow-wrap: anywhere;
   cursor: pointer;
 }
-.member-shell .thread-body-preview > span {
+:is(.member-shell, .public-discussions) .thread-body-preview > span {
   display: -webkit-box;
   overflow: hidden;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
 }
-.member-shell .thread-open {
+:is(.member-shell, .public-discussions) .thread-open {
   width: 100%;
   padding: 0;
   color: inherit;
@@ -1242,16 +1242,16 @@ fieldset.holding-filter-chips {
   text-align: left;
   cursor: pointer;
 }
-.member-shell .thread-open:hover {
+:is(.member-shell, .public-discussions) .thread-open:hover {
   text-decoration: underline;
   text-underline-offset: 3px;
 }
-.member-shell :is(.thread-open, .thread-body-preview):focus-visible {
+:is(.member-shell, .public-discussions) :is(.thread-open, .thread-body-preview):focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 4px;
   border-radius: 2px;
 }
-.member-shell .thread-poll-preview {
+:is(.member-shell, .public-discussions) .thread-poll-preview {
   display: inline-flex;
   margin-top: 14px;
   padding: 5px 9px;
@@ -1261,35 +1261,35 @@ fieldset.holding-filter-chips {
   font-size: 12px;
   font-weight: 600;
 }
-.member-shell .thread-post.is-detail {
+:is(.member-shell, .public-discussions) .thread-post.is-detail {
   padding-top: 12px;
   border-top: 0;
 }
-.member-shell .thread-post.is-detail .thread-bottom {
+:is(.member-shell, .public-discussions) .thread-post.is-detail .thread-bottom {
   margin-top: 24px;
 }
-.member-shell .thread-reply-heading {
+:is(.member-shell, .public-discussions) .thread-reply-heading {
   padding: 8px 6px;
   color: var(--foreground);
   font-size: 14px;
   font-weight: 650;
 }
-.member-shell .thread-post:first-of-type {
+:is(.member-shell, .public-discussions) .thread-post:first-of-type {
   border-top: 1px solid var(--hp-edge-e1e1e1, #e1e1e1);
 }
-.member-shell .thread-post h3 {
+:is(.member-shell, .public-discussions) .thread-post h3 {
   margin: 16px 0 10px;
 }
-.member-shell .thread-post > p {
+:is(.member-shell, .public-discussions) .thread-post > p {
   margin: 0;
 }
-.member-shell .thread-bottom {
+:is(.member-shell, .public-discussions) .thread-bottom {
   justify-content: flex-start;
   gap: 4px;
   margin-top: 18px;
   padding-top: 10px;
 }
-.member-shell .thread-bottom button {
+:is(.member-shell, .public-discussions) .thread-bottom button {
   padding-inline: 6px;
 }
 
@@ -1351,17 +1351,27 @@ fieldset.holding-filter-chips {
 
 /* Mobile discussions use a roomy feed instead of stacked, narrow cards. */
 @media (max-width: 700px) {
-  .member-shell .channel-filters {
+  :is(.member-shell, .public-discussions) .channel-filters {
     display: block;
   }
-  .member-shell .channel-filter-scroll {
+  :is(.member-shell, .public-discussions) .channel-filter-scroll {
     width: 100%;
     padding-bottom: 4px;
   }
-  .member-shell .channel-saved {
+  :is(.member-shell, .public-discussions) .channel-saved {
     margin-left: 6px;
   }
-  .member-shell .thread-post {
+  :is(.member-shell, .public-discussions) .thread-post {
     padding: 22px 0;
   }
 }
+
+.market-data-note { display: flex; align-items: center; gap: .35rem; margin: -8px 0 16px; color: var(--muted-foreground); font-size: 14px; }
+.stock-row-mobile-market small { display: inline-flex; align-items: center; }
+
+.public-discussions { max-width: 920px; margin: 40px auto 72px; padding: 0 24px; }
+.public-discussions-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:12px; }
+.public-discussions-heading h1 { margin:0; font-size:clamp(26px,4vw,36px); }
+.public-reading-note { color:var(--muted-foreground); font-size:14px; line-height:1.6; margin-bottom:24px; }
+.public-discussion-link { display:inline-flex; align-items:center; gap:8px; padding:12px 18px; border-radius:8px; background:var(--primary); color:var(--primary-foreground); font-weight:600; }
+@media(max-width:600px) { .public-discussions { padding:0 16px; margin-top:24px; } .public-discussions-heading { flex-wrap:wrap; } }

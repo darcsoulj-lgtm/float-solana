@@ -4,9 +4,9 @@ import { MetricInfo } from './metric-info';
 import { marketTokens } from '@/lib/market-data';
 import { ArrowUpRight } from 'lucide-react';
 import { ISSUERS, type IssuerId } from '@/lib/tokens';
-import { trackedValuation } from '@/lib/token-observation';
+import { displayPoolActivity, trackedValuation } from '@/lib/token-observation';
 import type { MarketOverview } from '@/lib/market-data';
-import { poolMetrics, POOL_SCOPE } from '@/lib/stock-pools';
+import { POOL_SCOPE } from '@/lib/stock-pools';
 import { useState } from 'react';
 import { MarketActivityHistory } from './market-activity-history';
 const usd = (n: number | null) =>
@@ -18,18 +18,25 @@ const usd = (n: number | null) =>
         notation: 'compact',
         maximumFractionDigits: 2,
       }).format(n);
+function poolTiming(oldest: number | null, newest: number | null) {
+  if (!oldest || !newest) return 'No observations available.';
+  const format = (value: number) => new Date(value).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  return `Observed ${format(oldest)}${newest !== oldest ? ` – ${format(newest)}` : ''}. Volume combines 24-hour windows ending at those times; it is not a synchronized live total.`;
+}
 export function SolanaEcosystem({
   data,
   now,
   onIssuer,
   select,
   historyReady,
+  hasSavedFigures = false,
 }: {
   data: MarketOverview | null;
   now: number;
   onIssuer: (id: IssuerId | 'all') => void;
   select: (symbol: string) => void;
   historyReady: boolean;
+  hasSavedFigures?: boolean;
 }) {
   const [activityMetric, setActivityMetric] = useState<
     'volume' | 'liquidity' | 'value'
@@ -38,20 +45,7 @@ export function SolanaEcosystem({
   const coverage = trackedValuation(data, now);
   const issuerActivity = ISSUERS.map((issuer) => {
     const issuerTokens = tokens.filter((token) => token.issuer === issuer.id);
-    const pools = issuerTokens.flatMap((token) => {
-      const poolTime =
-        data?.pools.asOf?.[token.symbol] ?? data?.pools.fetchedAt ?? 0;
-      if (
-        !data?.pools ||
-        data.pools.stale ||
-        !poolTime ||
-        poolTime > now + 60000 ||
-        now - poolTime >= 300000
-      )
-        return [];
-      return data.pools.data?.[token.symbol] ?? [];
-    });
-    const dashboard = poolMetrics(pools);
+    const dashboard = displayPoolActivity(data, issuerTokens.map((token) => token.symbol), now);
     return {
       ...issuer,
       volume: dashboard.volume24h,
@@ -62,8 +56,7 @@ export function SolanaEcosystem({
       basis: issuer.id === 'xstocks' ? 'Circulating value' : 'Minted value',
     };
   });
-  const marketPools = issuerActivity.flatMap((issuer) => issuer.pools);
-  const marketActivity = poolMetrics(marketPools);
+  const marketActivity = displayPoolActivity(data, tokens.map((token) => token.symbol), now);
   const activityRows = issuerActivity.sort(
     (a, b) => (b[activityMetric] ?? 0) - (a[activityMetric] ?? 0),
   );
@@ -109,6 +102,14 @@ export function SolanaEcosystem({
       <div className="ecosystem-heading">
         <h2>Tokenized assets on Solana</h2>
       </div>
+      {(hasSavedFigures || marketActivity.saved || coverage.delayed) && (
+        <p className="market-data-note">
+          Some figures use saved data
+          <MetricInfo label="About saved market data">
+            Updates run automatically. Saved prices and pool figures are kept for up to 24 hours. Use the info icons for observation times. Saved volume covers the 24 hours before each observation, not necessarily the latest 24 hours.
+          </MetricInfo>
+        </p>
+      )}
       <div className="ecosystem-stats">
         <div>
           <span className="metric-label">
@@ -120,14 +121,13 @@ export function SolanaEcosystem({
           <strong>{usd(coverage.total)}</strong>
           <small>
             {coverage.partial ? 'Partial coverage' : `${coverage.issuerCount}/${ISSUERS.length} issuers`}
-            {coverage.delayed ? ' · dated values' : ''}
           </small>
         </div>
         <div>
           <span className="metric-label">
             <span>DEX volume · 24h</span>
             <MetricInfo label="About market volume">
-              {POOL_SCOPE}
+              {POOL_SCOPE} {poolTiming(marketActivity.oldestAt, marketActivity.newestAt)}
             </MetricInfo>
           </span>
           <strong>{usd(marketActivity.volume24h)}</strong>
@@ -136,7 +136,7 @@ export function SolanaEcosystem({
           <span className="metric-label">
             <span>Pool liquidity</span>
             <MetricInfo label="About market liquidity">
-              Money in the reviewed Solana pools we found. Each pool is counted once.
+              Money in the reviewed Solana pools we found. Each pool is counted once. {poolTiming(marketActivity.oldestAt, marketActivity.newestAt)}
             </MetricInfo>
           </span>
           <strong>{usd(marketActivity.liquidity)}</strong>
@@ -218,7 +218,7 @@ export function SolanaEcosystem({
             <>
               Observed DEX pool coverage · partial{' '}
               <MetricInfo label="About issuer activity">
-                {POOL_SCOPE} A shared pool can appear for two issuers, so do not add issuer totals together.
+                {POOL_SCOPE} A shared pool can appear for two issuers, so do not add issuer totals together. {poolTiming(marketActivity.oldestAt, marketActivity.newestAt)}
               </MetricInfo>
             </>
           )}
@@ -242,7 +242,7 @@ export function SolanaEcosystem({
             })}
             {!dexActivity.length && (
               <p className="issuer-activity-empty">
-                No current eligible pool data.
+                No saved pool data available.
               </p>
             )}
           </details>

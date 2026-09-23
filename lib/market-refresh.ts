@@ -1,9 +1,5 @@
 import type { MarketOverview } from './market-data';
 
-// Give background providers time to finish before returning to normal polling.
-// Six reads per pending batch at most; completed batches leave the queue.
-export const MARKET_RECHECK_DELAYS = [2000, 4000, 6000, 8000, 10000] as const;
-
 export function retainRefreshingSources(
   next: MarketOverview,
   previous?: MarketOverview,
@@ -18,15 +14,17 @@ export function retainRefreshingSources(
     'history',
     'circulation',
     'backpack',
+    'valuations',
   ] as const) {
-    // A refreshing result can already contain newer usable observations.
+    // A refreshing or failed result can already contain newer observations.
     // Only an absent payload needs a fallback; preserve its original age.
     if (
-      next[key]?.refreshing &&
       next[key]?.data == null &&
       previous[key]?.data != null
     ) {
-      Object.assign(next, { [key]: { ...previous[key], refreshing: true } });
+      Object.assign(next, {
+        [key]: { ...previous[key], stale: true, refreshing: next[key]?.refreshing },
+      });
     }
   }
 }

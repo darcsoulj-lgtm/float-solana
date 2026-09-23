@@ -52,9 +52,10 @@ export function validateCommunityPost(
 }
 export function validateCommunityPoll(value: unknown): PollDraft | null {
   if (value === undefined) return null;
-  const input = value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
+  const input =
+    value && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
   const candidate = {
     options: Array.isArray(input.options) ? input.options : [],
     duration: input.duration,
@@ -103,5 +104,4 @@ export async function communityCleanup() {
     db().prepare('DELETE FROM limits WHERE expires_at<?').bind(Date.now()),
   ]);
 }
-export const authorColumns =
-  `m.alias,m.bio,m.avatar_key, CASE WHEN m.show_value_badge=1 AND m.verified_until>unixepoch()*1000 AND m.suspended=0 THEN CASE WHEN m.value_tier_expires_at>unixepoch()*1000 THEN COALESCE(m.value_tier,'bronze') ELSE 'bronze' END ELSE NULL END value_tier, CASE WHEN m.value_tier IS NOT NULL AND m.value_tier_expires_at>unixepoch()*1000 THEN MIN(m.value_tier_expires_at,m.verified_until) ELSE m.verified_until END value_tier_expires_at`;
+export { authorColumns } from './community-read';

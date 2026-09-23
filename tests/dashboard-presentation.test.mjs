@@ -5,6 +5,7 @@ import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import ts from 'typescript';
 import { bundle } from './helpers/bundle.mjs';
+const poolDisplay = await bundle("export {displayPoolActivity} from './lib/token-observation';");
 const stockPools = await bundle("export * from './lib/stock-pools';");
 const marketBrowse = await bundle("export * from './lib/market-browse';");
 const communityTypes = await bundle("export * from './lib/community-types';");
@@ -742,6 +743,7 @@ async function marketFixture(props = {}, valuation = {}) {
         React.createElement('div', null, 'Market-wide totals'),
     },
     '@/lib/token-observation': {
+      displayPoolActivity: poolDisplay.displayPoolActivity,
       trackedValuation: () => ({
         total: 24000,
         issuers: [
@@ -938,6 +940,7 @@ void test('Ecosystem overview keeps valuation estimates and their caveats inside
       ISSUERS: issuers,
     },
     '@/lib/token-observation': {
+      displayPoolActivity: poolDisplay.displayPoolActivity,
       trackedValuation: () => ({
         total: 1500,
         issuers,
@@ -1346,6 +1349,7 @@ async function renderCommunity(
       WalletList: () => React.createElement('div', null, 'Wallet choices'),
     },
     './wallet-return': { WalletReturn: Empty },
+    './public-discussions': { PublicDiscussions: Empty },
     '@/lib/wallet-browser-link': { isMobileBrowser: () => false },
     './member-dashboard': {
       MemberDashboard: () => React.createElement('div', null, 'Member home'),
@@ -1428,12 +1432,12 @@ void test('Wallet return offers both choices and keeps wallet navigation explici
   assert.equal(continued, false);
   buttons[0].props.onClick();
   const expanded = renderToStaticMarkup(WalletReturn(props));
-  assert.match(expanded, /Tap ‹ Float at the top-left/);
-  assert.match(expanded, /Your sign-in is ready for Float to collect/);
+  assert.match(expanded, /Switch back to the app or browser/);
+  assert.match(expanded, /Your sign-in will finish on the original page/);
   assert.equal(continued, false);
   buttons[1].props.onClick();
   assert.equal(continued, true);
   const unlinked = renderToStaticMarkup(WalletReturn({ ...props, linked: false }));
-  assert.match(unlinked, /Start wallet connection from the Float app/);
-  assert.doesNotMatch(unlinked, /Your sign-in is ready for Float to collect/);
+  assert.match(unlinked, /To connect in another app or browser/);
+  assert.doesNotMatch(unlinked, /Your sign-in will finish on the original page/);
 });

@@ -1,5 +1,5 @@
 import { waitUntil } from 'cloudflare:workers';
-import { db, rateLimit } from '@/lib/server';
+import { db, rateLimit, runtime } from '@/lib/server';
 import { marketSnapshot } from '@/lib/market-cache';
 import { fetchOndoValues, ONDO_VALUE_MAX_AGE_MS } from '@/lib/ondo-valuation';
 import { AppError } from '@/lib/validation';
@@ -23,6 +23,8 @@ export async function GET(req: Request) {
       waitUntil,
       Date.now(),
       ONDO_VALUE_MAX_AGE_MS,
+      undefined,
+      runtime().MARKET_SCHEDULED !== '1',
     );
     return Response.json(
       { valuations },

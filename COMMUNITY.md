@@ -1,3 +1,9 @@
+# Public reading update — September 23, 2026
+
+Discussions and replies are public. Guests can browse channels and read contributions without connecting a wallet. Posting, replying and voting require an active verified holding. Public author information is limited to the display alias, profile photo, bio and optional holder badge. Wallet addresses, holdings, saved items and notifications remain private.
+
+This supersedes the read-gating descriptions below. Older sections are historical implementation notes, not a description of current access rules. See the root README and live Privacy page for current behavior.
+
 # Member-created rooms update
 
 Members create rooms from **Rooms → Create a room** with a name and description. Every verified member can create, follow, and post in a room. Creation persists the room and follows it for its creator in one transaction; duplicate normalized names are rejected and creation is limited to three attempts per minute per member. Existing global membership and suspension rules apply. Room creation does not confer admin privileges.

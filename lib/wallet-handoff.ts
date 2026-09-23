@@ -5,7 +5,7 @@ export const WALLET_RETURN_KEY = 'float-wallet-return';
 export type WalletReturn = { id: string | null; completed: boolean; expiresAt: number };
 
 // This is navigation state only. The claim secret stays exclusively in the
-// installed app; a completed flag never grants a session.
+// originating browser; a completed flag never grants a session.
 export function walletReturnContext(storage: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>, url: string, now = Date.now()): WalletReturn | null {
   let saved: WalletReturn | null = null;
   try {
@@ -54,6 +54,6 @@ export function readWalletHandoff(storage: Pick<Storage, 'getItem' | 'removeItem
   } catch {
     // Discard damaged local state.
   }
-  storage.removeItem(WALLET_HANDOFF_KEY);
+  try { storage.removeItem(WALLET_HANDOFF_KEY); } catch { /* Storage may be blocked. */ }
   return null;
 }

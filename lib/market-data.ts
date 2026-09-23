@@ -520,7 +520,8 @@ export async function fetchPools(
   // The multi-token endpoint is a discovery snapshot, not a complete pool
   // list. Spend a bounded number of additional free requests on the most
   // active verified tokens in each 30-mint group. Other tokens retain their
-  // eligible discovery pools, and a failed detail request cannot blank a page.
+  // eligible discovery pools. A failed detail refresh preserves the previous
+  // cached batch instead of publishing reduced coverage as a fresh result.
   const discoveredVolume = (token: StockToken) =>
     (discovered[token.symbol] ?? []).reduce(
       (sum, pool) => sum + (pool.volume24h ?? 0),
@@ -536,7 +537,7 @@ export async function fetchPools(
     selected.map((token) => fetchTokenPools(token, fetcher, verifiedStocks, official, false)),
   );
   for (const [index, result] of detail.entries()) {
-    if (result.status !== 'fulfilled') continue;
+    if (result.status !== 'fulfilled') throw result.reason;
     const symbol = selected[index].symbol;
     const byAddress = new Map(
       (discovered[symbol] ?? []).map((pool) => [pool.address, pool]),
@@ -679,23 +680,30 @@ export async function fetchTokenVolumes(
   return result;
 }
 
-// Merge only current chunks. A failed page never makes another issuer's data disappear.
-export function mergeMarketPages(pages: MarketOverview[]): MarketOverview {
+// Default callers merge only current chunks. The Markets UI may retain dated
+// payloads for explicitly labeled display fallbacks without using them as fresh.
+export function mergeMarketPages(
+  pages: MarketOverview[],
+  retainLastObserved = false,
+): MarketOverview {
   function combine<T>(
     sources: SourceResult<Record<string, T>>[],
   ): SourceResult<Record<string, T>> {
     const current = sources.filter((s) => s.data && !s.stale && s.fetchedAt);
+    const available = retainLastObserved
+      ? sources.filter((s) => s.data && s.fetchedAt)
+      : current;
     return {
-      data: current.length
-        ? Object.assign({}, ...current.map((s) => s.data))
+      data: available.length
+        ? Object.assign({}, ...available.map((s) => s.data))
         : null,
-      fetchedAt: current.length
-        ? Math.min(...current.map((s) => s.fetchedAt!))
+      fetchedAt: available.length
+        ? Math.min(...available.map((s) => s.fetchedAt!))
         : null,
       stale: current.length === 0,
       asOf: Object.assign(
         {},
-        ...current.map((s) =>
+        ...available.map((s) =>
           Object.fromEntries(
             Object.keys(s.data!).map((key) => [
               key,
