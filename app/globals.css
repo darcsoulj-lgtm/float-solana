@@ -5283,19 +5283,23 @@ body:has(.community-entry) > footer {
   .market-asset-issuers { flex: 1 1 auto; }
 }
 
-/* A single restrained accent gives Markets hierarchy without recoloring data. */
+/* Brand color marks interaction; neutral charts do not imply gains or losses. */
 .market-overview {
-  --market-accent: #2c6b73;
-  --market-accent-soft: #eaf3f2;
-  --market-accent-border: #b9d6d2;
+  --market-accent: var(--brand-accent-ink);
+  --market-chart: #686d76;
+  --market-accent-soft: #faedef;
+  --market-accent-border: #e6b9c0;
 }
 .dark .market-overview {
-  --market-accent: #8bc9c7;
-  --market-accent-soft: #203a3d;
-  --market-accent-border: #43696b;
+  --market-accent: var(--brand-accent-ink);
+  --market-chart: #a8adba;
+  --market-accent-soft: #302128;
+  --market-accent-border: #75444e;
 }
-.market-overview .market-history-bar { fill: var(--market-accent); opacity: .86; }
-.market-overview .issuer-activity-track > span { background: var(--market-accent); }
+.market-overview .market-history-bar { fill: var(--market-chart); opacity: .86; }
+.market-overview .market-history-bar:hover { fill: var(--brand-accent); opacity: 1; }
+.market-overview .issuer-activity-track > span { background: var(--market-chart); }
+.market-overview .issuer-activity-row:is(:hover, :focus-visible) .issuer-activity-track > span { background: var(--brand-accent); }
 .market-overview .market-asset-tabs button[aria-pressed="true"] {
   background: var(--market-accent-soft);
   border-color: var(--market-accent-border);
