@@ -5,6 +5,7 @@ import { AppError } from './validation';
 export const runtime = () =>
   env as unknown as {
     DB: D1Database;
+    AI?: Ai;
     MARKET_SCHEDULED?: string;
     AVATARS?: R2Bucket;
     SOLANA_RPC_URL?: string;

@@ -17,5 +17,6 @@ config.r2_buckets = [];
 config.triggers = { crons: ['* * * * *'] };
 config.services = [{ binding: 'MARKET_REFRESH', service: 'float-solana', entrypoint: 'MarketRefresh' }];
 config.vars = { ...config.vars, MARKET_SCHEDULED: '1' };
+config.ai = { binding: 'AI' };
 
 await writeFile(deployConfig, JSON.stringify(config));

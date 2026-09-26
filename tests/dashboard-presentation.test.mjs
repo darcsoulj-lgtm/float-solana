@@ -33,6 +33,10 @@ async function component(file, overrides) {
             default: ({ children, ...props }) =>
               React.createElement('a', props, children),
           }
+        : id === './translation-control'
+          ? { TranslationSettings: Empty, TranslationControl: Empty, TranslatedReply: ({ body }) => React.createElement('p', null, body) }
+        : id === '@/hooks/use-translation'
+          ? { useTranslation: () => ({ available: false, shown: false }) }
         : id === '@/hooks/use-community-feed'
           ? {
               useCommunityFeed: () => ({

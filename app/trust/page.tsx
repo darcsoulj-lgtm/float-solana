@@ -82,6 +82,10 @@ export default function Page() {
         </p>
       </section>
       <section className="panel">
+        <h2>Post translations</h2>
+        <p>When you choose to translate, the public post or reply text is sent to Cloudflare Workers AI. We do not attach wallet, profile or holdings data from the author&apos;s account. Any information written in the post itself is part of the text sent for translation. Translations may contain mistakes; the original is always available. Cached translations expire after 30 days and are removed during later translation requests. Hidden posts and replies cannot be translated or retrieved from this cache. Your translation language is saved on your device.</p>
+      </section>
+      <section className="panel">
         <h2>Retention and requests</h2>
         <p>
           Contributions and moderation records persist until operator deletion.

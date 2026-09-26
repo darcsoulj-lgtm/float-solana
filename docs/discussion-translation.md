@@ -1,0 +1,9 @@
+# Discussion translation
+
+On-demand Korean/English translation for public post titles, bodies and replies. Device language supplies the default; Profile overrides it on the current device. Geography is not used. Poll options are outside this release. Mixed Korean/English posts currently offer English translation; Korean translation is offered for Latin text without Hangul.
+
+The API accepts a stored content ID, never arbitrary text. It checks current visibility and user blocks before retrieving a cache, limits request size and rate, and uses Workers AI Qwen3-30B. Content, target and policy form the cache key; edits invalidate it and hidden content is inaccessible. Shared D1 cache expires after 30 days, with bounded cleanup on later requests. An atomic lease suppresses duplicate generation. Daily conservative reservations stop new generation at 8,000 estimated Neurons; cached translations remain available. This does not reserve the account-wide free allowance against other applications.
+
+Malformed, truncated or literal-altering results are rejected. Numeric values, detected tickers, links and wallet strings are checked, but semantic accuracy cannot be guaranteed. Machine translation is labelled and original text remains available. Provider timeouts and exhausted quotas leave the original visible. Account wallet/profile/holdings metadata is not sent; anything the author wrote in the public text is sent.
+
+Three synthetic bilingual market examples were checked against the live provider, including negation, prices, percentage values and a URL. This is a limited quality sample, not a guarantee. The initial M2M100 model was rejected after omitting content. Service tests cover visibility, cache invalidation, concurrent requests, quota exhaustion, malformed output and deletion during generation. Browser fixtures test rendering separately from live inference.

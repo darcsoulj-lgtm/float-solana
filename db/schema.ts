@@ -6,6 +6,16 @@ import {
   uniqueIndex,
   index,
 } from 'drizzle-orm/sqlite-core';
+export const communityTranslations = sqliteTable('community_translations', {
+  cacheKey: text('cache_key').primaryKey(),
+  payload: text('payload'),
+  expiresAt: integer('expires_at').notNull(),
+  leaseUntil: integer('lease_until').notNull().default(0),
+}, t => [index('idx_community_translations_expiry').on(t.expiresAt)]);
+export const translationDailyUsage = sqliteTable('translation_daily_usage', {
+  day: text('day').primaryKey(),
+  units: integer('units').notNull(),
+});
 export const surveys = sqliteTable(
   'surveys',
   {

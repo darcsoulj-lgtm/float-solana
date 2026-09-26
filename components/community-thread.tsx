@@ -1,6 +1,8 @@
 'use client';
 import { HolderTierBadge } from './holder-tier-badge';
 import { MemberProfile } from './member-profile';
+import { TranslationControl, TranslatedReply } from './translation-control';
+import { useTranslation } from '@/hooks/use-translation';
 import { useCallback, useEffect, useState } from 'react';
 import {
   Bookmark,
@@ -90,6 +92,9 @@ export function Thread({
   onThreadBlocked?: () => void;
   onRequireVerification?: () => void;
 }) {
+  const translation = useTranslation('thread', t.id, { title: t.title, body: t.body });
+  const displayTitle = translation.value?.title ?? t.title;
+  const displayBody = translation.value?.body ?? t.body;
   const [now, setNow] = useState(() => Date.now()),
     [page, setPage] = useState<ReplyPage>({ replies: [], nextCursor: null }),
     [error, setError] = useState(''),
@@ -205,24 +210,25 @@ export function Thread({
           </DropdownMenu>
         )}
       </div>
-      <h3>
+      <h3 lang={translation.shown ? translation.language : undefined}>
         {detail || !onOpen ? (
-          t.title
+          displayTitle
         ) : (
           <button type="button" className="thread-open" onClick={onOpen}>
-            {t.title}
+            {displayTitle}
           </button>
         )}
       </h3>
       {detail || !onOpen ? (
         <p style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
-          {t.body}
+          {displayBody}
         </p>
       ) : (
         <button type="button" className="thread-body-preview" onClick={onOpen}>
-          <span>{t.body}</span>
+          <span>{displayBody}</span>
         </button>
       )}
+      <TranslationControl translation={translation} />
       {poll && !detail && <span className="thread-poll-preview">Member poll</span>}
       {poll && detail && (
         <section className="thread-poll" aria-label={`Poll: ${t.title}`}>
@@ -347,7 +353,7 @@ export function Thread({
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
-                <p>{r.body}</p>
+                <TranslatedReply id={r.id} body={r.body} />
               </div>
             </div>
           ))}

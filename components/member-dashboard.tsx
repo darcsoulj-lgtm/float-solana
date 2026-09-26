@@ -2,6 +2,7 @@
 import { useCommunityFeed } from '@/hooks/use-community-feed';
 import { registryTokens } from '@/lib/token-registry';
 import { FloatLogo } from './float-logo';
+import { TranslationSettings } from './translation-control';
 import { HoldingsUpdateInfo } from './holdings-update-info';
 import { HolderTierBadge } from './holder-tier-badge';
 import { HOLDER_TIERS, type HolderTierResult } from '@/lib/holder-tier';
@@ -834,6 +835,7 @@ export function MemberDashboard({
                   </div>
                   <ThemeToggle />
                 </section>
+                <TranslationSettings />
                 <section className="profile-tier" aria-label="Holder tier">
                   <div className="profile-tier-heading">
                     <h3>Your holder tier</h3>

@@ -1375,3 +1375,43 @@ fieldset.holding-filter-chips {
 .public-reading-note { color:var(--muted-foreground); font-size:14px; line-height:1.6; margin-bottom:24px; }
 .public-discussion-link { display:inline-flex; align-items:center; gap:8px; padding:12px 18px; border-radius:8px; background:var(--primary); color:var(--primary-foreground); font-weight:600; }
 @media(max-width:600px) { .public-discussions { padding:0 16px; margin-top:24px; } .public-discussions-heading { flex-wrap:wrap; } }
+/* On-demand translations stay secondary to discussion content. */
+.post-translation-control {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 4px 0 10px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.post-translation-control > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted-foreground);
+  font: inherit;
+  cursor: pointer;
+}
+.post-translation-control > button:hover { color: var(--foreground); }
+.post-translation-control > button:focus-visible { outline: 2px solid var(--ring); outline-offset: 3px; border-radius: 3px; }
+.post-translation-control > button:disabled { cursor: wait; opacity: .65; }
+.post-translation-control > output { flex-basis: 100%; }
+.profile-translation > select {
+  width: auto;
+  max-width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
+  background: var(--card);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 16px;
+}
+
+@media (pointer: coarse) { .post-translation-control > button { min-height: 44px; } }
