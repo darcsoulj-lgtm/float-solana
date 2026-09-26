@@ -4962,7 +4962,17 @@ body:has(.community-entry) > footer {
   margin-top: 3px;
 }
 .market-supply-value {
-  display: block;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.market-supply-value .holdings-info-trigger,
+.market-supply-value .holdings-info-trigger:hover,
+.market-supply-value .holdings-info-trigger[data-popup-open] {
+  flex: 0 0 auto;
+  margin: 0;
+  background: transparent;
 }
 .directory-search {
   display: grid;

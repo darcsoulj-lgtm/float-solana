@@ -794,9 +794,9 @@ export function MarketOverviewPanel({
           <td className="market-supply-cell">
             <span className="market-mobile-label">Supply</span>
             <span className="market-supply-value">
-              {displayedSupply == null ? '—' : new Intl.NumberFormat('en-US', { maximumFractionDigits: 5 }).format(displayedSupply)}
+              {displayedSupply == null ? '—' : displayedSupply > 0 && displayedSupply < 0.01 ? '<0.01' : new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(displayedSupply)}
+              {oldSupply && <MetricInfo label="Supply observation time">Last checked {time(supplyTime)}.</MetricInfo>}
             </span>
-            {oldSupply && <span className="quote-delay"><MetricInfo label="Supply observation time">Last checked {time(supplyTime)}.</MetricInfo></span>}
           </td>
           <td className="market-price-cell">
             <span className="market-mobile-label">Token price</span>
