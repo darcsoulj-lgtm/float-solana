@@ -1415,3 +1415,24 @@ fieldset.holding-filter-chips {
 }
 
 @media (pointer: coarse) { .post-translation-control > button { min-height: 44px; } }
+
+/* Avatar buttons must align with the reply author, not stretch with the body. */
+:is(.member-shell, .public-discussions) .reply > .member-profile-trigger {
+  align-self: start;
+}
+:is(.member-shell, .public-discussions) .reply > .member-profile-trigger .member-avatar {
+  width: 30px;
+  height: 30px;
+  font-size: 12px;
+}
+.market-metric-value {
+  display: inline-grid;
+  grid-template-columns: auto 28px;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.market-metric-info { width: 28px; min-height: 28px; display: inline-flex; align-items: center; }
+.market-metric-info .quote-delay { margin: 0; }
+.market-metric-info .holdings-info-trigger { margin: 0; }
