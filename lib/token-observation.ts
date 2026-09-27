@@ -84,6 +84,9 @@ export function tokenObservation(
     valued.observedAt > 0 &&
     valued.observedAt <= now + 60000 &&
     now - valued.observedAt <= ONDO_VALUE_MAX_AGE_MS &&
+    (reported.priceAt === undefined ||
+      (reported.priceAt > 0 && reported.priceAt <= now + 60000 &&
+        now - reported.priceAt <= LAST_PRICE_MAX_AGE_MS)) &&
     Number.isFinite(reported.valueUsd) &&
     reported.valueUsd >= 0
       ? reported
@@ -255,8 +258,10 @@ export function tokenObservation(
     circulationTime: circulation ? circulationTime : null,
     circulatingValue,
     valuationUnavailableReason,
-    valuationSource: issuerValue ? 'DefiLlama · Ondo Global Markets' : null,
-    valuationTime: issuerValue ? valued!.observedAt : null,
+    valuationSource: issuerValue ? valued!.source ?? 'DefiLlama · Ondo Global Markets' : null,
+    valuationTime: issuerValue ? issuerValue.priceAt ?? valued!.observedAt : null,
+    valuationSupplyTime: issuerValue ? issuerValue.supplyAt ?? valued!.observedAt : null,
+    valuationUrl: valued?.source ? 'https://app.ondo.finance/' : 'https://api.llama.fi/protocol/ondo-global-markets',
     valuationSupply: issuerValue?.supply,
     poolVolume24h: metrics.volume24h,
     cmcDexVolume24h: cmc?.dexVolume24h ?? null,

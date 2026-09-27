@@ -258,7 +258,7 @@ function TokenDetail({ row }: { row: Row }) {
         <summary>Price & valuation</summary>
         <p>
           {row.valuationSource && row.valuationTime
-            ? `${row.valuationSource} valuation as of ${new Date(row.valuationTime).toLocaleString()}. Supply and USD value come from the same snapshot; the current price above is a separate observation. `
+            ? `${row.valuationSource} valuation as of ${new Date(row.valuationTime).toLocaleString()}. Supply checked ${new Date(row.valuationSupplyTime!).toLocaleString()}; the current price above is a separate observation. `
             : ''}
           Price: {row.priceSource}
           {row.priceTime
@@ -770,13 +770,13 @@ export function IssuerDashboardContent({
           {issuer === 'ondo' && data?.valuations?.data && (
             <p>
               <a
-                href="https://api.llama.fi/protocol/ondo-global-markets"
+                href={data.valuations.data.source ? "https://app.ondo.finance/" : "https://api.llama.fi/protocol/ondo-global-markets"}
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                DefiLlama · Ondo Global Markets ↗
+                {data.valuations.data.source ?? "DefiLlama · Ondo Global Markets"} ↗
               </a>{' '}
-              · Checked {new Date(data.valuations.data.observedAt).toLocaleString()}. It includes supported stocks and ETFs only: {Object.keys(data.valuations.data.rows).length} valued and {data.valuations.data.excluded.length} left out. It is an issued-token estimate, not a circulating market cap.
+              · Checked {new Date(data.valuations.data.observedAt).toLocaleString()}. It includes supported stocks and ETFs only: {Object.keys(data.valuations.data.rows).length} valued and {data.valuations.data.excluded.length} left out. Dated token prices are combined with Solana mint supply. Each price keeps its original timestamp. It is an issued-token estimate, not a circulating market cap.
             </p>
           )}
           <p>

@@ -4,7 +4,8 @@ import { tokenBatchKey } from './backpack-registry';
 import { MARKET_BATCH_SIZE, TOKEN_REVIEW_DATE, type StockToken } from './tokens';
 import { POOL_POLICY_VERSION } from './stock-pools';
 import { CMC_REFRESH_MS, fetchTokenMarkets } from './cmc-data';
-import { fetchOndoValues, ONDO_VALUE_MAX_AGE_MS } from './ondo-valuation';
+import { ONDO_VALUE_MAX_AGE_MS } from './ondo-valuation';
+import { fetchOfficialOndoValues } from './ondo-official-valuation';
 import { circulationSnapshot } from './circulation-cache';
 import type { RegistryStatus } from './token-registry';
 import {
@@ -23,7 +24,7 @@ export async function marketGlobalKeys(tokens: readonly StockToken[]) {
     catalog: 'backpack-catalog-v2:' + TOKEN_REVIEW_DATE + ':' + suffix,
     markets: 'cmc-tokens-v2',
     backpack: 'backpack-tickers-v1:' + suffix,
-    valuations: 'ondo-solana-value:v1:' + await tokenBatchKey(tokens.filter((t) => t.issuer === 'ondo')),
+    valuations: 'ondo-solana-value:v2:' + await tokenBatchKey(tokens.filter((t) => t.issuer === 'ondo')),
   };
 }
 
@@ -45,7 +46,7 @@ export async function readMarketGlobals(
   const catalog = await read(keys.catalog, 300000, () => fetchCatalog(fetch, backpackTokens));
   const markets = await read(keys.markets, CMC_REFRESH_MS, () => fetchTokenMarkets(env.CMC_API_KEY));
   const backpack = await read(keys.backpack, BACKPACK_TICKER_REFRESH_MS, () => fetchBackpackMarkets(fetch, backpackTokens));
-  const valuations = await read(keys.valuations, 600000, fetchOndoValues, ONDO_VALUE_MAX_AGE_MS);
+  const valuations = await read(keys.valuations, 600000, () => fetchOfficialOndoValues(env.SOLANA_RPC_URL, fetch, tokens), ONDO_VALUE_MAX_AGE_MS);
   return { catalog, markets, backpack, valuations };
 }
 

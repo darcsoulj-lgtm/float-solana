@@ -7,7 +7,8 @@ export const ONDO_VALUE_URL =
 export const ONDO_VALUE_MAX_AGE_MS = 36 * 3600000;
 export type OndoValueSnapshot = {
   observedAt: number;
-  rows: Record<string, { mint: string; supply: number; valueUsd: number }>;
+  source?: 'Ondo · historical token price × Solana supply';
+  rows: Record<string, { mint: string; supply: number; valueUsd: number; priceAt?: number; supplyAt?: number; slot?: number }>;
   excluded: string[];
   reportedTokens: number;
 };

@@ -437,14 +437,13 @@ export function MarketOverviewPanel({
                 <dt>Valuation snapshot</dt>
                 <dd>
                   <a
-                    href="https://api.llama.fi/protocol/ondo-global-markets"
+                    href={observation.valuationUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                   >
                     {observation.valuationSource} ↗
                   </a>{' '}
-                  · {time(observation.valuationTime)}. Paired Solana supply and
-                  USD value; separate from the current price.
+                  · Price basis: {time(observation.valuationTime)}. Supply checked: {time(observation.valuationSupplyTime)}. Estimate; separate from the current price.
                 </dd>
               </div>
             )}

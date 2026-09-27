@@ -1,12 +1,13 @@
 import { waitUntil } from 'cloudflare:workers';
 import { db, rateLimit, runtime } from '@/lib/server';
 import { marketSnapshot } from '@/lib/market-cache';
-import { fetchOndoValues, ONDO_VALUE_MAX_AGE_MS } from '@/lib/ondo-valuation';
+import { ONDO_VALUE_MAX_AGE_MS } from '@/lib/ondo-valuation';
+import { fetchOfficialOndoValues } from '@/lib/ondo-official-valuation';
 import { AppError } from '@/lib/validation';
 import { tokenBatchKey } from '@/lib/backpack-registry';
 import { TOKENS } from '@/lib/tokens';
 export const dynamic = 'force-dynamic';
-// Public issuer observations only. One shared provider request per ten minutes,
+// Public issuer observations only. One shared refresh per ten minutes,
 // protected by the existing D1 refresh lease; no wallet data enters this cache.
 export async function GET(req: Request) {
   try {
@@ -16,10 +17,10 @@ export async function GET(req: Request) {
     );
     const valuations = await marketSnapshot(
       db(),
-      'ondo-solana-value:v1:' +
+      'ondo-solana-value:v2:' +
         (await tokenBatchKey(TOKENS.filter((t) => t.issuer === 'ondo'))),
       600000,
-      fetchOndoValues,
+      () => fetchOfficialOndoValues(runtime().SOLANA_RPC_URL),
       waitUntil,
       Date.now(),
       ONDO_VALUE_MAX_AGE_MS,
