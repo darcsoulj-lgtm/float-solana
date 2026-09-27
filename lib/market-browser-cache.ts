@@ -47,6 +47,7 @@ export function saveMarketPage(
     supplies: page.supplies,
     circulation: page.circulation,
     valuations: page.valuations,
+    ondoVolume: page.ondoVolume,
     history: page.history,
   };
   try {

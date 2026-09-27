@@ -24,7 +24,7 @@ export function issuerDashboard(
       const pools = [
         ...new Map(
           (data?.pools &&
-          !data.pools.stale &&
+          (!!data.pools.asOf?.[token.symbol] || !data.pools.stale) &&
           poolTime > 0 &&
           poolTime <= now + 60000 &&
           now - poolTime < 300000

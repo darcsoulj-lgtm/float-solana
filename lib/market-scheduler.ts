@@ -2,6 +2,9 @@ import { backpackRegistry, registryTokens } from './backpack-registry';
 import { marketPartitions, readMarketGlobals, type MarketEnvironment } from './market-overview-server';
 import { readMarketBatch } from './market-service';
 import { circulationSnapshot } from './circulation-cache';
+import { tokenBatchKey } from './backpack-registry';
+import { TOKEN_REVIEW_DATE } from './tokens';
+import { POOL_POLICY_VERSION } from './stock-pools';
 import { fetchPools, type Pool, SourceHttpError, POOL_REFRESH_MS, MARKET_REFRESH_MS } from './market-data';
 
 // Four staggered groups keep a normal full cycle below the existing five-minute
@@ -20,6 +23,14 @@ export type MarketJobBinding = {
   run(job: MarketJob): Promise<void>;
   pools(mints: string[]): Promise<PoolChunkResult>;
 };
+
+// Two rotating exhaustive token lookups per chunk; known pools refresh every
+// cycle through address batches. This bounds traffic without losing old pools.
+export function rotatingPoolMints(mints: string[], now = Date.now()) {
+  if (!mints.length) return [];
+  const offset = (Math.floor(now / (MARKET_CYCLE_MINUTES * 60000)) * 2) % mints.length;
+  return [...new Set([mints[offset], mints[(offset + 1) % mints.length]])];
+}
 
 // Keep the existing 90-token cache identity, but spend each private request's
 // provider budget on at most 30 token details plus discovery/official pairs.
@@ -53,11 +64,23 @@ export async function runPoolChunk(env: MarketEnvironment, mints: string[]): Pro
       if (!token) throw Error('Unverified pool token');
       return token;
     });
+    const containing = marketPartitions(stocks).filter(batch => batch.some(t => mints.includes(t.mint)));
+    const knownPools: Pool[] = [];
+    for (const batch of containing) {
+      const key = `dex-pools-${POOL_POLICY_VERSION}:` + TOKEN_REVIEW_DATE + ':' + await tokenBatchKey(batch);
+      const row = await env.DB.prepare('SELECT payload FROM market_cache WHERE key=?').bind(key).first<{payload: string | null}>();
+      if (row?.payload) {
+        const prior = JSON.parse(row.payload) as Record<string, Pool[]>;
+        for (const token of tokens) knownPools.push(...(prior[token.symbol] ?? []));
+      }
+    }
     const deadline = AbortSignal.timeout(25000);
     const bounded: typeof fetch = (input, init) => fetch(input, {
       ...init, signal: AbortSignal.any([deadline, ...(init?.signal ? [init.signal] : [])]),
     });
-    return { data: await fetchPools(pacedMarketFetch(bounded), tokens, stocks) };
+    return { data: await fetchPools(pacedMarketFetch(bounded, 1000), tokens, stocks, {
+      knownPools, detailMints: rotatingPoolMints(mints),
+    }) };
   } catch (error) {
     // RPC exceptions lose custom properties. Preserve 429/Retry-After explicitly
     // so the canonical cache can apply its shared provider cooldown.

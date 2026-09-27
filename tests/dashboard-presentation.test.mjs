@@ -61,6 +61,8 @@ async function component(file, overrides) {
         ? stockPools
         : id === '@/lib/wallet-handoff'
           ? { readWalletHandoff: () => null, walletHandoffId: () => null, WALLET_HANDOFF_KEY: 'float-wallet-handoff' }
+        : id === './ondo-primary-volume'
+          ? { OndoPrimaryVolume: () => null }
         : id === './metric-info'
           ? {
               MetricInfo: ({ label }) =>

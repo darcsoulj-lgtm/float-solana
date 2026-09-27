@@ -6,6 +6,7 @@ import { POOL_POLICY_VERSION } from './stock-pools';
 import { CMC_REFRESH_MS, fetchTokenMarkets } from './cmc-data';
 import { ONDO_VALUE_MAX_AGE_MS } from './ondo-valuation';
 import { fetchOfficialOndoValues } from './ondo-official-valuation';
+import { fetchOndoVolume } from './ondo-volume';
 import { circulationSnapshot } from './circulation-cache';
 import type { RegistryStatus } from './token-registry';
 import {
@@ -23,6 +24,7 @@ export async function marketGlobalKeys(tokens: readonly StockToken[]) {
   return {
     catalog: 'backpack-catalog-v2:' + TOKEN_REVIEW_DATE + ':' + suffix,
     markets: 'cmc-tokens-v2',
+    ondoVolume: 'ondo-solana-primary-volume:v1',
     backpack: 'backpack-tickers-v1:' + suffix,
     valuations: 'ondo-solana-value:v2:' + await tokenBatchKey(tokens.filter((t) => t.issuer === 'ondo')),
   };
@@ -47,7 +49,8 @@ export async function readMarketGlobals(
   const markets = await read(keys.markets, CMC_REFRESH_MS, () => fetchTokenMarkets(env.CMC_API_KEY));
   const backpack = await read(keys.backpack, BACKPACK_TICKER_REFRESH_MS, () => fetchBackpackMarkets(fetch, backpackTokens));
   const valuations = await read(keys.valuations, 600000, () => fetchOfficialOndoValues(env.SOLANA_RPC_URL, fetch, tokens), ONDO_VALUE_MAX_AGE_MS);
-  return { catalog, markets, backpack, valuations };
+  const ondoVolume = await read(keys.ondoVolume, 3600000, fetchOndoVolume, 86400000);
+  return { catalog, markets, backpack, valuations, ondoVolume };
 }
 
 // One bulk D1 read replaces the browser's 15-page waterfall. No provider calls,

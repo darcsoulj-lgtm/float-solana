@@ -1,4 +1,5 @@
 'use client';
+import { OndoPrimaryVolume } from './ondo-primary-volume';
 import { POOL_SCOPE } from '@/lib/stock-pools';
 import Link from '@/components/site-link';
 import {
@@ -431,6 +432,11 @@ export function IssuerDashboardContent({
   error: string;
   onRefresh: () => void;
 }) {
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(timer);
+  }, []);
   // URL state becomes available after hydration without changing server markup.
   const linkedStock = useSyncExternalStore(
     subscribeStockLink,
@@ -496,7 +502,7 @@ export function IssuerDashboardContent({
               {issuer === 'xstocks'
                 ? 'xStocks-reported tokens in circulation × its reference price. Issuer inventory is excluded.'
                 : issuer === 'ondo'
-                  ? 'Ondo-reported Solana token values from DefiLlama. It can include issuer-held tokens and is not a market cap.'
+                  ? 'Dated Ondo token prices × verified Solana mint supply. It can include issuer-held tokens and is not a market cap.'
                   : 'Tokens minted on Solana × token price. It can include issuer-held tokens and is not a market cap.'}{' '}
               Missing values are left out, not counted as zero.
             </MetricInfo>
@@ -509,7 +515,7 @@ export function IssuerDashboardContent({
         </div>
         <div>
           <span>
-            DEX pool volume · 24h{' '}
+            Tracked pool volume · 24h{' '}
             <MetricInfo label="Volume source and coverage">
               {`${POOL_SCOPE} This only covers DEX Screener pools. It excludes Backpack, RFQ, direct issuer and other centralized trades.`}{' '}
               {issuer === 'xstocks'
@@ -527,6 +533,7 @@ export function IssuerDashboardContent({
           <strong>{dollars(dashboard.liquidity)}</strong>
         </div>
       </div>
+      {issuer === 'ondo' && <OndoPrimaryVolume data={data} now={now} />}
       {leaders.length > 0 ? (
         <section className="bp-activity" aria-label="Most active tokens">
           <h2>

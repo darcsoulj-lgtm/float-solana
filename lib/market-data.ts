@@ -65,6 +65,7 @@ export type TokenPrice = {
 };
 export type TokenVolume = { usd24h: number; mint: string };
 export type MarketOverview = {
+  ondoVolume?: SourceResult<import('./ondo-volume').OndoDailyVolume>;
   valuations?: SourceResult<OndoValueSnapshot>;
   registry?: RegistryStatus;
   totalBatches?: number;
@@ -497,6 +498,7 @@ export async function fetchPools(
   fetcher: typeof fetch = fetch,
   tokens: readonly StockToken[] = TOKENS,
   verifiedStocks: readonly StockToken[] = TOKENS,
+  refresh?: { knownPools: readonly Pool[]; detailMints: readonly string[] },
 ) {
   const official = await stonkfunPoolRegistry(fetcher, verifiedStocks);
   const batches = [];
@@ -516,12 +518,30 @@ export async function fetchPools(
   if (data.some((x) => !Array.isArray(x)))
     throw new Error('Invalid pool response');
   const exact = await exactStonkfunPairs(fetcher, tokens, official);
-  const discovered = parsePools([...data.flat(), ...exact], tokens, verifiedStocks, official);
-  // Discovery is not exhaustive. Enrich every eligible discovered token,
-  // including zero-volume pools: ranking by incomplete volume hides markets.
+  const known: unknown[] = [];
+  if (refresh) {
+    const addresses = [...new Set(refresh.knownPools.map(p => p.address))];
+    for (let i = 0; i < addresses.length; i += 30) {
+      const raw = record(await publicJson(
+        'https://api.dexscreener.com/latest/dex/pairs/solana/' + addresses.slice(i, i + 30).join(','), fetcher,
+      ));
+      if (!Array.isArray(raw.pairs)) throw Error('Invalid known pool response');
+      // An omitted known pool is not evidence of zero trading. Retain the
+      // previous batch and timestamp instead of publishing a smaller fresh sum.
+      const returned = new Set(raw.pairs.map(p => record(p).pairAddress));
+      if (addresses.slice(i, i + 30).some(address => !returned.has(address)))
+        throw Error('Known pool refresh incomplete');
+      known.push(...raw.pairs);
+    }
+  }
+  const discovered = parsePools([...data.flat(), ...exact, ...known], tokens, verifiedStocks, official);
+  // Discovery is not exhaustive. Scheduled refreshes rotate full mint lookup;
+  // other callers enrich every discovered token, including zero-volume pools.
   // A failed detail refresh rejects the whole snapshot so the cache retains
   // its previous data and timestamp. Scheduled callers split work into 30 mints.
-  const selected = tokens.filter((token) => discovered[token.symbol]?.length);
+  const selected = tokens.filter((token) => refresh
+    ? refresh.detailMints.includes(token.mint)
+    : discovered[token.symbol]?.length);
   const detail = await Promise.allSettled(
     selected.map((token) => fetchTokenPools(token, fetcher, verifiedStocks, official, false)),
   );

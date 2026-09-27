@@ -15,6 +15,7 @@ export function retainRefreshingSources(
     'circulation',
     'backpack',
     'valuations',
+    'ondoVolume',
   ] as const) {
     // A refreshing or failed result can already contain newer observations.
     // Only an absent payload needs a fallback; preserve its original age.

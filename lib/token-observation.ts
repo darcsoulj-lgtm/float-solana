@@ -16,7 +16,7 @@ function recent(
   const timestamp = source?.asOf?.[symbol] ?? source?.fetchedAt;
   return (
     !!timestamp &&
-    !source?.stale &&
+    (!!source?.asOf?.[symbol] || !source?.stale) &&
     now - timestamp <= 300000 &&
     timestamp <= now + 60000
   );

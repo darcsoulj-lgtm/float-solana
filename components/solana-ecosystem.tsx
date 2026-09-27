@@ -1,6 +1,7 @@
 'use client';
 
 import { MetricInfo } from './metric-info';
+import { OndoPrimaryVolume } from './ondo-primary-volume';
 import { marketTokens } from '@/lib/market-data';
 import { ArrowUpRight } from 'lucide-react';
 import { ISSUERS, type IssuerId } from '@/lib/tokens';
@@ -125,7 +126,7 @@ export function SolanaEcosystem({
         </div>
         <div>
           <span className="metric-label">
-            <span>DEX volume · 24h</span>
+            <span>Tracked pool volume · 24h</span>
             <MetricInfo label="About market volume">
               {POOL_SCOPE} {poolTiming(marketActivity.oldestAt, marketActivity.newestAt)}
             </MetricInfo>
@@ -173,7 +174,7 @@ export function SolanaEcosystem({
                 )
               }
             >
-              <option value="volume">DEX volume · 24h</option>
+              <option value="volume">Tracked pool volume · 24h</option>
               <option value="liquidity">Pool liquidity</option>
               <option value="value">Tracked value · est.</option>
             </select>
@@ -206,6 +207,7 @@ export function SolanaEcosystem({
             </p>
           )}
         </div>
+        {activityMetric === 'volume' && <OndoPrimaryVolume data={data} now={now} />}
         <p className="market-activity-scope">
           {activityMetric === 'value' ? (
             <>
