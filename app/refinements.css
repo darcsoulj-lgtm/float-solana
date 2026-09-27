@@ -432,56 +432,32 @@
   }
 }
 
-.reply-author {
+:is(.member-shell, .public-discussions) :is(.thread-meta, .reply-author) {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--hp-ink-848484, #848484);
+}
+:is(.member-shell, .public-discussions) :is(.thread-meta, .reply-author) .member-avatar {
+  width: 30px;
+  height: 30px;
+  font-size: 13px;
+}
+:is(.member-shell, .public-discussions) .reply-header {
   display: flex;
   align-items: center;
   gap: 8px;
 }
-:is(.member-shell, .public-discussions) .reply-header {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-}
-:is(.member-shell, .public-discussions) .reply-header .reply-author {
-  min-width: 0;
-  flex: 1;
-}
-:is(.member-shell, .public-discussions) .reply-overflow {
-  flex: 0 0 auto;
-  color: var(--muted-foreground);
-}
-:is(.member-shell, .public-discussions) .reply {
-  display: grid;
-  grid-template-columns: 34px minmax(0, 1fr);
-  column-gap: 12px;
-  padding: 18px 4px;
-}
-:is(.member-shell, .public-discussions) .reply > .member-avatar {
-  width: 34px;
-  height: 34px;
-  font-size: 13px;
-}
-:is(.member-shell, .public-discussions) .reply-content {
-  min-width: 0;
-}
-:is(.member-shell, .public-discussions) .reply-author {
-  min-height: 24px;
-  gap: 7px;
-  color: var(--muted-foreground);
-  font-size: 13px;
-  line-height: 1.4;
-}
-:is(.member-shell, .public-discussions) .reply-author strong {
-  color: var(--hp-ink-575757, #575757);
-  font-size: 14px;
-  font-weight: 550;
-}
-:is(.member-shell, .public-discussions) .reply-author time {
-  color: var(--muted-foreground);
-  font-size: 12px;
-}
+:is(.member-shell, .public-discussions) .reply-header .reply-author { flex: 1; }
+:is(.member-shell, .public-discussions) .reply-overflow { flex: 0 0 auto; color: var(--muted-foreground); }
+:is(.member-shell, .public-discussions) .reply { display: block; padding: 18px 0; }
+:is(.member-shell, .public-discussions) .reply-content { min-width: 0; }
 :is(.member-shell, .public-discussions) .thread-post .reply-content > p {
-  margin: 6px 0 0;
+  margin: 8px 0 0;
   color: var(--foreground);
   font-size: 15px;
   line-height: 1.6;
@@ -489,21 +465,7 @@
   overflow-wrap: anywhere;
 }
 @media (max-width: 700px) {
-  :is(.member-shell, .public-discussions) .reply {
-    grid-template-columns: 30px minmax(0, 1fr);
-    column-gap: 10px;
-    padding: 16px 0;
-  }
-  :is(.member-shell, .public-discussions) .reply > .member-avatar {
-    width: 30px;
-    height: 30px;
-    font-size: 12px;
-  }
-  :is(.member-shell, .public-discussions) .reply-author {
-    align-items: baseline;
-    flex-wrap: wrap;
-    gap: 4px 7px;
-  }
+  :is(.member-shell, .public-discussions) .reply { padding: 16px 0; }
 }
 .compact-sources {
   padding: 8px 20px;
@@ -1416,15 +1378,6 @@ fieldset.holding-filter-chips {
 
 @media (pointer: coarse) { .post-translation-control > button { min-height: 44px; } }
 
-/* Avatar buttons must align with the reply author, not stretch with the body. */
-:is(.member-shell, .public-discussions) .reply > .member-profile-trigger {
-  align-self: start;
-}
-:is(.member-shell, .public-discussions) .reply > .member-profile-trigger .member-avatar {
-  width: 30px;
-  height: 30px;
-  font-size: 12px;
-}
 .market-metric-value {
   display: inline-grid;
   grid-template-columns: auto 28px;

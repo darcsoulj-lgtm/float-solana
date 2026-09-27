@@ -321,11 +321,10 @@ export function Thread({
         <>
           {page.replies.map((r) => (
             <div className="reply" key={r.id}>
-              <MemberProfile author={r} avatarOnly />
               <div className="reply-content">
                 <div className="reply-header">
                   <div className="reply-author">
-                    <MemberProfile author={r} nameOnly />
+                    <MemberProfile author={r} />
                     {r.value_tier && <HolderTierBadge tier={r.value_tier} expiresAt={r.value_tier_expires_at} />}
                     <DiscussionTimestamp timestamp={r.created_at} now={now} />
                   </div>
