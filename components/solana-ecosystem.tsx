@@ -106,7 +106,7 @@ export function SolanaEcosystem({
         <p className="market-data-note">
           Some figures use saved data
           <MetricInfo label="About saved market data">
-            Updates run automatically. Saved prices and pool figures are kept for up to 24 hours. Use the info icons for observation times. Saved volume covers the 24 hours before each observation, not necessarily the latest 24 hours.
+            Updates run automatically. Saved prices and pool figures are kept for up to 24 hours. Open a token’s Sources & timestamps for observation times. Saved volume covers the 24 hours before each observation, not necessarily the latest 24 hours.
           </MetricInfo>
         </p>
       )}

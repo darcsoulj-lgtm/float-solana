@@ -266,10 +266,9 @@ export function MarketOverviewPanel({
     ? detailMetrics.volume24h
     : observation.poolVolume24h;
   const detailVolume = currentDetailVolume ?? observation.lastPoolVolume24h;
-  const volumeTime =
-    detailedPools?.fetchedAt ??
-    data?.pools.asOf?.[selected] ??
-    data?.pools.fetchedAt;
+  const volumeTime = currentDetailVolume == null && observation.lastPoolVolume24h != null
+    ? observation.lastPoolTime
+    : detailedPools?.fetchedAt ?? data?.pools.asOf?.[selected] ?? data?.pools.fetchedAt;
   const observed = observation.cmc;
   const quote =
     book?.data && !book.stale && now - book.data.timestamp <= 120000
@@ -354,6 +353,7 @@ export function MarketOverviewPanel({
         {token.issuer === 'tessera' && <TesseraContext mint={token.mint} />}
         <details className="market-methodology compact-sources">
           <summary>Sources &amp; timestamps</summary>
+          <p>Times show when each figure was observed, not when you opened this page. Saved figures may be older; volume covers the 24 hours before its observation.</p>
           <dl className="market-facts">
             <div>
               <dt>Token identity</dt>
@@ -370,7 +370,7 @@ export function MarketOverviewPanel({
             <div>
               <dt>Price</dt>
               <dd>
-                {observation.priceSource} · {time(observation.priceTime)}
+                {observation.priceSource || observation.lastPriceSource || 'Unavailable'} · {time(observation.priceTime ?? observation.lastPriceTime)}
               </dd>
             </div>
             <div>
@@ -470,6 +470,14 @@ export function MarketOverviewPanel({
               </div>
             )}
             <div>
+              <dt>Pool liquidity</dt>
+              <dd>DEX Screener · {time(observation.lastPoolTime ?? data?.pools.asOf?.[selected] ?? data?.pools.fetchedAt)}. Observed pools only.</dd>
+            </div>
+            {token.issuer === 'xstocks' && observation.lastCirculation && !observation.circulation && <div>
+              <dt>Saved circulating supply</dt>
+              <dd>xStocks · {time(observation.lastCirculationTime)}. Latest available circulation observation.</dd>
+            </div>}
+            <div>
               <dt>Solana supply</dt>
               <dd>
                 <a
@@ -479,7 +487,7 @@ export function MarketOverviewPanel({
                 >
                   Mint account ↗
                 </a>{' '}
-                · {time(observation.supply?.timestamp)}. Unadjusted tokens;
+                · {time(observation.supply?.timestamp ?? observation.lastSupplyTime)}. Unadjusted tokens;
                 excludes other chains.
               </dd>
             </div>
@@ -748,10 +756,6 @@ export function MarketOverviewPanel({
       ? (row.circulation?.circulatingSupply ?? row.lastCirculation?.circulatingSupply)
       : (row.valuationSupply ?? row.supply?.supply);
     const displayedSupply = t.issuer === 'xstocks' ? supply : (supply ?? row.lastSupply);
-    const supplyTime = t.issuer === 'xstocks' ? row.lastCirculationTime : row.lastSupplyTime;
-    const oldSupply = t.issuer === 'xstocks'
-      ? !row.circulation && !!row.lastCirculation
-      : supply == null && row.lastSupply != null;
     const displayedPrice = row.price ?? row.lastPrice;
     const displayedVolume = row.poolVolume24h ?? row.lastPoolVolume24h;
     const displayedLiquidity = row.liquidity ?? row.lastPoolLiquidity;
@@ -765,7 +769,6 @@ export function MarketOverviewPanel({
           mobileMarket={
             <>
               <strong>{money(displayedPrice)}</strong>
-              {row.priceDelayed && <small><MetricInfo label={`Quote timestamp for ${t.symbol}`}>Last available quote: {time(row.priceTime)}. This is not a live price.</MetricInfo></small>}
               {row.price == null && row.lastPrice != null && <small><MetricInfo label={`Last price for ${t.symbol}`}>{time(row.lastPriceTime)} · {row.lastPriceSource}. Not a live price.</MetricInfo></small>}
               <span
                 className={
@@ -795,16 +798,12 @@ export function MarketOverviewPanel({
             <span className="market-mobile-label">Supply</span>
             <span className="market-supply-value market-metric-value">
               {displayedSupply == null ? '—' : displayedSupply > 0 && displayedSupply < 0.01 ? '<0.01' : new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(displayedSupply)}
-              <span className="market-metric-info">{oldSupply && <MetricInfo label="Supply observation time">Last checked {time(supplyTime)}.</MetricInfo>}</span>
             </span>
           </td>
           <td className="market-price-cell">
             <span className="market-mobile-label">Token price</span>
             <span className="market-metric-value">
               {money(displayedPrice)}
-              <span className="market-metric-info">
-                {row.priceDelayed ? <MetricInfo label={`Quote timestamp for ${t.symbol}`}>Last available quote: {time(row.priceTime)}. This is not a live price.</MetricInfo> : row.price == null && row.lastPrice != null ? <MetricInfo label={`Last price for ${t.symbol}`}>{time(row.lastPriceTime)} · {row.lastPriceSource}. Not a live price.</MetricInfo> : null}
-              </span>
             </span>
             <span className={`market-mobile-change${change === null ? '' : change < 0 ? ' market-negative' : ' market-positive'}`}>
               {pct(change)}
@@ -814,8 +813,8 @@ export function MarketOverviewPanel({
             <span className="market-mobile-label">24h change</span>
             {pct(change)}
           </td>
-          <td><span className="market-mobile-label">DEX volume · 24h</span><span className="market-metric-value">{money(displayedVolume, true)}<span className="market-metric-info">{row.poolVolume24h == null && row.lastPoolVolume24h != null && <span className="quote-delay"><MetricInfo label={`Volume time for ${t.symbol}`}>24-hour window ending {time(row.lastPoolTime)}.</MetricInfo></span>}</span></span></td>
-          <td><span className="market-mobile-label">Pool liquidity</span><span className="market-metric-value">{money(displayedLiquidity, true)}<span className="market-metric-info">{row.liquidity == null && row.lastPoolLiquidity != null && <span className="quote-delay"><MetricInfo label={`Liquidity time for ${t.symbol}`}>Last checked {time(row.lastPoolTime)}.</MetricInfo></span>}</span></span></td>
+          <td><span className="market-mobile-label">DEX volume · 24h</span><span className="market-metric-value">{money(displayedVolume, true)}</span></td>
+          <td><span className="market-mobile-label">Pool liquidity</span><span className="market-metric-value">{money(displayedLiquidity, true)}</span></td>
         </MarketStockRow>
       </Fragment>
     );
