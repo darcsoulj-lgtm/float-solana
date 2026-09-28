@@ -3,12 +3,12 @@
 import { MetricInfo } from './metric-info';
 import { OndoPrimaryVolume } from './ondo-primary-volume';
 import { marketTokens } from '@/lib/market-data';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight, ChevronDown } from 'lucide-react';
 import { ISSUERS, type IssuerId } from '@/lib/tokens';
 import { displayPoolActivity, trackedValuation } from '@/lib/token-observation';
 import type { MarketOverview } from '@/lib/market-data';
 import { POOL_SCOPE } from '@/lib/stock-pools';
-import { useSyncExternalStore } from 'react';
+import { useId, useState, useSyncExternalStore } from 'react';
 
 type ActivityMetric = 'volume' | 'liquidity' | 'value';
 const metricKey = 'float-issuer-overview-metric';
@@ -66,6 +66,8 @@ export function SolanaEcosystem({
   select: (symbol: string) => void;
   hasSavedFigures?: boolean;
 }) {
+  const [comparisonOpen, setComparisonOpen] = useState(false);
+  const comparisonId = useId();
   const activityMetric = useSyncExternalStore(subscribeMetric, readMetric, defaultMetric);
   const tokens = marketTokens(data);
   const coverage = trackedValuation(data, now);
@@ -180,8 +182,13 @@ export function SolanaEcosystem({
       </div>
 
 
+      <button className="mobile-issuer-toggle" type="button" aria-expanded={comparisonOpen} aria-controls={comparisonId} onClick={() => setComparisonOpen(open => !open)}>
+        Compare issuers <ChevronDown size={16} aria-hidden="true" />
+      </button>
       <section
-        className="market-activity-panel"
+        id={comparisonId}
+        data-mobile-open={comparisonOpen}
+        className="market-activity-panel issuer-overview-panel"
         aria-labelledby="market-activity-title"
       >
         <header>

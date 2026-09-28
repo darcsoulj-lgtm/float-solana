@@ -545,9 +545,13 @@
   .home-overview > .upcoming-agenda .agenda-event {
     padding: 13px 0;
   }
-  .market-overview > .ecosystem-overview {
-    display: none;
-  }
+  .market-overview > .ecosystem-overview { display: block; }
+  .ecosystem-overview .issuer-overview-panel[data-mobile-open='false'] { display: none; }
+  .ecosystem-overview .mobile-issuer-toggle { display: flex; }
+  .ecosystem-overview .ecosystem-heading h2 { font-size: 20px; }
+  .ecosystem-overview .ecosystem-stats > div > .metric-label { min-height: 40px; font-size: 13px; }
+  .ecosystem-overview .ecosystem-stats > div > span { font-size: 13px; min-height: 40px; }
+
   .market-search-row {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
@@ -813,3 +817,7 @@
     margin: 0 0 20px;
   }
 }
+
+.mobile-issuer-toggle { display: none; align-items: center; justify-content: space-between; width: 100%; min-height: 44px; padding: 10px 0; color: var(--foreground); background: transparent; border: 0; cursor: pointer; font: inherit; font-size: 14px; }
+.mobile-issuer-toggle[aria-expanded='true'] svg { transform: rotate(180deg); }
+.mobile-issuer-toggle:focus-visible { outline: 2px solid var(--foreground); outline-offset: 2px; }
