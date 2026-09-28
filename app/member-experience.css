@@ -821,3 +821,21 @@
 .mobile-issuer-toggle { display: none; align-items: center; justify-content: space-between; width: 100%; min-height: 44px; padding: 10px 0; color: var(--foreground); background: transparent; border: 0; cursor: pointer; font: inherit; font-size: 14px; }
 .mobile-issuer-toggle[aria-expanded='true'] svg { transform: rotate(180deg); }
 .mobile-issuer-toggle:focus-visible { outline: 2px solid var(--foreground); outline-offset: 2px; }
+
+.mobile-header-notifications { display: none; }
+@media (max-width: 700px) {
+  .member-shell .member-sidebar { display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: 14px 19px; }
+  .member-shell .mobile-header-notifications { display: inline-flex; position: relative; flex: 0 0 44px; width: 44px; height: 44px; align-items: center; justify-content: center; }
+  .member-shell .member-topbar { display: none; }
+  .member-shell .ecosystem-heading { display: none; }
+  .member-shell .mobile-market-heading { margin-bottom: 16px; }
+  .member-shell .mobile-market-heading > span { display: none; }
+  .member-shell .mobile-market-heading h1 { margin: 0; font-size: 28px; }
+  .ecosystem-overview .ecosystem-stats { margin-bottom: 8px; }
+  .ecosystem-overview .ecosystem-stats > div { padding: 14px; }
+  .ecosystem-overview .ecosystem-stats .metric-label { align-items: flex-start; }
+  .ecosystem-overview .ecosystem-stats > div > span { display: flex; align-items: flex-start; min-height: 38px; line-height: 1.3; }
+  .ecosystem-overview .ecosystem-stats > div > strong { margin: 10px 0 6px; }
+  .ecosystem-overview .coverage-diagnostics { border: 0; margin: 0 0 16px; padding: 0; }
+  .ecosystem-overview .coverage-diagnostics > summary { min-height: 44px; padding: 10px 0; font-size: 13px; font-weight: 400; color: var(--muted-foreground); }
+}

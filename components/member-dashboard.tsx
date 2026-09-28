@@ -541,6 +541,10 @@ export function MemberDashboard({
         >
           <FloatLogo />
         </Link>
+        <Button className="mobile-header-notifications" variant="ghost" aria-label={`Reply notifications${unread ? `, ${unread} unread` : ''}`} onClick={() => setNotifications(true)}>
+          <Bell size={20} />
+          {unread > 0 && <span className="notification-dot">{unread}</span>}
+        </Button>
         <div className="member-identity">
           <MemberAvatar
             alias={member.alias}

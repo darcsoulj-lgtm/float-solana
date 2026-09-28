@@ -130,14 +130,6 @@ export function SolanaEcosystem({
       <div className="ecosystem-heading">
         <h2>Tokenized assets on Solana</h2>
       </div>
-      {(hasSavedFigures || marketActivity.saved || coverage.delayed) && (
-        <p className="market-data-note">
-          Some figures use saved data
-          <MetricInfo label="About saved market data">
-            Updates run automatically. Saved prices and pool figures are kept for up to 24 hours. Open a token’s Sources & timestamps for observation times. Saved volume covers the 24 hours before each observation, not necessarily the latest 24 hours.
-          </MetricInfo>
-        </p>
-      )}
       <div className="ecosystem-stats">
         <div>
           <span className="metric-label">
@@ -282,7 +274,8 @@ export function SolanaEcosystem({
         )}
       </section>
       <details className="market-methodology coverage-diagnostics">
-        <summary>What this market total means</summary>
+        <summary>Data details</summary>
+        {(hasSavedFigures || marketActivity.saved || coverage.delayed) && <p>Some figures use saved data. Updates run automatically. Saved prices and pool figures are kept for up to 24 hours. Open a token’s Sources &amp; timestamps for observation times. Saved volume covers the 24 hours before each observation, not necessarily the latest 24 hours.</p>}
         <p>
           <strong>Tracked value · est.: {usd(coverage.total)}</strong> ·{' '}
           {coverage.issuerCount} / {ISSUERS.length} issuers
