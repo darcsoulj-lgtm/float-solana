@@ -46,7 +46,7 @@ export function HoldingsUpdateInfo({
             {checking
               ? 'Checking holdings…'
               : available
-                ? 'Updates every minute'
+                ? 'Checks for updates every minute'
                 : 'Verify wallet to enable updates'}
           </span>
           {checkedAt && (

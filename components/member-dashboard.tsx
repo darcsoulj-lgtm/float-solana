@@ -194,10 +194,10 @@ export function MemberDashboard({
         .then((result) => {
           if (result.checked) setHoldingsError('');
         })
-        .catch((e) => {
-          setHoldingsError(
-            e.message + ' The last successful holdings check is shown below.',
-          );
+        .catch(() => {
+          // Background refreshes retain the last verified holdings silently.
+          // Only an explicit refresh needs actionable feedback here.
+          if (force) setHoldingsError('Could not update holdings. Showing the last check. Try Refresh again.');
         })
         .finally(() => {
           holdingsRequest.current = null;
@@ -306,7 +306,9 @@ export function MemberDashboard({
   useEffect(() => {
     const update = () => {
       if (document.visibilityState === 'visible')
-        void refreshWalletHoldings().catch((e) => setHoldingsError(e.message));
+        void refreshWalletHoldings().catch(() => {
+          // Keep the last successful view; the next scheduled refresh retries.
+        });
     };
     const timer = setInterval(update, 60000);
     document.addEventListener('visibilitychange', update);
@@ -660,9 +662,6 @@ export function MemberDashboard({
                   Verify wallet to update holdings
                 </Button>
               </output>
-            )}
-            {holdingsError && view === 'markets' && (
-              <output className="member-error">{holdingsError}</output>
             )}
             {notice && <output className="member-notice">{notice}</output>}
             {visited.has('overview') && (

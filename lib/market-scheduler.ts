@@ -1,3 +1,4 @@
+import { refreshHoldingWallets } from './issuer-holders-server';
 import { backpackRegistry, registryTokens } from './backpack-registry';
 import { marketPartitions, readMarketGlobals, type MarketEnvironment } from './market-overview-server';
 import { readMarketBatch } from './market-service';
@@ -15,7 +16,7 @@ export function scheduledBatches(count: number, scheduledTime: number) {
   return Array.from({ length: count }, (_, index) => index)
     .filter((index) => index % MARKET_CYCLE_MINUTES === slot);
 }
-export type MarketJob = { kind: 'batch'; batch: number } | { kind: 'globals' | 'circulation' | 'registry' };
+export type MarketJob = { kind: 'batch'; batch: number } | { kind: 'globals' | 'circulation' | 'registry' | 'holders' };
 export type PoolChunkResult =
   | { data: Record<string, Pool[]> }
   | { error: { message: string; status?: number; retryAfterMs?: number } };
@@ -115,6 +116,7 @@ export function pacedMarketFetch(fetcher: typeof fetch = fetch, gapMs = 300): ty
 }
 
 export async function runMarketJob(env: MarketEnvironment & { MARKET_REFRESH: MarketJobBinding }, job: MarketJob) {
+  if (job.kind === 'holders') { await refreshHoldingWallets(env); return; }
   const deferred: Promise<unknown>[] = [];
   const registry = await backpackRegistry(env.DB, (work) => deferred.push(work), env.SOLANA_RPC_URL, fetch, Date.now(), job.kind !== 'registry');
   const tokens = registryTokens(registry);
@@ -157,7 +159,7 @@ export async function runMarketSchedule(env: MarketEnvironment & { MARKET_REFRES
   // request budget; no public refresh endpoint or second deployment is needed.
   const jobs: MarketJob[] = [
     ...batches.map((batch) => ({ kind: 'batch' as const, batch })),
-    { kind: 'globals' }, { kind: 'circulation' }, { kind: 'registry' },
+    { kind: 'globals' }, { kind: 'circulation' }, { kind: 'registry' }, { kind: 'holders' },
   ];
   let failures = 0;
   for (const job of jobs) {

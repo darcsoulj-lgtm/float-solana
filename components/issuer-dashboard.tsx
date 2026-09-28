@@ -1,4 +1,5 @@
 'use client';
+import { HoldingWallets } from './holding-wallets';
 import { OndoPrimaryVolume } from './ondo-primary-volume';
 import { POOL_SCOPE } from '@/lib/stock-pools';
 import Link from '@/components/site-link';
@@ -533,6 +534,7 @@ export function IssuerDashboardContent({
           <strong>{dollars(dashboard.liquidity)}</strong>
         </div>
       </div>
+      <HoldingWallets issuer={issuer} />
       {issuer === 'ondo' && <OndoPrimaryVolume data={data} now={now} />}
       {leaders.length > 0 ? (
         <section className="bp-activity" aria-label="Most active tokens">

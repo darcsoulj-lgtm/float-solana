@@ -5402,3 +5402,18 @@ body:has(.community-entry) > footer {
     padding: 24px 24px max(24px, env(safe-area-inset-bottom));
   }
 }
+
+/* Holder observations remain readable without forcing three columns on phones. */
+.holding-wallets-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 20px; }
+.holding-wallets-grid > div { display: grid; gap: 6px; min-width: 0; }
+.holding-wallets-grid strong { font-size: clamp(1.5rem, 3vw, 2rem); font-variant-numeric: tabular-nums; }
+.holding-wallets-grid small { color: var(--muted-foreground); }
+@media (max-width: 600px) {
+  .holding-wallets-grid { gap: 16px; }
+  .holding-wallets-grid > div { grid-template-columns: 1fr auto; align-items: baseline; }
+  .holding-wallets-grid strong { font-size: 1.35rem; text-align: right; }
+  .holding-wallets-grid small:last-child { grid-column: 1 / -1; }
+}
+.holding-wallets-panel { margin-bottom: 20px; }
+.holding-wallets-panel > header { display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
+.holding-wallets-panel > header h3 { margin: 0; }

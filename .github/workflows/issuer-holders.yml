@@ -1,0 +1,44 @@
+name: Verified issuer holding wallets
+on:
+  schedule:
+    - cron: '17 1 * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["scripts/holders/**", ".github/workflows/issuer-holders.yml"]
+permissions:
+  contents: read
+concurrency:
+  group: issuer-holder-census
+  cancel-in-progress: false
+jobs:
+  collect:
+    # Standard runners for this public repository are free. Never use a paid runner.
+    if: github.event.repository.private == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Read last published aggregate
+        run: |
+          python3 - <<'PY'
+          import urllib.request, urllib.error, pathlib
+          url='https://raw.githubusercontent.com/${{ github.repository }}/holder-data/issuer-holders.json'
+          try:
+              with urllib.request.urlopen(url,timeout=30) as r:
+                  data=r.read(16385)
+                  if len(data)>16384: raise ValueError('Oversized snapshot')
+              pathlib.Path('public/data/issuer-holders.json').write_bytes(data)
+          except urllib.error.HTTPError as e:
+              if e.code != 404: raise
+          PY
+      - name: Collect and reconcile complete issuer observations
+        run: python3 scripts/holders/collect.py --output work/issuer-holders.json
+      - name: Publish aggregate only
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/holders/publish.py

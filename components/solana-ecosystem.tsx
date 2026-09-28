@@ -8,8 +8,37 @@ import { ISSUERS, type IssuerId } from '@/lib/tokens';
 import { displayPoolActivity, trackedValuation } from '@/lib/token-observation';
 import type { MarketOverview } from '@/lib/market-data';
 import { POOL_SCOPE } from '@/lib/stock-pools';
-import { useState } from 'react';
-import { MarketActivityHistory } from './market-activity-history';
+import { useSyncExternalStore } from 'react';
+
+type ActivityMetric = 'volume' | 'liquidity' | 'value';
+const metricKey = 'float-issuer-overview-metric';
+const metricEvent = 'float-issuer-overview-metric-change';
+let unsavedMetric: ActivityMetric | null = null;
+function defaultMetric(): ActivityMetric { return 'value'; }
+function readMetric(): ActivityMetric {
+  if (unsavedMetric !== null) return unsavedMetric ?? 'value';
+  try {
+    const saved = localStorage.getItem(metricKey);
+    return saved === 'volume' || saved === 'liquidity' || saved === 'value'
+      ? saved : 'value';
+  } catch {
+    return unsavedMetric ?? 'value';
+  }
+}
+function subscribeMetric(notify: () => void) {
+  window.addEventListener('storage', notify);
+  window.addEventListener(metricEvent, notify);
+  return () => {
+    window.removeEventListener('storage', notify);
+    window.removeEventListener(metricEvent, notify);
+  };
+}
+function setActivityMetric(metric: ActivityMetric) {
+  unsavedMetric = metric;
+  try { localStorage.setItem(metricKey, metric); unsavedMetric = null; } catch { /* Keep selection in memory when storage is unavailable. */ }
+  window.dispatchEvent(new Event(metricEvent));
+}
+
 const usd = (n: number | null) =>
   n === null
     ? '—'
@@ -29,19 +58,15 @@ export function SolanaEcosystem({
   now,
   onIssuer,
   select,
-  historyReady,
   hasSavedFigures = false,
 }: {
   data: MarketOverview | null;
   now: number;
   onIssuer: (id: IssuerId | 'all') => void;
   select: (symbol: string) => void;
-  historyReady: boolean;
   hasSavedFigures?: boolean;
 }) {
-  const [activityMetric, setActivityMetric] = useState<
-    'volume' | 'liquidity' | 'value'
-  >('volume');
+  const activityMetric = useSyncExternalStore(subscribeMetric, readMetric, defaultMetric);
   const tokens = marketTokens(data);
   const coverage = trackedValuation(data, now);
   const issuerActivity = ISSUERS.map((issuer) => {
@@ -154,7 +179,6 @@ export function SolanaEcosystem({
         </div>
       </div>
 
-      <MarketActivityHistory ready={historyReady} now={now} />
 
       <section
         className="market-activity-panel"
@@ -162,10 +186,10 @@ export function SolanaEcosystem({
       >
         <header>
           <div>
-            <h3 id="market-activity-title">Issuer activity</h3>
+            <h3 id="market-activity-title">Issuer overview</h3>
           </div>
           <label>
-            <span className="sr-only">Activity metric</span>
+            <span className="sr-only">Issuer overview metric</span>
             <select
               value={activityMetric}
               onChange={(event) =>
@@ -174,9 +198,9 @@ export function SolanaEcosystem({
                 )
               }
             >
+              <option value="value">Tracked value · est.</option>
               <option value="volume">Tracked pool volume · 24h</option>
               <option value="liquidity">Pool liquidity</option>
-              <option value="value">Tracked value · est.</option>
             </select>
           </label>
         </header>

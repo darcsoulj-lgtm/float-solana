@@ -1,4 +1,5 @@
 'use client';
+import { HoldingWallets } from './holding-wallets';
 import { TesseraContext } from './tessera-context';
 import { MarketBrowseFilters } from './market-browse-filters';
 import {
@@ -892,7 +893,6 @@ export function MarketOverviewPanel({
       <SolanaEcosystem
         data={data}
         now={now}
-        historyReady={!!data}
         hasSavedFigures={[...observations.values()].some((row) => row.priceDelayed || row.lastPrice != null || row.lastPoolVolume24h != null || row.lastPoolLiquidity != null || row.lastSupply != null)}
         onIssuer={chooseIssuer}
         select={(symbol) => {
@@ -900,6 +900,7 @@ export function MarketOverviewPanel({
           if (selectedToken) window.location.assign(marketAssetPath(selectedToken.underlyingSymbol, symbol));
         }}
       />
+      <HoldingWallets />
       <div className="market-search-row">
         <label htmlFor="market-search">
           Search markets

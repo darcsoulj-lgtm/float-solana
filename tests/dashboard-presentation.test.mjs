@@ -61,6 +61,8 @@ async function component(file, overrides) {
         ? stockPools
         : id === '@/lib/wallet-handoff'
           ? { readWalletHandoff: () => null, walletHandoffId: () => null, WALLET_HANDOFF_KEY: 'float-wallet-handoff' }
+        : id === './holding-wallets'
+          ? { HoldingWallets: Empty }
         : id === './ondo-primary-volume'
           ? { OndoPrimaryVolume: () => null }
         : id === './metric-info'
@@ -970,8 +972,10 @@ void test('Ecosystem overview keeps valuation estimates and their caveats inside
       select: () => {},
     }),
   );
-  assert.equal((html.match(/<details/g) || []).length, 2);
-  assert.match(html, /View DEX breakdown/);
+  assert.equal((html.match(/<details/g) || []).length, 1);
+  assert.doesNotMatch(html, /View DEX breakdown/);
+  assert.match(html, /Issuer overview/);
+  assert.match(html, /<option value="value" selected="">Tracked value/);
   const headline = html.split('<details')[0];
   assert.match(headline, /Tracked value · est./);
   assert.match(headline, /\$1.5K/);
@@ -1446,4 +1450,20 @@ void test('Wallet return offers both choices and keeps wallet navigation explici
   const unlinked = renderToStaticMarkup(WalletReturn({ ...props, linked: false }));
   assert.match(unlinked, /To connect in another app or browser/);
   assert.doesNotMatch(unlinked, /Your sign-in will finish on the original page/);
+});
+
+void test('Holding wallets render exact counts, dated coverage and issuer-only scope', async () => {
+  const logic = await bundle("export * from './lib/issuer-holders';");
+  const seed = JSON.parse(await readFile(new URL('../public/data/issuer-holders.json', import.meta.url), 'utf8'));
+  const { HoldingWallets } = await component('holding-wallets.tsx', {
+    '@/public/data/issuer-holders.json': { default: seed },
+    '@/lib/issuer-holders': logic,
+    '@/lib/tokens': { issuerName: id => id },
+  });
+  const html = renderToStaticMarkup(React.createElement(HoldingWallets, { issuer: 'ondo' }));
+  assert.match(html, /14,394/);
+  assert.match(html, /Last checked/);
+  assert.match(html, /tracked tokens/);
+  assert.doesNotMatch(html, /201,275/);
+  assert.equal(renderToStaticMarkup(React.createElement(HoldingWallets, { issuer: 'tessera' })), '');
 });
