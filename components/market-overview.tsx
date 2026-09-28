@@ -313,10 +313,10 @@ export function MarketOverviewPanel({
             <span>Token price</span>
             <strong>{money(observation.price ?? observation.lastPrice)}</strong>
             {observation.priceDelayed && (
-              <span className="quote-delay"><MetricInfo label="Quote timestamp">Last quote: {time(observation.priceTime)}. It may not be current.</MetricInfo></span>
+              <span className="quote-delay"><MetricInfo label="Quote timestamp" learnMore="/data-methodology#updates">Last quote: {time(observation.priceTime)}. It may not be current.</MetricInfo></span>
             )}
             {observation.price == null && observation.lastPrice != null && (
-              <span className="quote-delay"><MetricInfo label="Last observed price">{time(observation.lastPriceTime)} · {observation.lastPriceSource}. Not a live price.</MetricInfo></span>
+              <span className="quote-delay"><MetricInfo label="Last observed price" learnMore="/data-methodology#updates">{time(observation.lastPriceTime)} · {observation.lastPriceSource}. Not a live price.</MetricInfo></span>
             )}
           </div>
           <div>
@@ -346,7 +346,7 @@ export function MarketOverviewPanel({
               <span title={POOL_SCOPE}>DEX volume · 24h</span>
               <strong>{money(detailVolume, true)}</strong>
               {currentDetailVolume == null && observation.lastPoolVolume24h != null && (
-                <span className="quote-delay"><MetricInfo label="Volume observation time">24-hour window ending {time(observation.lastPoolTime)}.</MetricInfo></span>
+                <span className="quote-delay"><MetricInfo label="Volume observation time" learnMore="/data-methodology#pools">24-hour window ending {time(observation.lastPoolTime)}.</MetricInfo></span>
               )}
             </div>
           )}
@@ -827,17 +827,17 @@ export function MarketOverviewPanel({
           <th aria-sort={sortable ? sortAria('symbol') : undefined}>{sortable ? sortHeader('symbol', 'Token / issuer') : 'Token / issuer'}</th>
           <th aria-sort={sortable ? sortAria('supply') : undefined}><span className="metric-label">
             {sortable ? sortHeader('supply', 'Supply') : 'Supply'}
-            <MetricInfo label="About token supply">xStocks: tokens in circulation. Others: all tokens created on Solana, including tokens the issuer still holds.</MetricInfo>
+            <MetricInfo label="About token supply" learnMore="/data-methodology#prices">xStocks: tokens in circulation. Others: all tokens created on Solana, including tokens the issuer still holds.</MetricInfo>
           </span></th>
           <th aria-sort={sortable ? sortAria('price') : undefined}>{sortable ? sortHeader('price', 'Token price') : 'Token price'}</th>
           <th aria-sort={sortable ? sortAria('change') : undefined}>{sortable ? sortHeader('change', '24h change') : '24h change'}</th>
           <th aria-sort={sortable ? sortAria('volume') : undefined}><span className="metric-label">
             {sortable ? sortHeader('volume', 'DEX volume · 24h') : 'DEX volume · 24h'}
-            <MetricInfo label="About DEX volume">{POOL_SCOPE} A dash means missing data, not zero.</MetricInfo>
+            <MetricInfo label="About DEX volume" learnMore="/data-methodology#pools">Trading in tracked pools over 24 hours. Coverage is partial. A dash means missing data, not zero.</MetricInfo>
           </span></th>
           <th aria-sort={sortable ? sortAria('liquidity') : undefined}><span className="metric-label">
             {sortable ? sortHeader('liquidity', 'Pool liquidity') : 'Pool liquidity'}
-            <MetricInfo label="About pool liquidity">Value of tokens in the Solana pools we track. Shared pools can appear twice—do not add rows together.</MetricInfo>
+            <MetricInfo label="About pool liquidity" learnMore="/data-methodology#pools">Value of tokens in the Solana pools we track. Shared pools can appear twice—do not add rows together.</MetricInfo>
           </span></th>
         </tr></thead>
         <tbody>{rows.map(renderTokenRow)}</tbody>
@@ -1011,12 +1011,7 @@ export function MarketOverviewPanel({
         <output className="market-empty">Loading market observations…</output>
       )}
       <div className="market-pagination">
-        <details className="market-methodology">
-          <summary>How table numbers are sourced</summary>
-          <p>
-            Backpack prices come from Backpack. Other prices come from CoinMarketCap, then recent DefiLlama data, then a DEX pool. DEX volume and liquidity come from DEX Screener. {POOL_SCOPE} A dash means no data was available.
-          </p>
-        </details>
+        <Link href="/data-methodology">Data &amp; methodology →</Link>
         <div>
           <Button
             variant="ghost"
@@ -1039,87 +1034,7 @@ export function MarketOverviewPanel({
           </Button>
         </div>
       </div>
-      <details className="market-methodology">
-        <summary>Sources and important limits</summary>
-        <p className="market-attribution">
-          Sources:{' '}
-          <a
-            href="https://coinmarketcap.com/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            CoinMarketCap
-          </a>
-          ,{' '}
-          <a
-            href="https://dexscreener.com/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            DEX Screener
-          </a>
-          ,{' '}
-          <a
-            href="https://defillama.com/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            DefiLlama
-          </a>{' '}
-          and{' '}
-          <a
-            href="https://docs.backpack.exchange/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Backpack
-          </a>
-          .
-        </p>
-        <p>
-          We match tokens by their exact Solana address, not only by ticker. Backpack prices and 24-hour changes come from Backpack. For other tokens, we use CoinMarketCap first, then recent DefiLlama data, then a DEX pool. Prices are observations, not guaranteed trade prices or proof that an issuer is backed.
-        </p>
-        <p>
-          A 24-hour change always compares the same token from the same source. {POOL_SCOPE} These numbers are not the whole Solana market.
-        </p>
-        <p>
-          Times show when Float checked the source. A dash means data was unavailable, not zero. We do not send your exact wallet balance to these sources.
-        </p>
-        <p>
-          “Tracked value” only covers tokens Float tracks on Solana. Issuers use different supply methods, so it is an estimate, not a company market cap or a single market-cap number.
-        </p>
-        <p>
-          Your token’s rights, redemption and eligibility come from its issuer, not from Float. Review{' '}
-          <a
-            href="https://learn.backpack.exchange/blog/introducing-backpack-securities"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Backpack’s securities explanation
-          </a>
-          . We do not infer voting, redemption or dividend rights from an
-          onchain balance.
-        </p>
-        <nav>
-          <a
-            href="https://defillama.com/rwa/category/stocks-equities"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            DefiLlama · industry overview ↗
-          </a>
-          <a
-            href="https://tokenterminal.com/explorer/tokenized-assets/stocks?chains=solana&tab=stocks"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Token Terminal · Solana stocks ↗
-          </a>
-        </nav>
-        <p>
-          These are outside resources. Float does not import Token Terminal data or treat Backpack exchange TVL as token backing.
-        </p>
-      </details>
+
     </div>
   );
 }

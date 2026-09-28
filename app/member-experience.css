@@ -889,3 +889,11 @@
   .market-results-heading > span { display: none; } /* Issuer selection is already shown in the controls above. */
   .holder-trend summary { min-height: 44px; display: flex; align-items: center; }
 }
+
+.metric-learn-more { display: inline-block; margin-top: 10px; text-decoration: underline; text-underline-offset: 3px; }
+.data-methodology > nav { display: flex; flex-wrap: wrap; gap: 8px 20px; margin: 24px 0; }
+.data-methodology > nav a { padding: 8px 0; }
+.data-methodology section { scroll-margin-top: 24px; }
+.data-methodology li { margin: 10px 0; line-height: 1.6; }
+.data-methodology section a { text-decoration: underline; text-underline-offset: 3px; }
+.data-methodology a, .holdings-info-popover .metric-learn-more { color: var(--foreground); }

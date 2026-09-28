@@ -1,5 +1,6 @@
 'use client';
 
+import Link from '@/components/site-link';
 import { MetricInfo } from './metric-info';
 import { OndoPrimaryVolume } from './ondo-primary-volume';
 import { marketTokens } from '@/lib/market-data';
@@ -7,7 +8,6 @@ import { ArrowUpRight, ChevronDown } from 'lucide-react';
 import { ISSUERS, type IssuerId } from '@/lib/tokens';
 import { displayPoolActivity, trackedValuation } from '@/lib/token-observation';
 import type { MarketOverview } from '@/lib/market-data';
-import { POOL_SCOPE } from '@/lib/stock-pools';
 import { useId, useState, useSyncExternalStore } from 'react';
 
 type ActivityMetric = 'volume' | 'liquidity' | 'value';
@@ -134,7 +134,7 @@ export function SolanaEcosystem({
         <div>
           <span className="metric-label">
             <span>Tracked value</span>
-            <MetricInfo label="About tracked value">
+            <MetricInfo label="About tracked value" learnMore="/data-methodology#value">
               Estimated value of the Solana tokens we track. Supply rules vary by issuer. This is not the stock companies’ market cap.
             </MetricInfo>
           </span>
@@ -146,8 +146,8 @@ export function SolanaEcosystem({
         <div>
           <span className="metric-label">
             <span>Tracked pool volume · 24h</span>
-            <MetricInfo label="About market volume">
-              {POOL_SCOPE} {poolTiming(marketActivity.oldestAt, marketActivity.newestAt)}
+            <MetricInfo label="About market volume" learnMore="/data-methodology#pools">
+              Trading in tracked Solana pools over 24 hours. Some trades are missing; update times differ.
             </MetricInfo>
           </span>
           <strong>{usd(marketActivity.volume24h)}</strong>
@@ -155,8 +155,8 @@ export function SolanaEcosystem({
         <div>
           <span className="metric-label">
             <span>Pool liquidity</span>
-            <MetricInfo label="About market liquidity">
-              Value of tokens in the Solana trading pools we track. Each pool counts once; some pools are missing. {poolTiming(marketActivity.oldestAt, marketActivity.newestAt)}
+            <MetricInfo label="About market liquidity" learnMore="/data-methodology#pools">
+              Value of tokens in tracked trading pools. Coverage is partial; this is not a guaranteed sell amount.
             </MetricInfo>
           </span>
           <strong>{usd(marketActivity.liquidity)}</strong>
@@ -235,15 +235,15 @@ export function SolanaEcosystem({
           {activityMetric === 'value' ? (
             <>
               Mixed supply bases{' '}
-              <MetricInfo label="About issuer values">
+              <MetricInfo label="About issuer values" learnMore="/data-methodology#value">
                 Supply rules vary by issuer, so these estimates are not directly comparable.
               </MetricInfo>
             </>
           ) : (
             <>
               Observed DEX pool coverage · partial{' '}
-              <MetricInfo label="About issuer activity">
-                {POOL_SCOPE} Shared pools may appear under two issuers. Do not add these totals together. {poolTiming(marketActivity.oldestAt, marketActivity.newestAt)}
+              <MetricInfo label="About issuer activity" learnMore="/data-methodology#pools">
+                Tracked pools only. Shared pools can appear under two issuers—do not add these totals together.
               </MetricInfo>
             </>
           )}
@@ -274,17 +274,15 @@ export function SolanaEcosystem({
         )}
       </section>
       <details className="market-methodology coverage-diagnostics">
-        <summary>Data details</summary>
-        {(hasSavedFigures || marketActivity.saved || coverage.delayed) && <p>Some figures use saved data. Updates run automatically. Saved prices and pool figures are kept for up to 24 hours. Open a token’s Sources &amp; timestamps for observation times. Saved volume covers the 24 hours before each observation, not necessarily the latest 24 hours.</p>}
+        <summary>Current coverage</summary>
+        <p>{poolTiming(marketActivity.oldestAt, marketActivity.newestAt)}</p>
+        {(hasSavedFigures || marketActivity.saved || coverage.delayed) && <p>Some figures use saved data. <Link href="/data-methodology#updates">Update rules →</Link></p>}
         <p>
           <strong>Tracked value: {usd(coverage.total)}</strong> ·{' '}
           {coverage.issuerCount} / {ISSUERS.length} issuers
           {coverage.partial && ' · Partial coverage'}
           {coverage.delayed && ' · Includes delayed data'}
           {coverage.mixedBases && ' · Mixed supply bases'}
-        </p>
-        <p>
-          This is the combined estimate for issuers Float tracks. It is not the whole Solana market or a standard market-cap number. Missing values are left out, not counted as zero.
         </p>
         <div className="market-table-scroll">
           <table className="market-table">
@@ -323,9 +321,6 @@ export function SolanaEcosystem({
             </tbody>
           </table>
         </div>
-        <p>
-          xStocks uses its reported circulating tokens and reference prices. Ondo uses its reported Solana supply and USD value. Other issuers use price × tokens minted on Solana. Those estimates can include issuer-held tokens, so the total is not circulating AUM.
-        </p>
         <h3>Largest tracked values</h3>
         {leaders.map((r) => (
           <button
@@ -343,32 +338,7 @@ export function SolanaEcosystem({
           </button>
         ))}
         {!leaders.length && <p>Waiting for current prices and supply.</p>}
-        <h3>Important limits</h3>
-        <p>
-          Each token is counted once. Tokens from different issuers are different products, even when they track the same company. Other chains and unclear values are left out.
-        </p>
-        <p>
-          Membership checks a token balance. It does not prove shareholder status. Rights and eligibility depend on the issuer.
-        </p>
-        <nav>
-          <a
-            href="https://api.llama.fi/protocol/ondo-global-markets"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Ondo valuation data ↗
-          </a>
-          {ISSUERS.map((i) => (
-            <a
-              key={i.id}
-              href={i.url}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {i.name} ↗
-            </a>
-          ))}
-        </nav>
+        <Link href="/data-methodology#value">How tracked value is calculated →</Link>
       </details>
     </section>
   );

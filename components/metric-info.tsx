@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import Link from '@/components/site-link';
 import { Info } from 'lucide-react';
 import {
   Popover,
@@ -11,8 +12,10 @@ import {
 export function MetricInfo({
   label,
   children,
+  learnMore,
 }: {
   label: string;
+  learnMore?: string;
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
@@ -27,7 +30,6 @@ export function MetricInfo({
         onFocus={(event) => {
           if (event.currentTarget.matches(':focus-visible')) setOpen(true);
         }}
-        onBlur={() => setOpen(false)}
       >
         <Info size={14} aria-hidden="true" />
       </PopoverTrigger>
@@ -40,6 +42,7 @@ export function MetricInfo({
         aria-label={label}
       >
         <PopoverDescription>{children}</PopoverDescription>
+        {learnMore && <Link className="metric-learn-more" href={learnMore}>How this is measured →</Link>}
       </PopoverContent>
     </Popover>
   );

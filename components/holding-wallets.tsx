@@ -46,8 +46,8 @@ export function HoldingWallets({ issuer }: { issuer?: IssuerId }) {
   const relative = age === null ? 'Update details' : age < 3600000 ? 'Updated within the hour' : age < 86400000 ? `Updated ${Math.floor(age / 3600000)}h ago` : `Updated ${Math.floor(age / 86400000)}d ago`;
   const exactTime = (timestamp: number) => new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'UTC', timeZoneName: 'short' }).format(timestamp);
   return <section className="market-activity-panel holding-wallets-panel" aria-label="Holding wallets on Solana">
-    <header><h3>Holding wallets · Solana</h3><MetricInfo label="How holding wallets are counted">
-      Wallets holding any tracked token, counted once per issuer. One wallet can count for several issuers. These are wallets, not people; exchange, pool and issuer wallets are included.
+    <header><h3>Holding wallets · Solana</h3><MetricInfo label="How holding wallets are counted" learnMore="/data-methodology#wallets">
+      Wallets with tracked tokens, counted once per issuer—not people. Includes exchange, pool and issuer wallets.
     </MetricInfo></header>
     <div className="holding-wallets-grid">
       {visible.map(row => <div key={row.issuer}>

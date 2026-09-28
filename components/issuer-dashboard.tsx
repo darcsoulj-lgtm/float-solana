@@ -499,7 +499,7 @@ export function IssuerDashboardContent({
         <div>
           <span>
             Onchain value · est.{' '}
-            <MetricInfo label="Onchain value source and coverage">
+            <MetricInfo label="Onchain value source and coverage" learnMore="/data-methodology#value">
               {issuer === 'xstocks'
                 ? 'Circulating tokens × xStocks’ reference price. Excludes tokens held by the issuer.'
                 : issuer === 'ondo'
@@ -517,7 +517,7 @@ export function IssuerDashboardContent({
         <div>
           <span>
             Tracked pool volume · 24h{' '}
-            <MetricInfo label="Volume source and coverage">
+            <MetricInfo label="Volume source and coverage" learnMore="/data-methodology#pools">
               {`${POOL_SCOPE} Source: DEX Screener. Excludes exchange trades and direct quotes or trades with issuers.`}{' '}
             </MetricInfo>
           </span>

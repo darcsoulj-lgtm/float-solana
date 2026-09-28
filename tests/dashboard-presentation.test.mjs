@@ -985,7 +985,8 @@ void test('Ecosystem overview keeps valuation estimates and their caveats inside
   assert.match(headline, /Tracked tokens/);
   assert.match(headline, /assets/);
   assert.doesNotMatch(html, /<details[^>]*\sopen(?:[ =>])/);
-  assert.match(html, /<summary>Data details<\/summary>/);
+  assert.match(html, /<summary>Current coverage<\/summary>/);
+  assert.match(html, /href="\/data-methodology#value"/);
   assert.match(html, /2 \/ 2 issuers/);
   assert.match(html, /Tracked value/);
   assert.match(html, /Mixed supply bases/);
