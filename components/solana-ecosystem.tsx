@@ -133,7 +133,7 @@ export function SolanaEcosystem({
       <div className="ecosystem-stats">
         <div>
           <span className="metric-label">
-            <span>Tracked value · est.</span>
+            <span>Tracked value</span>
             <MetricInfo label="About tracked value">
               An estimate for tracked tokens on Solana. Issuers count supply differently, so this is not a company market cap.
             </MetricInfo>
@@ -197,7 +197,7 @@ export function SolanaEcosystem({
                 )
               }
             >
-              <option value="value">Tracked value · est.</option>
+              <option value="value">Tracked value</option>
               <option value="volume">Tracked pool volume · 24h</option>
               <option value="liquidity">Pool liquidity</option>
             </select>
@@ -277,7 +277,7 @@ export function SolanaEcosystem({
         <summary>Data details</summary>
         {(hasSavedFigures || marketActivity.saved || coverage.delayed) && <p>Some figures use saved data. Updates run automatically. Saved prices and pool figures are kept for up to 24 hours. Open a token’s Sources &amp; timestamps for observation times. Saved volume covers the 24 hours before each observation, not necessarily the latest 24 hours.</p>}
         <p>
-          <strong>Tracked value · est.: {usd(coverage.total)}</strong> ·{' '}
+          <strong>Tracked value: {usd(coverage.total)}</strong> ·{' '}
           {coverage.issuerCount} / {ISSUERS.length} issuers
           {coverage.partial && ' · Partial coverage'}
           {coverage.delayed && ' · Includes delayed data'}

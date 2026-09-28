@@ -977,7 +977,7 @@ void test('Ecosystem overview keeps valuation estimates and their caveats inside
   assert.match(html, /Issuer overview/);
   assert.match(html, /<option value="value" selected="">Tracked value/);
   const headline = html.split('<details')[0];
-  assert.match(headline, /Tracked value · est./);
+  assert.match(headline, /Tracked value/);
   assert.match(headline, /\$1.5K/);
   assert.doesNotMatch(headline, /circulating market cap/);
   assert.doesNotMatch(html, /Stonkfun|Stock-linked ecosystem/);
@@ -986,7 +986,7 @@ void test('Ecosystem overview keeps valuation estimates and their caveats inside
   assert.doesNotMatch(html, /<details[^>]*\sopen(?:[ =>])/);
   assert.match(html, /<summary>Data details<\/summary>/);
   assert.match(html, /2 \/ 2 issuers/);
-  assert.match(html, /Tracked value · est./);
+  assert.match(html, /Tracked value/);
   assert.match(html, /Mixed supply bases/);
   assert.match(html, /Partial coverage/);
   assert.match(html, /Includes delayed data/);
