@@ -5404,12 +5404,17 @@ body:has(.community-entry) > footer {
 }
 
 /* Holder observations remain readable without forcing three columns on phones. */
-.holding-wallets-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 20px; }
+.holding-wallets-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; }
 .holding-wallets-grid > div { display: grid; gap: 6px; min-width: 0; }
+.holding-wallets-grid > div + div { border-left: 1px solid var(--border); padding-left: 24px; }
+.holding-wallets-grid > div:not(:last-child) { padding-right: 24px; }
+.holding-wallets-grid > div:only-child { grid-column: 1 / -1; }
 .holding-wallets-grid strong { font-size: clamp(1.5rem, 3vw, 2rem); font-variant-numeric: tabular-nums; }
 .holding-wallets-grid small { color: var(--muted-foreground); }
 @media (max-width: 600px) {
-  .holding-wallets-grid { gap: 16px; }
+  .holding-wallets-grid { grid-template-columns: 1fr; gap: 16px; }
+  .holding-wallets-grid > div:not(:last-child) { padding-right: 0; }
+  .holding-wallets-grid > div + div { border-left: 0; padding-left: 0; border-top: 1px solid var(--border); padding-top: 16px; }
   .holding-wallets-grid > div { grid-template-columns: 1fr auto; align-items: baseline; }
   .holding-wallets-grid strong { font-size: 1.35rem; text-align: right; }
   .holding-wallets-grid small { grid-column: 1 / -1; }
