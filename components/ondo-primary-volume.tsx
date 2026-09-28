@@ -33,10 +33,9 @@ export function OndoPrimaryVolume({
         UTC
       </time>{' '}
       <MetricInfo label="About Ondo mint and redeem volume">
-        Reported daily issuer trades, including the Jupiter-routed mint/redeem
-        path. Separate from the pool figures above; not added to their total.
-        Data arrives with a delay of at least 10 hours. This is not complete
-        secondary-market or prop AMM coverage.{' '}
+        Daily token creation and redemption trades, including those through Jupiter.
+        At least 10 hours behind. Separate from pool volume; not added to it.
+        Does not cover all trading between holders or private market makers.{' '}
         <a
           href="https://github.com/DefiLlama/dimension-adapters/blob/master/dexs/ondo-global-markets/index.ts"
           target="_blank"

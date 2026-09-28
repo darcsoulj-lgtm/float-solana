@@ -827,17 +827,17 @@ export function MarketOverviewPanel({
           <th aria-sort={sortable ? sortAria('symbol') : undefined}>{sortable ? sortHeader('symbol', 'Token / issuer') : 'Token / issuer'}</th>
           <th aria-sort={sortable ? sortAria('supply') : undefined}><span className="metric-label">
             {sortable ? sortHeader('supply', 'Supply') : 'Supply'}
-            <MetricInfo label="About token supply">xStocks shows tokens in circulation. Other issuers show all tokens minted on Solana, which can include issuer-held tokens.</MetricInfo>
+            <MetricInfo label="About token supply">xStocks: tokens in circulation. Others: all tokens created on Solana, including tokens the issuer still holds.</MetricInfo>
           </span></th>
           <th aria-sort={sortable ? sortAria('price') : undefined}>{sortable ? sortHeader('price', 'Token price') : 'Token price'}</th>
           <th aria-sort={sortable ? sortAria('change') : undefined}>{sortable ? sortHeader('change', '24h change') : '24h change'}</th>
           <th aria-sort={sortable ? sortAria('volume') : undefined}><span className="metric-label">
             {sortable ? sortHeader('volume', 'DEX volume · 24h') : 'DEX volume · 24h'}
-            <MetricInfo label="About DEX volume">{POOL_SCOPE} A blank value means we do not have data; it does not mean zero.</MetricInfo>
+            <MetricInfo label="About DEX volume">{POOL_SCOPE} A dash means missing data, not zero.</MetricInfo>
           </span></th>
           <th aria-sort={sortable ? sortAria('liquidity') : undefined}><span className="metric-label">
             {sortable ? sortHeader('liquidity', 'Pool liquidity') : 'Pool liquidity'}
-            <MetricInfo label="About pool liquidity">Money in the Solana pools we found. A shared pool can show under two tokens, so do not add token rows together.</MetricInfo>
+            <MetricInfo label="About pool liquidity">Value of tokens in the Solana pools we track. Shared pools can appear twice—do not add rows together.</MetricInfo>
           </span></th>
         </tr></thead>
         <tbody>{rows.map(renderTokenRow)}</tbody>

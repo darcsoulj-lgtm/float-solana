@@ -4,7 +4,7 @@ import type { Pool } from './market-data';
 // Bump whenever eligibility changes: old broad snapshots must never be reused.
 export const POOL_POLICY_VERSION = 'stonkfun-v2';
 export const POOL_SCOPE =
-  'Only reviewed Solana pools are counted. Each pool is counted once, so this is a partial view. Stonkfun volume is launch-token trading, not stock purchases.';
+  'Only checked Solana pools; each counted once. Some trades are missing. Stonkfun trades are launch tokens, not stocks.';
 
 export type StonkfunPoolIdentity = {
   address: string;

@@ -501,10 +501,10 @@ export function IssuerDashboardContent({
             Onchain value · est.{' '}
             <MetricInfo label="Onchain value source and coverage">
               {issuer === 'xstocks'
-                ? 'xStocks-reported tokens in circulation × its reference price. Issuer inventory is excluded.'
+                ? 'Circulating tokens × xStocks’ reference price. Excludes tokens held by the issuer.'
                 : issuer === 'ondo'
-                  ? 'Dated Ondo token prices × verified Solana mint supply. It can include issuer-held tokens and is not a market cap.'
-                  : 'Tokens minted on Solana × token price. It can include issuer-held tokens and is not a market cap.'}{' '}
+                  ? 'Saved Ondo price × tokens created on Solana. Includes issuer-held tokens; not market cap.'
+                  : 'Tokens created on Solana × token price. Includes issuer-held tokens; not market cap.'}{' '}
               Missing values are left out, not counted as zero.
             </MetricInfo>
           </span>
@@ -518,10 +518,7 @@ export function IssuerDashboardContent({
           <span>
             Tracked pool volume · 24h{' '}
             <MetricInfo label="Volume source and coverage">
-              {`${POOL_SCOPE} This only covers DEX Screener pools. It excludes Backpack, RFQ, direct issuer and other centralized trades.`}{' '}
-              {issuer === 'xstocks'
-                ? 'The xStocks API does not supply this volume figure.'
-                : ''}
+              {`${POOL_SCOPE} Source: DEX Screener. Excludes exchange trades and direct quotes or trades with issuers.`}{' '}
             </MetricInfo>
           </span>
           <strong>{dollars(dashboard.volume)}</strong>

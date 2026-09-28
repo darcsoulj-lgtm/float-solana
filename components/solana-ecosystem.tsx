@@ -51,7 +51,7 @@ const usd = (n: number | null) =>
 function poolTiming(oldest: number | null, newest: number | null) {
   if (!oldest || !newest) return 'No observations available.';
   const format = (value: number) => new Date(value).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-  return `Observed ${format(oldest)}${newest !== oldest ? ` – ${format(newest)}` : ''}. Volume combines 24-hour windows ending at those times; it is not a synchronized live total.`;
+  return `Observed ${format(oldest)}${newest !== oldest ? ` – ${format(newest)}` : ''}. Each volume covers the prior 24 hours. Update times differ; this is not a live total.`;
 }
 export function SolanaEcosystem({
   data,
@@ -135,7 +135,7 @@ export function SolanaEcosystem({
           <span className="metric-label">
             <span>Tracked value</span>
             <MetricInfo label="About tracked value">
-              An estimate for tracked tokens on Solana. Issuers count supply differently, so this is not a company market cap.
+              Estimated value of the Solana tokens we track. Supply rules vary by issuer. This is not the stock companies’ market cap.
             </MetricInfo>
           </span>
           <strong>{usd(coverage.total)}</strong>
@@ -156,7 +156,7 @@ export function SolanaEcosystem({
           <span className="metric-label">
             <span>Pool liquidity</span>
             <MetricInfo label="About market liquidity">
-              Money in the reviewed Solana pools we found. Each pool is counted once. {poolTiming(marketActivity.oldestAt, marketActivity.newestAt)}
+              Value of tokens in the Solana trading pools we track. Each pool counts once; some pools are missing. {poolTiming(marketActivity.oldestAt, marketActivity.newestAt)}
             </MetricInfo>
           </span>
           <strong>{usd(marketActivity.liquidity)}</strong>
@@ -236,14 +236,14 @@ export function SolanaEcosystem({
             <>
               Mixed supply bases{' '}
               <MetricInfo label="About issuer values">
-                Issuers count supply differently. These are estimates, not comparable market caps.
+                Supply rules vary by issuer, so these estimates are not directly comparable.
               </MetricInfo>
             </>
           ) : (
             <>
               Observed DEX pool coverage · partial{' '}
               <MetricInfo label="About issuer activity">
-                {POOL_SCOPE} A shared pool can appear for two issuers, so do not add issuer totals together. {poolTiming(marketActivity.oldestAt, marketActivity.newestAt)}
+                {POOL_SCOPE} Shared pools may appear under two issuers. Do not add these totals together. {poolTiming(marketActivity.oldestAt, marketActivity.newestAt)}
               </MetricInfo>
             </>
           )}

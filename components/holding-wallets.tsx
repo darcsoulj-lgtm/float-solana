@@ -47,7 +47,7 @@ export function HoldingWallets({ issuer }: { issuer?: IssuerId }) {
   const exactTime = (timestamp: number) => new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'UTC', timeZoneName: 'short' }).format(timestamp);
   return <section className="market-activity-panel holding-wallets-panel" aria-label="Holding wallets on Solana">
     <header><h3>Holding wallets · Solana</h3><MetricInfo label="How holding wallets are counted">
-      Each address with a positive token balance counts once per issuer, even if it holds several tokens. The same address can count for different issuers. Wallets are not people: one person may use several, and pools, exchanges and issuer wallets are included. Counts combine observations taken at different times. Daily checks replace these saved counts only when verification succeeds.
+      Wallets holding any tracked token, counted once per issuer. One wallet can count for several issuers. These are wallets, not people; exchange, pool and issuer wallets are included.
     </MetricInfo></header>
     <div className="holding-wallets-grid">
       {visible.map(row => <div key={row.issuer}>
@@ -63,7 +63,7 @@ export function HoldingWallets({ issuer }: { issuer?: IssuerId }) {
       <div className="holding-wallets-update-details">
         <p>Checked daily. If a check fails, the last verified count stays visible.</p>
         <dl>{visible.map(row => <div key={row.issuer}><dt>{issuerName(row.issuer as IssuerId)}</dt><dd><time dateTime={new Date(row.checkedAt).toISOString()}>{exactTime(row.checkedAt)}</time></dd></div>)}</dl>
-        {visible.length > 1 && <p>The summary uses the oldest update shown above.</p>}
+        {visible.length > 1 && <p>Issuers are checked at different times. The summary shows the oldest update.</p>}
       </div>
     </details>
   </section>;
