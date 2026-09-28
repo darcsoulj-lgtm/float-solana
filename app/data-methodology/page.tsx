@@ -44,7 +44,7 @@ export default function Page() {
     <section className="panel" id="sources"><h2>Sources</h2>
       <ul><li><a href="https://docs.backpack.exchange/">Backpack</a> — Backpack prices and price changes.</li><li><a href="https://coinmarketcap.com/">CoinMarketCap</a> — token prices.</li><li><a href="https://defillama.com/">DefiLlama</a> — price fallback and issuer data; <a href="https://api.llama.fi/protocol/ondo-global-markets">Ondo valuation feed</a>.</li><li><a href="https://dexscreener.com/">DEX Screener</a> — tracked pool prices, volume and liquidity.</li><li><a href="https://solana.com/docs/rpc">Solana RPC</a> — token supply and holding-wallet observations.</li><li><a href="https://github.com/DefiLlama/dimension-adapters/blob/master/dexs/ondo-global-markets/index.ts">Ondo trade calculation</a> — separate creation and redemption volume.</li></ul>
       <h3>Issuer references</h3><ul>{ISSUERS.map(i => <li key={i.id}><a href={i.url}>{i.name}</a> — issuer information and product terms.</li>)}</ul>
-      <p>Float does not import Token Terminal data or treat Backpack exchange TVL as proof of token backing. Token-specific source records remain on each token’s page.</p>
+      <p>Token-specific source records remain on each token’s page.</p>
     </section>
   </main>;
 }
