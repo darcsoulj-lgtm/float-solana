@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "chain": "solana",
+  "method": "positive-owner-union-v1",
+  "issuers": [
+    {
+      "issuer": "backpack",
+      "wallets": 201235,
+      "tokens": 65,
+      "registryHash": "b53e61ac81fd86903fd6539ed79038dc812c448f0c682545b9093734e05f2af6",
+      "startedAt": 1790591537762,
+      "checkedAt": 1790591700104
+    },
+    {
+      "issuer": "xstocks",
+      "wallets": 393235,
+      "tokens": 832,
+      "registryHash": "ed53549a447da10e40bc758b146ad541eb111ed2e8e56bfffc938fe261f2f533",
+      "startedAt": 1790591700117,
+      "checkedAt": 1790593594264
+    },
+    {
+      "issuer": "ondo",
+      "wallets": 14397,
+      "tokens": 438,
+      "registryHash": "0222f2476a1d7dbbd1d14ad6e0035b1503c0c541f89348e9c3f2c1c00fdaf352",
+      "startedAt": 1790593594281,
+      "checkedAt": 1790594590554
+    }
+  ]
+}
