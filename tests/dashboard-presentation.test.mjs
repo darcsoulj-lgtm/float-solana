@@ -6,6 +6,7 @@ import { createRequire } from 'node:module';
 import ts from 'typescript';
 import { bundle } from './helpers/bundle.mjs';
 const poolDisplay = await bundle("export {displayPoolActivity} from './lib/token-observation';");
+const holderHistory = await bundle("export * from './lib/holder-history';");
 const stockPools = await bundle("export * from './lib/stock-pools';");
 const marketBrowse = await bundle("export * from './lib/market-browse';");
 const communityTypes = await bundle("export * from './lib/community-types';");
@@ -28,7 +29,7 @@ async function component(file, overrides) {
   const compiledModule = { exports: {} };
   compileFunction(outputText, ['require', 'module', 'exports'])(
     (id) =>
-      (id === '@/components/site-link'
+      (id === '@/lib/holder-history' ? holderHistory : id === './holder-trend' ? {HolderTrend: Empty} : id === '@/components/site-link'
         ? {
             default: ({ children, ...props }) =>
               React.createElement('a', props, children),

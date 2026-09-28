@@ -4,6 +4,8 @@ import { ChevronDown } from 'lucide-react';
 import initial from '@/public/data/issuer-holders.json';
 import { parseHolderSnapshot, retainHolderSnapshot } from '@/lib/issuer-holders';
 import { issuerName, type IssuerId } from '@/lib/tokens';
+import { parseHolderHistory, type HolderPoint } from '@/lib/holder-history';
+import { HolderTrend } from './holder-trend';
 import { MetricInfo } from './metric-info';
 
 const subscribeClock = (notify: () => void) => {
@@ -16,6 +18,7 @@ const serverClock = () => null;
 
 export function HoldingWallets({ issuer }: { issuer?: IssuerId }) {
   const now = useSyncExternalStore(subscribeClock, readClock, serverClock);
+  const [history, setHistory] = useState<HolderPoint[]>([]);
   const [rows, setRows] = useState(() => parseHolderSnapshot(initial));
   useEffect(() => {
     const controller = new AbortController();
@@ -25,7 +28,10 @@ export function HoldingWallets({ issuer }: { issuer?: IssuerId }) {
         const response = await fetch('/api/issuer-holders', { cache: 'no-cache', signal: controller.signal });
         if (!response.ok) return;
         const value: unknown = await response.json();
-        if (!controller.signal.aborted) setRows(previous => retainHolderSnapshot(previous, value));
+        if (!controller.signal.aborted) {
+          setRows(previous => retainHolderSnapshot(previous, value));
+          if (value && typeof value === 'object' && 'history' in value) setHistory(parseHolderHistory(value.history));
+        }
       } catch { /* Keep the last verified snapshot and its original date. */ }
     }
     void load();
@@ -48,6 +54,7 @@ export function HoldingWallets({ issuer }: { issuer?: IssuerId }) {
         <span>{issuerName(row.issuer as IssuerId)}</span>
         <strong>{row.wallets.toLocaleString('en-US')}</strong>
         <small>{row.tokens.toLocaleString('en-US')} tracked tokens</small>
+        <HolderTrend history={history} row={row} />
         {now !== null && now - row.checkedAt > 48 * 3600000 && <small className="holding-wallets-stale">Update overdue</small>}
       </div>)}
     </div>

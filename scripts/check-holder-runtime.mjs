@@ -17,5 +17,7 @@ try{
  now+=3600001;response={version:1,chain:'solana',method:'positive-owner-union-v1',issuers:original.issuers.map(r=>({...r,wallets:999,startedAt:now-1000,checkedAt:now,registryHash:'0'.repeat(64)}))};
  await mf.dispatchFetch('https://test/run?now='+now);assert.equal((await read('/?now='+now)).issuers[0].wallets,123,'wrong registry cannot replace old values');
  now+=3600001;response={broken:true};assert.equal((await mf.dispatchFetch('https://test/run?now='+now)).status,503);assert.equal((await read('/?now='+now)).issuers[0].wallets,123);
+ const savedHistory = await db.prepare('SELECT payload FROM market_cache WHERE key=?').bind('issuer-holding-wallet-history:v1').first();
+ const history = JSON.parse(savedHistory.payload); assert.equal(history.length,3); assert.ok(history.every(p=>p.wallets===123),'failures must not add fabricated observations');
  console.log('PASS: real Worker + D1 publication, lease, failure retention, registry mismatch and malformed input');
 }finally{await mf.dispose();}

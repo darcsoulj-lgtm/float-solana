@@ -1,9 +1,15 @@
+import { appendHolderHistory, parseHolderHistory } from './holder-history';
 import initial from '../public/data/issuer-holders.json';
 import { parseHolderSnapshot, type HoldingWallets } from './issuer-holders';
 import { holderRegistry } from './issuer-holder-registry';
 import { backpackRegistry, registryTokens } from './backpack-registry';
 import type { MarketEnvironment } from './market-overview-server';
 export const HOLDER_CACHE_KEY = 'issuer-holding-wallets:v1';
+const HISTORY_KEY = 'issuer-holding-wallet-history:v1';
+export async function readHolderHistory(db: D1Database, now = Date.now()) {
+  const row = await db.prepare('SELECT payload FROM market_cache WHERE key=?').bind(HISTORY_KEY).first<{payload:string | null}>();
+  return row?.payload ? parseHolderHistory(JSON.parse(row.payload), now) : [];
+}
 const SNAPSHOT_URL = 'https://raw.githubusercontent.com/darcsoulj-lgtm/float-solana/holder-data/issuer-holders.json';
 export const holderDocument = (issuers: HoldingWallets[]) => ({version:1, chain:'solana', method:'positive-owner-union-v1', issuers});
 export async function readHoldingWallets(db: D1Database, now = Date.now()) {
@@ -41,6 +47,9 @@ export async function refreshHoldingWallets(env: MarketEnvironment, fetcher: typ
     const scope = expected.find(item => item.issuer === row.issuer)!;
     return row.checkedAt > old.checkedAt && row.registryHash === scope.registryHash && row.tokens === scope.mints.length ? row : old;
   });
+  const history = appendHolderHistory(await readHolderHistory(env.DB, now), merged, now);
+  await env.DB.prepare('INSERT INTO market_cache (key,payload,fetched_at,retry_after) VALUES (?,?,?,0) ON CONFLICT(key) DO UPDATE SET payload=excluded.payload,fetched_at=excluded.fetched_at')
+    .bind(HISTORY_KEY, JSON.stringify(history), now).run();
   if (!merged.some((row, i) => row !== previous[i])) return;
   // Only validated aggregate counts enter the public cache; no addresses.
   await env.DB.prepare('UPDATE market_cache SET payload=?,fetched_at=? WHERE key=? AND retry_after=?')
