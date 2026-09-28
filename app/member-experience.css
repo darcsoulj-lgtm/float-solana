@@ -839,3 +839,21 @@
   .ecosystem-overview .coverage-diagnostics { border: 0; margin: 0 0 16px; padding: 0; }
   .ecosystem-overview .coverage-diagnostics > summary { min-height: 44px; padding: 10px 0; font-size: 13px; font-weight: 400; color: var(--muted-foreground); }
 }
+
+/* A reserved icon column keeps every metric label and number aligned. */
+.ecosystem-overview .ecosystem-stats > div > .metric-label {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 28px;
+  align-items: start;
+  width: 100%;
+  gap: 6px;
+}
+.ecosystem-overview .ecosystem-stats .metric-label > .holdings-info-trigger {
+  grid-column: 2;
+  justify-self: end;
+  align-self: start;
+  margin: -4px 0 0;
+}
+@media (max-width: 700px) {
+  .ecosystem-overview .ecosystem-stats > div > span { min-height: 40px; }
+}
