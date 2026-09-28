@@ -875,7 +875,7 @@
   .holding-wallets-panel { margin-bottom: 16px; }
   .holding-wallets-panel > header { margin-bottom: 12px; }
   .holding-wallets-updates { margin-top: 12px; }
-  .market-overview .holdings-info-trigger { width: 44px; height: 44px; flex-shrink: 0; }
+  .ecosystem-overview .holdings-info-trigger, .holding-wallets-panel .holdings-info-trigger { width: 44px; height: 44px; flex-shrink: 0; }
   .ecosystem-overview .ecosystem-stats .metric-label > .holdings-info-trigger { margin: -12px -8px 0 0; }
   .holding-wallets-panel > header > .holdings-info-trigger { margin: -8px -8px -8px 0; }
   .market-search-row { gap: 8px; margin-bottom: 8px; }
