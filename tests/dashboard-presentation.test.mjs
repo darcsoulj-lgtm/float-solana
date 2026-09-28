@@ -1462,7 +1462,8 @@ void test('Holding wallets render exact counts, dated coverage and issuer-only s
   });
   const html = renderToStaticMarkup(React.createElement(HoldingWallets, { issuer: 'ondo' }));
   assert.match(html, /14,394/);
-  assert.match(html, /Last checked/);
+  assert.match(html, /<details class="holding-wallets-updates">/);
+  assert.match(html, /<time dateTime=/);
   assert.match(html, /tracked tokens/);
   assert.doesNotMatch(html, /201,275/);
   assert.equal(renderToStaticMarkup(React.createElement(HoldingWallets, { issuer: 'tessera' })), '');

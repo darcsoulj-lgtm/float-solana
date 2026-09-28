@@ -5412,8 +5412,21 @@ body:has(.community-entry) > footer {
   .holding-wallets-grid { gap: 16px; }
   .holding-wallets-grid > div { grid-template-columns: 1fr auto; align-items: baseline; }
   .holding-wallets-grid strong { font-size: 1.35rem; text-align: right; }
-  .holding-wallets-grid small:last-child { grid-column: 1 / -1; }
+  .holding-wallets-grid small { grid-column: 1 / -1; }
 }
 .holding-wallets-panel { margin-bottom: 20px; }
 .holding-wallets-panel > header { display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
 .holding-wallets-panel > header h3 { margin: 0; }
+
+.holding-wallets-updates { margin-top: 20px; color: var(--muted-foreground); font-size: .8125rem; }
+.holding-wallets-updates > summary { display: flex; align-items: center; gap: 8px; width: fit-content; min-height: 44px; cursor: pointer; list-style: none; }
+.holding-wallets-updates > summary::-webkit-details-marker { display: none; }
+.holding-wallets-updates > summary:hover { color: var(--foreground); }
+.holding-wallets-updates > summary:focus-visible { outline: 2px solid var(--foreground); outline-offset: 3px; border-radius: 4px; }
+.holding-wallets-updates[open] .holding-wallets-chevron { transform: rotate(180deg); }
+.holding-wallets-update-details { border-top: 1px solid var(--border); padding-top: 12px; }
+.holding-wallets-update-details p { margin: 0 0 10px; }
+.holding-wallets-update-details dl { margin: 0 0 10px; }
+.holding-wallets-update-details dl > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 20px; padding: 5px 0; }
+.holding-wallets-update-details dd { margin: 0; font-variant-numeric: tabular-nums; }
+.holding-wallets-grid .holding-wallets-stale { font-size: .75rem; }
