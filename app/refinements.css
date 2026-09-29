@@ -1228,7 +1228,7 @@ fieldset.holding-filter-chips {
   border-top: 0;
 }
 :is(.member-shell, .public-discussions) .thread-post.is-detail .thread-bottom {
-  margin-top: 24px;
+  margin-top: 20px;
 }
 :is(.member-shell, .public-discussions) .thread-reply-heading {
   padding: 8px 6px;
@@ -1249,7 +1249,8 @@ fieldset.holding-filter-chips {
   justify-content: flex-start;
   gap: 4px;
   margin-top: 18px;
-  padding-top: 10px;
+  padding-top: 0;
+  border-top: 0;
 }
 :is(.member-shell, .public-discussions) .thread-bottom button {
   padding-inline: 6px;
