@@ -20,7 +20,7 @@ export function InstallFloat() {
       <h2>Open in {device === 'ios' ? 'Safari' : 'your browser'} first</h2>
       <p>This in-app browser may not support installation.</p>
       <ol>
-        <li>Open this app’s <strong>⋯ menu</strong> and choose <strong>Open in browser</strong>, if available.</li>
+        <li>Open the browser menu and choose <strong>{device === 'ios' ? 'Open in Safari' : 'Open in browser'}</strong>, if available.</li>
         <li>Or copy the link and paste it into {device === 'ios' ? 'Safari' : 'Chrome'}.</li>
         <li>Choose <strong>Add to Home Screen</strong> on Float to continue.</li>
       </ol>
