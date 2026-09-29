@@ -1,0 +1,22 @@
+.install-page { max-width: 640px; }
+.install-guide { margin: 28px 0; padding: 24px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); }
+.install-guide h2 { font-size: 19px; margin: 0 0 12px; }
+.install-guide p { color: var(--muted-foreground); line-height: 1.6; }
+.install-guide ol { padding-left: 24px; line-height: 1.7; }
+.install-guide li { margin: 12px 0; }
+.install-steps { list-style: none; padding: 0 !important; }
+.install-steps li { display: flex; gap: 14px; align-items: flex-start; }
+.install-steps svg { flex: 0 0 22px; width: 22px; margin-top: 3px; color: var(--muted-foreground); }
+.install-note { font-size: 13px; }
+.install-success { display: flex; gap: 10px; align-items: center; }
+.profile-install { padding: 18px 0; }
+.profile-install:empty { display: none; }
+.profile-install a { text-underline-offset: 4px; text-decoration: underline; }
+.install-reminder { position: fixed; z-index: 40; bottom: calc(90px + env(safe-area-inset-bottom)); left: 16px; right: 16px; max-width: 400px; margin: auto; display: flex; gap: 12px; align-items: center; padding: 14px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); color: var(--foreground); box-shadow: 0 4px 20px #0002; }
+.install-reminder > div { display: grid; gap: 3px; flex: 1; }
+.install-reminder strong { font-size: 14px; font-weight: 550; }
+.install-reminder a { font-size: 13px; color: var(--primary); text-decoration: underline; text-underline-offset: 3px; }
+.install-reminder button { display: grid; place-items: center; min-width: 44px; min-height: 44px; background: transparent; border: 0; color: var(--muted-foreground); }
+body:has([role='dialog']) .install-reminder { display: none; }
+@media (display-mode: standalone) { .install-reminder { display: none; } }
+@media (max-width: 480px) { .install-guide { padding: 20px; } }

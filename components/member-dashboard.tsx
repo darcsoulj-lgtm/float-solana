@@ -1,4 +1,5 @@
 'use client';
+import { InstallEntry } from './install-experience';
 import { useCommunityFeed } from '@/hooks/use-community-feed';
 import { registryTokens } from '@/lib/token-registry';
 import { FloatLogo } from './float-logo';
@@ -838,6 +839,7 @@ export function MemberDashboard({
                   </div>
                   <ThemeToggle />
                 </section>
+                <div className="profile-install"><InstallEntry /></div>
                 <TranslationSettings />
                 <section className="profile-tier" aria-label="Holder tier">
                   <div className="profile-tier-heading">

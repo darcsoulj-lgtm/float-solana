@@ -29,7 +29,7 @@ async function component(file, overrides) {
   const compiledModule = { exports: {} };
   compileFunction(outputText, ['require', 'module', 'exports'])(
     (id) =>
-      (id === '@/lib/holder-history' ? holderHistory : id === './holder-trend' ? {HolderTrend: Empty} : id === '@/components/site-link'
+      (id === './install-experience' ? { InstallEntry: Empty } : id === '@/lib/holder-history' ? holderHistory : id === './holder-trend' ? {HolderTrend: Empty} : id === '@/components/site-link'
         ? {
             default: ({ children, ...props }) =>
               React.createElement('a', props, children),

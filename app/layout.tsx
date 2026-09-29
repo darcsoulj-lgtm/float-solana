@@ -6,6 +6,8 @@ import './backpack-theme.css';
 import './refinements.css';
 import './backpack-dashboard.css';
 import './member-experience.css';
+import './install-experience.css';
+import { InstallProvider, InstallEntry } from '@/components/install-experience';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { AgentTools } from '@/components/agent-tools';
 export const metadata: Metadata = {
@@ -59,6 +61,7 @@ export default function RootLayout({
         />
       </head>
       <body>
+        <InstallProvider>
         <AgentTools />
         <a className="skip" href="#main">
           Skip to content
@@ -70,7 +73,7 @@ export default function RootLayout({
           <nav aria-label="Main navigation">
             <Link href="/markets">Markets</Link>
             <Link href="/?view=home">Community</Link>
-            <Link href="/install">Install Float</Link>
+            <InstallEntry />
           </nav>
           <ThemeToggle />
         </header>
@@ -83,7 +86,7 @@ export default function RootLayout({
             <p>An independent community for Solana tokenized stock holders.</p>
           </div>
           <div className="footerlinks">
-            <Link href="/install">Install Float</Link>
+            <InstallEntry />
             <Link href="/about">About</Link>
             <Link href="/trust">Privacy</Link>
             <Link href="/methodology">Membership</Link>
@@ -96,6 +99,7 @@ export default function RootLayout({
             {new Date().getFullYear()} Float
           </p>
         </footer>
+              </InstallProvider>
       </body>
     </html>
   );
