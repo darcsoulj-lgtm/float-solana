@@ -122,7 +122,7 @@ export function retryLimitedMarketFetch(
     await db.prepare(
       'INSERT INTO market_cache (key,payload,fetched_at,retry_after) VALUES (?,NULL,0,?) ON CONFLICT(key) DO UPDATE SET retry_after=MAX(market_cache.retry_after,excluded.retry_after)',
     ).bind('provider-cooldown:dexscreener', Date.now() + delay).run();
-    if (retried || delay > 12000 || !response.headers.has('retry-after')) return response;
+    if (retried || delay > 20000 || !response.headers.has('retry-after')) return response;
     retried = true;
     await response.body?.cancel();
     await sleep(delay);
@@ -131,7 +131,9 @@ export function retryLimitedMarketFetch(
       .bind('provider-cooldown:dexscreener').first<{retry_after: number}>();
     // Another caller may have received a longer cooldown in the meantime.
     if (cooldown && cooldown.retry_after > Date.now()) throw error;
-    return fetcher(input, init);
+    // A retry is a new HTTP attempt with its own timeout. The original
+    // private-job deadline remains authoritative across both attempts.
+    return fetcher(input, { ...init, signal: AbortSignal.any([signal, AbortSignal.timeout(10000)]) });
   };
 }
 

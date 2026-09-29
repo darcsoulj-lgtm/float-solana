@@ -137,14 +137,14 @@ void test('short provider Retry-After permits one bounded retry and publishes co
   try {
     const wrapped=api.retryLimitedMarketFetch(d1,async()=>{
       calls++;
-      return calls===1 ? new Response('limited',{status:429,headers:{'Retry-After':'7'}}) : new Response('[]');
+      return calls===1 ? new Response('limited',{status:429,headers:{'Retry-After':'14'}}) : new Response('[]');
     },new AbortController().signal,async ms=>{
       slept=ms;
       assert.equal(raw.prepare('SELECT retry_after FROM market_cache WHERE key=?').get('provider-cooldown:dexscreener').retry_after,now+ms);
       now+=ms;
     });
     assert.equal((await wrapped('https://api.dexscreener.com/tokens/v1/solana/test')).status,200);
-    assert.equal(calls,2);assert.ok(slept>=8000&&slept<9000);
+    assert.equal(calls,2);assert.ok(slept>=15000&&slept<16000);
   } finally { Date.now=realNow;raw.close(); }
 });
 void test('long or absent retry hints never cause an in-job retry', async () => {
