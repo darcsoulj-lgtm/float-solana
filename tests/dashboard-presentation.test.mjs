@@ -1362,6 +1362,7 @@ async function renderCommunity(
     },
     './wallet-return': { WalletReturn: Empty },
     './public-discussions': { PublicDiscussions: Empty },
+    './landing-discussions': { LandingDiscussions: Empty },
     '@/lib/wallet-browser-link': { isMobileBrowser: () => false },
     './member-dashboard': {
       MemberDashboard: () => React.createElement('div', null, 'Member home'),

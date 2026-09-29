@@ -5,10 +5,7 @@ import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ArrowUpRight,
-  MessageSquare,
   ShieldCheck,
-  UsersRound,
-  ChartNoAxesColumn,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,6 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { WalletList } from './wallet-list';
 import { WalletReturn } from './wallet-return';
+import { LandingDiscussions } from './landing-discussions';
 import { PublicDiscussions } from './public-discussions';
 import { MemberDashboard } from './member-dashboard';
 import { api, ApiError } from '@/lib/client';
@@ -427,9 +425,9 @@ export function Community({ appHandoffId }: { appHandoffId?: string } = {}) {
             <div className="eyebrow">
               <span className="small-dot" /> FOR TOKENIZED STOCK HOLDERS ON SOLANA
             </div>
-            <h1>The community for people who hold tokenized stocks.</h1>
+            <h1>Where tokenized stock holders talk.</h1>
             <p>
-              Read conversations from tokenized stock holders. Verify your holdings privately to join in.
+              Read freely. Verify your holdings to post, reply, and vote.
             </p>
             <div className="hero-actions">
               <Link className="public-discussion-link" href="/?view=home">
@@ -451,23 +449,7 @@ export function Community({ appHandoffId }: { appHandoffId?: string } = {}) {
               </div>
             )}
           </section>
-          <section className="join-steps public-benefits" id="inside" aria-label="What Float offers">
-            <div>
-              <UsersRound aria-hidden="true" />
-              <h3>Verified holders</h3>
-              <p>Know you’re hearing from people who actually hold the asset.</p>
-            </div>
-            <div>
-              <MessageSquare aria-hidden="true" />
-              <h3>Share your view</h3>
-              <p>Post ideas, questions, polls, and market takes.</p>
-            </div>
-            <div>
-              <ChartNoAxesColumn aria-hidden="true" />
-              <h3>Holder insights</h3>
-              <p>See sentiment, conviction, and what holders are doing.</p>
-            </div>
-          </section>
+          <LandingDiscussions />
         </div>
       )}
       <Dialog
