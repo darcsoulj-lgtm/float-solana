@@ -86,7 +86,7 @@ export async function runPoolChunk(env: MarketEnvironment, mints: string[]): Pro
     const bounded: typeof fetch = (input, init) => fetch(input, {
       ...init, signal: AbortSignal.any([deadline, ...(init?.signal ? [init.signal] : [])]),
     });
-    return { data: await fetchPools(pacedMarketFetch(bounded, 1000), tokens, stocks, {
+    return { data: await fetchPools(pacedMarketFetch(retryLimitedMarketFetch(env.DB, bounded, deadline), 1000), tokens, stocks, {
       knownPools, detailMints: rotatingPoolMints(mints), isolateMissing: true,
     }) };
   } catch (error) {
@@ -102,6 +102,37 @@ export async function runPoolChunk(env: MarketEnvironment, mints: string[]): Pro
       ...(error instanceof SourceHttpError ? { status: error.status, retryAfterMs: error.retryAfterMs } : {}),
     } };
   }
+}
+
+// One retry per private chunk, only when the provider explicitly permits a
+// short retry within our deadline. Publish the cooldown before waiting so
+// other views/jobs do not keep requesting while this job backs off.
+export function retryLimitedMarketFetch(
+  db: D1Database, fetcher: typeof fetch, signal: AbortSignal,
+  sleep: (ms: number) => Promise<void> = ms => new Promise(resolve => setTimeout(resolve, ms)),
+): typeof fetch {
+  let retried = false;
+  return async (input, init) => {
+    const response = await fetcher(input, init);
+    const url = new URL(typeof input === 'string' ? input : input instanceof URL ? input.href : input.url);
+    if (url.hostname !== 'api.dexscreener.com' || response.status !== 429) return response;
+    const error = new SourceHttpError(url.hostname, response);
+    // Small positive jitter prevents retrying exactly on a reset boundary.
+    const delay = error.retryAfterMs + 1000 + Math.floor(Math.random() * 1000);
+    await db.prepare(
+      'INSERT INTO market_cache (key,payload,fetched_at,retry_after) VALUES (?,NULL,0,?) ON CONFLICT(key) DO UPDATE SET retry_after=MAX(market_cache.retry_after,excluded.retry_after)',
+    ).bind('provider-cooldown:dexscreener', Date.now() + delay).run();
+    if (retried || delay > 12000 || !response.headers.has('retry-after')) return response;
+    retried = true;
+    await response.body?.cancel();
+    await sleep(delay);
+    signal.throwIfAborted();
+    const cooldown = await db.prepare('SELECT retry_after FROM market_cache WHERE key=?')
+      .bind('provider-cooldown:dexscreener').first<{retry_after: number}>();
+    // Another caller may have received a longer cooldown in the meantime.
+    if (cooldown && cooldown.retry_after > Date.now()) throw error;
+    return fetcher(input, init);
+  };
 }
 
 // FIFO dispatch within a job; stops queued DEX calls immediately after a 429.

@@ -156,8 +156,8 @@ const routeBundle = await build({
             args.path === 'cloudflare:workers'
               ? 'export const waitUntil=()=>{}'
               : args.path.endsWith('/server')
-                ? 'export const db=()=>({prepare:()=>({bind:()=>({first:async()=>null})})});export const runtime=()=>({SOLANA_RPC_URL:"https://private.example/key"});export const rateLimit=async()=>{}'
-                : 'export const marketCacheRows=async()=>new Map();export const cachedMarket=async()=>{throw Error("unexpected synchronous refresh")};export const marketSnapshot=async(db,key)=>({data:key.includes("verified-listings")?(globalThis.__floatRegistryTestAdditions??[]):key.includes("catalog")?[]:{},fetchedAt:123,stale:false,error:null});',
+                ? 'export const db=()=>({prepare:()=>({bind:()=>({first:async()=>null})})});export const runtime=()=>({SOLANA_RPC_URL:"https://private.example/key",MARKET_SCHEDULED:"1"});export const rateLimit=async()=>{}'
+                : 'export const marketCacheRows=async()=>new Map();export const cachedMarket=async()=>{throw Error("unexpected synchronous refresh")};export const marketSnapshot=async(db,key,ttl,loader,defer,now,maxAge,row,refresh)=>{(globalThis.__floatSnapshotReads??=[]).push({key,refresh});return ({data:key.includes("verified-listings")?(globalThis.__floatRegistryTestAdditions??[]):key.includes("catalog")?[]:key.startsWith("dex-pools-")?{kind:"pool-observations-v1",data:{MU:[]},asOf:{MU:123}}:{},fetchedAt:123,stale:false,error:null});};',
           loader: 'js',
         }));
       },
@@ -169,6 +169,7 @@ const route = await import(
     Buffer.from(routeBundle.outputFiles[0].text).toString('base64')
 );
 void test('Public route works without a wallet and never exposes runtime credentials', async () => {
+  globalThis.__floatSnapshotReads=[];
   const response = await route.GET(
     new Request('https://example.com/api/backpack?batch=0'),
   );
@@ -191,6 +192,13 @@ void test('Public route works without a wallet and never exposes runtime credent
     ].sort(),
   );
   assert.equal(body.totalBatches, 5);
+  assert.equal(body.pools.asOf.MU,123);
+  assert.equal(body.pools.stale,true);
+  assert.deepEqual(body.pools.data.MU,[]);
+  const poolReads=globalThis.__floatSnapshotReads.filter(r=>r.key.startsWith('dex-pools-'));
+  assert.ok(poolReads.length>0);
+  assert.ok(poolReads.every(r=>r.refresh===false));
+  assert.ok(poolReads.every(r=>!r.key.includes('backpack-detail')));
   assert.ok(!JSON.stringify(body).includes('private.example'));
   assert.equal(response.headers.get('set-cookie'), null);
 });

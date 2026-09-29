@@ -41,10 +41,12 @@ export async function GET(req: Request) {
       120,
     );
     const database = db();
+    const scheduled = runtime().MARKET_SCHEDULED === '1';
     const registry = await backpackRegistry(
       database,
       waitUntil,
       runtime().SOLANA_RPC_URL,
+      fetch, Date.now(), scheduled,
     );
     const registryList = registryTokens(registry);
     const dashboardTokens = registryList.filter((t) => t.issuer === 'backpack');
@@ -57,8 +59,8 @@ export async function GET(req: Request) {
     const snapshot = <T>(key: string, ttl: number, loader: () => Promise<T>) =>
       marketSnapshot(database, key, ttl, loader, waitUntil, Date.now(), 300000);
     const suffix = TOKEN_REVIEW_DATE + ':' + (await tokenBatchKey(tokens));
-    const [pools, shared, catalog, backpack] = await Promise.all([
-      snapshot(
+    const [detailPools, shared, catalog, backpack] = await Promise.all([
+      scheduled ? Promise.resolve(null) : snapshot(
         `dex-pools-backpack-detail-${POOL_POLICY_VERSION}:` + suffix,
         240000,
         () => fetchBackpackPools(tokens, fetch, registryList),
@@ -68,12 +70,13 @@ export async function GET(req: Request) {
           ...(await readMarketBatch(database, canonical, {
             rpcUrl: runtime().SOLANA_RPC_URL,
             defer: waitUntil,
-            pools: false,
+            pools: scheduled,
+            cacheOnly: scheduled,
           })),
           catalog: emptySource([]),
           markets: emptySource({}),
         })),
-      ).then(mergeMarketPages),
+      ).then(pages => mergeMarketPages(pages, true)),
       batch === 0
         ? snapshot(
             'backpack-catalog-v2:' +
@@ -103,6 +106,8 @@ export async function GET(req: Request) {
           }),
     ]);
     const { prices, supplies, history } = shared;
+    // Scheduled production has one pool collector for all market views.
+    const pools = detailPools ?? shared.pools;
     const pending = [pools, prices, supplies, history, catalog, backpack].some(
       (s) => s && 'refreshing' in s && s.refreshing,
     );

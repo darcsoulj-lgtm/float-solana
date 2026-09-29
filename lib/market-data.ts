@@ -395,8 +395,10 @@ export class SourceHttpError extends Error {
           ? Date.parse(value) - Date.now()
           : 0;
     this.retryAfterMs = Math.max(
-      response.status === 429 ? 300000 : 30000,
-      Number.isFinite(delay) ? delay : 0,
+      1000,
+      Number.isFinite(delay) && delay > 0
+        ? delay
+        : response.status === 429 ? 300000 : 30000,
     );
   }
 }
@@ -425,7 +427,17 @@ export async function publicJson(
     redirect: 'manual',
   });
   // Keep status and host for production diagnosis; never log URLs, keys or bodies.
-  if (!r.ok) throw new SourceHttpError(u.hostname, r);
+  if (!r.ok) {
+    // Log only the endpoint family and response metadata, never token lists,
+    // credentials or provider bodies. This distinguishes endpoint throttling.
+    console.warn('Market provider HTTP failure', {
+      host: u.hostname, endpoint: u.pathname.split('/').slice(0, 3).join('/'),
+      status: r.status, retryAfter: r.headers.get('retry-after'),
+      contentType: r.headers.get('content-type'), server: r.headers.get('server'),
+      cacheStatus: r.headers.get('cf-cache-status'),
+    });
+    throw new SourceHttpError(u.hostname, r);
+  }
   return r.json();
 }
 

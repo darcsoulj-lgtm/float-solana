@@ -129,3 +129,40 @@ void test('extended pool lease prevents a second refresh while chunked collectio
   assert.equal(JSON.parse(raw.prepare('SELECT payload FROM market_cache WHERE key=?').get('dex-pools-lease:test').payload).MU[0].volume24h,100);
   raw.close();
 });
+
+void test('short provider Retry-After permits one bounded retry and publishes cooldown first', async () => {
+  const {raw,d1}=database();
+  const realNow=Date.now;let now=1000000;Date.now=()=>now;
+  let calls=0, slept=0;
+  try {
+    const wrapped=api.retryLimitedMarketFetch(d1,async()=>{
+      calls++;
+      return calls===1 ? new Response('limited',{status:429,headers:{'Retry-After':'7'}}) : new Response('[]');
+    },new AbortController().signal,async ms=>{
+      slept=ms;
+      assert.equal(raw.prepare('SELECT retry_after FROM market_cache WHERE key=?').get('provider-cooldown:dexscreener').retry_after,now+ms);
+      now+=ms;
+    });
+    assert.equal((await wrapped('https://api.dexscreener.com/tokens/v1/solana/test')).status,200);
+    assert.equal(calls,2);assert.ok(slept>=8000&&slept<9000);
+  } finally { Date.now=realNow;raw.close(); }
+});
+void test('long or absent retry hints never cause an in-job retry', async () => {
+  for(const headers of [{},{'Retry-After':'600'}]) {
+    const {raw,d1}=database();let calls=0;
+    const wrapped=api.retryLimitedMarketFetch(d1,async()=>{calls++;return new Response('',{status:429,headers});},new AbortController().signal,async()=>{throw Error('must not sleep');});
+    assert.equal((await wrapped('https://api.dexscreener.com/tokens/v1/solana/test')).status,429);
+    assert.equal(calls,1);raw.close();
+  }
+});
+void test('a repeated throttle stops after one retry and abort prevents retry', async () => {
+  for(const abort of [false,true]) {
+    const {raw,d1}=database();const realNow=Date.now;let now=1000000;Date.now=()=>now;
+    const controller=new AbortController();let calls=0;
+    try {
+      const wrapped=api.retryLimitedMarketFetch(d1,async()=>{calls++;return new Response('',{status:429,headers:{'Retry-After':'1'}});},controller.signal,async ms=>{now+=ms;if(abort)controller.abort();});
+      if(abort) {await assert.rejects(wrapped('https://api.dexscreener.com/tokens/v1/solana/test'));assert.equal(calls,1);}
+      else {assert.equal((await wrapped('https://api.dexscreener.com/tokens/v1/solana/test')).status,429);assert.equal(calls,2);}
+    } finally {Date.now=realNow;raw.close();}
+  }
+});
