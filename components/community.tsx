@@ -16,7 +16,6 @@ import {
 } from '@/components/ui/dialog';
 import { WalletList } from './wallet-list';
 import { WalletReturn } from './wallet-return';
-import { LandingDiscussions } from './landing-discussions';
 import { PublicDiscussions } from './public-discussions';
 import { MemberDashboard } from './member-dashboard';
 import { api, ApiError } from '@/lib/client';
@@ -449,7 +448,6 @@ export function Community({ appHandoffId }: { appHandoffId?: string } = {}) {
               </div>
             )}
           </section>
-          <LandingDiscussions />
         </div>
       )}
       <Dialog
