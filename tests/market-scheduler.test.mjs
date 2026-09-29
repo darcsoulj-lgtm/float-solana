@@ -89,7 +89,7 @@ void test('duplicate cron delivery does not duplicate jobs and a failed job does
   raw.close();
 });
 
-void test('90-token caches use bounded sequential chunks and publish only a complete result', async () => {
+void test('90-token caches preserve complete chunks and stop after a failed provider', async () => {
   const mints = Array.from({length:90}, (_,i)=>String(i));
   const calls = [];
   const data = await api.scheduledPools(mints, {async pools(chunk) {
@@ -100,10 +100,13 @@ void test('90-token caches use bounded sequential chunks and publish only a comp
   assert.equal(Object.keys(data).length,90);
   assert.deepEqual(calls.flat(),mints);
   let count=0;
-  await assert.rejects(api.scheduledPools(mints,{async pools() {
+  const partial=await api.scheduledPools(mints,{async pools() {
     count++;
     return count===1 ? {data:{MU:[]}} : {error:{message:'limited',status:429,retryAfterMs:600000}};
-  }}), error=>error instanceof api.SourceHttpError && error.status===429 && error.retryAfterMs===600000);
+  }});
+  assert.deepEqual(partial,{MU:[]});
+  await assert.rejects(api.scheduledPools(mints,{async pools(){return {error:{message:'limited',status:429,retryAfterMs:600000}};}}),
+    error=>error instanceof api.SourceHttpError && error.status===429);
   assert.equal(count,2, 'no later chunk after a failed provider');
 });
 void test('private pool jobs reject unknown, duplicate, or oversized mint lists', async () => {

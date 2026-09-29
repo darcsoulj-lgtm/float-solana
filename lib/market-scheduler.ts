@@ -1,3 +1,4 @@
+import { poolObservations, type SavedPools } from './pool-observations';
 import { refreshHoldingWallets } from './issuer-holders-server';
 import { backpackRegistry, registryTokens } from './backpack-registry';
 import { marketPartitions, readMarketGlobals, type MarketEnvironment } from './market-overview-server';
@@ -40,6 +41,12 @@ export async function scheduledPools(mints: string[], binding: Pick<MarketJobBin
   for (let offset = 0; offset < mints.length; offset += 30) {
     const result = await binding.pools(mints.slice(offset, offset + 30));
     if ('error' in result) {
+      // Earlier chunks are complete observations. Preserve their progress; the
+      // failed and unrequested chunks keep their old values and timestamps.
+      if (Object.keys(data).length) {
+        console.warn('Partial pool refresh', result.error.message);
+        return data;
+      }
       if (result.error.status) {
         throw new SourceHttpError('api.dexscreener.com', new Response(null, {
           status: result.error.status,
@@ -71,7 +78,7 @@ export async function runPoolChunk(env: MarketEnvironment, mints: string[]): Pro
       const key = `dex-pools-${POOL_POLICY_VERSION}:` + TOKEN_REVIEW_DATE + ':' + await tokenBatchKey(batch);
       const row = await env.DB.prepare('SELECT payload FROM market_cache WHERE key=?').bind(key).first<{payload: string | null}>();
       if (row?.payload) {
-        const prior = JSON.parse(row.payload) as Record<string, Pool[]>;
+        const prior = poolObservations(JSON.parse(row.payload) as SavedPools, null).data;
         for (const token of tokens) knownPools.push(...(prior[token.symbol] ?? []));
       }
     }
@@ -80,9 +87,14 @@ export async function runPoolChunk(env: MarketEnvironment, mints: string[]): Pro
       ...init, signal: AbortSignal.any([deadline, ...(init?.signal ? [init.signal] : [])]),
     });
     return { data: await fetchPools(pacedMarketFetch(bounded, 1000), tokens, stocks, {
-      knownPools, detailMints: rotatingPoolMints(mints),
+      knownPools, detailMints: rotatingPoolMints(mints), isolateMissing: true,
     }) };
   } catch (error) {
+    if (error instanceof SourceHttpError && error.status === 429) {
+      await env.DB.prepare(
+        'INSERT INTO market_cache (key,payload,fetched_at,retry_after) VALUES (?,NULL,0,?) ON CONFLICT(key) DO UPDATE SET retry_after=MAX(market_cache.retry_after,excluded.retry_after)',
+      ).bind('provider-cooldown:dexscreener', Date.now() + error.retryAfterMs).run();
+    }
     // RPC exceptions lose custom properties. Preserve 429/Retry-After explicitly
     // so the canonical cache can apply its shared provider cooldown.
     return { error: {

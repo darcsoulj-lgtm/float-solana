@@ -498,7 +498,7 @@ export async function fetchPools(
   fetcher: typeof fetch = fetch,
   tokens: readonly StockToken[] = TOKENS,
   verifiedStocks: readonly StockToken[] = TOKENS,
-  refresh?: { knownPools: readonly Pool[]; detailMints: readonly string[] },
+  refresh?: { knownPools: readonly Pool[]; detailMints: readonly string[]; isolateMissing?: boolean },
 ) {
   const official = await stonkfunPoolRegistry(fetcher, verifiedStocks);
   const batches = [];
@@ -519,6 +519,7 @@ export async function fetchPools(
     throw new Error('Invalid pool response');
   const exact = await exactStonkfunPairs(fetcher, tokens, official);
   const known: unknown[] = [];
+  const missingAddresses = new Set<string>();
   if (refresh) {
     const addresses = [...new Set(refresh.knownPools.map(p => p.address))];
     for (let i = 0; i < addresses.length; i += 30) {
@@ -529,8 +530,9 @@ export async function fetchPools(
       // An omitted known pool is not evidence of zero trading. Retain the
       // previous batch and timestamp instead of publishing a smaller fresh sum.
       const returned = new Set(raw.pairs.map(p => record(p).pairAddress));
-      if (addresses.slice(i, i + 30).some(address => !returned.has(address)))
-        throw Error('Known pool refresh incomplete');
+      for (const address of addresses.slice(i, i + 30)) {
+        if (!returned.has(address)) missingAddresses.add(address);
+      }
       known.push(...raw.pairs);
     }
   }
@@ -555,6 +557,14 @@ export async function fetchPools(
     discovered[symbol] = [...byAddress.values()].sort(
       (a, b) => (b.liquidity ?? -1) - (a.liquidity ?? -1),
     );
+  }
+  const returned = new Set(Object.values(discovered).flat().map(pool => pool.address));
+  const missing = (refresh?.knownPools ?? []).filter(pool => missingAddresses.has(pool.address) && !returned.has(pool.address));
+  if (missing.length && (!refresh?.isolateMissing || missing.some(pool => !pool.baseMint || !pool.quoteMint)))
+    throw Error('Known pool refresh incomplete');
+  for (const token of tokens) {
+    if (missing.some(pool => pool.baseMint === token.mint || pool.quoteMint === token.mint))
+      delete discovered[token.symbol];
   }
   return discovered;
 }

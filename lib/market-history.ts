@@ -65,8 +65,15 @@ export function completeMarketActivity(
     } catch {
       return null;
     }
+    const perToken = payload.kind === 'pool-observations-v1';
+    const values = perToken ? payload.data as Record<string, unknown> : payload;
+    const times = perToken ? payload.asOf as Record<string, unknown> : null;
+    if (!values || typeof values !== 'object' || (perToken && (!times || typeof times !== 'object'))) return null;
     for (const symbol of batch.symbols) {
-      const found = payload[symbol];
+      const timestamp = perToken ? times?.[symbol] : row.fetched_at;
+      if (typeof timestamp !== 'number' || !Number.isSafeInteger(timestamp) || timestamp <= 0 || timestamp > now || now - timestamp >= 300000) return null;
+      observed.push(timestamp);
+      const found = values[symbol];
       if (!Array.isArray(found)) return null;
       for (const entry of found) {
         if (
@@ -80,7 +87,7 @@ export function completeMarketActivity(
         pools.push(entry as Pool);
       }
     }
-    observed.push(row.fetched_at);
+
   }
   // A market-wide observation is one coherent window, not old and new
   // batches stitched together after a partial provider outage.

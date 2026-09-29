@@ -1,3 +1,4 @@
+import { poolObservations, mergePoolObservations, poolSource, type SavedPools } from './pool-observations';
 import { POOL_POLICY_VERSION } from './stock-pools';
 import { cachedMarket, marketSnapshot, marketCacheRows, type CacheRow } from './market-cache';
 import { tokenBatchKey } from './backpack-registry';
@@ -103,9 +104,12 @@ export async function readMarketBatch(
         ),
     options.pools === false
       ? emptySource({})
-      : read(poolPrefix, options.poolRefreshMs ?? POOL_REFRESH_MS, () =>
-          options.poolLoader?.() ?? fetchPools(options.fetcher ?? fetch, tokens, options.verifiedStocks),
-        ),
+      : read<SavedPools>(poolPrefix, options.poolRefreshMs ?? POOL_REFRESH_MS, async () => {
+          const row = saved.get(poolPrefix + key);
+          const previous = poolObservations(row?.payload ? JSON.parse(row.payload) as SavedPools : null, row?.fetched_at ?? null);
+          const fresh = await (options.poolLoader?.() ?? fetchPools(options.fetcher ?? fetch, tokens, options.verifiedStocks));
+          return mergePoolObservations(previous, fresh, Date.now());
+        }),
   ]);
-  return { prices, supplies, history, pools };
+  return { prices, supplies, history, pools: poolSource(pools) };
 }

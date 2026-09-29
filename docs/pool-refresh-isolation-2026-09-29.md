@@ -1,0 +1,7 @@
+# Pool refresh isolation — 2026-09-29
+
+Incident: NOK was verified in the live registry but had an old empty pool snapshot. Other Backpack pools had observations from September 26. A production cache read confirmed provider cooldowns. A bounded local refresh of the first 30 verified tokens reproduced `Known pool refresh incomplete` despite successful HTTP responses.
+
+Repair: pool cache payloads now carry per-token observation timestamps with backward-compatible reads of legacy payloads. A known pool missing from all fresh responses prevents renewal only of its participating stock tokens. Their previous complete observations are retained. Unrelated successful tokens get fresh values and timestamps. Successful earlier chunks survive a later chunk failure; collection stops on failure, and a 429 persists a provider-wide cooldown even when earlier results are retained. No missing pool is assumed to have zero activity. Unknown legacy pool identities still fail closed. Historical aggregate readers reject mixed stale/current observations.
+
+Validation: strict types, lint, full test suite and build; regression cases cover failed-token retention, observed empty success, timestamp preservation, no-data rejection, legacy reads, and chunk failure. A local live-provider replay is separate from deployment/cron evidence. Remaining limitations: provider venue coverage, rate-limits, missing-pool resolution, and complete freshness across issuers still require production verification. No claims of total Solana DEX coverage.
