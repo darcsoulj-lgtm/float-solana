@@ -384,7 +384,7 @@ export function parseBook(
 export class SourceHttpError extends Error {
   retryAfterMs: number;
   status: number;
-  constructor(host: string, response: Response) {
+  constructor(host: string, response: Response, providerCode?: string | null) {
     super(`Source unavailable: ${host} HTTP ${response.status}`);
     this.status = response.status;
     const value = response.headers.get('retry-after');
@@ -395,7 +395,7 @@ export class SourceHttpError extends Error {
           ? Date.parse(value) - Date.now()
           : 0;
     this.retryAfterMs = Math.max(
-      1000,
+      providerCode === '1015' ? 15 * 60000 : 1000,
       Number.isFinite(delay) && delay > 0
         ? delay
         : response.status === 429 ? 300000 : 30000,
@@ -422,21 +422,32 @@ export async function publicJson(
   )
     throw new Error('Unsupported data source');
   const r = await fetcher(u, {
-    headers: { Accept: 'application/json' },
+    headers: { Accept: 'application/json', 'User-Agent': 'FloatMarketData/1.0 (+https://joinfloat.xyz)' },
     signal: AbortSignal.timeout(10000),
     redirect: 'manual',
   });
   // Keep status and host for production diagnosis; never log URLs, keys or bodies.
   if (!r.ok) {
+    // Consume at most one error chunk; retain classifications, never body text.
+    let providerCode: string | null = null;
+    const reader = r.body?.getReader();
+    try {
+      const chunk = await reader?.read();
+      const prefix = new TextDecoder().decode(chunk?.value?.slice(0, 256));
+      providerCode = /error code:\s*(\d{4})/i.exec(prefix)?.[1] ?? null;
+    } catch { /* Response metadata is still sufficient for a failure. */ }
+    finally { await reader?.cancel().catch(() => {}); }
     // Log only the endpoint family and response metadata, never token lists,
     // credentials or provider bodies. This distinguishes endpoint throttling.
     console.warn('Market provider HTTP failure', {
       host: u.hostname, endpoint: u.pathname.split('/').slice(0, 3).join('/'),
       status: r.status, retryAfter: r.headers.get('retry-after'),
       contentType: r.headers.get('content-type'), server: r.headers.get('server'),
-      cacheStatus: r.headers.get('cf-cache-status'),
+      cacheStatus: r.headers.get('cf-cache-status'), providerCode,
+      requestId: r.headers.get('cf-ray'), rateLimit: r.headers.get('ratelimit'),
+      rateLimitPolicy: r.headers.get('ratelimit-policy'),
     });
-    throw new SourceHttpError(u.hostname, r);
+    throw new SourceHttpError(u.hostname, r, providerCode);
   }
   return r.json();
 }

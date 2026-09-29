@@ -1971,3 +1971,15 @@ void test('September 13 listings match the full enabled registry and verified fi
     false,
   );
 });
+
+void test('public market fetch identifies Float and keeps upstream bodies out of diagnostics', async () => {
+  const oldWarn=console.warn;const logs=[];console.warn=(...args)=>logs.push(args);
+  try {
+    await assert.rejects(publicJson('https://api.dexscreener.com/tokens/v1/solana/test',async(url,init)=>{
+      assert.equal(init.headers['User-Agent'],'FloatMarketData/1.0 (+https://joinfloat.xyz)');
+      return new Response('error code: 1015 private-untrusted-body',{status:429,headers:{'Retry-After':'60'}});
+    }),error=>error.message==='Source unavailable: api.dexscreener.com HTTP 429' && error.retryAfterMs===900000);
+    assert.equal(logs[0][1].providerCode,'1015');
+    assert.ok(!JSON.stringify(logs).includes('private-untrusted-body'));
+  } finally {console.warn=oldWarn;}
+});
