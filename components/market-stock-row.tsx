@@ -26,7 +26,7 @@ export function MarketStockRow({
   const logo = logoSrc !== undefined ? (
     <span className="stock-row-logo" aria-hidden="true">
       <span>{symbol.slice(0, 1)}</span>
-      {logoSrc && <Image unoptimized src={logoSrc} alt="" width={32} height={32} loading="lazy" decoding="async" onError={(event) => { event.currentTarget.style.display = 'none'; }} />}
+      {logoSrc && <Image unoptimized src={logoSrc} alt="" width={24} height={24} loading="lazy" decoding="async" onError={(event) => { event.currentTarget.style.display = 'none'; }} />}
     </span>
   ) : null;
   return (
@@ -47,8 +47,10 @@ export function MarketStockRow({
             aria-label={`View ${symbol} market`}
           >
             {logo}
-            <strong>{symbol}</strong>
-            <span title={name}>{name}</span>
+            <span className="stock-row-identity">
+              <strong className="stock-row-name" title={name}>{name}</strong>
+              <span className="stock-row-symbol">{symbol}</span>
+            </span>
             {held && <small>Held</small>}
           </a>
         ) : (
@@ -66,8 +68,10 @@ export function MarketStockRow({
             }}
           >
             {logo}
-            <strong>{symbol}</strong>
-            <span title={name}>{name}</span>
+            <span className="stock-row-identity">
+              <strong className="stock-row-name" title={name}>{name}</strong>
+              <span className="stock-row-symbol">{symbol}</span>
+            </span>
             {held && <small>Held</small>}
           </button>
         )}

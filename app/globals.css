@@ -5492,11 +5492,23 @@ body:has(.community-entry) > footer {
 }
 
 /* Locally bundled company artwork; missing assets retain the same geometry. */
-.market-table .stock-row-trigger.has-logo { position: relative; padding-left: 44px; }
+.market-table .stock-row-trigger.has-logo { position: relative; padding-left: 34px; }
 .market-table .stock-row-trigger > .stock-row-logo {
   position: absolute; left: 0; top: 50%; transform: translateY(-50%);
-  width: 32px; height: 32px; border-radius: 50%; overflow: hidden;
+  width: 24px; height: 24px; border-radius: 50%; overflow: hidden;
   display: grid; place-items: center; background: var(--hp-bg-f2f2f2, #f2f2f2);
   color: var(--hp-ink-6f6f6f, #6f6f6f); font-size: 13px; font-weight: 600;
 }
-.stock-row-logo img { position: absolute; inset: 0; width: 32px; height: 32px; object-fit: contain; background: white; }
+.stock-row-logo img { position: absolute; inset: 0; width: 24px; height: 24px; object-fit: contain; background: white; }
+
+.market-table .stock-row-trigger { align-content: center; }
+.market-table .stock-row-trigger > .stock-row-identity {
+  display: flex; align-items: baseline; gap: 7px; min-width: 0;
+  max-width: 280px; width: 100%; white-space: nowrap;
+}
+.market-table .stock-row-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.market-table .stock-row-symbol { flex-shrink: 0; font-size: 12px; font-weight: 400; color: var(--hp-ink-6f6f6f, #6f6f6f); }
+@media (max-width: 700px) {
+  .market-table .stock-row-trigger > .stock-row-identity { max-width: none; }
+  .market-table .stock-row-name { font-size: 14px; }
+}
