@@ -422,11 +422,11 @@ export function Community({ appHandoffId }: { appHandoffId?: string } = {}) {
         <div className="club public-club">
           <section className="public-hero">
             <div className="eyebrow">
-              <span className="small-dot" /> FOR TOKENIZED STOCK HOLDERS ON SOLANA
+              <span className="small-dot" /> FOR BACKPACK TOKENIZED STOCK HOLDERS
             </div>
             <h1>Where tokenized stock holders talk.</h1>
             <p>
-              Read freely. Verify your holdings to post, reply, and vote.
+              Share ideas. Ask questions. Talk with other holders. Read freely; verify a supported holding to join in.
             </p>
             <div className="hero-actions">
               <Link className="public-discussion-link" href="/?view=home">

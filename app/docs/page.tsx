@@ -52,9 +52,9 @@ export default function Page() {
           headlines.
         </p>
         <p>
-          Your portfolio is on Home. Markets shows Solana-wide metrics. Use My
-          holdings to narrow the token table. Issuer cards filter the table;
-          overall market totals stay Solana-wide.
+          Your portfolio is on Home. Markets focuses on Backpack tokenized stocks.
+          Search for a stock or filter by asset type. Totals cover the tracked
+          Backpack tokens; coverage and update times are explained in Data & methodology.
         </p>
       </section>
       <section className="panel">

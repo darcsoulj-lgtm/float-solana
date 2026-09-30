@@ -450,8 +450,8 @@ export function issuerValuation(
 // A sum of the displayed issuer estimates, NOT a circulating-market-cap series.
 // Preserve each issuer's basis and never replace xStocks net circulation with
 // gross inventory. Consumers must display partial coverage and mixed bases.
-export function trackedValuation(data: MarketOverview | null, now: number) {
-  const issuers = ISSUERS.map((issuer) => ({
+export function trackedValuation(data: MarketOverview | null, now: number, scope?: IssuerId) {
+  const issuers = ISSUERS.filter((issuer) => !scope || issuer.id === scope).map((issuer) => ({
     ...issuer,
     ...issuerValuation(data, now, issuer.id),
   }));

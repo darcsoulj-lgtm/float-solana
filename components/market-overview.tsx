@@ -58,6 +58,7 @@ export function MarketOverviewPanel({
   hidePortfolio = false,
   assetSymbol,
   initialToken,
+  issuerScope,
 }: {
   holdings: string[];
   positions?: Holding[];
@@ -65,6 +66,7 @@ export function MarketOverviewPanel({
   onIssuer?: (issuer: IssuerId) => void;
   assetSymbol?: string;
   initialToken?: string;
+  issuerScope?: IssuerId;
 }) {
   const [onlyHoldings, setOnlyHoldings] = useState(false),
     [query, setQuery] = useState(''),
@@ -79,7 +81,7 @@ export function MarketOverviewPanel({
   const [selection, setSelected] = useState(initialToken || holdings[0] || 'MU'),
     [copied, setCopied] = useState(false);
   const { data, error, busy } = useMarketOverview(holdings, 0);
-  const tokens = marketTokens(data);
+  const tokens = marketTokens(data).filter((token) => !issuerScope || token.issuer === issuerScope);
   const knownFunds = fundUnderlyings(tokens);
   const [bookData, setBook] = useState<SourceResult<Book> | null>(null),
     [bookMessage, setBookReason] = useState('Loading order book…'),
@@ -121,7 +123,7 @@ export function MarketOverviewPanel({
     (t) =>
       (!assetSymbol || t.underlyingSymbol.toLowerCase() === assetSymbol.toLowerCase()) &&
       (!onlyHoldings || holdings.includes(t.symbol)) &&
-      (!issuers.length || issuers.includes(t.issuer)) &&
+      (issuerScope || !issuers.length || issuers.includes(t.issuer)) &&
       matchesAssetFilter(t, asset, knownFunds) &&
       (t.symbol + ' ' + t.underlyingSymbol + ' ' + t.name)
         .toLowerCase()
@@ -827,9 +829,9 @@ export function MarketOverviewPanel({
           <th aria-sort={sortable ? sortAria('symbol') : undefined}>{sortable ? sortHeader('symbol', 'Token / issuer') : 'Token / issuer'}</th>
           <th aria-sort={sortable ? sortAria('supply') : undefined}><span className="metric-label">
             {sortable ? sortHeader('supply', 'Supply') : 'Supply'}
-            <MetricInfo label="About token supply" learnMore="/data-methodology#prices">xStocks: tokens in circulation. Others: all tokens created on Solana, including tokens the issuer still holds.</MetricInfo>
+            <MetricInfo label="About token supply" learnMore="/data-methodology#prices">{issuerScope ? 'Minted Backpack tokens, including tokens the issuer still holds.' : 'xStocks: tokens in circulation. Others: all tokens created on Solana, including tokens the issuer still holds.'}</MetricInfo>
           </span></th>
-          <th aria-sort={sortable ? sortAria('price') : undefined}>{sortable ? sortHeader('price', 'Token price') : 'Token price'}</th>
+          <th aria-sort={sortable ? sortAria('price') : undefined}><span className="metric-label">{sortable ? sortHeader('price', 'Token price') : 'Token price'}<MetricInfo label="About displayed price" learnMore="/data-methodology#prices">Backpack stock reference or an available token-price source. Not a guaranteed trade price; check the source on the token page.</MetricInfo></span></th>
           <th aria-sort={sortable ? sortAria('change') : undefined}>{sortable ? sortHeader('change', '24h change') : '24h change'}</th>
           <th aria-sort={sortable ? sortAria('volume') : undefined}><span className="metric-label">
             {sortable ? sortHeader('volume', 'DEX volume · 24h') : 'DEX volume · 24h'}
@@ -837,7 +839,7 @@ export function MarketOverviewPanel({
           </span></th>
           <th aria-sort={sortable ? sortAria('liquidity') : undefined}><span className="metric-label">
             {sortable ? sortHeader('liquidity', 'Pool liquidity') : 'Pool liquidity'}
-            <MetricInfo label="About pool liquidity" learnMore="/data-methodology#pools">Value of tokens in the Solana pools we track. Shared pools can appear twice—do not add rows together.</MetricInfo>
+            <MetricInfo label="About pool liquidity" learnMore="/data-methodology#pools">Value held in tracked pools. Shared pools can appear in more than one row; do not add rows together.</MetricInfo>
           </span></th>
         </tr></thead>
         <tbody>{rows.map(renderTokenRow)}</tbody>
@@ -853,7 +855,7 @@ export function MarketOverviewPanel({
           <>
             <header className="market-asset-page-heading">
               <div>
-                <span className="market-kicker">Solana markets</span>
+                <span className="market-kicker">{issuerScope ? `${issuerName(issuerScope)} markets` : 'Solana markets'}</span>
                 <h1>{company.shortName}</h1>
                 <p>{company.underlyingSymbol} · {matches.length} {matches.length === 1 ? 'issuer token' : 'issuer tokens'}</p>
               </div>
@@ -873,7 +875,7 @@ export function MarketOverviewPanel({
         ) : (
           <section className="market-asset-missing">
             <h1>Asset not found</h1>
-            <p>This asset is not in Float’s tracked Solana markets.</p>
+            <p>This asset is not in the current Markets coverage.</p>
           </section>
         )}
       </div>
@@ -882,7 +884,7 @@ export function MarketOverviewPanel({
   return (
     <div className="market-overview">
       {!hidePortfolio && (
-        <PortfolioSummary positions={positions} data={data} now={now} />
+        <PortfolioSummary positions={positions.filter((position) => tokens.some((token) => token.symbol === position.symbol))} data={data} now={now} />
       )}
       {error && (
         <div className="error" role="alert">
@@ -891,6 +893,7 @@ export function MarketOverviewPanel({
         </div>
       )}
       <SolanaEcosystem
+        issuerScope={issuerScope}
         data={data}
         now={now}
         hasSavedFigures={[...observations.values()].some((row) => row.priceDelayed || row.lastPrice != null || row.lastPoolVolume24h != null || row.lastPoolLiquidity != null || row.lastSupply != null)}
@@ -900,7 +903,7 @@ export function MarketOverviewPanel({
           if (selectedToken) window.location.assign(marketAssetPath(selectedToken.underlyingSymbol, symbol));
         }}
       />
-      <HoldingWallets />
+      <HoldingWallets issuer={issuerScope} />
       <div className="market-search-row">
         <label htmlFor="market-search">
           Search markets
@@ -962,6 +965,7 @@ export function MarketOverviewPanel({
         </div>
       </div>
       <MarketBrowseFilters
+        hideIssuerFilter={!!issuerScope}
         issuers={issuers}
         onIssuers={(ids) => {
           setIssuers(ids);
@@ -981,7 +985,7 @@ export function MarketOverviewPanel({
           <button type="button" aria-pressed={listingView === 'tokens'} onClick={() => { setListingView('tokens'); setPage(0); setDetailOpen(false); }}>Tokens</button>
           <button type="button" aria-pressed={listingView === 'companies'} onClick={() => { setListingView('companies'); setPage(0); setDetailOpen(false); }}>By company</button>
         </fieldset>
-        <span>{issuers.length ? issuers.map(issuerName).join(', ') : 'All issuers'}</span>
+        <span>{issuerScope ? issuerName(issuerScope) : issuers.length ? issuers.map(issuerName).join(', ') : 'All issuers'}</span>
       </div>
       {listingView === 'tokens' ? renderTokenTable(pageTokens, true) : (
         <div className="market-company-list" aria-label="Companies and their issuer tokens">

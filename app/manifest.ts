@@ -2,9 +2,9 @@ import type { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Float — Solana tokenized stocks',
+    name: 'Float — Backpack tokenized stocks',
     short_name: 'Float',
-    description: 'Markets and community for Solana tokenized stock holders.',
+    description: 'Ideas, discussions and markets for Backpack tokenized stock holders.',
     start_url: '/',
     scope: '/',
     display: 'standalone',

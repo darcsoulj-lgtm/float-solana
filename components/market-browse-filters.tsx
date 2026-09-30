@@ -13,7 +13,9 @@ export function MarketBrowseFilters({
   onIssuers,
   asset,
   onAsset,
+  hideIssuerFilter = false,
 }: {
+  hideIssuerFilter?: boolean;
   issuers: IssuerId[];
   onIssuers: (ids: IssuerId[]) => void;
   asset: AssetFilter;
@@ -41,7 +43,7 @@ export function MarketBrowseFilters({
         ))}
       </div>
       <div className="market-issuer-selection">
-        <Popover>
+        {!hideIssuerFilter && <Popover>
           <PopoverTrigger className="market-filter-trigger">
             {issuers.length ? `Issuers · ${issuers.length}` : 'All issuers'} ▾
           </PopoverTrigger>
@@ -67,8 +69,8 @@ export function MarketBrowseFilters({
               Clear selection
             </button>
           </PopoverContent>
-        </Popover>
-        {ISSUERS.filter((item) => issuers.includes(item.id)).map((item) => (
+        </Popover>}
+        {!hideIssuerFilter && ISSUERS.filter((item) => issuers.includes(item.id)).map((item) => (
           <button
             className="market-selected-issuer"
             key={item.id}
@@ -79,7 +81,7 @@ export function MarketBrowseFilters({
             {item.name} ×
           </button>
         ))}
-        {(issuers.length > 0 || asset !== 'all') && (
+        {((!hideIssuerFilter && issuers.length > 0) || asset !== 'all') && (
           <button
             type="button"
             className="market-clear-filters"

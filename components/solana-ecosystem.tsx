@@ -5,7 +5,7 @@ import { MetricInfo } from './metric-info';
 import { OndoPrimaryVolume } from './ondo-primary-volume';
 import { marketTokens } from '@/lib/market-data';
 import { ArrowUpRight, ChevronDown } from 'lucide-react';
-import { ISSUERS, type IssuerId } from '@/lib/tokens';
+import { ISSUERS, issuerName, type IssuerId } from '@/lib/tokens';
 import { displayPoolActivity, trackedValuation } from '@/lib/token-observation';
 import type { MarketOverview } from '@/lib/market-data';
 import { useId, useState, useSyncExternalStore } from 'react';
@@ -59,19 +59,22 @@ export function SolanaEcosystem({
   onIssuer,
   select,
   hasSavedFigures = false,
+  issuerScope,
 }: {
   data: MarketOverview | null;
   now: number;
   onIssuer: (id: IssuerId | 'all') => void;
   select: (symbol: string) => void;
   hasSavedFigures?: boolean;
+  issuerScope?: IssuerId;
 }) {
   const [comparisonOpen, setComparisonOpen] = useState(false);
   const comparisonId = useId();
   const activityMetric = useSyncExternalStore(subscribeMetric, readMetric, defaultMetric);
-  const tokens = marketTokens(data);
-  const coverage = trackedValuation(data, now);
-  const issuerActivity = ISSUERS.map((issuer) => {
+  const tokens = marketTokens(data).filter((token) => !issuerScope || token.issuer === issuerScope);
+  const visibleIssuers = ISSUERS.filter((issuer) => !issuerScope || issuer.id === issuerScope);
+  const coverage = trackedValuation(data, now, issuerScope);
+  const issuerActivity = visibleIssuers.map((issuer) => {
     const issuerTokens = tokens.filter((token) => token.issuer === issuer.id);
     const dashboard = displayPoolActivity(data, issuerTokens.map((token) => token.symbol), now);
     return {
@@ -125,29 +128,29 @@ export function SolanaEcosystem({
   return (
     <section
       className="ecosystem-overview"
-      aria-label="Tokenized stocks on Solana"
+      aria-label={issuerScope ? `${issuerName(issuerScope)} tokenized stocks` : 'Tokenized stocks on Solana'}
       >
       <div className="ecosystem-heading">
-        <h2>Tokenized assets on Solana</h2>
+        <h2>{issuerScope ? `${issuerName(issuerScope)} tokenized stocks` : 'Tokenized assets on Solana'}</h2>
       </div>
       <div className="ecosystem-stats">
         <div>
           <span className="metric-label">
             <span>Tracked value</span>
             <MetricInfo label="About tracked value" learnMore="/data-methodology#value">
-              Estimated value of the Solana tokens we track. Supply rules vary by issuer. This is not the stock companies’ market cap.
+              {issuerScope ? 'Estimated price × minted Backpack tokens, including issuer holdings. Not the companies’ market cap.' : 'Estimated value of the Solana tokens we track. Supply rules vary by issuer. This is not the stock companies’ market cap.'}
             </MetricInfo>
           </span>
           <strong>{usd(coverage.total)}</strong>
           <small>
-            {coverage.partial ? 'Partial coverage' : `${coverage.issuerCount}/${ISSUERS.length} issuers`}
+            {coverage.partial ? 'Partial coverage' : issuerScope ? 'Minted token value' : `${coverage.issuerCount}/${ISSUERS.length} issuers`}
           </small>
         </div>
         <div>
           <span className="metric-label">
             <span>Tracked pool volume · 24h</span>
             <MetricInfo label="About market volume" learnMore="/data-methodology#pools">
-              Trading in tracked Solana pools over 24 hours. Some trades are missing; update times differ.
+              Trading in the pools we track over 24 hours. Coverage is partial; update times differ.
             </MetricInfo>
           </span>
           <strong>{usd(marketActivity.volume24h)}</strong>
@@ -174,6 +177,7 @@ export function SolanaEcosystem({
       </div>
 
 
+      {!issuerScope && <>
       <button className="mobile-issuer-toggle" type="button" aria-expanded={comparisonOpen} aria-controls={comparisonId} onClick={() => setComparisonOpen(open => !open)}>
         Compare issuers <ChevronDown size={16} aria-hidden="true" />
       </button>
@@ -273,13 +277,14 @@ export function SolanaEcosystem({
           </details>
         )}
       </section>
+      </>}
       <details className="market-methodology coverage-diagnostics">
         <summary>Current coverage</summary>
         <p>{poolTiming(marketActivity.oldestAt, marketActivity.newestAt)}</p>
         {(hasSavedFigures || marketActivity.saved || coverage.delayed) && <p>Some figures use saved data. <Link href="/data-methodology#updates">Update rules →</Link></p>}
         <p>
           <strong>Tracked value: {usd(coverage.total)}</strong> ·{' '}
-          {coverage.issuerCount} / {ISSUERS.length} issuers
+          {issuerScope ? `${coverage.valued.length} / ${tokens.length} tokens valued` : `${coverage.issuerCount} / ${visibleIssuers.length} issuers`}
           {coverage.partial && ' · Partial coverage'}
           {coverage.delayed && ' · Includes delayed data'}
           {coverage.mixedBases && ' · Mixed supply bases'}

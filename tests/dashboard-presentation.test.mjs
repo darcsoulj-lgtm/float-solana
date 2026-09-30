@@ -1470,3 +1470,18 @@ void test('Holding wallets render exact counts, dated coverage and issuer-only s
   assert.doesNotMatch(html, /201,275/);
   assert.equal(renderToStaticMarkup(React.createElement(HoldingWallets, { issuer: 'tessera' })), '');
 });
+
+void test('Backpack scope excludes other issuer rows even when a filter callback requests them', async () => {
+  const f = await marketFixture({ issuerScope: 'backpack' });
+  let tree = f.render();
+  assert.match(renderToStaticMarkup(tree), /Micron/);
+  assert.doesNotMatch(renderToStaticMarkup(tree), /Alphabet/);
+  const filters = findElement(tree, e => e.props?.hideIssuerFilter === true);
+  assert.ok(filters);
+  filters.props.onIssuers(['ondo']);
+  tree = f.render();
+  assert.match(renderToStaticMarkup(tree), /Micron/);
+  assert.doesNotMatch(renderToStaticMarkup(tree), /Alphabet/);
+  assert.ok(findElement(tree, e => e.props?.issuerScope === 'backpack'));
+  assert.ok(findElement(tree, e => e.props?.issuer === 'backpack'));
+});

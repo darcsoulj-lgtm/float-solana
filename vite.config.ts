@@ -3,6 +3,7 @@ import tailwindcss from '@tailwindcss/postcss';
 import vinext from 'vinext';
 import { defineConfig } from 'vite';
 import hostingConfig from './.openai/hosting.json';
+import { localMarketPreview } from './scripts/local-market-preview.mjs';
 import { retainClientAssets } from './scripts/retain-client-assets.mjs';
 
 const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
@@ -47,10 +48,12 @@ export default defineConfig(async () => {
 
   return {
     css: { postcss: { plugins: [tailwindcss()] } },
-    server: isCodexSeatbeltSandbox
-      ? { watch: { useFsEvents: false, usePolling: true } }
-      : undefined,
+    server: {
+      host: '127.0.0.1',
+      ...(isCodexSeatbeltSandbox ? { watch: { useFsEvents: false, usePolling: true } } : {}),
+    },
     plugins: [
+      ...(process.env.FLOAT_LOCAL_PREVIEW === '1' ? [localMarketPreview()] : []),
       vinext(),
       sites(),
       retainClientAssets(),

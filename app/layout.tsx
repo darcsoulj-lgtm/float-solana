@@ -12,7 +12,7 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { AgentTools } from '@/components/agent-tools';
 export const metadata: Metadata = {
   title: {
-    default: 'Float — For Solana tokenized stock holders',
+    default: 'Float — For Backpack tokenized stock holders',
     template: '%s | Float',
   },
   icons: {
@@ -26,25 +26,25 @@ export const metadata: Metadata = {
     statusBarStyle: 'default',
   },
   openGraph: {
-    title: 'Float — For Solana tokenized stock holders',
+    title: 'Float — For Backpack tokenized stock holders',
     siteName: 'Float',
     description:
-      'Public discussions from verified Solana tokenized stock holders. Read freely; verify holdings to join in.',
+      'Ideas, discussions and market data for Backpack tokenized stock holders. Read freely; verify a supported holding to join in.',
     images: [{
       url: 'https://joinfloat.xyz/og.png',
       width: 1734,
       height: 907,
-      alt: 'Float — A community for tokenized stock holders. Built on Solana.',
+      alt: 'Float — Ideas and discussions for Backpack tokenized stock holders.',
     }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Float — For Solana tokenized stock holders',
-    description: 'Public discussions from verified Solana tokenized stock holders. Read freely; verify holdings to join in.',
+    title: 'Float — For Backpack tokenized stock holders',
+    description: 'Ideas, discussions and market data for Backpack tokenized stock holders. Read freely; verify a supported holding to join in.',
     images: ['https://joinfloat.xyz/og.png'],
   },
   description:
-    'Public discussions from verified Solana tokenized stock holders. Read freely; verify holdings to join in.',
+    'Ideas, discussions and market data for Backpack tokenized stock holders. Read freely; verify a supported holding to join in.',
 };
 export default function RootLayout({
   children,
@@ -83,7 +83,7 @@ export default function RootLayout({
             <Link className="footer-brand" href="/">
               <FloatLogo small />
             </Link>
-            <p>An independent community for Solana tokenized stock holders.</p>
+            <p>An independent community for Backpack tokenized stock holders.</p>
           </div>
           <div className="footerlinks">
             <InstallEntry />

@@ -45,9 +45,9 @@ export function HoldingWallets({ issuer }: { issuer?: IssuerId }) {
   const age = now === null ? null : Math.max(0, now - oldest);
   const relative = age === null ? 'Update details' : age < 3600000 ? 'Updated within the hour' : age < 86400000 ? `Updated ${Math.floor(age / 3600000)}h ago` : `Updated ${Math.floor(age / 86400000)}d ago`;
   const exactTime = (timestamp: number) => new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'UTC', timeZoneName: 'short' }).format(timestamp);
-  return <section className="market-activity-panel holding-wallets-panel" aria-label="Holding wallets on Solana">
-    <header><h3>Holding wallets · Solana</h3><MetricInfo label="How holding wallets are counted" learnMore="/data-methodology#wallets">
-      Wallets with tracked tokens, counted once per issuer—not people. Includes exchange, pool and issuer wallets.
+  return <section className="market-activity-panel holding-wallets-panel" aria-label="Holding wallets">
+    <header><h3>Holding wallets</h3><MetricInfo label="How holding wallets are counted" learnMore="/data-methodology#wallets">
+      {issuer ? 'Each wallet holding a tracked Backpack token counts once. Wallets are not people; exchange and pool wallets are included.' : 'Wallets with tracked tokens, counted once per issuer. Includes exchange, pool and issuer wallets.'}
     </MetricInfo></header>
     <div className="holding-wallets-grid">
       {visible.map(row => <div key={row.issuer}>
@@ -61,7 +61,7 @@ export function HoldingWallets({ issuer }: { issuer?: IssuerId }) {
     <details className="holding-wallets-updates">
       <summary>{relative}<ChevronDown className="holding-wallets-chevron" size={14} aria-hidden="true" /></summary>
       <div className="holding-wallets-update-details">
-        <p>Checked daily. If a check fails, the last verified count stays visible.</p>
+        <p>Checked daily. If a check fails, the last successful count stays visible.</p>
         <dl>{visible.map(row => <div key={row.issuer}><dt>{issuerName(row.issuer as IssuerId)}</dt><dd><time dateTime={new Date(row.checkedAt).toISOString()}>{exactTime(row.checkedAt)}</time></dd></div>)}</dl>
         {visible.length > 1 && <p>Issuers are checked at different times. The summary shows the oldest update.</p>}
       </div>

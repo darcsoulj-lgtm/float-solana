@@ -6,6 +6,7 @@ export default function Page() {
       <h1>Membership</h1>
       <section className="panel">
         <h2>Eligibility</h2>
+        <p>Float focuses on Backpack tokenized stocks. Existing supported holdings from other issuers still qualify for community access.</p>
         <p>
           Anyone can read discussions. To post, reply or vote, hold any of the
           {TOKENS.length} supported stock or ETF tokens in a Solana wallet you
