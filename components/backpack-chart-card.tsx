@@ -21,7 +21,7 @@ export function BackpackChartCard({ chart, period, error }: { chart?: BackpackCh
       <svg viewBox="0 0 600 200" preserveAspectRatio="none" aria-label={`${period}-day ${chart.symbol} hourly stock reference prices from Backpack. Range ${priceLabel(low)} to ${priceLabel(high)}. Gaps have no completed trading bars.`}>
         {[10, 100, 190].map(v => <line key={v} x1="0" x2="600" y1={v} y2={v} stroke="currentColor" opacity=".1" vectorEffect="non-scaling-stroke" />)}
         <path d={path} fill="none" stroke="#cc354b" strokeWidth="2" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
-        {points.map(([time, price]) => <circle key={time} cx={x(time)} cy={y(price)} r="1.3" fill="#cc354b"><title>{date(time)} {new Date(time).toISOString().slice(11, 16)} UTC: {priceLabel(price)}</title></circle>)}
+        {points.map(([time, price]) => <circle key={time} cx={x(time)} cy={y(price)} r="1.3" fill="#cc354b"><title>{`${date(time)} ${new Date(time).toISOString().slice(11, 16)} UTC: ${priceLabel(price)}`}</title></circle>)}
       </svg>
       <div className="stock-chart-prices" aria-hidden="true">{[top, (top + bottom) / 2, bottom].map((value, i) => <span key={i}>{priceLabel(value)}</span>)}</div>
     </div>

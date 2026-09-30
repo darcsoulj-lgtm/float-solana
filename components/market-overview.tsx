@@ -244,8 +244,9 @@ export function MarketOverviewPanel({
     a.versions[0].shortName.localeCompare(b.versions[0].shortName, undefined, { numeric: true }) ||
     a.key.localeCompare(b.key),
   );
-  const pageSize = listingView === 'tokens' ? 20 : 10;
-  const resultCount = listingView === 'tokens' ? sortedMatches.length : groups.length;
+  const showTokens = Boolean(issuerScope) || listingView === 'tokens';
+  const pageSize = showTokens ? 20 : 10;
+  const resultCount = showTokens ? sortedMatches.length : groups.length;
   const maxPage = Math.max(0, Math.ceil(resultCount / pageSize) - 1),
     currentPage = Math.min(page, maxPage),
     pageTokens = sortedMatches.slice(currentPage * pageSize, currentPage * pageSize + pageSize),
@@ -934,7 +935,7 @@ export function MarketOverviewPanel({
               My holdings
             </label>
           )}
-          {listingView === 'tokens' && <label className="market-sort-select">
+          {showTokens && <label className="market-sort-select">
             Sort by
             <select
               value={sort.key + ':' + sort.direction}
@@ -979,15 +980,15 @@ export function MarketOverviewPanel({
           setDetailOpen(false);
         }}
       />
-      <div className="market-results-heading">
+      {!issuerScope && <div className="market-results-heading">
         <fieldset className="market-view-switch">
           <legend className="sr-only">Browse markets by</legend>
           <button type="button" aria-pressed={listingView === 'tokens'} onClick={() => { setListingView('tokens'); setPage(0); setDetailOpen(false); }}>Tokens</button>
           <button type="button" aria-pressed={listingView === 'companies'} onClick={() => { setListingView('companies'); setPage(0); setDetailOpen(false); }}>By company</button>
         </fieldset>
         {!issuerScope && <span>{issuers.length ? issuers.map(issuerName).join(', ') : 'All issuers'}</span>}
-      </div>
-      {listingView === 'tokens' ? renderTokenTable(pageTokens, true) : (
+      </div>}
+      {showTokens ? renderTokenTable(pageTokens, true) : (
         <div className="market-company-list" aria-label="Companies and their issuer tokens">
           {pageGroups.map((group) => {
             const name = tokens.find((t) => t.underlyingSymbol === group.key)?.shortName ?? group.versions[0].shortName;
@@ -1001,7 +1002,7 @@ export function MarketOverviewPanel({
                 >
                   <span className="market-asset-identity"><strong>{name}</strong><small>{group.key}</small></span>
                   <span className="market-asset-issuers">{!issuerScope && labels.join(' · ')}</span>
-                  <span className="market-asset-action">{issuerScope ? 'View stock' : `${group.versions.length} ${group.versions.length === 1 ? 'token' : 'tokens'}`} <span aria-hidden="true">→</span></span>
+                  <span className="market-asset-action">{`${group.versions.length} ${group.versions.length === 1 ? 'token' : 'tokens'}`} <span aria-hidden="true">→</span></span>
                 </Link>
               </section>
             );
@@ -1019,7 +1020,7 @@ export function MarketOverviewPanel({
         <div>
           <Button
             variant="ghost"
-            aria-label={`Previous ${listingView === 'tokens' ? 'tokens' : 'companies'}`}
+            aria-label={`Previous ${showTokens ? 'tokens' : 'companies'}`}
             disabled={currentPage === 0}
             onClick={() => setPage(currentPage - 1)}
           >
@@ -1030,7 +1031,7 @@ export function MarketOverviewPanel({
           </span>
           <Button
             variant="ghost"
-            aria-label={`Next ${listingView === 'tokens' ? 'tokens' : 'companies'}`}
+            aria-label={`Next ${showTokens ? 'tokens' : 'companies'}`}
             disabled={currentPage === maxPage}
             onClick={() => setPage(currentPage + 1)}
           >

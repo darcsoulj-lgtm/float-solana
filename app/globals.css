@@ -5475,7 +5475,7 @@ body:has(.community-entry) > footer {
 @media(max-width:640px){.discussion-attachment .sp-attachment,.portfolio-attachment{padding:14px;}.attachment-controls{flex-direction:column;}}
 
 /* Discussion charts support the conversation without dominating the feed. */
-.discussion-chart-attachment { width: 100%; max-width: 640px; }
+.discussion-attachment { width: 100%; max-width: 640px; min-width: 0; }
 .stock-chart-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
 .stock-chart-heading > div { min-width: 0; }
 .stock-chart-heading strong { font-size: 15px; line-height: 1.4; }

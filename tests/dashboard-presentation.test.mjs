@@ -248,7 +248,7 @@ void test('Appearance offers direct Light selection, persists it, and synchroniz
       },
     },
   };
-  globalThis.localStorage = { setItem: (key, value) => saved.set(key, value) };
+  globalThis.localStorage = { getItem: key => saved.get(key) ?? null, setItem: (key, value) => saved.set(key, value) };
   globalThis.window = {
     matchMedia: () => ({
       matches: true,
@@ -283,7 +283,21 @@ void test('Appearance offers direct Light selection, persists it, and synchroniz
     assert.equal(dark, false);
     tree.props.onValueChange([]);
     assert.equal(document.documentElement.dataset.theme, 'light');
+    // Browser Back can restore an older DOM while storage has the newer choice.
+    document.documentElement.dataset.theme = 'dark';
+    dark = true;
+    callbacks.get('pageshow')();
+    assert.equal(document.documentElement.dataset.theme, 'light');
+    assert.equal(dark, false);
+    saved.set('hp-theme', 'dark');
+    callbacks.get('storage')({ key: 'hp-theme' });
+    assert.equal(dark, true);
+    saved.delete('hp-theme');
+    callbacks.get('storage')({ key: null });
+    assert.equal(document.documentElement.dataset.theme, 'system');
+    assert.equal(dark, true);
     cleanup();
+    assert.equal(callbacks.size, 0);
   } finally {
     Object.assign(globalThis, prior);
   }

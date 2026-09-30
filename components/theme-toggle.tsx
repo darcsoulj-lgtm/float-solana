@@ -12,22 +12,36 @@ export function ThemeToggle() {
   const [theme, setTheme] = useState<Theme>('system');
   useEffect(() => {
     const media = window.matchMedia('(prefers-color-scheme: dark)');
-    const read = () => {
-      const value = document.documentElement.dataset.theme;
+    const read = (restoreSaved = false) => {
+      let value = document.documentElement.dataset.theme;
+      if (restoreSaved) {
+        try { value = localStorage.getItem('hp-theme') || 'system'; }
+        catch { /* Retain the current preference when storage is unavailable. */ }
+      }
       const current: Theme =
         value === 'light' || value === 'dark' ? value : 'system';
+      document.documentElement.dataset.theme = current;
       setTheme(current);
       document.documentElement.classList.toggle(
         'dark',
         current === 'dark' || (current === 'system' && media.matches),
       );
     };
-    read();
-    window.addEventListener('hp-theme', read);
-    media.addEventListener('change', read);
+    const restore = () => read(true);
+    const changed = () => read();
+    const storage = (event: StorageEvent) => {
+      if (event.key === 'hp-theme' || event.key === null) restore();
+    };
+    restore();
+    window.addEventListener('hp-theme', changed);
+    window.addEventListener('pageshow', restore);
+    window.addEventListener('storage', storage);
+    media.addEventListener('change', changed);
     return () => {
-      window.removeEventListener('hp-theme', read);
-      media.removeEventListener('change', read);
+      window.removeEventListener('hp-theme', changed);
+      window.removeEventListener('pageshow', restore);
+      window.removeEventListener('storage', storage);
+      media.removeEventListener('change', changed);
     };
   }, []);
   return (
