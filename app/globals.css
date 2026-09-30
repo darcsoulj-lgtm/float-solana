@@ -5473,3 +5473,20 @@ body:has(.community-entry) > footer {
 .attachment-consent input {width:18px;height:18px;flex-shrink:0;margin-top:2px;}
 .attachment-composer button:disabled {opacity:.5;cursor:default;}
 @media(max-width:640px){.discussion-attachment .sp-attachment,.portfolio-attachment{padding:14px;}.attachment-controls{flex-direction:column;}}
+
+/* Discussion charts support the conversation without dominating the feed. */
+.discussion-chart-attachment { width: 100%; max-width: 640px; }
+.stock-chart-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.stock-chart-heading > div { min-width: 0; }
+.stock-chart-heading strong { font-size: 15px; line-height: 1.4; }
+.stock-chart-symbol { display: block; margin-top: 3px; font-size: 12px; color: var(--muted-foreground); }
+.stock-chart-heading .stock-chart-price { font-size: 22px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.stock-chart-card .stock-chart-caption { margin: 10px 0 14px; color: var(--muted-foreground); font-size: 12px; line-height: 1.5; }
+.stock-chart-plot { display: grid; grid-template-columns: minmax(0, 1fr) max-content; gap: 10px; height: 200px; }
+.stock-chart-plot svg { display: block; width: 100%; height: 100%; min-width: 0; }
+.stock-chart-prices { display: flex; flex-direction: column; justify-content: space-between; padding: 4px 0; font-size: 11px; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
+.stock-chart-dates { display: flex; justify-content: space-between; margin-top: 8px; font-size: 11px; color: var(--muted-foreground); }
+@media (max-width: 640px) {
+  .stock-chart-plot { height: 170px; gap: 6px; }
+  .stock-chart-heading .stock-chart-price { font-size: 20px; }
+}

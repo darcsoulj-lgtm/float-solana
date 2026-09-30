@@ -765,7 +765,7 @@ export function MarketOverviewPanel({
       <Fragment key={t.symbol}>
         <MarketStockRow
           symbol={t.symbol}
-          name={`${t.shortName} · ${issuerName(t.issuer)}`}
+          name={issuerScope ? t.shortName : `${t.shortName} · ${issuerName(t.issuer)}`}
           selected={isSelected}
           held={holdings.includes(t.symbol)}
           mobileMarket={
@@ -824,9 +824,9 @@ export function MarketOverviewPanel({
   const renderTokenTable = (rows: StockToken[], sortable: boolean) => (
     <div className="market-table-scroll market-token-table-wrap">
       <table className={`market-table market-discovery-table market-token-table${sortable && sort.key === 'supply' ? ' market-supply-sorted' : ''}`}>
-        <caption className="sr-only">{sortable ? 'Sortable issuer tokens' : 'Issuer tokens for this company'}</caption>
+        <caption className="sr-only">{issuerScope ? 'Stock tokens' : sortable ? 'Sortable issuer tokens' : 'Issuer tokens for this company'}</caption>
         <thead><tr>
-          <th aria-sort={sortable ? sortAria('symbol') : undefined}>{sortable ? sortHeader('symbol', 'Token / issuer') : 'Token / issuer'}</th>
+          <th aria-sort={sortable ? sortAria('symbol') : undefined}>{sortable ? sortHeader('symbol', issuerScope ? 'Token' : 'Token / issuer') : issuerScope ? 'Token' : 'Token / issuer'}</th>
           <th aria-sort={sortable ? sortAria('supply') : undefined}><span className="metric-label">
             {sortable ? sortHeader('supply', 'Supply') : 'Supply'}
             <MetricInfo label="About token supply" learnMore="/data-methodology#prices">{issuerScope ? 'Minted Backpack tokens, including tokens the issuer still holds.' : 'xStocks: tokens in circulation. Others: all tokens created on Solana, including tokens the issuer still holds.'}</MetricInfo>
@@ -857,12 +857,12 @@ export function MarketOverviewPanel({
               <div>
                 <span className="market-kicker">{issuerScope ? `${issuerName(issuerScope)} markets` : 'Solana markets'}</span>
                 <h1>{company.shortName}</h1>
-                <p>{company.underlyingSymbol} · {matches.length} {matches.length === 1 ? 'issuer token' : 'issuer tokens'}</p>
+                <p>{company.underlyingSymbol}{!issuerScope && <> · {matches.length} {matches.length === 1 ? 'issuer token' : 'issuer tokens'}</>}</p>
               </div>
             </header>
             {error && <div className="error" role="alert">{error}</div>}
-            <section className="market-asset-versions" aria-label="Issuer tokens">
-              <h2>Issuer tokens</h2>
+            <section className="market-asset-versions" aria-label={issuerScope ? "Stock details" : "Issuer tokens"}>
+              {!issuerScope && <h2>Issuer tokens</h2>}
               {renderTokenTable(matches, false)}
             </section>
             {stockDetail}
@@ -870,7 +870,7 @@ export function MarketOverviewPanel({
         ) : !data || busy ? (
           <section className="market-asset-missing" aria-live="polite">
             <h1>Loading market</h1>
-            <p>Finding verified issuer tokens…</p>
+            <p>Loading stock details…</p>
           </section>
         ) : (
           <section className="market-asset-missing">
@@ -985,7 +985,7 @@ export function MarketOverviewPanel({
           <button type="button" aria-pressed={listingView === 'tokens'} onClick={() => { setListingView('tokens'); setPage(0); setDetailOpen(false); }}>Tokens</button>
           <button type="button" aria-pressed={listingView === 'companies'} onClick={() => { setListingView('companies'); setPage(0); setDetailOpen(false); }}>By company</button>
         </fieldset>
-        <span>{issuerScope ? issuerName(issuerScope) : issuers.length ? issuers.map(issuerName).join(', ') : 'All issuers'}</span>
+        {!issuerScope && <span>{issuers.length ? issuers.map(issuerName).join(', ') : 'All issuers'}</span>}
       </div>
       {listingView === 'tokens' ? renderTokenTable(pageTokens, true) : (
         <div className="market-company-list" aria-label="Companies and their issuer tokens">
@@ -1000,8 +1000,8 @@ export function MarketOverviewPanel({
                   aria-label={`View ${name} and ${group.versions.length} ${group.versions.length === 1 ? 'token' : 'tokens'}`}
                 >
                   <span className="market-asset-identity"><strong>{name}</strong><small>{group.key}</small></span>
-                  <span className="market-asset-issuers">{labels.join(' · ')}</span>
-                  <span className="market-asset-action">{group.versions.length} {group.versions.length === 1 ? 'token' : 'tokens'} <span aria-hidden="true">→</span></span>
+                  <span className="market-asset-issuers">{!issuerScope && labels.join(' · ')}</span>
+                  <span className="market-asset-action">{issuerScope ? 'View stock' : `${group.versions.length} ${group.versions.length === 1 ? 'token' : 'tokens'}`} <span aria-hidden="true">→</span></span>
                 </Link>
               </section>
             );

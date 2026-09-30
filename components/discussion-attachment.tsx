@@ -2,7 +2,7 @@ import type { DiscussionAttachment as Attachment } from '@/lib/discussion-attach
 import { BackpackChartCard } from './backpack-chart-card';
 const colors=['#cc354b','#647aab','#a77bba','#ba934b','#499787'];
 export function DiscussionAttachment({attachment}:{attachment:Attachment}) {
-  if(attachment.kind==='chart') return <div className="discussion-attachment"><BackpackChartCard chart={attachment.chart} period={attachment.period} /><p className="attachment-caption">Saved with this post · stock reference, not a token trade price</p></div>;
+  if(attachment.kind==='chart') return <div className="discussion-attachment discussion-chart-attachment"><BackpackChartCard chart={attachment.chart} period={attachment.period} /></div>;
   const top=attachment.rows.slice(0,4),rest=attachment.rows.slice(4);
   const rows=[...top,...(rest.length?[{symbol:'Other',name:`${rest.length} other holdings`,percent:rest.reduce((s,r)=>s+r.percent,0)}]:[])];
   return <section className="discussion-attachment portfolio-attachment" aria-label="Shared Backpack portfolio snapshot">
