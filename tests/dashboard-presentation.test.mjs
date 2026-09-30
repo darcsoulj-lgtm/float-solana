@@ -1483,5 +1483,6 @@ void test('Backpack scope excludes other issuer rows even when a filter callback
   assert.match(renderToStaticMarkup(tree), /Micron/);
   assert.doesNotMatch(renderToStaticMarkup(tree), /Alphabet/);
   assert.ok(findElement(tree, e => e.props?.issuerScope === 'backpack'));
-  assert.ok(findElement(tree, e => e.props?.issuer === 'backpack'));
+  // Scoped wallet summary now lives inside the scoped ecosystem grid.
+  assert.equal(findElement(tree, e => e.props?.issuer === 'backpack'), null);
 });

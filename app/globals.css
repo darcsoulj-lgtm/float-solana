@@ -5435,3 +5435,13 @@ body:has(.community-entry) > footer {
 .holding-wallets-update-details dl > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 20px; padding: 5px 0; }
 .holding-wallets-update-details dd { margin: 0; font-variant-numeric: tabular-nums; }
 .holding-wallets-grid .holding-wallets-stale { font-size: .75rem; }
+
+/* The single-issuer overview shares one four-metric grid. */
+.ecosystem-stats .metric-label { min-height: 39px; }
+.wallet-metric-details { margin-top: 4px; }
+.wallet-metric-details > summary { display: flex; align-items: center; gap: 5px; cursor: pointer; color: var(--muted-foreground); font-size: 12px; line-height: 1.5; list-style: none; }
+.wallet-metric-details > summary::-webkit-details-marker { display: none; }
+.wallet-metric-details > summary svg { flex-shrink: 0; }
+.wallet-metric-details[open] > summary svg { transform: rotate(180deg); }
+.wallet-metric-expanded { margin-top: 12px; font-size: 12px; color: var(--muted-foreground); line-height: 1.5; }
+.wallet-metric-expanded p { margin: 8px 0; }

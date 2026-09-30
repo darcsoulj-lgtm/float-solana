@@ -1,6 +1,7 @@
 'use client';
 
 import Link from '@/components/site-link';
+import { HoldingWallets } from './holding-wallets';
 import { MetricInfo } from './metric-info';
 import { OndoPrimaryVolume } from './ondo-primary-volume';
 import { marketTokens } from '@/lib/market-data';
@@ -146,6 +147,7 @@ export function SolanaEcosystem({
             {coverage.partial ? 'Partial coverage' : issuerScope ? 'Minted token value' : `${coverage.issuerCount}/${ISSUERS.length} issuers`}
           </small>
         </div>
+        {issuerScope && <HoldingWallets issuer={issuerScope} compact />}
         <div>
           <span className="metric-label">
             <span>Tracked pool volume · 24h</span>
@@ -164,7 +166,7 @@ export function SolanaEcosystem({
           </span>
           <strong>{usd(marketActivity.liquidity)}</strong>
         </div>
-        <div>
+        {!issuerScope && <div>
           <span>Tracked tokens</span>
           <strong>{tokens.length.toLocaleString()}</strong>
           <small>
@@ -173,7 +175,7 @@ export function SolanaEcosystem({
             ).size.toLocaleString()}{' '}
             assets
           </small>
-        </div>
+        </div>}
       </div>
 
 
