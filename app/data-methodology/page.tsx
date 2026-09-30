@@ -4,7 +4,7 @@ import { MARKET_ISSUER_SCOPE } from '@/lib/market-scope';
 export const metadata = { title: 'Data & methodology | Float' };
 const sections = [
   ['value', 'Tracked value'], ['prices', 'Prices & supply'], ['pools', 'Volume & liquidity'],
-  ['wallets', 'Holding wallets'], ['updates', 'Updates & missing data'], ['sources', 'Sources'],
+  ['wallets', 'Holding wallets'], ['attachments', 'Shared charts & portfolios'], ['updates', 'Updates & missing data'], ['sources', 'Sources'],
 ] as const;
 export default function Page() {
   return <main className="page info-page data-methodology">
@@ -34,6 +34,12 @@ export default function Page() {
       <p>Wallets are not people. One person may use several wallets; exchanges, pools and issuers also hold tokens. Counts come from Solana token accounts and have not been verified against an independent provider.</p>
       <p>Checks run daily. Failed checks keep the last successful count and its original date.</p>
       <p>Trends appear after seven observed days. Missing days stay as gaps. A change in tracked tokens starts a new trend. A 30-day percentage needs a real count from 30 days earlier.</p>
+    </section>
+    <section className="panel" id="attachments"><h2>Shared charts &amp; portfolios</h2>
+      <p>Charts save Backpack’s external stock-market hourly closes with a post. They are stock references, not token trade prices. Empty hours stay as gaps. Charts do not update after posting.</p>
+      <p>Portfolio snapshots show estimated value percentages for Backpack tokens in one verified wallet. Other assets and wallets are excluded. No wallet address, quantity or total value is published.</p>
+      <p>We check holdings when preparing a snapshot and require recent prices and matching units for every included token. Missing prices or unverified display-unit adjustments block sharing. Percentages are rounded to one decimal place and saved with the post; they are not investment returns.</p>
+      <p>You preview and explicitly approve portfolio sharing before posting. Prepared attachments expire after ten minutes. Published snapshots keep their original timestamps.</p>
     </section>
     <section className="panel" id="updates"><h2>Updates &amp; missing data</h2>
       <p>A dash means missing data, not zero. Saved prices and pool figures may remain visible for up to 24 hours while updates run. Wallet counts follow the daily rules above.</p>

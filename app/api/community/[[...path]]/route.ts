@@ -1,3 +1,4 @@
+import { prepareDiscussionAttachment, attachmentForPost } from '@/lib/discussion-attachment-server';
 import {
   readCommunityThreads,
   readCommunityReplies,
@@ -606,6 +607,10 @@ async function handler(req: Request) {
       );
     }
     if (!member) throw new AppError('Membership required.', 401);
+    if (path[0] === 'attachments' && !path[1] && post) {
+      await rateLimit('discussion-attachment:' + member.id, 6);
+      return json(await prepareDiscussionAttachment(db(), member.id, await digest(communityCookie(req)!), b, await registry(), runtime().SOLANA_RPC_URL));
+    }
     if (path[0] === 'holder-tier' && post) {
       await rateLimit('holder-tier:' + member.id, 10);
       const result = await updateHolderTier(
@@ -748,6 +753,7 @@ async function handler(req: Request) {
         )
           throw new AppError('Room no longer exists.', 404);
         await rateLimit('community-post:' + member.id, 3);
+        const attachment = await attachmentForPost(db(), member.id, b.attachmentId, b.sharePortfolio);
         const id = crypto.randomUUID(),
           now = Date.now();
         const token = (await registry()).tokens.find(
@@ -773,9 +779,9 @@ async function handler(req: Request) {
             : []),
           db()
             .prepare(
-              'INSERT INTO community_threads (id,member_id,topic,title,body,hidden,created_at,updated_at) VALUES (?,?,?,?,?,0,?,?)',
+              'INSERT INTO community_threads (id,member_id,topic,title,body,hidden,created_at,updated_at,attachment_json) VALUES (?,?,?,?,?,0,?,?,?)',
             )
-            .bind(id, member.id, p.topic, p.title, p.body, now, now),
+            .bind(id, member.id, p.topic, p.title, p.body, now, now, attachment),
           ...(poll
             ? [
                 db()

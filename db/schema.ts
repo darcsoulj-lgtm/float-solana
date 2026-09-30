@@ -173,6 +173,7 @@ export const communityThreads = sqliteTable(
     topic: text('topic').notNull(),
     title: text('title').notNull(),
     body: text('body').notNull(),
+    attachmentJson: text('attachment_json'),
     hidden: integer('hidden').notNull().default(0),
     createdAt: integer('created_at').notNull(),
     updatedAt: integer('updated_at').notNull(),
@@ -187,6 +188,12 @@ export const communityThreads = sqliteTable(
     ),
   ],
 );
+export const communityAttachmentDrafts = sqliteTable('community_attachment_drafts', {
+  id: text('id').primaryKey(),
+  memberId: text('member_id').notNull().references(() => communityMembers.id, { onDelete: 'cascade' }),
+  payload: text('payload').notNull(),
+  expiresAt: integer('expires_at').notNull(),
+}, t => [index('idx_attachment_drafts_expiry').on(t.expiresAt)]);
 export const communityReplies = sqliteTable(
   'community_replies',
   {

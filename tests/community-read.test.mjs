@@ -136,6 +136,7 @@ void test('HTTP routes permit guest reading but reject every member mutation and
     // Compile the actual route. Provider/auth dependencies are isolated; the real read
     // service and SQLite schema are exercised through HTTP Request/Response objects.
     const dependencies = {
+      '@/lib/discussion-attachment-server': {},
       '@/lib/editorial-server': { recordOperation: async () => {} },
       '@/lib/community-read': { readCommunityThreads, readCommunityReplies },
       '@/lib/community-server': {
@@ -213,6 +214,7 @@ void test('HTTP routes permit guest reading but reject every member mutation and
     }
     for (const path of [
       'threads',
+      'attachments',
       'threads/visible/replies',
       'threads/visible/remove',
       'threads/visible/edit',

@@ -1,3 +1,4 @@
+import { parseDiscussionAttachment } from './discussion-attachments';
 import { AppError } from './validation';
 import {
   communityTopics,
@@ -41,7 +42,7 @@ export async function readCommunityThreads(
   const rows = (
     await database
       .prepare(
-        `SELECT t.id,t.member_id,t.topic,(SELECT name FROM community_rooms WHERE id=t.topic) room_name,t.title,t.body,t.created_at,t.updated_at,t.hidden,${authorColumns},EXISTS(SELECT 1 FROM community_bookmarks b WHERE b.member_id=? AND b.target_type='thread' AND b.target_id=t.id) saved,(SELECT count(*) FROM community_replies r WHERE r.thread_id=t.id AND r.hidden=0 AND r.member_id NOT IN (SELECT blocked_id FROM community_blocks WHERE blocker_id=?)) reply_count FROM community_threads t JOIN community_members m ON m.id=t.member_id WHERE t.hidden=0 AND t.member_id NOT IN (SELECT blocked_id FROM community_blocks WHERE blocker_id=?) AND (?='all' OR t.topic=?) AND (?='' OR t.id=?) AND (?!='personal' OR t.topic='general' OR t.topic IN (SELECT symbol FROM community_holdings WHERE member_id=? UNION SELECT symbol FROM community_follows WHERE member_id=?)) AND (?!='saved' OR EXISTS(SELECT 1 FROM community_bookmarks b WHERE b.member_id=? AND b.target_type='thread' AND b.target_id=t.id)) AND (?!='mine' OR t.member_id=?) AND (t.created_at<? OR (t.created_at=? AND t.id<?)) ORDER BY t.created_at DESC,t.id DESC LIMIT 31`,
+        `SELECT t.id,t.member_id,t.topic,(SELECT name FROM community_rooms WHERE id=t.topic) room_name,t.title,t.body,t.attachment_json,t.created_at,t.updated_at,t.hidden,${authorColumns},EXISTS(SELECT 1 FROM community_bookmarks b WHERE b.member_id=? AND b.target_type='thread' AND b.target_id=t.id) saved,(SELECT count(*) FROM community_replies r WHERE r.thread_id=t.id AND r.hidden=0 AND r.member_id NOT IN (SELECT blocked_id FROM community_blocks WHERE blocker_id=?)) reply_count FROM community_threads t JOIN community_members m ON m.id=t.member_id WHERE t.hidden=0 AND t.member_id NOT IN (SELECT blocked_id FROM community_blocks WHERE blocker_id=?) AND (?='all' OR t.topic=?) AND (?='' OR t.id=?) AND (?!='personal' OR t.topic='general' OR t.topic IN (SELECT symbol FROM community_holdings WHERE member_id=? UNION SELECT symbol FROM community_follows WHERE member_id=?)) AND (?!='saved' OR EXISTS(SELECT 1 FROM community_bookmarks b WHERE b.member_id=? AND b.target_type='thread' AND b.target_id=t.id)) AND (?!='mine' OR t.member_id=?) AND (t.created_at<? OR (t.created_at=? AND t.id<?)) ORDER BY t.created_at DESC,t.id DESC LIMIT 31`,
       )
       .bind(
         viewerId,
@@ -62,7 +63,7 @@ export async function readCommunityThreads(
         cursor,
         key,
       )
-      .all<CommunityThread>()
+      .all<CommunityThread & {attachment_json?: string}>()
   ).results;
   const pageRows = rows.slice(0, 30);
   const pollOptions = new Map<
@@ -107,8 +108,10 @@ export async function readCommunityThreads(
       const closed =
         !!options?.[0]?.closes_at && options[0].closes_at <= Date.now();
       const resultsVisible = selected || closed;
+      const { attachment_json, ...publicRow } = row;
       return {
-        ...row,
+        ...publicRow,
+        attachment: parseDiscussionAttachment(attachment_json),
         room_name:
           row.room_name ||
           COMMUNITY_CHANNELS.find((channel) => channel.id === row.topic)

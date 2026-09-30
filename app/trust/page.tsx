@@ -71,6 +71,10 @@ export default function Page() {
         </p>
       </section>
       <section className="panel">
+        <h2>Optional portfolio sharing</h2>
+        <p>If you choose to attach a portfolio snapshot, you preview and approve the Backpack token names and estimated percentages before posting. Your wallet address, token quantities and total value are not included. Published snapshots remain with the post until you remove it; readers may copy them. Unpublished previews expire after ten minutes and are cleared during later preparation requests.</p>
+      </section>
+      <section className="panel">
         <h2>Limits of privacy</h2>
         <p>
           Wallet hashes are pseudonymous, not anonymous: a known public wallet

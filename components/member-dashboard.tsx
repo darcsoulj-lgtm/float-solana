@@ -1,4 +1,6 @@
 'use client';
+import { DiscussionAttachmentComposer } from './discussion-attachment-composer';
+import type { PreparedAttachment } from '@/lib/discussion-attachments';
 import { InstallEntry } from './install-experience';
 import { useCommunityFeed } from '@/hooks/use-community-feed';
 import { registryTokens } from '@/lib/token-registry';
@@ -216,6 +218,9 @@ export function MemberDashboard({
     COMMUNITY_CHANNELS[0].id,
   );
   const [draftBody, setDraftBody] = useState('');
+  const [draftAttachment, setDraftAttachment] = useState<PreparedAttachment|null>(null);
+  const [attachmentBusy, setAttachmentBusy] = useState(false);
+  const [sharePortfolio, setSharePortfolio] = useState(false);
   const [draftPoll, setDraftPoll] = useState(false);
   const [draftPollOptions, setDraftPollOptions] = useState(['', '']);
   const [draftPollDuration, setDraftPollDuration] =
@@ -489,6 +494,7 @@ export function MemberDashboard({
         : COMMUNITY_CHANNELS[0].id,
     );
     setDraftBody('');
+    setDraftAttachment(null); setSharePortfolio(false); setAttachmentBusy(false);
     setDraftPoll(false);
     setDraftPollOptions(['', '']);
     setDraftPollDuration('3d');
@@ -1225,14 +1231,14 @@ export function MemberDashboard({
       <Dialog
         open={compose}
         onOpenChange={(v) => {
-          if (!posting.current) setCompose(v);
+          if (!posting.current && !attachmentBusy) setCompose(v);
         }}
       >
         <DialogContent className="compose-dialog">
           <DialogTitle>New discussion</DialogTitle>
-          <p className="public-reading-note">Posts and replies are public. Your wallet holdings stay private.</p>
+          <p className="public-reading-note">Posts and replies are public. Holdings stay private unless you choose to share a snapshot.</p>
           <DialogDescription>
-            Visible to all verified members.
+            Anyone can read. Verified holders can post.
           </DialogDescription>
           <form
             className="discussion-form"
@@ -1240,13 +1246,14 @@ export function MemberDashboard({
             aria-busy={draftPosting}
             onSubmit={async (e) => {
               e.preventDefault();
-              if (posting.current) return;
+              if (posting.current || attachmentBusy) return;
               setDraftAttempted(true);
               setDraftError('');
               const payload = {
                 title: draftTitle,
                 body: draftBody,
                 topic: draftTopic,
+                ...(draftAttachment ? { attachmentId: draftAttachment.id, sharePortfolio } : {}),
                 ...(draftPoll
                   ? {
                       poll: {
@@ -1472,12 +1479,13 @@ export function MemberDashboard({
                 </select>
               </div>
             )}
+            {compose && <DiscussionAttachmentComposer tokens={tokens} value={draftAttachment} onChange={setDraftAttachment} disabled={draftPosting} onBusy={setAttachmentBusy} consent={sharePortfolio} onConsent={setSharePortfolio} />}
             {draftError && (
               <p className="error" role="alert">
                 {draftError}
               </p>
             )}
-            <Button type="submit" disabled={draftPosting}>
+            <Button type="submit" disabled={draftPosting || attachmentBusy || (draftAttachment?.attachment.kind === 'portfolio' && !sharePortfolio)}>
               {draftPosting
                 ? draftPoll
                   ? 'Creating poll…'

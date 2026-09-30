@@ -5445,3 +5445,31 @@ body:has(.community-entry) > footer {
 .wallet-metric-details[open] > summary svg { transform: rotate(180deg); }
 .wallet-metric-expanded { margin-top: 12px; font-size: 12px; color: var(--muted-foreground); line-height: 1.5; }
 .wallet-metric-expanded p { margin: 8px 0; }
+
+/* Optional discussion attachments retain the content-first feed. */
+.discussion-attachment { margin:16px 0; min-width:0; }
+.discussion-attachment .sp-attachment,.portfolio-attachment { border:1px solid var(--border);border-radius:12px;padding:18px;background:var(--card); }
+.discussion-attachment .sp-card-heading { display:flex;justify-content:space-between;gap:12px; }
+.discussion-attachment .sp-card-heading strong,.portfolio-attachment h4 { font-size:15px;margin:0; }
+.discussion-attachment .sp-card-heading p,.attachment-caption,.discussion-attachment .sp-footnote { font-size:12px;color:var(--muted-foreground);line-height:1.5;margin:8px 0; }
+.discussion-attachment .sp-tag { display:none; }
+.discussion-attachment .sp-price { font-size:26px;font-weight:600;margin-top:16px; }
+.discussion-attachment .sp-price span { margin-left:8px;font-size:12px;font-weight:400; }
+.discussion-attachment .sp-chart { display:block;width:100%;height:auto; }
+.discussion-attachment .sp-axis { display:flex;justify-content:space-between;font-size:11px;color:var(--muted-foreground); }
+.discussion-attachment details { font-size:12px;color:var(--muted-foreground);margin-top:12px; }
+.discussion-attachment summary { cursor:pointer; }
+.discussion-attachment details p { line-height:1.6;margin:8px 0; }
+.portfolio-share-bar {display:flex;height:12px;gap:2px;border-radius:4px;overflow:hidden;margin:20px 0;}
+.portfolio-share-row {display:flex;justify-content:space-between;gap:12px;font-size:14px;margin:12px 0;}
+.portfolio-share-row>span {display:flex;align-items:center;gap:8px;}
+.portfolio-share-row i {width:8px;height:8px;border-radius:2px;}
+.attachment-tools,.attachment-controls {display:flex;gap:8px;flex-wrap:wrap;margin:12px 0;}
+.attachment-tools button,.attachment-prepare {display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--card);color:var(--foreground);cursor:pointer;}
+.attachment-tools button[aria-pressed=true] {border-color:var(--primary);}
+.attachment-controls label {min-width:0;flex:1;font-size:12px;}
+.attachment-controls select {display:block;width:100%;margin-top:6px;}
+.attachment-consent {display:flex;align-items:flex-start;gap:8px;font-size:13px;line-height:1.5;margin:14px 0;}
+.attachment-consent input {width:18px;height:18px;flex-shrink:0;margin-top:2px;}
+.attachment-composer button:disabled {opacity:.5;cursor:default;}
+@media(max-width:640px){.discussion-attachment .sp-attachment,.portfolio-attachment{padding:14px;}.attachment-controls{flex-direction:column;}}

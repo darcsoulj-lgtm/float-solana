@@ -1,4 +1,5 @@
 'use client';
+import { DiscussionAttachment } from './discussion-attachment';
 import { HolderTierBadge } from './holder-tier-badge';
 import { MemberProfile } from './member-profile';
 import { TranslationControl, TranslatedReply } from './translation-control';
@@ -228,6 +229,7 @@ export function Thread({
           <span>{displayBody}</span>
         </button>
       )}
+      {t.attachment && <DiscussionAttachment attachment={t.attachment} />}
       <TranslationControl translation={translation} />
       {poll && !detail && <span className="thread-poll-preview">Member poll</span>}
       {poll && detail && (

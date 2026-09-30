@@ -108,6 +108,7 @@ export type CommunityThread = CommunityAuthor & {
   body: string;
   created_at: number;
   updated_at?: number;
+  attachment?: import('./discussion-attachments').DiscussionAttachment | null;
   reply_count: number;
   hidden: number;
   saved: number;

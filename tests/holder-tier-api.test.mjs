@@ -42,6 +42,7 @@ async function fixture() {
     missingPrice = false;
   const calls = [];
   const dependencies = {
+    '@/lib/discussion-attachment-server': {},
     '@/lib/community-rooms': {},
     '@/lib/request-body': { readBoundedText: async (req) => req.text() },
     '@/lib/registry-server': {

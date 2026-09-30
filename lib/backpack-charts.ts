@@ -1,3 +1,4 @@
+import { readBoundedText } from './request-body';
 import type { StockToken } from './tokens';
 
 export type BackpackChart = {
@@ -47,7 +48,7 @@ export async function fetchBackpackChart(token: StockToken, fetcher: typeof fetc
   const query = new URLSearchParams({ symbol: `${token.symbol}.US_USDC`, interval: '1h', source: 'External', startTime: String(Math.floor(now / 1000) - 7 * 86400), endTime: String(Math.floor(now / 1000)) });
   const response = await fetcher(`https://api.backpack.exchange/api/v1/klines?${query}`, { signal: AbortSignal.timeout(12000), redirect: 'manual' });
   if (!response.ok) throw Error(`Backpack chart unavailable (${response.status})`);
-  const text = await response.text();
+  const text = await readBoundedText(response, 250000);
   if (text.length > 250000) throw Error('Chart response too large');
   return parseBackpackChart(JSON.parse(text), token, now);
 }
