@@ -5490,3 +5490,13 @@ body:has(.community-entry) > footer {
   .stock-chart-plot { height: 170px; gap: 6px; }
   .stock-chart-heading .stock-chart-price { font-size: 20px; }
 }
+
+/* Locally bundled company artwork; missing assets retain the same geometry. */
+.market-table .stock-row-trigger.has-logo { position: relative; padding-left: 44px; }
+.market-table .stock-row-trigger > .stock-row-logo {
+  position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+  width: 32px; height: 32px; border-radius: 50%; overflow: hidden;
+  display: grid; place-items: center; background: var(--hp-bg-f2f2f2, #f2f2f2);
+  color: var(--hp-ink-6f6f6f, #6f6f6f); font-size: 13px; font-weight: 600;
+}
+.stock-row-logo img { position: absolute; inset: 0; width: 32px; height: 32px; object-fit: contain; background: white; }

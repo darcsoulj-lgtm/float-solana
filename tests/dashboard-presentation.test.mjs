@@ -29,7 +29,7 @@ async function component(file, overrides) {
   const compiledModule = { exports: {} };
   compileFunction(outputText, ['require', 'module', 'exports'])(
     (id) =>
-      (id === './discussion-attachment-composer' ? { DiscussionAttachmentComposer: Empty } : id === './discussion-attachment' ? { DiscussionAttachment: Empty } : id === './install-experience' ? { InstallEntry: Empty } : id === '@/lib/holder-history' ? holderHistory : id === './holder-trend' ? {HolderTrend: Empty} : id === '@/components/site-link'
+      (id === '@/lib/stock-logo-assets.json' ? { default: require('../lib/stock-logo-assets.json') } : id === './discussion-attachment-composer' ? { DiscussionAttachmentComposer: Empty } : id === './discussion-attachment' ? { DiscussionAttachment: Empty } : id === './install-experience' ? { InstallEntry: Empty } : id === '@/lib/holder-history' ? holderHistory : id === './holder-trend' ? {HolderTrend: Empty} : id === '@/components/site-link'
         ? {
             default: ({ children, ...props }) =>
               React.createElement('a', props, children),

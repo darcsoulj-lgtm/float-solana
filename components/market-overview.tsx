@@ -1,4 +1,5 @@
 'use client';
+import stockLogoAssets from '@/lib/stock-logo-assets.json';
 import { HoldingWallets } from './holding-wallets';
 import { TesseraContext } from './tessera-context';
 import { MarketBrowseFilters } from './market-browse-filters';
@@ -766,6 +767,7 @@ export function MarketOverviewPanel({
       <Fragment key={t.symbol}>
         <MarketStockRow
           symbol={t.symbol}
+          logoSrc={t.issuer === 'backpack' ? (stockLogoAssets as Record<string, string>)[t.symbol] ?? null : undefined}
           name={issuerScope ? t.shortName : `${t.shortName} · ${issuerName(t.issuer)}`}
           selected={isSelected}
           held={holdings.includes(t.symbol)}

@@ -1,0 +1,543 @@
+[
+  {
+    "symbol": "AMC",
+    "floatName": "AMC Entertainment",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/amc-entertainment",
+    "image": "https://assets.coingecko.com/rwas/images/180/standard/open-uri20260428-58-b2o096.?1777362613",
+    "name": "AMC Entertainment"
+  },
+  {
+    "symbol": "AMD",
+    "floatName": "Advanced Micro Devices, Inc.",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/amd",
+    "image": "https://assets.coingecko.com/rwas/images/150/standard/open-uri20260428-58-u9pq09.?1777362551",
+    "name": "AMD"
+  },
+  {
+    "symbol": "ARM",
+    "floatName": "Arm Holdings plc",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/arm-holdings-plc",
+    "image": "https://assets.coingecko.com/rwas/images/175/standard/open-uri20260428-58-8i5wwh.?1777362602",
+    "name": "Arm Holdings plc"
+  },
+  {
+    "symbol": "BA",
+    "floatName": "The Boeing Company",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/boeing",
+    "image": "https://assets.coingecko.com/rwas/images/177/standard/open-uri20260428-58-rcidhs.?1777362607",
+    "name": "Boeing"
+  },
+  {
+    "symbol": "BABA",
+    "floatName": "Alibaba Group Holding Limited",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/alibaba",
+    "image": "https://assets.coingecko.com/rwas/images/148/standard/open-uri20260428-58-bkvy5t.?1777362547",
+    "name": "Alibaba"
+  },
+  {
+    "symbol": "BB",
+    "floatName": "BlackBerry Limited",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/blackberry",
+    "image": "https://assets.coingecko.com/rwas/images/470/standard/bb.jpg?1786357442",
+    "name": "BlackBerry"
+  },
+  {
+    "symbol": "BOT",
+    "floatName": "BOT.US",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/robostrategy",
+    "image": "https://assets.coingecko.com/rwas/images/243/standard/robostrategy.jpg?1782724793",
+    "name": "RoboStrategy"
+  },
+  {
+    "symbol": "BROS",
+    "floatName": "Dutch Bros Inc.",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/dutch-bros-inc",
+    "image": "https://assets.coingecko.com/rwas/images/1487/standard/finnhub_logo20260911-1-9ny5ic.png?1789137574",
+    "name": "Dutch Bros Inc."
+  },
+  {
+    "symbol": "BULL",
+    "floatName": "Webull Corporation",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/webull",
+    "image": "https://assets.coingecko.com/rwas/images/476/standard/webull.jpg?1786358508",
+    "name": "Webull"
+  },
+  {
+    "symbol": "COPX",
+    "floatName": "Global X Copper Miners ETF",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/etfs/global-x-copper-miners-etf",
+    "image": "https://assets.coingecko.com/rwas/images/552/standard/open-uri20260819-1-vfzalg.?1787117476",
+    "name": "Global X Copper Miners ETF"
+  },
+  {
+    "symbol": "COST",
+    "floatName": "Costco Wholesale Corporation",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/costco",
+    "image": "https://assets.coingecko.com/rwas/images/40/standard/open-uri20260428-58-61mshb.?1777362319",
+    "name": "Costco"
+  },
+  {
+    "symbol": "CRWV",
+    "floatName": "CoreWeave, Inc.",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/coreweave",
+    "image": "https://assets.coingecko.com/rwas/images/44/standard/open-uri20260428-58-9sf7ro.?1777362326",
+    "name": "CoreWeave"
+  },
+  {
+    "symbol": "CYPH",
+    "floatName": "Cypherpunk Technologies Inc.",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/cypherpunk-technologies",
+    "image": "https://assets.coingecko.com/rwas/images/442/standard/open-uri20260805-1-q6psav.?1785899409",
+    "name": "Cypherpunk Technologies"
+  },
+  {
+    "symbol": "DELL",
+    "floatName": "Dell Technologies Inc.",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/dell",
+    "image": "https://assets.coingecko.com/rwas/images/248/standard/open-uri20260701-1-q31mtz.?1782885930",
+    "name": "Dell"
+  },
+  {
+    "symbol": "DJT",
+    "floatName": "Trump Media & Technology Group Corp.",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/trump-media-technology-group",
+    "image": "https://assets.coingecko.com/rwas/images/447/standard/open-uri20260805-1-9ihhej.?1785899425",
+    "name": "Trump Media & Technology Group"
+  },
+  {
+    "symbol": "DKNG",
+    "floatName": "DraftKings Inc.",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/draftkings",
+    "image": "https://assets.coingecko.com/rwas/images/826/standard/finnhub_logo20260911-1-nics6.png?1789106918",
+    "name": "DraftKings"
+  },
+  {
+    "symbol": "DNUT",
+    "floatName": "DNUT.US",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/krispy-kreme",
+    "image": "https://assets.coingecko.com/rwas/images/1609/standard/KK.png?1789228608",
+    "name": "Krispy Kreme"
+  },
+  {
+    "symbol": "DRAM",
+    "floatName": "Roundhill Memory ETF",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/etfs/roundhill-memory-etf",
+    "image": "https://assets.coingecko.com/rwas/images/529/standard/open-uri20260819-1-h0fsju.?1787117422",
+    "name": "Roundhill Memory ETF"
+  },
+  {
+    "symbol": "EWY",
+    "floatName": "iShares MSCI South Korea ETF",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/etfs/ishares-msci-south-korea-etf",
+    "image": "https://assets.coingecko.com/rwas/images/507/standard/open-uri20260819-1-2zuww2.?1787117368",
+    "name": "iShares MSCI South Korea ETF"
+  },
+  {
+    "symbol": "FLWS",
+    "floatName": "FLWS.US",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/1-800-flowers-com",
+    "image": "https://assets.coingecko.com/rwas/images/1620/standard/finnhub_logo20260922-1-9lkxig.png?1790059876",
+    "name": "1-800-Flowers.Com"
+  },
+  {
+    "symbol": "FLY",
+    "floatName": "Firefly Aerospace Inc.",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/firefly-aerospace",
+    "image": "https://assets.coingecko.com/rwas/images/486/standard/fly.png?1786514082",
+    "name": "Firefly Aerospace"
+  },
+  {
+    "symbol": "FWDI",
+    "floatName": "Forward Industries Inc",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/forward-industries",
+    "image": "https://assets.coingecko.com/rwas/images/1255/standard/finnhub_logo20260911-1-e95q6q.png?1789137171",
+    "name": "Forward Industries"
+  },
+  {
+    "symbol": "GPRO",
+    "floatName": "GPRO.US",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/gopro",
+    "image": "https://assets.coingecko.com/rwas/images/1613/standard/finnhub_logo20260924-3140-d115io.png?1790219240",
+    "name": "GoPro"
+  },
+  {
+    "symbol": "GRND",
+    "floatName": "GRND.US",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/grindr",
+    "image": "https://assets.coingecko.com/rwas/images/118/standard/open-uri20260428-58-m48ibb.?1777362482",
+    "name": "Grindr"
+  },
+  {
+    "symbol": "HIMS",
+    "floatName": "Hims & Hers Health, Inc.",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/hims-hers-health",
+    "image": "https://assets.coingecko.com/rwas/images/24/standard/open-uri20260428-58-p9c1r2.?1777362288",
+    "name": "Hims & Hers Health"
+  },
+  {
+    "symbol": "HOOD",
+    "floatName": "Robinhood Markets, Inc.",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/robinhood-markets",
+    "image": "https://assets.coingecko.com/rwas/images/7/standard/open-uri20260428-58-bvr8b6.?1777362254",
+    "name": "Robinhood Markets"
+  },
+  {
+    "symbol": "HTZ",
+    "floatName": "HTZ.US",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/hertz-global-holdings",
+    "image": "https://assets.coingecko.com/rwas/images/704/standard/hertz.png?1788935655",
+    "name": "Hertz Global Holdings"
+  },
+  {
+    "symbol": "IBM",
+    "floatName": "International Business Machines Corporation",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/ibm",
+    "image": "https://assets.coingecko.com/rwas/images/195/standard/open-uri20260428-58-q0jqvk.?1777362645",
+    "name": "IBM"
+  },
+  {
+    "symbol": "INTC",
+    "floatName": "Intel Corporation",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/intel",
+    "image": "https://assets.coingecko.com/rwas/images/77/standard/open-uri20260428-58-ai2ylx.?1777362394",
+    "name": "Intel"
+  },
+  {
+    "symbol": "IONQ",
+    "floatName": "IonQ, Inc.",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/ionq",
+    "image": "https://assets.coingecko.com/rwas/images/104/standard/open-uri20260428-58-xkcpzv.?1777362452",
+    "name": "IonQ"
+  },
+  {
+    "symbol": "IREN",
+    "floatName": "IREN Limited",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/iren",
+    "image": "https://assets.coingecko.com/rwas/images/89/standard/open-uri20260428-58-u8f0ge.?1777362421",
+    "name": "IREN"
+  },
+  {
+    "symbol": "JNJ",
+    "floatName": "Johnson & Johnson",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/johnson-johnson",
+    "image": "https://assets.coingecko.com/rwas/images/12/standard/open-uri20260428-58-9ie3ie.?1777362264",
+    "name": "Johnson & Johnson"
+  },
+  {
+    "symbol": "LLY",
+    "floatName": "Eli Lilly and Company",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/eli-lilly",
+    "image": "https://assets.coingecko.com/rwas/images/193/standard/open-uri20260428-58-s1e7e5.?1777362640",
+    "name": "Eli Lilly"
+  },
+  {
+    "symbol": "LMT",
+    "floatName": "Lockheed Martin Corporation",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/lockheed",
+    "image": "https://assets.coingecko.com/rwas/images/101/standard/open-uri20260428-58-ahflx1.?1777362446",
+    "name": "Lockheed"
+  },
+  {
+    "symbol": "LULU",
+    "floatName": "Lululemon Athletica Inc.",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/lululemon",
+    "image": "https://assets.coingecko.com/rwas/images/220/standard/open-uri20260428-58-32mgur.?1777362705",
+    "name": "lululemon"
+  },
+  {
+    "symbol": "LUV",
+    "floatName": "Southwest Airlines Co.",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/southwest-airlines",
+    "image": "https://assets.coingecko.com/rwas/images/960/standard/finnhub_logo20260911-1-3gdr0v.png?1789107062",
+    "name": "Southwest Airlines"
+  },
+  {
+    "symbol": "MGM",
+    "floatName": "MGM Resorts International",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/mgm-resorts-international",
+    "image": "https://assets.coingecko.com/rwas/images/1475/standard/finnhub_logo20260911-1-rdabhy.png?1789137554",
+    "name": "MGM Resorts International"
+  },
+  {
+    "symbol": "MRNA",
+    "floatName": "Moderna, Inc.",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/moderna",
+    "image": "https://assets.coingecko.com/rwas/images/146/standard/open-uri20260428-58-p7z02e.?1777362543",
+    "name": "Moderna"
+  },
+  {
+    "symbol": "MRVL",
+    "floatName": "Marvell Technology, Inc.",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/marvell-technology",
+    "image": "https://assets.coingecko.com/rwas/images/124/standard/open-uri20260428-58-ttropt.?1777362496",
+    "name": "Marvell Technology"
+  },
+  {
+    "symbol": "MSTR",
+    "floatName": "Strategy Inc",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/microstrategy",
+    "image": "https://assets.coingecko.com/rwas/images/25/standard/open-uri20260428-58-oeh7t6.?1777362289",
+    "name": "Strategy"
+  },
+  {
+    "symbol": "MU",
+    "floatName": "Micron Technology, Inc.",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/micron-technology",
+    "image": "https://assets.coingecko.com/rwas/images/147/standard/open-uri20260428-58-j3l3rh.?1777362545",
+    "name": "Micron Technology"
+  },
+  {
+    "symbol": "NBIS",
+    "floatName": "Nebius Group N.V.",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/nebius-group",
+    "image": "https://assets.coingecko.com/rwas/images/49/standard/open-uri20260428-58-cvdkvt.?1777362337",
+    "name": "Nebius Group"
+  },
+  {
+    "symbol": "NFLX",
+    "floatName": "Netflix, Inc.",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/netflix",
+    "image": "https://assets.coingecko.com/rwas/images/58/standard/open-uri20260428-58-k1360f.?1777362354",
+    "name": "Netflix"
+  },
+  {
+    "symbol": "NKE",
+    "floatName": "NIKE, Inc.",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/nike",
+    "image": "https://assets.coingecko.com/rwas/images/168/standard/open-uri20260428-58-d0iv06.?1777362588",
+    "name": "Nike"
+  },
+  {
+    "symbol": "NOK",
+    "floatName": "Nokia Oyj",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/nokia",
+    "image": "https://assets.coingecko.com/rwas/images/295/standard/open-uri20260709-1-a9ppzy.?1783581503",
+    "name": "Nokia"
+  },
+  {
+    "symbol": "NVDA",
+    "floatName": "NVIDIA Corporation",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/nvidia",
+    "image": "https://assets.coingecko.com/rwas/images/3/standard/NVDA.png?1779774246",
+    "name": "Nvidia"
+  },
+  {
+    "symbol": "PFE",
+    "floatName": "Pfizer Inc.",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/pfizer",
+    "image": "https://assets.coingecko.com/rwas/images/114/standard/open-uri20260428-58-ffb8fs.?1777362473",
+    "name": "Pfizer"
+  },
+  {
+    "symbol": "PTN",
+    "floatName": "Palatin Technologies, Inc.",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/palatin-technologies",
+    "image": "https://assets.coingecko.com/rwas/images/701/standard/palatin.png?1788503544",
+    "name": "Palatin Technologies"
+  },
+  {
+    "symbol": "QUBT",
+    "floatName": "Quantum Computing Inc.",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/quantum-computing",
+    "image": "https://assets.coingecko.com/rwas/images/36/standard/open-uri20260428-58-jc7vqc.?1777362311",
+    "name": "Quantum Computing"
+  },
+  {
+    "symbol": "RBLX",
+    "floatName": "Roblox Corporation",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/roblox",
+    "image": "https://assets.coingecko.com/rwas/images/201/standard/open-uri20260428-58-i1ig6s.?1777362659",
+    "name": "Roblox"
+  },
+  {
+    "symbol": "RDDT",
+    "floatName": "Reddit, Inc.",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/reddit",
+    "image": "https://assets.coingecko.com/rwas/images/43/standard/open-uri20260428-58-bbrsno.?1777362324",
+    "name": "Reddit"
+  },
+  {
+    "symbol": "RIVN",
+    "floatName": "Rivian Automotive, Inc.",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/rivian-automotive",
+    "image": "https://assets.coingecko.com/rwas/images/131/standard/open-uri20260428-58-h4kzw9.?1777362510",
+    "name": "Rivian Automotive"
+  },
+  {
+    "symbol": "RKLB",
+    "floatName": "Rocket Lab Corporation",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/rocket-lab",
+    "image": "https://assets.coingecko.com/rwas/images/55/standard/open-uri20260428-58-k0hmu2.?1777362348",
+    "name": "Rocket Lab"
+  },
+  {
+    "symbol": "RUM",
+    "floatName": "RUM Group Inc.",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/rumble",
+    "image": "https://assets.coingecko.com/rwas/images/1643/standard/finnhub_logo20260925-24-ckkv6n.png?1790313818",
+    "name": "Rumble"
+  },
+  {
+    "symbol": "SCHH",
+    "floatName": "Schwab U.S. REIT ETF",
+    "status": "missing"
+  },
+  {
+    "symbol": "SHOP",
+    "floatName": "Shopify Inc.",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/shopify",
+    "image": "https://assets.coingecko.com/rwas/images/15/standard/open-uri20260428-58-qk1sc3.?1777362270",
+    "name": "Shopify"
+  },
+  {
+    "symbol": "SKHY",
+    "floatName": "SK Hynix",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/sk-hynix",
+    "image": "https://assets.coingecko.com/rwas/images/275/standard/skhynix.png?1783244825",
+    "name": "SK Hynix"
+  },
+  {
+    "symbol": "SNAP",
+    "floatName": "Snap Inc.",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/snap",
+    "image": "https://assets.coingecko.com/rwas/images/71/standard/open-uri20260428-58-y5yqfq.?1777362381",
+    "name": "Snap"
+  },
+  {
+    "symbol": "SNDK",
+    "floatName": "Sandisk Corporation",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/sandisk",
+    "image": "https://assets.coingecko.com/rwas/images/165/standard/open-uri20260428-58-3lq4o7.?1777362581",
+    "name": "SanDisk"
+  },
+  {
+    "symbol": "SPCX",
+    "floatName": "SpaceX",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/spacex",
+    "image": "https://assets.coingecko.com/rwas/images/240/standard/spacex.jpg?1781228823",
+    "name": "SpaceX"
+  },
+  {
+    "symbol": "SPHR",
+    "floatName": "Sphere Entertainment Co.",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/sphere-entertainment",
+    "image": "https://assets.coingecko.com/rwas/images/707/standard/finnhub_logo20260910-41-ugbzx1.png?1789039201",
+    "name": "Sphere Entertainment"
+  },
+  {
+    "symbol": "SQQQ",
+    "floatName": "ProShares UltraPro Short QQQ",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/etfs/proshares-ultrapro-short-qqq",
+    "image": "https://assets.coingecko.com/rwas/images/553/standard/open-uri20260819-1-wvkgv.?1787117478",
+    "name": "ProShares UltraPro Short QQQ"
+  },
+  {
+    "symbol": "TTWO",
+    "floatName": "Take-Two Interactive Software, Inc.",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/take-two-interactive-software",
+    "image": "https://assets.coingecko.com/rwas/images/257/standard/open-uri20260701-1-7idts1.?1782885947",
+    "name": "Take-Two Interactive Software"
+  },
+  {
+    "symbol": "UPS",
+    "floatName": "United Parcel Service, Inc.",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/ups",
+    "image": "https://assets.coingecko.com/rwas/images/272/standard/open-uri20260701-1-unhozr.?1782885977",
+    "name": "UPS"
+  },
+  {
+    "symbol": "URA",
+    "floatName": "Global X Uranium ETF",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/etfs/global-x-uranium-etf",
+    "image": "https://assets.coingecko.com/rwas/images/561/standard/open-uri20260819-1-k1gzbz.?1787117499",
+    "name": "Global X Uranium ETF"
+  },
+  {
+    "symbol": "USO",
+    "floatName": "United States Oil Fund, LP",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/etfs/united-states-oil-fund",
+    "image": "https://assets.coingecko.com/rwas/images/503/standard/open-uri20260819-1-e8j3rc.?1787117359",
+    "name": "United States Oil Fund"
+  },
+  {
+    "symbol": "WEN",
+    "floatName": "WEN.US",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/wendy-s",
+    "image": "https://assets.coingecko.com/rwas/images/197/standard/open-uri20260428-58-p68962.?1777362649",
+    "name": "Wendy's"
+  },
+  {
+    "symbol": "WULF",
+    "floatName": "TeraWulf Inc.",
+    "status": "candidate",
+    "sourcePage": "https://www.coingecko.com/en/stocks/terawulf",
+    "image": "https://assets.coingecko.com/rwas/images/46/standard/open-uri20260428-58-athrop.?1777362330",
+    "name": "Terawulf"
+  }
+]

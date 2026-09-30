@@ -646,12 +646,12 @@
     padding-right: 104px;
   }
   .market-token-table .stock-row-trigger > strong,
-  .market-token-table .stock-row-trigger > span:not(.stock-row-mobile-market),
+  .market-token-table .stock-row-trigger > span:not(.stock-row-mobile-market):not(.stock-row-logo),
   .market-token-table .stock-row-trigger > small {
     display: block;
   }
   .market-token-table .stock-row-trigger > strong,
-  .market-token-table .stock-row-trigger > span:not(.stock-row-mobile-market),
+  .market-token-table .stock-row-trigger > span:not(.stock-row-mobile-market):not(.stock-row-logo),
   .market-token-table .stock-row-trigger > small {
     grid-column: 1;
   }

@@ -18,7 +18,7 @@ const { outputText } = ts.transpileModule(source, {
 });
 const compiledModule = { exports: {} };
 compileFunction(outputText, ['require', 'module', 'exports'])(
-  require,
+  (id) => id === 'next/image' ? { default: 'img' } : require(id),
   compiledModule,
   compiledModule.exports,
 );

@@ -1,9 +1,11 @@
 'use client';
+import Image from 'next/image';
 import type { MouseEvent, ReactNode } from 'react';
 
 export function MarketStockRow({
   symbol,
   name,
+  logoSrc,
   selected,
   held,
   onSelect,
@@ -13,6 +15,7 @@ export function MarketStockRow({
 }: {
   symbol: string;
   name: string;
+  logoSrc?: string | null;
   selected: boolean;
   held: boolean;
   onSelect?: (symbol: string) => void;
@@ -20,6 +23,12 @@ export function MarketStockRow({
   mobileMarket?: ReactNode;
   children: ReactNode;
 }) {
+  const logo = logoSrc !== undefined ? (
+    <span className="stock-row-logo" aria-hidden="true">
+      <span>{symbol.slice(0, 1)}</span>
+      {logoSrc && <Image unoptimized src={logoSrc} alt="" width={32} height={32} loading="lazy" decoding="async" onError={(event) => { event.currentTarget.style.display = 'none'; }} />}
+    </span>
+  ) : null;
   return (
     <tr
       className={selected ? 'is-selected' : ''}
@@ -32,18 +41,19 @@ export function MarketStockRow({
       <td>
         {href ? (
           <a
-            className="stock-row-trigger"
+            className={`stock-row-trigger${logoSrc !== undefined ? ' has-logo' : ''}`}
             id={`stock-trigger-${symbol}`}
             href={href}
             aria-label={`View ${symbol} market`}
           >
+            {logo}
             <strong>{symbol}</strong>
             <span title={name}>{name}</span>
             {held && <small>Held</small>}
           </a>
         ) : (
           <button
-            className="stock-row-trigger"
+            className={`stock-row-trigger${logoSrc !== undefined ? ' has-logo' : ''}`}
             type="button"
             id={`stock-trigger-${symbol}`}
             aria-label={`View ${symbol} details`}
@@ -55,6 +65,7 @@ export function MarketStockRow({
               onSelect?.(symbol);
             }}
           >
+            {logo}
             <strong>{symbol}</strong>
             <span title={name}>{name}</span>
             {held && <small>Held</small>}
