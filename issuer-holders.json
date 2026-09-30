@@ -5,27 +5,27 @@
   "issuers": [
     {
       "issuer": "backpack",
-      "wallets": 207906,
-      "tokens": 66,
-      "registryHash": "196344ce3ad08307460e7ba64e94969b2191881dc4e38a79566b97c7549ad746",
-      "startedAt": 1790664923808,
-      "checkedAt": 1790665079932
+      "wallets": 216844,
+      "tokens": 68,
+      "registryHash": "96198047706929d49a2adbc698489904a5ff56f706b8d8c6d2346095fee9a56a",
+      "startedAt": 1790750655347,
+      "checkedAt": 1790750817089
     },
     {
       "issuer": "xstocks",
-      "wallets": 398882,
+      "wallets": 427911,
       "tokens": 832,
       "registryHash": "ed53549a447da10e40bc758b146ad541eb111ed2e8e56bfffc938fe261f2f533",
-      "startedAt": 1790665079960,
-      "checkedAt": 1790666976534
+      "startedAt": 1790750817116,
+      "checkedAt": 1790752709914
     },
     {
       "issuer": "ondo",
-      "wallets": 14436,
+      "wallets": 14488,
       "tokens": 438,
       "registryHash": "0222f2476a1d7dbbd1d14ad6e0035b1503c0c541f89348e9c3f2c1c00fdaf352",
-      "startedAt": 1790666976552,
-      "checkedAt": 1790667975127
+      "startedAt": 1790752709933,
+      "checkedAt": 1790753706175
     }
   ]
 }
