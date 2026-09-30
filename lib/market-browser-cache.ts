@@ -5,10 +5,10 @@ import { TOKEN_REVIEW_DATE } from './tokens';
 const prefix = `float-public-market:v2:${TOKEN_REVIEW_DATE}:`;
 const maxSnapshotAge = 24 * 60 * 60 * 1000;
 
-export function savedMarketPages(storage: Pick<Storage, 'getItem' | 'removeItem'>, count: number) {
+export function savedMarketPages(storage: Pick<Storage, 'getItem' | 'removeItem'>, count: number, startIndex = 0) {
   const pages: MarketOverview[] = [];
   for (let batch = 0; batch < count; batch++) {
-    const key = prefix + batch;
+    const key = prefix + (startIndex + batch);
     try {
       const raw = storage.getItem(key);
       if (!raw) continue;

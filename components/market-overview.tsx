@@ -80,7 +80,7 @@ export function MarketOverviewPanel({
     });
   const [selection, setSelected] = useState(initialToken || holdings[0] || 'MU'),
     [copied, setCopied] = useState(false);
-  const { data, error, busy } = useMarketOverview(holdings, 0);
+  const { data, error, busy } = useMarketOverview(holdings, 0, issuerScope ?? 'all');
   const tokens = marketTokens(data).filter((token) => !issuerScope || token.issuer === issuerScope);
   const knownFunds = fundUnderlyings(tokens);
   const [bookData, setBook] = useState<SourceResult<Book> | null>(null),

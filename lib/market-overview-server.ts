@@ -1,5 +1,5 @@
 import { marketCacheRows, marketSnapshot, cachedMarket, type CacheRow } from './market-cache';
-import { readMarketBatch, emptySource } from './market-service';
+import { marketBatches, readMarketBatch, emptySource } from './market-service';
 import { tokenBatchKey } from './backpack-registry';
 import { MARKET_BATCH_SIZE, TOKEN_REVIEW_DATE, type StockToken } from './tokens';
 import { POOL_POLICY_VERSION } from './stock-pools';
@@ -59,8 +59,10 @@ export async function readMarketOverview(
   env: MarketEnvironment,
   tokens: readonly StockToken[],
   registry: RegistryStatus,
+  scope?: 'backpack',
 ) {
-  const partitions = marketPartitions(tokens);
+  const selected = scope ? tokens.filter(t => t.issuer === scope) : tokens;
+  const partitions = marketBatches(tokens, selected);
   const keys = (await Promise.all(partitions.map(async (batch) => {
     const suffix = TOKEN_REVIEW_DATE + ':' + await tokenBatchKey(batch);
     return ['llama-prices-v3:', 'solana-supplies-v4:', 'llama-history-v1:', `dex-pools-${POOL_POLICY_VERSION}:`]
@@ -76,5 +78,22 @@ export async function readMarketOverview(
     readMarketGlobals(env, tokens, true, saved),
     circulationSnapshot(env.DB, () => {}, Date.now(), fetch, true),
   ]);
-  return { ...mergeMarketPages(pages, true), ...globals, circulation, registry, totalBatches: partitions.length };
+  const overview = { ...mergeMarketPages(pages, true), ...globals, circulation, registry, totalBatches: partitions.length };
+  return scope ? backpackOverview(overview, selected) : overview;
+}
+
+// Filter both observations and their timestamps. Never renumber canonical cache partitions.
+function backpackOverview(data: import('./market-data').MarketOverview, tokens: readonly StockToken[]): import('./market-data').MarketOverview {
+  const symbols = new Set(tokens.map(t => t.symbol));
+  function source<T>(value: import('./market-data').SourceResult<Record<string, T>>) {
+    const pick = <V>(record: Record<string, V>) => Object.fromEntries(Object.entries(record).filter(([symbol]) => symbols.has(symbol)));
+    return { ...value, data: value.data ? pick(value.data) : null, ...(value.asOf ? { asOf: pick(value.asOf) } : {}) };
+  }
+  return {
+    registry: data.registry, totalBatches: data.totalBatches,
+    prices: source(data.prices), supplies: source(data.supplies), pools: source(data.pools), markets: source(data.markets),
+    ...(data.history ? { history: source(data.history) } : {}),
+    ...(data.backpack ? { backpack: source(data.backpack) } : {}),
+    catalog: { ...data.catalog, data: data.catalog.data?.filter(t => symbols.has(t.symbol)) ?? null },
+  };
 }

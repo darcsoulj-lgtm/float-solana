@@ -7,7 +7,7 @@ export function localMarketPreview() {
     configureServer(server) {
       server.middlewares.use(async (req, res, next) => {
         const url = new URL(req.url || '/', 'http://localhost');
-        if (req.method !== 'GET' || !['/api/market-data', '/api/issuer-holders'].includes(url.pathname)) return next();
+        if (req.method !== 'GET' || !['/api/market-data', '/api/backpack-market', '/api/issuer-holders'].includes(url.pathname)) return next();
         const key = url.pathname + url.search;
         try {
           let saved = cache.get(key);

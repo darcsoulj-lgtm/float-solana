@@ -1,0 +1,23 @@
+// Read-only smoke check. No wallet, session, mutation or load generation.
+import assert from 'node:assert/strict';
+const origin=process.env.FLOAT_SMOKE_ORIGIN || 'https://joinfloat.xyz';
+assert.match(origin,/^https?:\/\//);
+const headers={'User-Agent':'Mozilla/5.0 (compatible; FloatHolderCensus/1.0; +https://joinfloat.xyz)'};
+const started=Date.now();
+const r=await fetch(new URL('/api/backpack-market',origin),{headers,signal:AbortSignal.timeout(25000)});
+assert.equal(r.status,200,'Public Backpack data unavailable');
+const body=await r.text(),data=JSON.parse(body);
+assert.ok(body.length<400000,'Backpack response unexpectedly large');
+assert.match(r.headers.get('cache-control')||'',/public/);
+assert.equal(r.headers.get('set-cookie'),null);
+assert.equal(data.ondoVolume,undefined);
+assert.equal(data.valuations,undefined);
+const observations=Object.values(data.backpack?.data||{});
+assert.ok(observations.length>0,'No Backpack stock references');
+const at=data.backpack?.fetchedAt;
+assert.ok(Number.isFinite(at) && at<=Date.now()+60000 && Date.now()-at<24*3600000,'Backpack references older than display limit');
+const threads=await fetch(new URL('/api/community/threads',origin),{headers,signal:AbortSignal.timeout(25000)});
+assert.equal(threads.status,200,'Public discussions unavailable');
+const text=await threads.text();
+assert.doesNotMatch(text,/"(?:wallet_hash|session_hash|raw_amount|attachment_json)"\s*:/,'Private fields in public discussions');
+console.log(JSON.stringify({ok:true,bytes:Buffer.byteLength(body),references:observations.length,referenceAgeMinutes:Math.round((Date.now()-at)/60000),elapsedMs:Date.now()-started}));

@@ -17,6 +17,7 @@ config.r2_buckets = [];
 config.triggers = { crons: ['* * * * *'] };
 config.services = [{ binding: 'MARKET_REFRESH', service: 'float-solana', entrypoint: 'MarketRefresh' }];
 config.vars = { ...config.vars, MARKET_SCHEDULED: '1' };
+config.ratelimits = [{ name: 'MARKET_READ_LIMITER', namespace_id: '1001', simple: { limit: 120, period: 60 } }];
 config.ai = { binding: 'AI' };
 
 await writeFile(deployConfig, JSON.stringify(config));

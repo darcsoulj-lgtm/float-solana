@@ -166,3 +166,27 @@ void test('a repeated throttle stops after one retry and abort prevents retry', 
     } finally {Date.now=realNow;raw.close();}
   }
 });
+
+void test('Backpack overview preserves canonical cache keys and prices but excludes other issuers', async () => {
+  const {raw,d1,stats} = database();
+  const observed = Date.now() - 1000;
+  for (const batch of api.marketPartitions(api.TOKENS)) {
+    const key = api.TOKEN_REVIEW_DATE + ':' + await api.tokenBatchKey(batch);
+    raw.prepare('INSERT INTO market_cache VALUES (?,?,?,0)').run('llama-prices-v3:' + key,
+      JSON.stringify(Object.fromEntries(batch.map(t => [t.symbol, {price: 12, confidence: 1, timestamp: observed}]))), observed);
+  }
+  const registry = {additions: [], checkedAt: observed, refreshing: false, delayed: false};
+  const all = await api.readMarketOverview({DB:d1}, api.TOKENS, registry);
+  const scoped = await api.readMarketOverview({DB:d1}, api.TOKENS, registry, 'backpack');
+  const wanted = api.TOKENS.filter(t => t.issuer === 'backpack').map(t => t.symbol).sort();
+  assert.deepEqual(Object.keys(scoped.prices.data).sort(), wanted);
+  assert.deepEqual(Object.keys(scoped.prices.asOf).sort(), wanted);
+  for (const symbol of wanted) assert.deepEqual(scoped.prices.data[symbol], all.prices.data[symbol]);
+  assert.equal(scoped.prices.fetchedAt, observed);
+  assert.equal(scoped.ondoVolume, undefined);
+  assert.equal(scoped.valuations, undefined);
+  assert.equal(scoped.circulation, undefined);
+  assert.ok(scoped.totalBatches < all.totalBatches);
+  assert.equal(stats().writes, 0);
+  raw.close();
+});

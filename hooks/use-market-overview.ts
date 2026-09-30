@@ -8,34 +8,41 @@ import { MARKET_REFRESH_MS, type MarketOverview } from '@/lib/market-data';
 
 // Public market data only. Share one in-flight request across Home/Markets.
 // Provider refreshes are owned by the server's schedule, never by this hook.
-let snapshot: MarketOverview | null = null;
-const listeners = new Set<() => void>();
-const publish = (value: MarketOverview) => {
-  snapshot = value;
-  for (const notify of listeners) notify();
-};
-const subscribe = (notify: () => void) => {
-  listeners.add(notify);
-  try {
-    if (!snapshot) {
-      const restored = savedMarketPages(window.localStorage, 1)[0];
-      if (restored) publish(restored);
-    }
-  } catch { /* Storage is optional. */ }
-  return () => { listeners.delete(notify); };
-};
-let inflight: Promise<MarketOverview> | undefined;
-function readOverview() {
-  if (!inflight) inflight = api<MarketOverview>('market-data?overview=1')
-    .finally(() => { inflight = undefined; });
-  return inflight;
+function createStore(backpack: boolean) {
+  let snapshot: MarketOverview | null = null;
+  let inflight: Promise<MarketOverview> | undefined;
+  const listeners = new Set<() => void>();
+  const storageIndex = backpack ? 1000 : 0;
+  const publish = (value: MarketOverview) => { snapshot = value; for (const notify of listeners) notify(); };
+  return {
+    getSnapshot: () => snapshot,
+    publish,
+    subscribe: (notify: () => void) => {
+      listeners.add(notify);
+      try {
+        if (!snapshot) {
+          const restored = savedMarketPages(window.localStorage, 1, storageIndex)[0];
+          if (restored) publish(restored);
+        }
+      } catch { /* Storage is optional. */ }
+      return () => { listeners.delete(notify); };
+    },
+    read: () => {
+      if (!inflight) inflight = api<MarketOverview>(backpack ? 'backpack-market' : 'market-data?overview=1')
+        .finally(() => { inflight = undefined; });
+      return inflight;
+    },
+    save: (value: MarketOverview) => saveMarketPage(window.localStorage, storageIndex, value),
+  };
 }
+const allStore = createStore(false), backpackStore = createStore(true);
 export function useMarketOverview(
   _holdings: string[],
   refresh: number,
-  _scope: 'all' | 'holdings' | IssuerId = 'all',
+  scope: 'all' | 'holdings' | IssuerId = 'all',
 ) {
-  const data = useSyncExternalStore(subscribe, () => snapshot, () => null);
+  const store = scope === 'backpack' ? backpackStore : allStore;
+  const data = useSyncExternalStore(store.subscribe, store.getSnapshot, () => null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   useEffect(() => {
@@ -46,12 +53,12 @@ export function useMarketOverview(
       lastStarted = Date.now();
       setBusy(true);
       try {
-        const next = await readOverview();
+        const next = await store.read();
         if (!active) return;
-        retainRefreshingSources(next, snapshot ?? undefined);
-        publish(next);
+        retainRefreshingSources(next, store.getSnapshot() ?? undefined);
+        store.publish(next);
         setError('');
-        try { saveMarketPage(window.localStorage, 0, next); } catch { /* Storage is optional. */ }
+        try { store.save(next); } catch { /* Storage is optional. */ }
       } catch {
         if (active) setError('Could not refresh. Showing the last available data.');
       } finally {
@@ -72,6 +79,6 @@ export function useMarketOverview(
       window.removeEventListener('focus', wake);
       window.removeEventListener('online', wake);
     };
-  }, [refresh]);
+  }, [refresh, store]);
   return { data, busy, error };
 }

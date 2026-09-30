@@ -28,3 +28,13 @@ void test('a reload restores only public, dated market observations', () => {
   assert.equal(restored.holdings, undefined);
   assert.equal([...values.values()][0].includes('private-wallet'), false);
 });
+
+void test('Backpack and full-universe snapshots cannot overwrite each other', () => {
+  const values = new Map();
+  const storage = {getItem: k => values.get(k) ?? null, setItem: (k,v) => values.set(k,v), removeItem: k => values.delete(k)};
+  const page = symbol => ({prices:{data:{[symbol]:{price:1}},fetchedAt:Date.now()},supplies:{data:{}},pools:{data:{}}});
+  saveMarketPage(storage,0,page('NVDAx'));
+  saveMarketPage(storage,1000,page('MU'));
+  assert.deepEqual(Object.keys(savedMarketPages(storage,1)[0].prices.data),['NVDAx']);
+  assert.deepEqual(Object.keys(savedMarketPages(storage,1,1000)[0].prices.data),['MU']);
+});

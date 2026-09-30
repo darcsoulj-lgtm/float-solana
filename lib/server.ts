@@ -5,6 +5,7 @@ import { AppError } from './validation';
 export const runtime = () =>
   env as unknown as {
     DB: D1Database;
+    MARKET_READ_LIMITER?: { limit(input: {key: string}): Promise<{success: boolean}> };
     AI?: Ai;
     MARKET_SCHEDULED?: string;
     AVATARS?: R2Bucket;
