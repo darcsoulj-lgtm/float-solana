@@ -1,0 +1,145 @@
+{
+  "environment": "Cloudflare staging APAC D1 / synthetic data / real routes / outbound providers disabled",
+  "startedAt": "2026-09-30T06:48:04.942Z",
+  "fixtures": {
+    "members": 50,
+    "rooms": 20,
+    "posts": 1000
+  },
+  "workloads": [
+    {
+      "name": "authenticated-home-rooms",
+      "concurrency": 10,
+      "requests": 20,
+      "journeyMs": {
+        "p50": 1441.2903339999998,
+        "p95": 2486.096875,
+        "p99": 2486.096875,
+        "max": 2486.096875
+      },
+      "colo": [
+        "DFW",
+        "SJC",
+        "ATL",
+        "PDX"
+      ],
+      "d1": {
+        "statements": 100,
+        "rowsRead": 349,
+        "rowsWritten": 0
+      }
+    },
+    {
+      "name": "authenticated-home-rooms",
+      "concurrency": 25,
+      "requests": 50,
+      "journeyMs": {
+        "p50": 1625.302834,
+        "p95": 1909.9450419999994,
+        "p99": 1945.8847080000005,
+        "max": 1945.8847080000005
+      },
+      "colo": [
+        "DFW",
+        "SJC",
+        "ATL",
+        "MXP",
+        "DUS",
+        "PDX",
+        "DUB"
+      ],
+      "d1": {
+        "statements": 250,
+        "rowsRead": 874,
+        "rowsWritten": 0
+      }
+    },
+    {
+      "name": "authenticated-home-rooms",
+      "concurrency": 50,
+      "requests": 100,
+      "journeyMs": {
+        "p50": 1475.8831249999994,
+        "p95": 2353.943333,
+        "p99": 2731.416541999999,
+        "max": 2731.416541999999
+      },
+      "colo": [
+        "DFW",
+        "SJC",
+        "ATL",
+        "MXP",
+        "DUB",
+        "DUS",
+        "PDX",
+        "DEN"
+      ],
+      "d1": {
+        "statements": 500,
+        "rowsRead": 1749,
+        "rowsWritten": 0
+      }
+    },
+    {
+      "name": "warm-public-market",
+      "concurrency": 10,
+      "requests": 10,
+      "latencyMs": {
+        "p50": 673.9841660000002,
+        "p95": 1125.344167000001,
+        "p99": 1125.344167000001,
+        "max": 1125.344167000001
+      },
+      "hits": 1,
+      "d1": {
+        "statements": 27,
+        "rowsRead": 153,
+        "rowsWritten": 0
+      }
+    },
+    {
+      "name": "warm-public-market",
+      "concurrency": 25,
+      "requests": 25,
+      "latencyMs": {
+        "p50": 507.3386249999985,
+        "p95": 1092.6816249999993,
+        "p99": 1096.5564169999998,
+        "max": 1096.5564169999998
+      },
+      "hits": 25,
+      "d1": {
+        "statements": 0,
+        "rowsRead": 0,
+        "rowsWritten": 0
+      }
+    },
+    {
+      "name": "warm-public-market",
+      "concurrency": 50,
+      "requests": 50,
+      "latencyMs": {
+        "p50": 300.4098749999994,
+        "p95": 1086.6005829999995,
+        "p99": 1372.8450000000012,
+        "max": 1372.8450000000012
+      },
+      "hits": 49,
+      "d1": {
+        "statements": 3,
+        "rowsRead": 17,
+        "rowsWritten": 0
+      }
+    }
+  ],
+  "cold": {
+    "ms": 733.0620829999989,
+    "bytes": 14037,
+    "cache": "MISS",
+    "d1": {
+      "statements": 3,
+      "rowsRead": 17,
+      "rowsWritten": 0
+    }
+  }
+}

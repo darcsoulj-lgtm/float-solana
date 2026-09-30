@@ -1,0 +1,19 @@
+{
+  "checkedAt": "2026-09-30T06:52:03.311Z",
+  "statuses": [
+    200,
+    200,
+    200
+  ],
+  "referenceAgeMinutes": 0.8117333333333333,
+  "marketSummaryAgeMinutes": 0.8286666666666667,
+  "holderAgeHours": 23.900938611111112,
+  "pools": {
+    "observations": 68,
+    "olderThan24h": 29,
+    "oldestHours": 90.99406722222223
+  },
+  "knownIssues": [
+    "Legacy pool-source coverage is stale; Backpack reference and market-summary sources are monitored separately."
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "verifiedAt": "2026-09-30T06:52:00.213685+00:00",
+  "tables": 37,
+  "rows": 644,
+  "allRowsEqualAfterRemoteImport": true,
+  "allRowsEqualAfterTimeTravel": true,
+  "syntheticMarkerRemoved": true,
+  "foreignKeyErrors": 0,
+  "integrity": "ok",
+  "productionRestored": false,
+  "ordinaryExportImportFailed": "D1_RESET_DO",
+  "workaround": "Create all tables first, insert in foreign-key order, bound cached payload statements, then recreate indexes and triggers"
+}
