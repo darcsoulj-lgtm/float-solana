@@ -1,6 +1,6 @@
-import unittest,base64
+import unittest,base64,json,tempfile,pathlib
 from unittest.mock import patch
-from collect import parse_accounts,collect_batch,collect_issuer,scope_hash,validate_registry,decode58,ProviderError
+from collect import parse_accounts,collect_batch,collect_issuer,scope_hash,validate_registry,decode58,ProviderError,main
 MINT='MUxEsUKSMACyw5fZf68wxf5FLnZVhtU9CwH8uNNGay1';PROGRAM='TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
 def account(key,owner,amount,state=1):
  b=bytearray(109);b[:32]=decode58(MINT);b[32:64]=bytes([owner])*32;b[64:72]=amount.to_bytes(8,'little');b[108]=state
@@ -28,6 +28,16 @@ class Tests(unittest.TestCase):
   with patch('collect.collect_batch',side_effect=[{MINT:({b'a'},1,2)},{'other':({b'a',b'b'},3,4)}]):
    result=collect_issuer(None,scope);self.assertEqual(result['wallets'],2);self.assertEqual(result['tokens'],2)
   with patch('collect.collect_batch',return_value={}):self.assertIsNone(collect_issuer(None,scope))
+ def test_daily_collection_only_refreshes_backpack(self):
+  rows=[{'issuer':issuer,'wallets':1,'tokens':1,'registryHash':issuer,'startedAt':1,'checkedAt':2} for issuer in ['backpack','xstocks','ondo']]
+  scopes=[{'issuer':r['issuer'],'registryHash':r['registryHash']} for r in rows]
+  with tempfile.TemporaryDirectory() as directory:
+   previous=pathlib.Path(directory)/'previous.json';output=pathlib.Path(directory)/'next.json'
+   previous.write_text(json.dumps({'issuers':rows}))
+   with patch('sys.argv',['collect','--previous',str(previous),'--output',str(output)]),patch('collect.registry_url',return_value=scopes),patch('collect.collect_issuer',return_value={**rows[0],'checkedAt':3}) as collect:
+    main()
+   self.assertEqual(collect.call_count,1);self.assertEqual(collect.call_args.args[1]['issuer'],'backpack')
+   saved=json.loads(output.read_text())['issuers'];self.assertEqual(saved[1:],rows[1:]);self.assertEqual(saved[0]['checkedAt'],3)
  def test_bad_registry(self):
   with self.assertRaises(ValueError):validate_registry({'version':1,'issuers':[]})
 if __name__=='__main__':unittest.main()

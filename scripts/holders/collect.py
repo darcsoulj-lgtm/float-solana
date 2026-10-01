@@ -99,6 +99,8 @@ def main():
  p=argparse.ArgumentParser();p.add_argument('--registry-url',default='https://joinfloat.xyz/api/issuer-holders/registry');p.add_argument('--rpc',default='https://api.mainnet-beta.solana.com');p.add_argument('--previous',default='public/data/issuer-holders.json');p.add_argument('--output',required=True);args=p.parse_args()
  scopes=registry_url(args.registry_url);previous=json.loads(pathlib.Path(args.previous).read_text());old={r['issuer']:r for r in previous['issuers']};client=Client(args.rpc);fresh={}
  for scope in scopes:
+  # Keep the aggregate schema/history, but collect only the active product scope.
+  if scope['issuer'] != 'backpack':continue
   row=collect_issuer(client,scope)
   if row:fresh[scope['issuer']]=row
   else:print('::warning::Incomplete '+scope['issuer']+' scan; retaining prior observation',flush=True)

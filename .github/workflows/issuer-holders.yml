@@ -3,9 +3,6 @@ on:
   schedule:
     - cron: '17 1 * * *'
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths: ["scripts/holders/**", ".github/workflows/issuer-holders.yml"]
 permissions:
   contents: read
 concurrency:
@@ -36,7 +33,7 @@ jobs:
           except urllib.error.HTTPError as e:
               if e.code != 404: raise
           PY
-      - name: Collect and reconcile complete issuer observations
+      - name: Collect and reconcile Backpack observation
         run: python3 scripts/holders/collect.py --output work/issuer-holders.json
       - name: Publish aggregate only
         env:
