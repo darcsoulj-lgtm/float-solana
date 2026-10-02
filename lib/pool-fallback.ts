@@ -33,6 +33,7 @@ export async function collectPoolFallbacks(options: {
   mode?: 'refresh' | 'discovery';
   discoveryObserved?: (mint: string, now: number) => Promise<void>;
   recent?: readonly Pool[];
+  observation?: (provider: PoolProvider, token: StockToken, pools: Pool[]) => Promise<void>;
 }) {
   const { tokens, verified, known, detailMints, request } = options;
   if (known.some(p => !p.baseMint || !p.quoteMint)) throw Error('Unverified legacy pool identity');
@@ -82,9 +83,12 @@ export async function collectPoolFallbacks(options: {
       });
       for (const [symbol, pools] of Object.entries(data)) {
         const valid = pools.filter(p => !p.unavailable);
+        const current=valid.map(p=>({...p,source:'dexscreener' as const,observedAt:now}));
         candidates[symbol] = [...(candidates[symbol] ?? []),
-          ...valid.map(p => ({ ...p, source: 'dexscreener' as const, observedAt: now }))];
+          ...current];
         if (valid.length) observed.add(symbol);
+        const token=tokens.find(t=>t.symbol===symbol);
+        if(token&&current.length)await options.observation?.('dexscreener',token,current);
       }
     } catch (error) { await primaryFailure(error); }
   })();
@@ -109,6 +113,8 @@ export async function collectPoolFallbacks(options: {
       for (const [symbol, pools] of Object.entries(parsed)) {
         candidates[symbol] = [...(candidates[symbol] ?? []), ...pools];
         if (pools.length) observed.add(symbol);
+        const token=scope.find(t=>t.symbol===symbol);
+        if(token&&pools.length)await options.observation?.(provider,token,pools);
       }
       if (provider === 'geckoterminal' && url.includes('/tokens/') && scope.length === 1)
         await options.discoveryObserved?.(scope[0].mint, Date.now());

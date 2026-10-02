@@ -7,7 +7,7 @@ def api(path,method='GET',data=None):
 if api('').get('private'):raise SystemExit('Public-repository-only zero-cost workflow')
 root=pathlib.Path('work/market-snapshot'); manifest=json.loads((root/'pending.json').read_text())
 entries=[]
-for path in [root/'state.json',*[root/'chunks'/(h+'.json') for h in manifest['chunks']]]:
+for path in [root/'state.json',root/'verification.json',*[root/'chunks'/(h+'.json') for h in manifest['chunks']]]:
     blob=api('/git/blobs','POST',{'content':base64.b64encode(path.read_bytes()).decode(),'encoding':'base64'})
     entries.append({'path':str(path.relative_to(root)),'mode':'100644','type':'blob','sha':blob['sha']})
 tree=api('/git/trees','POST',{'tree':entries})
@@ -21,4 +21,11 @@ except urllib.error.HTTPError as error:
     if error.code!=404:raise
     api('/git/refs','POST',{'ref':'refs/heads/'+branch,'sha':head['sha']})
 else:api('/git/refs/heads/'+branch,'PATCH',{'sha':head['sha'],'force':True})
+if os.environ.get('GITHUB_STEP_SUMMARY'):
+    report=json.loads((root/'verification.json').read_text())
+    health=report['health']
+    with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as f:
+        f.write('Public pool reconciliation: '+str(sum(h['status']=='healthy' for h in health))+'/'+str(len(health))+' markets fresh.\n\n')
+        for h in health:
+            if h['status']!='healthy':f.write('- '+h['symbol']+': '+h['status']+'; missing '+str(len(h['missing']))+', retained '+str(len(h['retained']))+', stale '+str(len(h['stale']))+' pools. Recovery remains scheduled.\n')
 print('Published immutable public market snapshot: '+str(len(manifest['chunks']))+' chunks')

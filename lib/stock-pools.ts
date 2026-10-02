@@ -106,5 +106,5 @@ export function poolMetrics(input: readonly Pool[]) {
     // A zero subset cannot establish a zero total when other pools are unknown.
     return total === 0 && incomplete ? null : total;
   };
-  return { pools, partial: input.some(p => p.unavailable || p.volumeDisputed || p.volume24h == null || !Number.isFinite(p.volume24h) || p.volume24h < 0), volume24h: sum('volume24h'), liquidity: sum('liquidity') };
+  return { pools, partial: input.some(p => p.unavailable || p.delayed || p.volumeDisputed || p.volume24h == null || !Number.isFinite(p.volume24h) || p.volume24h < 0), volume24h: sum('volume24h'), liquidity: sum('liquidity') };
 }

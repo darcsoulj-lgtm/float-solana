@@ -57,6 +57,7 @@ export type Pool = {
   change24h: number | null;
   liquidity: number | null;
   volume24h: number | null;
+  delayed?: boolean;
   url: string;
   side?: 'base' | 'quote';
   baseMint?: string;

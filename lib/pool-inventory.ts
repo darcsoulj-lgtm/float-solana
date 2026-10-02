@@ -3,6 +3,7 @@ import type { CacheRow } from './market-cache';
 import { poolObservations, type PoolObservations } from './pool-observations';
 import type { StockToken } from './tokens';
 import { POOL_POLICY_VERSION } from './stock-pools';
+import { poolObservationTime } from './pool-reconciliation';
 
 const key = (token: StockToken) => `pool-inventory-${POOL_POLICY_VERSION}:${token.mint}`;
 // Private collector state: identities only. Discovery must never give old
@@ -37,7 +38,7 @@ export function overlayTokenPools(previous: PoolObservations, tokens: readonly S
       const pools: unknown = JSON.parse(row.payload);
       if (!Array.isArray(pools)) continue;
       data[token.symbol] = pools;
-      asOf[token.symbol] = row.fetched_at;
+      asOf[token.symbol] = poolObservationTime(pools,Math.min(row.fetched_at,now));
     } catch { /* Retain the previous verified observation. */ }
   }
   return poolObservations({kind:'pool-observations-v1', data, asOf}, null);

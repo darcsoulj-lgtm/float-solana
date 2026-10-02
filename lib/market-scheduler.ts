@@ -1,4 +1,5 @@
 import { syncMarketChunk, type SnapshotChunkJob } from './market-snapshot-sync';
+import { recordPoolEvidence, readPoolEvidence, retainPoolValues } from './pool-reconciliation';
 import { readPoolInventory, rememberPoolInventory, poolObservationKey, saveTokenPoolObservation } from './pool-inventory';
 import { collectPoolFallbacks } from './pool-fallback';
 import { poolProviderRequest } from './pool-provider-fetch';
@@ -104,6 +105,7 @@ export async function runPoolChunk(env: MarketEnvironment, mints: string[], mode
       .bind('provider-cooldown:dexscreener').first<{retry_after:number}>();
     const known = [...new Map(knownPools.map(p => [p.address, p])).values()];
     const data = await collectPoolFallbacks({tokens, verified:stocks.filter(t=>t.issuer==='backpack'),known, mode, recent,
+      observation: (provider,token,pools)=>recordPoolEvidence(env.DB,token,provider,pools,Date.now()),
       detailMints:mode === 'discovery' ? mints : [], dexAvailable:!(cooldown && cooldown.retry_after>Date.now()),
       primary:pacedMarketFetch(retryLimitedMarketFetch(env.DB,bounded,primaryDeadline),1000),
       request:poolProviderRequest(env.DB,fetch,deadline),
@@ -117,6 +119,8 @@ export async function runPoolChunk(env: MarketEnvironment, mints: string[], mode
         ).bind('provider-cooldown:dexscreener',Date.now()+error.retryAfterMs).run();
       },
     });
+    if(mode==='refresh')for(const token of tokens)if(data[token.symbol])
+      data[token.symbol]=retainPoolValues(data[token.symbol],[...known,...await readPoolEvidence(env.DB,token)],token,Date.now());
     for (const token of tokens) if (data[token.symbol]?.length)
       await rememberPoolInventory(env.DB, token, data[token.symbol], Date.now());
     if (mode === 'discovery') for (const token of tokens) if (data[token.symbol]?.length)
@@ -203,8 +207,7 @@ export async function runMarketJob(env: MarketEnvironment & { MARKET_REFRESH: Ma
     if (job.kind === 'pool-refresh') {
       const registry = await backpackRegistry(env.DB, () => {}, env.SOLANA_RPC_URL, fetch, Date.now(), true);
       for (const token of registryTokens(registry)) if (token.issuer === 'backpack' && job.mints.includes(token.mint) && result.data[token.symbol])
-        await saveTokenPoolObservation(env.DB, token, result.data[token.symbol],
-          Math.min(Date.now(), ...result.data[token.symbol].flatMap(p => !p.unavailable && p.observedAt ? [p.observedAt] : [])));
+        await saveTokenPoolObservation(env.DB, token, result.data[token.symbol], Date.now());
     }
     return;
   }

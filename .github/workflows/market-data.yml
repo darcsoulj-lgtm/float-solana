@@ -31,6 +31,8 @@ jobs:
       - name: Compile the shared collector without application dependencies
         run: npx --yes esbuild@0.25.12 scripts/market/collect.ts --bundle --platform=node --format=esm --outfile=/tmp/float-market-collector.mjs
       - name: Collect verified listings and pool observations
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: node /tmp/float-market-collector.mjs
       - name: Publish public snapshot only
         env:

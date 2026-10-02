@@ -31,7 +31,7 @@ export function poolSource(source: SourceResult<SavedPools>, now = Date.now()): 
   return { ...source, data: saved.data, asOf: saved.asOf,
     fetchedAt: times.length ? Math.min(...times) : source.fetchedAt,
     stale: source.stale || !current.length,
-    error: current.length < times.length || Object.values(saved.data).some(pools => pools.some(pool => pool.unavailable || pool.volumeDisputed))
+    error: current.length < times.length || Object.values(saved.data).some(pools => pools.some(pool => pool.unavailable || pool.delayed || pool.volumeDisputed))
       ? 'Some pool observations could not be refreshed.' : source.error };
 }
 

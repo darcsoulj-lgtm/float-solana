@@ -1,0 +1,28 @@
+name: Public market publication check
+on:
+  workflow_run:
+    workflows: [Backpack market collection]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: market-publication-check
+  cancel-in-progress: false
+jobs:
+  verify:
+    if: github.event.repository.private == false && (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - name: Verify immutable collection reached the public site
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/market/verify-public.mjs

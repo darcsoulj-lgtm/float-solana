@@ -56,16 +56,16 @@ try{
  const publicData=await read();const pools=publicData.body.pools.data.DRAM;
  assert.ok(pools.find(p=>p.address==='AoFqHa5Mm7GDD81S9P69ibtUuLBZa2JpDZH3jz3YcXCr').volume24h>0);
  assert.ok(api.poolMetrics(pools).volume24h>42);assert.ok(publicData.body.pools.asOf.DRAM>observed);
- const saved=await db.prepare('SELECT fetched_at FROM market_cache WHERE key=?').bind(api.poolObservationKey(dram)).first();assert.equal(saved.fetched_at,publicData.body.pools.asOf.DRAM);
+ const saved=await db.prepare('SELECT fetched_at FROM market_cache WHERE key=?').bind(api.poolObservationKey(dram)).first();assert.ok(saved.fetched_at>=publicData.body.pools.asOf.DRAM);
  assert.ok(publicData.body.pools.asOf.DRAM<=Date.now());
  await db.prepare("DELETE FROM market_cache WHERE key LIKE 'pool-discovery-values:%' OR key LIKE 'provider-cooldown:%' OR key LIKE 'pool-request-slot:%'").run();
  mode='missing';const partial=await job('pool-refresh');assert.equal(partial.status,200);
- const missing=await read();const absent=missing.body.pools.data.DRAM.find(p=>p.address==='AoFqHa5Mm7GDD81S9P69ibtUuLBZa2JpDZH3jz3YcXCr');assert.equal(absent.unavailable,true);assert.equal(absent.volume24h,null);assert.ok(api.poolMetrics(missing.body.pools.data.DRAM).partial);
+ const missing=await read();const absent=missing.body.pools.data.DRAM.find(p=>p.address==='AoFqHa5Mm7GDD81S9P69ibtUuLBZa2JpDZH3jz3YcXCr');assert.equal(absent.delayed,true);assert.ok(absent.volume24h>0);assert.equal(absent.observedAt,pools.find(p=>p.address===absent.address).observedAt);assert.ok(api.poolMetrics(missing.body.pools.data.DRAM).partial);
  const originalTime=Date.now();snapshotText=JSON.stringify([{key:api.poolObservationKey(dram),payload:JSON.stringify(pools),fetched_at:originalTime}]);
  const hash=createHash('sha256').update(snapshotText).digest('hex');
  const ingested=await job('snapshot',{commit:'a'.repeat(40),hash});assert.equal(ingested.status,200);
- const synced=await read();assert.equal(synced.body.pools.asOf.DRAM,originalTime);assert.ok(synced.body.pools.data.DRAM.some(p=>p.dex==='zerofi'&&p.volume24h>0));
+ const synced=await read();assert.equal(synced.body.pools.asOf.DRAM,Math.min(...pools.filter(p=>!p.unavailable&&p.observedAt).map(p=>p.observedAt)));assert.ok(synced.body.pools.data.DRAM.some(p=>p.dex==='zerofi'&&p.volume24h>0));
  const times=readings.map(r=>r.ms).sort((a,b)=>a-b);
- const report={environment:'isolated Miniflare with real WorkerEntrypoint/private RPC and D1; recorded providers',coldMs:cold.ms,warmMs:warm.ms,concurrentReaders:30,p95Ms:times[Math.ceil(times.length*.95)-1],readProviderCalls:0,failedCalls,preservedOriginalTimestamp:true,independentDiscovery:true,zerofiAutomaticRecovery:true,missingNeverZero:true,immutableSnapshotIngested:true};
+ const report={environment:'isolated Miniflare with real WorkerEntrypoint/private RPC and D1; recorded providers',coldMs:cold.ms,warmMs:warm.ms,concurrentReaders:30,p95Ms:times[Math.ceil(times.length*.95)-1],readProviderCalls:0,failedCalls,preservedOriginalTimestamp:true,independentDiscovery:true,zerofiAutomaticRecovery:true,missingNeverZero:true,partialOmissionRetainsOriginalTime:true,immutableSnapshotIngested:true};
  await mkdir('outputs',{recursive:true});await writeFile('outputs/market-scheduler-runtime.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));
 }finally{await worker.dispose();}
