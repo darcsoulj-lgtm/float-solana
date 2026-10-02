@@ -8,7 +8,7 @@ export function publicationIssues(expected, text, headers, now=Date.now()) {
   if(/"(?:wallet(?:Address|Hash)|session[^"\\]*|private[^"\\]*)"\s*:/i.test(text))issues.push('Private field in public market');
   let market;try{market=JSON.parse(text);}catch{return [...issues,'Public market JSON is invalid'];}
   if(!market?.pools?.data)return [...issues,'Public pool observations unavailable'];
-  for(const name of ['backpack','markets']){
+  for(const name of ['backpack','catalog']){
     const time=market[name]?.fetchedAt;
     if(!Number.isSafeInteger(time)||time>now+60000||now-time>15*60000)issues.push(name+' collection is not fresh');
   }

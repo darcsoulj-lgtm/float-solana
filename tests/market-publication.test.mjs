@@ -4,7 +4,7 @@ import {publicationIssues} from '../scripts/market/publication-check.mjs';
 const now=200000000,observedAt=now-120000;
 const pool={address:'pool',volume24h:500000,observedAt};
 const expected={tokens:[{symbol:'DRAM',pools:[pool]}]};
-const market={backpack:{fetchedAt:now},markets:{fetchedAt:now},pools:{data:{DRAM:[pool]}}};
+const market={backpack:{fetchedAt:now},catalog:{fetchedAt:now},pools:{data:{DRAM:[pool]}}};
 const headers=new Headers({'cache-control':'no-store'});
 const check=(value=market,h=headers)=>publicationIssues(expected,JSON.stringify(value),h,now);
 void test('independent publication check detects a collected pool omitted by a valid-looking public response',()=>{
