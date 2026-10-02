@@ -320,9 +320,23 @@ export async function collectPoolFallbacks(options: {
         [deeper],
       );
     } else {
+      // Known identity-only/conflicted pools need exact-address recovery now.
+      // Waiting for a slow primary first consumed most of the shared deadline.
+      const requested = new Set<string>();
+      const pending = uniqueKnown.filter(p => !qualifiedPoolVolume(p));
+      let batches = 0;
+      for (const batch of rotate(chunks(pending, 30), 4, cycle)) {
+        batch.forEach(pool => requested.add(pool.address));
+        batches++;
+        await collect(
+          'geckoterminal',
+          'https://api.geckoterminal.com/api/v2/networks/solana/pools/multi/' +
+            batch.map(p => p.address).join(','),
+        );
+      }
       await primary;
-      const absent = uniqueKnown.filter((p) => !available().has(p.address));
-      for (const batch of rotate(chunks(absent, 30), 4, cycle))
+      const absent = uniqueKnown.filter((p) => !requested.has(p.address) && !available().has(p.address));
+      for (const batch of rotate(chunks(absent, 30), 4 - batches, cycle))
         await collect(
           'geckoterminal',
           'https://api.geckoterminal.com/api/v2/networks/solana/pools/multi/' +
@@ -347,7 +361,7 @@ export async function collectPoolFallbacks(options: {
     refreshed: Object.keys(result).length,
     unresolved: Object.values(result)
       .flat()
-      .filter((p) => p.unavailable).length,
+      .filter((p) => !qualifiedPoolVolume(p)).length,
     disputed: Object.values(result)
       .flat()
       .filter((p) => p.volumeDisputed).length,

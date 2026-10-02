@@ -20,6 +20,7 @@ import {
   readPoolEvidence,
   reconcilePoolCoverage,
   recoveryDiscoveryQueue,
+  poolCoverageRegressions,
 } from '../../lib/pool-reconciliation';
 import type { Pool } from '../../lib/market-data';
 import { parseMarketRows } from '../../lib/market-snapshot-sync';
@@ -160,6 +161,7 @@ async function health() {
   );
 }
 const initialHealth = await health();
+const initialPools = new Map(mints.map(mint => [mint, canonical(mint)]));
 // Restore independently witnessed identities before retrying a canonical gap.
 for (const token of tokens.filter((t) => t.issuer === 'backpack'))
   await rememberPoolInventory(
@@ -264,6 +266,11 @@ for (const [batch, rows] of marketPartitions(tokens).entries())
     await runMarketJob(env, { kind: 'batch', batch });
 await runMarketJob(env, { kind: 'globals' });
 const finalHealth = await health();
+const regressions = tokens.filter(token => token.issuer === 'backpack').flatMap(token =>
+  poolCoverageRegressions(initialPools.get(token.mint) ?? [], canonical(token.mint), Date.now())
+    .map(address => ({symbol: token.symbol, address})),
+);
+if (regressions.length) console.warn('::warning::Previously verified pool volumes became unresolved: ' + JSON.stringify(regressions));
 const generatedAt = Date.now();
 const venueCoverage = poolVenueCoverage(
   tokens
@@ -291,6 +298,7 @@ const verification = {
     })),
   health: finalHealth,
   venueCoverage,
+  regressions,
 };
 await writeFile(output + '/verification.json', JSON.stringify(verification));
 const summary = {
@@ -303,6 +311,7 @@ const summary = {
   repairQueue: discoveryMints.filter((m) => priority.get(m)),
   missingPools: finalHealth.reduce((n, h) => n + h.missing.length, 0),
   retainedPools: finalHealth.reduce((n, h) => n + h.retained.length, 0),
+  regressions: regressions.length,
 };
 console.log('Pool reconciliation', JSON.stringify(summary));
 console.log('Venue coverage', JSON.stringify(venueCoverage));

@@ -152,3 +152,44 @@ void test('identity-only refresh preserves a qualified saved volume and original
     assert.equal(api.retainPoolValues([{...identity,volumeDisputed:true}], [old], token, now)[0].volume24h, null);
   }
 });
+void test('observed display sums preserve qualified amounts without declaring an incomplete total', () => {
+  const source = data => ({data, fetchedAt: now, stale: false, error: null});
+  const good = {...base, volume24h: 10000, observedAt: now};
+  const unknown = {...good, address: 'missing', volume24h: null, source: 'raydium'};
+  const market = {pools: {...source({DRAM: [good, unknown]}), asOf: {DRAM: now}}, markets: source({}), prices: source({}), supplies: source({}), catalog: source([])};
+  const display = api.displayPoolActivity(market, ['DRAM', 'AMC'], now);
+  assert.equal(display.volume24h, null);
+  assert.equal(display.observedVolume24h, 10000);
+  assert.equal(display.observedCount, 1);
+  assert.equal(display.unresolvedCount, 1);
+  assert.equal(display.missingTokenCount, 1);
+  assert.equal(display.partial, true);
+  const row = api.tokenObservation(market, 'DRAM', now);
+  assert.equal(row.poolVolume24h, null);
+  assert.equal(row.observedPoolVolume24h, 10000);
+  market.pools.data.DRAM[0].volume24h = 0;
+  assert.equal(api.displayPoolActivity(market, ['DRAM'], now).observedVolume24h, null);
+  market.pools.data.DRAM = [good, {...good, volume24h: 900000, observedAt: now - 25*3600000}];
+  assert.equal(api.displayPoolActivity(market, ['DRAM'], now).observedVolume24h, 0);
+  market.pools.data.DRAM = [{...good, volume24h: 10000, observedAt: now - 25*3600000}];
+  assert.equal(api.displayPoolActivity(market, ['DRAM'], now).observedVolume24h, null);
+});
+void test('coverage regression alerts track lost verified activity instead of every new unknown identity', () => {
+  const good = {...base, volume24h: 10000, observedAt: now};
+  const unknown = {...good, address: 'new', volume24h: null};
+  assert.deepEqual(api.poolCoverageRegressions([good], [good, unknown], now), []);
+  assert.deepEqual(api.poolCoverageRegressions([good], [{...good, volume24h: null, volumeDisputed: true}], now), [good.address]);
+  assert.deepEqual(api.poolCoverageRegressions([good], [{...good, volume24h: 0}], now), []);
+  assert.deepEqual(api.poolCoverageRegressions([{...good, observedAt: now - 25*3600000}], [], now), []);
+});
+void test('shared market pools count once, retain the newer actual timestamp and cannot turn missing markets into zero', () => {
+  const source = data => ({data, fetchedAt: now, stale: false, error: null});
+  const good = {...base, volume24h: 100, observedAt: now};
+  const market = {pools: {...source({DRAM: [good], AMC: [{...good, volume24h: 90, observedAt: now - 1000}]}), asOf: {DRAM: now, AMC: now}}, markets: source({}), prices: source({}), supplies: source({}), catalog: source([])};
+  assert.equal(api.displayPoolActivity(market, ['DRAM', 'AMC'], now).observedVolume24h, 100);
+  assert.equal(api.displayPoolActivity(market, ['DRAM', 'AMC'], now).knownCount, 1);
+  market.pools.data = {DRAM: [{...good, volume24h: 0}]};
+  assert.equal(api.displayPoolActivity(market, ['DRAM', 'AMC'], now).observedVolume24h, null);
+  market.pools.data.DRAM = [{...good, observedAt: now + 60001}];
+  assert.equal(api.displayPoolActivity(market, ['DRAM'], now).observedVolume24h, null);
+});

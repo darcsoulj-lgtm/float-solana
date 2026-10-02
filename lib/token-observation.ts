@@ -1,4 +1,4 @@
-import { poolMetrics } from './stock-pools';
+import { poolMetrics, poolDisplayMetrics } from './stock-pools';
 import { marketTokens } from './market-data';
 import { freshTokenMarket } from './cmc-data';
 import type { MarketOverview, SourceResult } from './market-data';
@@ -48,16 +48,18 @@ export function displayPoolActivity(
     }));
   });
   // A shared pool can have multiple token observations. Keep its newest one.
-  observations.sort((a, b) => a.time - b.time);
+  observations.sort((a, b) => (a.pool.observedAt ?? a.time) - (b.pool.observedAt ?? b.time));
   const unique = [...new Map(observations.map((item) => [item.pool.address, item])).values()];
-  const metrics = poolMetrics(unique.map((item) => item.pool));
+  const metrics = poolDisplayMetrics(unique.map((item) => ({...item.pool, observedAt: item.pool.observedAt ?? item.time})), now);
   const missingToken = symbols.some(symbol =>
     !lastObserved(data?.pools?.asOf?.[symbol] ?? data?.pools?.fetchedAt, now) ||
     !data?.pools?.data?.[symbol]?.length);
   return {
     ...metrics,
     volume24h: missingToken ? null : metrics.volume24h,
+    observedVolume24h: missingToken && metrics.observedVolume24h === 0 ? null : metrics.observedVolume24h,
     partial: missingToken || metrics.partial,
+    missingTokenCount: symbols.filter(symbol => !lastObserved(data?.pools?.asOf?.[symbol] ?? data?.pools?.fetchedAt, now) || !data?.pools?.data?.[symbol]?.length).length,
     saved: unique.some((item) => item.saved),
     oldestAt: unique.length ? Math.min(...unique.map((item) => item.time)) : null,
     newestAt: unique.length ? Math.max(...unique.map((item) => item.time)) : null,
@@ -256,6 +258,7 @@ export function tokenObservation(
     ? data?.supplies?.data?.[symbol]
     : undefined;
   const lastPoolMetrics = poolMetrics(oldPools);
+  const displayMetrics = poolDisplayMetrics(oldPools, now, oldPoolTime);
   return {
     symbol,
     lastCirculation,
@@ -270,6 +273,9 @@ export function tokenObservation(
     valuationUrl: valued?.source ? 'https://app.ondo.finance/' : 'https://api.llama.fi/protocol/ondo-global-markets',
     valuationSupply: issuerValue?.supply,
     poolVolume24h: metrics.volume24h,
+    observedPoolVolume24h: displayMetrics.observedVolume24h,
+    observedPoolCount: displayMetrics.observedCount,
+    knownPoolCount: displayMetrics.knownCount,
     cmcDexVolume24h: cmc?.dexVolume24h ?? null,
     onchainVolume24h: recent(data?.volumes, now, symbol)
       ? (data?.volumes?.data?.[symbol]?.usd24h ?? null)

@@ -145,3 +145,29 @@ export function poolMetrics(input: readonly Pool[]) {
     liquidity: sum('liquidity'),
   };
 }
+
+// Display an explicitly scoped observed sum without weakening the strict total
+// used by history and other calculations. Expired/future amounts never qualify.
+export function poolDisplayMetrics(input: readonly Pool[], now: number, fallbackTime?: number | null) {
+  const latest = new Map<string, Pool>();
+  for (const pool of input) {
+    const previous = latest.get(pool.address);
+    if (!previous || (pool.observedAt ?? fallbackTime ?? 0) >= (previous.observedAt ?? fallbackTime ?? 0))
+      latest.set(pool.address, pool);
+  }
+  const pools = [...latest.values()].map(pool => {
+    const time = pool.observedAt ?? fallbackTime;
+    return time && time > 0 && time <= now + 60000 && now - time <= 24 * 3600000
+      ? pool : { ...pool, volume24h: null };
+  });
+  const observed = pools.filter(qualifiedPoolVolume);
+  const total = observed.reduce((sum, pool) => sum + pool.volume24h!, 0);
+  const unresolvedCount = pools.length - observed.length;
+  return {
+    ...poolMetrics(pools),
+    observedVolume24h: observed.length && (total > 0 || unresolvedCount === 0) ? total : null,
+    observedCount: observed.length,
+    knownCount: pools.length,
+    unresolvedCount,
+  };
+}

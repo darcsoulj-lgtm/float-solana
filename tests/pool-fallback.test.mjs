@@ -339,3 +339,17 @@ void test('saved unqualified Raydium volume cannot suppress a missing-pool Gecko
  assert.ok(requested.some(url=>url.includes('/pools/multi/')&&url.includes(old.address)));
  assert.equal(result.DJT.find(p=>p.address===old.address).source,'geckoterminal');
 });
+void test('identity-only exact-pool recovery starts before a slow primary completes', async () => {
+  let release;
+  const waiting = new Promise(resolve => {release = resolve;});
+  let repaired = false;
+  const pending = api.collectPoolFallbacks({tokens: [djt], verified: api.TOKENS, known: [{...known, source: 'raydium', volume24h: null}], detailMints: [], dexAvailable: true,
+    primary: async input => {if(String(input).includes('stonkfun'))return Response.json({data:{tokens:[]}}); await waiting; throw Error('timeout');},
+    request: async (provider, url) => {if(provider === 'geckoterminal') {assert.ok(url.includes('/pools/multi/')); repaired = true; return fixture('gecko-missing');} throw Error('offline');},
+  });
+  await new Promise(resolve => setTimeout(resolve, 10));
+  assert.equal(repaired, true);
+  release();
+  const result = await pending;
+  assert.equal(result.DJT.find(pool => pool.address === known.address).source, 'geckoterminal');
+});

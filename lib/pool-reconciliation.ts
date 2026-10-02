@@ -8,6 +8,17 @@ import {
 
 export const POOL_RETAIN_MS = 24 * 3600000;
 export const POOL_HEALTH_MS = 15 * 60000;
+
+// Identity-only discoveries are coverage gaps, not lost previously verified
+// activity. Surface deterioration independently of whether publication succeeds.
+export function poolCoverageRegressions(previous: readonly Pool[], current: readonly Pool[], now: number) {
+  const served = new Map(current.map(pool => [pool.address, pool]));
+  return [...new Map(previous.map(pool => [pool.address, pool])).values()]
+    .filter(pool => qualifiedPoolVolume(pool) && validTime(pool, now) &&
+      (pool.volume24h ?? 0) >= 1000 &&
+      (!served.has(pool.address) || !qualifiedPoolVolume(served.get(pool.address)!)))
+    .map(pool => pool.address);
+}
 const evidenceKey = (mint: string, provider: PoolProvider) =>
   `pool-evidence:${provider}:${mint}`;
 const belongs = (p: Pool, token: StockToken) =>

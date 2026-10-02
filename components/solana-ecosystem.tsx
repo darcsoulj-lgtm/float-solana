@@ -80,7 +80,7 @@ export function SolanaEcosystem({
     const dashboard = displayPoolActivity(data, issuerTokens.map((token) => token.symbol), now);
     return {
       ...issuer,
-      volume: dashboard.volume24h,
+      volume: dashboard.observedVolume24h,
       liquidity: dashboard.liquidity,
       value:
         coverage.issuers.find((item) => item.id === issuer.id)?.total ?? null,
@@ -150,12 +150,13 @@ export function SolanaEcosystem({
         {issuerScope && <HoldingWallets issuer={issuerScope} compact />}
         <div>
           <span className="metric-label">
-            <span>Tracked pool volume · 24h</span>
+            <span>Observed DEX volume · 24h</span>
             <MetricInfo label="About market volume" learnMore="/data-methodology#pools">
-              24-hour trading volume from connected exchanges. A dash means a known pool or token is unresolved. Coverage may still miss trades outside tracked pools.
+              Observed 24-hour volume from verified pools, counted once. Unresolved pools are excluded; this is not complete DEX coverage.
             </MetricInfo>
           </span>
-          <strong>{usd(marketActivity.volume24h)}</strong>
+          <strong>{usd(marketActivity.observedVolume24h)}</strong>
+          {data && marketActivity.partial && <small><Link href="/data-methodology#pools">Incomplete coverage</Link></small>}
         </div>
         <div>
           <span className="metric-label">

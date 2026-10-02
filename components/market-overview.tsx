@@ -10,7 +10,7 @@ import {
   matchesAssetFilter,
   type AssetFilter,
 } from '@/lib/market-browse';
-import { poolMetrics, POOL_SCOPE } from '@/lib/stock-pools';
+import { poolDisplayMetrics, POOL_SCOPE } from '@/lib/stock-pools';
 import { marketTokens } from '@/lib/market-data';
 import { MetricInfo } from './metric-info';
 import { Fragment, useEffect, useState } from 'react';
@@ -148,7 +148,7 @@ export function MarketOverviewPanel({
         : sort.key === 'change'
           ? item.change24h
           : sort.key === 'volume'
-            ? (item.poolVolume24h ?? item.lastPoolVolume24h)
+            ? item.observedPoolVolume24h
             : sort.key === 'liquidity'
               ? (item.liquidity ?? item.lastPoolLiquidity)
               : token.issuer === 'xstocks'
@@ -258,19 +258,13 @@ export function MarketOverviewPanel({
     pools = detailedPools?.data || [],
     top = pools.find((p) => p.price !== null),
     reference = data?.prices.data?.[selected];
-  const freshDetails =
-    detailedPools &&
-    !detailedPools.stale &&
-    detailedPools.fetchedAt &&
-    now - detailedPools.fetchedAt <= 300000 &&
-    detailedPools.fetchedAt <= now + 60000;
-  const detailMetrics = poolMetrics(freshDetails ? pools : []);
+  const detailMetrics = poolDisplayMetrics(pools, now, detailedPools?.fetchedAt);
   const poolLiquidity = detailMetrics.liquidity;
   const observation = tokenObservation(data, selected, now);
   const currentDetailVolume = detailedPools
-    ? detailMetrics.volume24h
-    : observation.poolVolume24h;
-  const detailVolume = currentDetailVolume ?? observation.lastPoolVolume24h;
+    ? detailMetrics.observedVolume24h
+    : observation.observedPoolVolume24h;
+  const detailVolume = currentDetailVolume ?? observation.observedPoolVolume24h;
   const volumeTime = currentDetailVolume == null && observation.lastPoolVolume24h != null
     ? observation.lastPoolTime
     : detailedPools?.fetchedAt ?? data?.pools.asOf?.[selected] ?? data?.pools.fetchedAt;
@@ -349,6 +343,7 @@ export function MarketOverviewPanel({
             <div>
               <span title={POOL_SCOPE}>DEX volume · 24h</span>
               <strong>{money(detailVolume, true)}</strong>
+              {detailMetrics.unresolvedCount > 0 && <small>{detailMetrics.observedCount} of {detailMetrics.knownCount} pools included</small>}
               {currentDetailVolume == null && observation.lastPoolVolume24h != null && (
                 <span className="quote-delay"><MetricInfo label="Volume observation time" learnMore="/data-methodology#pools">24-hour window ending {time(observation.lastPoolTime)}.</MetricInfo></span>
               )}
@@ -761,7 +756,7 @@ export function MarketOverviewPanel({
       : (row.valuationSupply ?? row.supply?.supply);
     const displayedSupply = t.issuer === 'xstocks' ? supply : (supply ?? row.lastSupply);
     const displayedPrice = row.price ?? row.lastPrice;
-    const displayedVolume = row.poolVolume24h ?? row.lastPoolVolume24h;
+    const displayedVolume = row.observedPoolVolume24h;
     const displayedLiquidity = row.liquidity ?? row.lastPoolLiquidity;
     return (
       <Fragment key={t.symbol}>
