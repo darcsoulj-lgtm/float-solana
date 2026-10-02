@@ -51,11 +51,14 @@ try{
  const inventory=await db.prepare("SELECT payload FROM market_cache WHERE key=?").bind('pool-inventory-'+api.POOL_POLICY_VERSION+':'+dram.mint).first();
  const identities=JSON.parse(inventory.payload);assert.ok(identities.some(p=>p.address==='AoFqHa5Mm7GDD81S9P69ibtUuLBZa2JpDZH3jz3YcXCr'));assert.ok(identities.every(p=>p.volume24h===null));
  const beforeRefresh=await read();assert.equal(beforeRefresh.body.pools.asOf.DRAM,observed);
+ mode='outage';
  const refreshed=await job('pool-refresh');assert.equal(refreshed.status,200);
  const publicData=await read();const pools=publicData.body.pools.data.DRAM;
  assert.ok(pools.find(p=>p.address==='AoFqHa5Mm7GDD81S9P69ibtUuLBZa2JpDZH3jz3YcXCr').volume24h>0);
  assert.ok(api.poolMetrics(pools).volume24h>42);assert.ok(publicData.body.pools.asOf.DRAM>observed);
  const saved=await db.prepare('SELECT fetched_at FROM market_cache WHERE key=?').bind(api.poolObservationKey(dram)).first();assert.equal(saved.fetched_at,publicData.body.pools.asOf.DRAM);
+ assert.ok(publicData.body.pools.asOf.DRAM<=Date.now());
+ await db.prepare("DELETE FROM market_cache WHERE key LIKE 'pool-discovery-values:%' OR key LIKE 'provider-cooldown:%' OR key LIKE 'pool-request-slot:%'").run();
  mode='missing';const partial=await job('pool-refresh');assert.equal(partial.status,200);
  const missing=await read();const absent=missing.body.pools.data.DRAM.find(p=>p.address==='AoFqHa5Mm7GDD81S9P69ibtUuLBZa2JpDZH3jz3YcXCr');assert.equal(absent.unavailable,true);assert.equal(absent.volume24h,null);assert.ok(api.poolMetrics(missing.body.pools.data.DRAM).partial);
  const originalTime=Date.now();snapshotText=JSON.stringify([{key:api.poolObservationKey(dram),payload:JSON.stringify(pools),fetched_at:originalTime}]);

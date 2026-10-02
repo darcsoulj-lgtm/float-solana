@@ -40,7 +40,7 @@ export async function syncMarketChunk(env:MarketEnvironment,job:SnapshotChunkJob
  .bind(row.key,row.payload,row.fetched_at)));
 }
 export async function syncMarketSchedule(env:MarketEnvironment & {MARKET_REFRESH:{run(job:SnapshotChunkJob|{kind:'holders'}):Promise<void>}},fetcher:typeof fetch=fetch) {
- const manifest=parseMarketManifest(JSON.parse(await boundedText(ROOT+'market-data/manifest.json',10000,fetcher)));
+ const manifest=parseMarketManifest(JSON.parse(await boundedText(ROOT+'market-data/manifest.json?minute='+Math.floor(Date.now()/60000),10000,fetcher)));
  const prior=await env.DB.prepare('SELECT payload FROM market_cache WHERE key=?').bind(SYNC_KEY).first<{payload:string|null}>();
  if(prior?.payload===manifest.commit)return;
  let failures=0;

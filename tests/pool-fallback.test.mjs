@@ -254,7 +254,7 @@ void test('composite cache is not gated by DEX provider cooldown', async () => {
 });
 void test('a full shared provider queue makes another worker defer without a network request', async()=>{
  const {raw,db}=database();let calls=0;
- raw.prepare('INSERT INTO market_cache VALUES (?,NULL,0,?)').run('pool-request-slot:geckoterminal',Date.now()+20000);
+ raw.prepare('INSERT INTO market_cache VALUES (?,NULL,0,?)').run('pool-request-slot:geckoterminal',Date.now()+60000);
  const request=api.poolProviderRequest(db,async()=>{calls++;return Response.json({data:[]});},new AbortController().signal);
  await assert.rejects(request('geckoterminal','https://api.geckoterminal.com/api/v2/networks/solana/pools'),/queue full/);
  assert.equal(calls,0);raw.close();

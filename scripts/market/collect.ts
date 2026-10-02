@@ -18,7 +18,7 @@ const db={prepare(sql:string){return{bind(...args:(string|number|null)[]){return
 };}};}} as unknown as D1Database;
 const output='work/market-snapshot';await mkdir(output+'/chunks',{recursive:true});
 try {
- const response=await fetch('https://raw.githubusercontent.com/darcsoulj-lgtm/float-solana/market-data/state.json',{signal:AbortSignal.timeout(15000)});
+ const response=await fetch('https://raw.githubusercontent.com/darcsoulj-lgtm/float-solana/market-data/state.json?minute='+Math.floor(Date.now()/60000),{signal:AbortSignal.timeout(15000)});
  if(response.ok){const state=await response.json() as {key:string;payload:string|null;fetched_at:number;retry_after:number}[];
  if(!Array.isArray(state)||state.length>3000)throw Error('Invalid collector state');
  for(const row of state)raw.prepare('INSERT INTO market_cache VALUES (?,?,?,?)').run(row.key,row.payload,row.fetched_at,row.retry_after);
@@ -61,12 +61,13 @@ const activity=new Map(mints.map(mint=>{
 }));
 // A conservative free-provider budget; oldest successful checks win, with
 // higher observed activity breaking ties. Known values refresh for all tokens.
-const discoveryMints=prioritizePoolDiscovery(mints,checkedAt,activity).slice(0,16);
+const discoveryMints=prioritizePoolDiscovery(mints,checkedAt,activity).slice(0,8);
 // Spend the free indexer budget on missing known values before new discovery.
 // Active markets lead the queue; no symbol is hardcoded or excluded.
 const refreshMints=[...mints].sort((a,b)=>(activity.get(b)??0)-(activity.get(a)??0));
-for(let i=0;i<refreshMints.length;i+=10)try{await runMarketJob(env,{kind:'pool-refresh',mints:refreshMints.slice(i,i+10)});}catch{failures++;}
-for(let i=0;i<discoveryMints.length;i+=4)try{await runMarketJob(env,{kind:'discovery',mints:discoveryMints.slice(i,i+4)});}catch{failures++;}
+try{await runMarketJob(env,{kind:'pool-refresh',mints:refreshMints.slice(0,10)});}catch{failures++;}
+for(let i=0;i<discoveryMints.length;i+=2)try{await runMarketJob(env,{kind:'discovery',mints:discoveryMints.slice(i,i+2)});}catch{failures++;}
+for(let i=10;i<refreshMints.length;i+=10)try{await runMarketJob(env,{kind:'pool-refresh',mints:refreshMints.slice(i,i+10)});}catch{failures++;}
 for(let i=0;i<discoveryMints.length;i+=10)try{await runMarketJob(env,{kind:'pool-refresh',mints:discoveryMints.slice(i,i+10)});}catch{failures++;}
 for(const [batch,rows] of marketPartitions(tokens).entries())if(rows.some(t=>t.issuer==='backpack'))await runMarketJob(env,{kind:'batch',batch});
 await runMarketJob(env,{kind:'globals'});
