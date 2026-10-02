@@ -19,3 +19,10 @@ One ordinary external ticker GET on 2026-10-02 independently compared all 1,183 
 ## Verification
 
 Regression cases cover recorded real response shapes, positive/negative/zero/tiny and >100% returns, missing/invalid fields, conflicting units, idempotent migration of D1/browser data, timestamps, unchanged DEX percentages, and independent publication rejection of a 100x regression. Full release gate and live API/render checks are recorded after execution.
+
+## Deployed evidence
+
+- Full local release gate passed: strict types, repository lint, 565 tests and production build. GitHub release run 36992111465 on e06ba5ec6ef581c1a605857be65f2c1559565ab1 passed, including dependency audit and its tracked release suites. An older tracked cache test expected browser caching; its replacement checks no-store on MISS/HIT while preserving internal CDN caching, including Cloudflare's four-hour browser-TTL case.
+- Worker 1acbbd2c-941b-42d0-999b-76548a4d531f deployed with trading disabled. The public API converted all 69 legacy rows immediately, preserving dates.
+- New collector run 36991765545 succeeded. Independent publication comparison of immutable generation 0278ab555b0c9c57f9305b8312bc50af7e20ead2 passed on attempt 2 after normal snapshot import; zero remaining issues. All 69 public Backpack changes independently matched their public first/last price equation within rounding tolerance.
+- Live browser list showed percentage-point values, and MU detail rendered +4.82% from the new collection. Screenshot: outputs/price-change-live-2026-10-02.jpg. Compact evidence: outputs/price-change-unit-audit.json. These checks verify units and publication, not independently the underlying stock prices or complete DEX coverage.
