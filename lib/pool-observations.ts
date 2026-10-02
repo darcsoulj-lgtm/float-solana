@@ -1,3 +1,4 @@
+import { poolMetrics } from './stock-pools';
 import type { Pool, SourceResult } from './market-data';
 
 export type PoolObservations = {
@@ -30,5 +31,35 @@ export function poolSource(source: SourceResult<SavedPools>, now = Date.now()): 
   return { ...source, data: saved.data, asOf: saved.asOf,
     fetchedAt: times.length ? Math.min(...times) : source.fetchedAt,
     stale: source.stale || !current.length,
-    error: current.length < times.length ? 'Some pool observations could not be refreshed.' : source.error };
+    error: current.length < times.length || Object.values(saved.data).some(pools => pools.some(pool => pool.unavailable || pool.volumeDisputed))
+      ? 'Some pool observations could not be refreshed.' : source.error };
+}
+
+// Detail pages use the same scheduled observation as the market list. Another
+// token's missing data must not age or invalidate this token's fresh subset.
+export function tokenPoolSource(source: SourceResult<Record<string, Pool[]>>, symbol: string, now = Date.now()): SourceResult<Pool[]> {
+  const data = source.data?.[symbol] ?? null;
+  const fetchedAt = source.asOf?.[symbol] ?? source.fetchedAt;
+  const stale = !data || !fetchedAt || fetchedAt > now + 60000 || now - fetchedAt >= 300000;
+  const partial = data && poolMetrics(data).partial;
+  return { data, fetchedAt, stale, error: stale ? 'Pool data is temporarily unavailable.' : partial ? 'Some pools could not be refreshed.' : null };
+}
+
+// Independent HTTP reads can arrive out of order. Choose by observation time,
+// never by response arrival or amount; keep unknown pools in the calculation.
+export function latestTokenPoolSource(
+  overview: SourceResult<Record<string, Pool[]>> | undefined,
+  detail: SourceResult<Pool[]> | null,
+  symbol: string,
+  now = Date.now(),
+): SourceResult<Pool[]> {
+  const list = overview ? tokenPoolSource(overview, symbol, now) : null;
+  const candidates = [list, detail].filter((source): source is SourceResult<Pool[]> =>
+    !!source?.data && !!source.fetchedAt && source.fetchedAt <= now + 60000 &&
+    now - source.fetchedAt <= 24 * 60 * 60 * 1000,
+  );
+  candidates.sort((a, b) => b.fetchedAt! - a.fetchedAt!);
+  const latest = candidates[0];
+  if (!latest) return {data:null,fetchedAt:null,stale:true,error:'Pool data is temporarily unavailable.'};
+  return {...latest, stale:latest.stale || now - latest.fetchedAt! >= 300000};
 }

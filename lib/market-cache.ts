@@ -8,6 +8,13 @@ export type CacheRow = {
 // Four observations for one canonical batch use one D1 read, not four trips.
 export async function marketCacheRows(db: D1Database, keys: readonly string[]) {
   if (!keys.length) return new Map<string, CacheRow>();
+  // D1 accepts at most 100 parameters per statement, including future listings.
+  if (keys.length > 90) {
+    const rows = new Map<string, CacheRow>();
+    for (let offset = 0; offset < keys.length; offset += 90)
+      for (const [key, row] of await marketCacheRows(db, keys.slice(offset, offset + 90))) rows.set(key, row);
+    return rows;
+  }
   const result = await db
     .prepare(
       `SELECT key,payload,fetched_at,retry_after FROM market_cache WHERE key IN (${keys.map(() => '?').join(',')})`,
@@ -89,6 +96,7 @@ export async function cachedMarket<T>(
   now = Date.now(),
   savedRow?: CacheRow | null,
   leaseMs = 20000,
+  independentPoolProviders = false,
 ): Promise<SourceResult<T>> {
   const row =
     savedRow !== undefined
@@ -116,7 +124,7 @@ export async function cachedMarket<T>(
     return { data: old, fetchedAt: row.fetched_at, stale: false, error: null };
   // A provider-wide 429 must also stop the other market pages and detail reads.
   const cooldownKey =
-    key.startsWith('dex-pools-') || key.startsWith('token-pairs-')
+    !independentPoolProviders && (key.startsWith('dex-pools-') || key.startsWith('token-pairs-'))
       ? 'provider-cooldown:dexscreener'
       : key.startsWith('headlines-google-v1:')
         ? 'provider-cooldown:google-news'

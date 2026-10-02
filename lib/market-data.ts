@@ -44,6 +44,11 @@ export type BackpackMarket = {
   venueTrades: number | null;
 };
 export type Pool = {
+  // Identity-only retry record; never contributes stale measurements.
+  unavailable?: true;
+  source?: import('./pool-provider-adapters').PoolProvider;
+  observedAt?: number;
+  volumeDisputed?: true;
   createdAt?: number | null;
   address: string;
   dex: string;
@@ -413,6 +418,9 @@ export async function publicJson(
       'api.backpack.exchange',
       'api.dexscreener.com',
       'api.geckoterminal.com',
+      'api.orca.so',
+      'api-v3.raydium.io',
+      'dlmm.datapi.meteora.ag',
       'coins.llama.fi',
       'www.stonkfun.xyz',
       'rest-api.tessera.pe',
@@ -457,7 +465,7 @@ const stonkfunRegistryCache = new WeakMap<typeof fetch, {
   value: Promise<unknown>;
 }>();
 
-async function stonkfunPoolRegistry(
+export async function stonkfunPoolRegistry(
   fetcher: typeof fetch,
   verifiedStocks: readonly StockToken[],
 ): Promise<StonkfunPoolIdentity[]> {
@@ -521,49 +529,57 @@ export async function fetchPools(
   fetcher: typeof fetch = fetch,
   tokens: readonly StockToken[] = TOKENS,
   verifiedStocks: readonly StockToken[] = TOKENS,
-  refresh?: { knownPools: readonly Pool[]; detailMints: readonly string[]; isolateMissing?: boolean },
+  refresh?: { knownPools: readonly Pool[]; detailMints: readonly string[]; isolateMissing?: boolean; onFailure?: (error: unknown) => Promise<void> },
 ) {
   const official = await stonkfunPoolRegistry(fetcher, verifiedStocks);
   const batches = [];
   for (let i = 0; i < tokens.length; i += 30)
     batches.push(tokens.slice(i, i + 30));
-  const data = await Promise.all(
-    batches
-      .filter((b) => b.length)
-      .map((b) =>
-        publicJson(
-          'https://api.dexscreener.com/tokens/v1/solana/' +
-            b.map((t) => t.mint).join(','),
-          fetcher,
-        ),
-      ),
-  );
-  if (data.some((x) => !Array.isArray(x)))
-    throw new Error('Invalid pool response');
+  // Scheduled collection preserves successful independent responses. Strict
+  // interactive callers still reject incomplete snapshots.
+  let successfulRequests = 0;
+  async function attempt<T>(load: () => Promise<T>): Promise<T | undefined> {
+    try { const data = await load(); successfulRequests++; return data; }
+    catch (error) {
+      if (!refresh?.isolateMissing) throw error;
+      await refresh.onFailure?.(error);
+      return undefined;
+    }
+  }
+  const data = await Promise.all(batches.filter(b => b.length).map(b => attempt(async () => {
+    const raw = await publicJson(
+      'https://api.dexscreener.com/tokens/v1/solana/' + b.map(t => t.mint).join(','), fetcher,
+    );
+    if (!Array.isArray(raw)) throw Error('Invalid pool response');
+    return raw;
+  })));
   const exact = await exactStonkfunPairs(fetcher, tokens, official);
   const known: unknown[] = [];
   const missingAddresses = new Set<string>();
   if (refresh) {
     const addresses = [...new Set(refresh.knownPools.map(p => p.address))];
     for (let i = 0; i < addresses.length; i += 30) {
-      const raw = record(await publicJson(
-        'https://api.dexscreener.com/latest/dex/pairs/solana/' + addresses.slice(i, i + 30).join(','), fetcher,
-      ));
-      if (!Array.isArray(raw.pairs)) throw Error('Invalid known pool response');
-      // An omitted known pool is not evidence of zero trading. Retain the
-      // previous batch and timestamp instead of publishing a smaller fresh sum.
-      const returned = new Set(raw.pairs.map(p => record(p).pairAddress));
+      const raw = await attempt(async () => {
+        const response = record(await publicJson(
+          'https://api.dexscreener.com/latest/dex/pairs/solana/' + addresses.slice(i, i + 30).join(','), fetcher,
+        ));
+        if (!Array.isArray(response.pairs)) throw Error('Invalid known pool response');
+        return response.pairs;
+      });
+      if (!raw) continue;
+      // An omitted known pool is not evidence of zero trading. Keep its
+      // identity for retries, but never carry its old figures into a fresh sum.
+      const returned = new Set(raw.map(p => record(p).pairAddress));
       for (const address of addresses.slice(i, i + 30)) {
         if (!returned.has(address)) missingAddresses.add(address);
       }
-      known.push(...raw.pairs);
+      known.push(...raw);
     }
   }
-  const discovered = parsePools([...data.flat(), ...exact, ...known], tokens, verifiedStocks, official);
+  const discovered = parsePools([...data.filter(x => x !== undefined).flat(), ...exact, ...known], tokens, verifiedStocks, official);
   // Discovery is not exhaustive. Scheduled refreshes rotate full mint lookup;
   // other callers enrich every discovered token, including zero-volume pools.
-  // A failed detail refresh rejects the whole snapshot so the cache retains
-  // its previous data and timestamp. Scheduled callers split work into 30 mints.
+  // Independent failures do not erase successful observations in scheduled mode.
   const selected = tokens.filter((token) => refresh
     ? refresh.detailMints.includes(token.mint)
     : discovered[token.symbol]?.length);
@@ -571,7 +587,12 @@ export async function fetchPools(
     selected.map((token) => fetchTokenPools(token, fetcher, verifiedStocks, official, false)),
   );
   for (const [index, result] of detail.entries()) {
-    if (result.status !== 'fulfilled') throw result.reason;
+    if (result.status !== 'fulfilled') {
+      if (!refresh?.isolateMissing) throw result.reason;
+      await refresh.onFailure?.(result.reason);
+      continue;
+    }
+    successfulRequests++;
     const symbol = selected[index].symbol;
     const byAddress = new Map(
       (discovered[symbol] ?? []).map((pool) => [pool.address, pool]),
@@ -581,13 +602,22 @@ export async function fetchPools(
       (a, b) => (b.liquidity ?? -1) - (a.liquidity ?? -1),
     );
   }
+  if (!successfulRequests && !exact.length) throw Error('No successful pool responses');
   const returned = new Set(Object.values(discovered).flat().map(pool => pool.address));
   const missing = (refresh?.knownPools ?? []).filter(pool => missingAddresses.has(pool.address) && !returned.has(pool.address));
   if (missing.length && (!refresh?.isolateMissing || missing.some(pool => !pool.baseMint || !pool.quoteMint)))
     throw Error('Known pool refresh incomplete');
   for (const token of tokens) {
-    if (missing.some(pool => pool.baseMint === token.mint || pool.quoteMint === token.mint))
-      delete discovered[token.symbol];
+    const unavailable = missing.filter(pool => pool.baseMint === token.mint || pool.quoteMint === token.mint);
+    if (unavailable.length) {
+      // Preserve discovery progress and retry identities separately from values.
+      // A returning pool replaces this marker through normal parsing next cycle.
+      discovered[token.symbol] = [...(discovered[token.symbol] ?? []),
+        ...[...new Map(unavailable.map(pool => [pool.address, pool])).values()].map(pool => ({
+          ...pool, unavailable: true as const,
+          price: null, change24h: null, liquidity: null, volume24h: null,
+        }))];
+    }
   }
   return discovered;
 }

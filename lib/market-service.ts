@@ -1,3 +1,4 @@
+import { poolObservationKey, overlayTokenPools } from './pool-inventory';
 import { poolObservations, mergePoolObservations, poolSource, type SavedPools } from './pool-observations';
 import { POOL_POLICY_VERSION } from './stock-pools';
 import { cachedMarket, marketSnapshot, marketCacheRows, type CacheRow } from './market-cache';
@@ -56,6 +57,9 @@ export async function readMarketBatch(
     saved?: Map<string, CacheRow>;
   } = {},
 ) {
+  // Preserve canonical cache identities while retiring non-Backpack collection.
+  const active = tokens.filter(token => token.issuer === 'backpack');
+  if (!active.length) options = { ...options, cacheOnly: true };
   const key = TOKEN_REVIEW_DATE + ':' + (await tokenBatchKey(tokens));
   const poolPrefix = `dex-pools-${POOL_POLICY_VERSION}:`;
   const prefixes = [
@@ -66,7 +70,7 @@ export async function readMarketBatch(
   ];
   const saved = options.saved ?? await marketCacheRows(
     database,
-    prefixes.map((prefix) => prefix + key),
+    [...prefixes.map((prefix) => prefix + key), ...(options.pools === false ? [] : active.map(poolObservationKey))],
   );
   const read = <T>(prefix: string, ttl: number, loader: () => Promise<T>) =>
     options.defer || options.cacheOnly
@@ -89,27 +93,33 @@ export async function readMarketBatch(
           Date.now(),
           saved.get(prefix + key) ?? null,
           prefix === poolPrefix ? options.poolLeaseMs : undefined,
+          prefix === poolPrefix && !!options.poolLoader,
         );
   const [prices, supplies, history, pools] = await Promise.all([
     read('llama-prices-v3:', MARKET_REFRESH_MS, () =>
-      fetchPrices(options.fetcher ?? fetch, tokens),
+      fetchPrices(options.fetcher ?? fetch, active),
     ),
     read('solana-supplies-v4:', MARKET_REFRESH_MS, () =>
-      fetchSupplies(options.rpcUrl, options.fetcher ?? fetch, tokens),
+      fetchSupplies(options.rpcUrl, options.fetcher ?? fetch, active),
     ),
     options.history === false
       ? emptySource({})
       : read('llama-history-v1:', MARKET_REFRESH_MS, () =>
-          fetchHistoricalPrices(options.fetcher ?? fetch, tokens),
+          fetchHistoricalPrices(options.fetcher ?? fetch, active),
         ),
     options.pools === false
       ? emptySource({})
       : read<SavedPools>(poolPrefix, options.poolRefreshMs ?? POOL_REFRESH_MS, async () => {
           const row = saved.get(poolPrefix + key);
           const previous = poolObservations(row?.payload ? JSON.parse(row.payload) as SavedPools : null, row?.fetched_at ?? null);
-          const fresh = await (options.poolLoader?.() ?? fetchPools(options.fetcher ?? fetch, tokens, options.verifiedStocks));
+          const fresh = await (options.poolLoader?.() ?? fetchPools(options.fetcher ?? fetch, active, options.verifiedStocks?.filter(token => token.issuer === 'backpack')));
           return mergePoolObservations(previous, fresh, Date.now());
         }),
   ]);
-  return { prices, supplies, history, pools: poolSource(pools) };
+  const observations = overlayTokenPools(poolObservations(pools.data, pools.fetchedAt), active, saved, Date.now());
+  return { prices, supplies, history, pools: poolSource({...pools,
+    data: Object.keys(observations.data).length ? observations : pools.data,
+    // Per-token timestamps remain authoritative even when the legacy batch is stale.
+    stale: Object.values(observations.asOf).some(time => Date.now() - time >= POOL_REFRESH_MS),
+  }) };
 }

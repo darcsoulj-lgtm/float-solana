@@ -1,0 +1,38 @@
+name: Backpack market collection
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/market/**'
+      - '.github/workflows/market-data.yml'
+permissions:
+  contents: read
+concurrency:
+  group: backpack-market-collection
+  cancel-in-progress: false
+jobs:
+  collect:
+    # Public repository + standard runner only: no paid runner or provider subscription.
+    if: github.event.repository.private == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - name: Compile the shared collector without application dependencies
+        run: npx --yes esbuild@0.25.12 scripts/market/collect.ts --bundle --platform=node --format=esm --outfile=/tmp/float-market-collector.mjs
+      - name: Collect verified listings and pool observations
+        run: node /tmp/float-market-collector.mjs
+      - name: Publish public snapshot only
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/market/publish.py

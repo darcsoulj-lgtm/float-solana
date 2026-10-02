@@ -1,13 +1,9 @@
+import { poolObservationKey } from './pool-inventory';
 import { marketCacheRows, marketSnapshot, cachedMarket, type CacheRow } from './market-cache';
 import { marketBatches, readMarketBatch, emptySource } from './market-service';
 import { tokenBatchKey } from './backpack-registry';
 import { MARKET_BATCH_SIZE, TOKEN_REVIEW_DATE, type StockToken } from './tokens';
 import { POOL_POLICY_VERSION } from './stock-pools';
-import { CMC_REFRESH_MS, fetchTokenMarkets } from './cmc-data';
-import { ONDO_VALUE_MAX_AGE_MS } from './ondo-valuation';
-import { fetchOfficialOndoValues } from './ondo-official-valuation';
-import { fetchOndoVolume } from './ondo-volume';
-import { circulationSnapshot } from './circulation-cache';
 import type { RegistryStatus } from './token-registry';
 import {
   MARKET_MAX_AGE_MS, BACKPACK_TICKER_REFRESH_MS,
@@ -23,10 +19,7 @@ export async function marketGlobalKeys(tokens: readonly StockToken[]) {
   const suffix = await tokenBatchKey(tokens.filter((t) => t.issuer === 'backpack'));
   return {
     catalog: 'backpack-catalog-v2:' + TOKEN_REVIEW_DATE + ':' + suffix,
-    markets: 'cmc-tokens-v2',
-    ondoVolume: 'ondo-solana-primary-volume:v1',
     backpack: 'backpack-tickers-v1:' + suffix,
-    valuations: 'ondo-solana-value:v2:' + await tokenBatchKey(tokens.filter((t) => t.issuer === 'ondo')),
   };
 }
 
@@ -46,11 +39,8 @@ export async function readMarketGlobals(
   const backpackTokens = tokens.filter((t) => t.issuer === 'backpack');
   // Sequential provider jobs avoid a burst of unrelated requests on every visit.
   const catalog = await read(keys.catalog, 300000, () => fetchCatalog(fetch, backpackTokens));
-  const markets = await read(keys.markets, CMC_REFRESH_MS, () => fetchTokenMarkets(env.CMC_API_KEY));
   const backpack = await read(keys.backpack, BACKPACK_TICKER_REFRESH_MS, () => fetchBackpackMarkets(fetch, backpackTokens));
-  const valuations = await read(keys.valuations, 600000, () => fetchOfficialOndoValues(env.SOLANA_RPC_URL, fetch, tokens), ONDO_VALUE_MAX_AGE_MS);
-  const ondoVolume = await read(keys.ondoVolume, 3600000, fetchOndoVolume, 86400000);
-  return { catalog, markets, backpack, valuations, ondoVolume };
+  return { catalog, markets: emptySource({}), backpack };
 }
 
 // One bulk D1 read replaces the browser's 15-page waterfall. No provider calls,
@@ -68,17 +58,16 @@ export async function readMarketOverview(
     return ['llama-prices-v3:', 'solana-supplies-v4:', 'llama-history-v1:', `dex-pools-${POOL_POLICY_VERSION}:`]
       .map((prefix) => prefix + suffix);
   }))).flat();
-  keys.push(...Object.values(await marketGlobalKeys(tokens)));
+  keys.push(...Object.values(await marketGlobalKeys(tokens)), ...selected.filter(t => t.issuer === 'backpack').map(poolObservationKey));
   const saved = await marketCacheRows(env.DB, keys);
-  const [pages, globals, circulation] = await Promise.all([
+  const [pages, globals] = await Promise.all([
     Promise.all(partitions.map(async (batch) => ({
       ...await readMarketBatch(env.DB, batch, { cacheOnly: true, saved }),
       catalog: emptySource([]), markets: emptySource({}),
     }))),
     readMarketGlobals(env, tokens, true, saved),
-    circulationSnapshot(env.DB, () => {}, Date.now(), fetch, true),
   ]);
-  const overview = { ...mergeMarketPages(pages, true), ...globals, circulation, registry, totalBatches: partitions.length };
+  const overview = { ...mergeMarketPages(pages, true), ...globals, registry, totalBatches: partitions.length };
   return scope ? backpackOverview(overview, selected) : overview;
 }
 

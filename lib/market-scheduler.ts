@@ -1,13 +1,16 @@
+import { syncMarketChunk, type SnapshotChunkJob } from './market-snapshot-sync';
+import { readPoolInventory, rememberPoolInventory, poolObservationKey, saveTokenPoolObservation } from './pool-inventory';
+import { collectPoolFallbacks } from './pool-fallback';
+import { poolProviderRequest } from './pool-provider-fetch';
 import { poolObservations, type SavedPools } from './pool-observations';
 import { refreshHoldingWallets } from './issuer-holders-server';
 import { backpackRegistry, registryTokens } from './backpack-registry';
 import { marketPartitions, readMarketGlobals, type MarketEnvironment } from './market-overview-server';
 import { readMarketBatch } from './market-service';
-import { circulationSnapshot } from './circulation-cache';
 import { tokenBatchKey } from './backpack-registry';
 import { TOKEN_REVIEW_DATE } from './tokens';
 import { POOL_POLICY_VERSION } from './stock-pools';
-import { fetchPools, type Pool, SourceHttpError, POOL_REFRESH_MS, MARKET_REFRESH_MS } from './market-data';
+import { type Pool, SourceHttpError } from './market-data';
 
 // Four staggered groups keep a normal full cycle below the existing five-minute
 // validity limit. A late/failed run retries on the next cycle, never per visitor.
@@ -17,7 +20,7 @@ export function scheduledBatches(count: number, scheduledTime: number) {
   return Array.from({ length: count }, (_, index) => index)
     .filter((index) => index % MARKET_CYCLE_MINUTES === slot);
 }
-export type MarketJob = { kind: 'batch'; batch: number } | { kind: 'globals' | 'circulation' | 'registry' | 'holders' };
+export type MarketJob = SnapshotChunkJob | { kind: 'batch'; batch: number } | { kind: 'discovery' | 'pool-refresh'; mints: string[] } | { kind: 'globals' | 'registry' | 'holders' };
 export type PoolChunkResult =
   | { data: Record<string, Pool[]> }
   | { error: { message: string; status?: number; retryAfterMs?: number } };
@@ -26,20 +29,21 @@ export type MarketJobBinding = {
   pools(mints: string[]): Promise<PoolChunkResult>;
 };
 
-// Two rotating exhaustive token lookups per chunk; known pools refresh every
-// cycle through address batches. This bounds traffic without losing old pools.
-export function rotatingPoolMints(mints: string[], now = Date.now()) {
+function rotatingMints(mints: string[], scheduledTime: number, count: number) {
   if (!mints.length) return [];
-  const offset = (Math.floor(now / (MARKET_CYCLE_MINUTES * 60000)) * 2) % mints.length;
-  return [...new Set([mints[offset], mints[(offset + 1) % mints.length]])];
+  const start = (Math.floor(scheduledTime / 60000) * count) % mints.length;
+  return Array.from({length: Math.min(count, mints.length)}, (_, i) => mints[(start + i) % mints.length]);
 }
+// Discovery and value refresh are independently scheduled, private jobs.
+export const scheduledDiscoveryMints = (mints: string[], time: number) => rotatingMints(mints, time, 8);
+export const scheduledRefreshMints = (mints: string[], time: number) => rotatingMints(mints, time, 20);
 
 // Keep the existing 90-token cache identity, but spend each private request's
-// provider budget on at most 30 token details plus discovery/official pairs.
+// provider budget on at most ten tokens. Discovery runs separately.
 export async function scheduledPools(mints: string[], binding: Pick<MarketJobBinding, 'pools'>) {
   const data: Record<string, Pool[]> = {};
-  for (let offset = 0; offset < mints.length; offset += 30) {
-    const result = await binding.pools(mints.slice(offset, offset + 30));
+  for (let offset = 0; offset < mints.length; offset += 10) {
+    const result = await binding.pools(mints.slice(offset, offset + 10));
     if ('error' in result) {
       // Earlier chunks are complete observations. Preserve their progress; the
       // failed and unrequested chunks keep their old values and timestamps.
@@ -60,20 +64,20 @@ export async function scheduledPools(mints: string[], binding: Pick<MarketJobBin
   return data;
 }
 
-export async function runPoolChunk(env: MarketEnvironment, mints: string[]): Promise<PoolChunkResult> {
+export async function runPoolChunk(env: MarketEnvironment, mints: string[], mode: 'refresh' | 'discovery' = 'refresh'): Promise<PoolChunkResult> {
   try {
-    if (!Array.isArray(mints) || !mints.length || mints.length > 30 || new Set(mints).size !== mints.length)
+    if (!Array.isArray(mints) || !mints.length || mints.length > (mode === 'discovery' ? 4 : 10) || new Set(mints).size !== mints.length)
       throw Error('Invalid pool chunk');
     const registry = await backpackRegistry(env.DB, () => {}, env.SOLANA_RPC_URL, fetch, Date.now(), true);
     const stocks = registryTokens(registry);
-    const byMint = new Map(stocks.map(token => [token.mint, token]));
+    const byMint = new Map(stocks.filter(token => token.issuer === 'backpack').map(token => [token.mint, token]));
     const tokens = mints.map(mint => {
       const token = byMint.get(mint);
       if (!token) throw Error('Unverified pool token');
       return token;
     });
     const containing = marketPartitions(stocks).filter(batch => batch.some(t => mints.includes(t.mint)));
-    const knownPools: Pool[] = [];
+    const knownPools: Pool[] = await readPoolInventory(env.DB, tokens);
     for (const batch of containing) {
       const key = `dex-pools-${POOL_POLICY_VERSION}:` + TOKEN_REVIEW_DATE + ':' + await tokenBatchKey(batch);
       const row = await env.DB.prepare('SELECT payload FROM market_cache WHERE key=?').bind(key).first<{payload: string | null}>();
@@ -82,13 +86,35 @@ export async function runPoolChunk(env: MarketEnvironment, mints: string[]): Pro
         for (const token of tokens) knownPools.push(...(prior[token.symbol] ?? []));
       }
     }
-    const deadline = AbortSignal.timeout(25000);
+    for (const token of tokens) {
+      const row = await env.DB.prepare('SELECT payload FROM market_cache WHERE key=?').bind(poolObservationKey(token)).first<{payload: string | null}>();
+      if (row?.payload) knownPools.push(...JSON.parse(row.payload) as Pool[]);
+    }
+    const deadline = AbortSignal.timeout(45000);
+    const primaryDeadline = AbortSignal.timeout(18000);
     const bounded: typeof fetch = (input, init) => fetch(input, {
-      ...init, signal: AbortSignal.any([deadline, ...(init?.signal ? [init.signal] : [])]),
+      ...init, signal: AbortSignal.any([deadline, primaryDeadline, ...(init?.signal ? [init.signal] : [])]),
     });
-    return { data: await fetchPools(pacedMarketFetch(retryLimitedMarketFetch(env.DB, bounded, deadline), 1000), tokens, stocks, {
-      knownPools, detailMints: rotatingPoolMints(mints), isolateMissing: true,
-    }) };
+    const cooldown = await env.DB.prepare('SELECT retry_after FROM market_cache WHERE key=?')
+      .bind('provider-cooldown:dexscreener').first<{retry_after:number}>();
+    const known = [...new Map(knownPools.map(p => [p.address, p])).values()];
+    const data = await collectPoolFallbacks({tokens, verified:stocks.filter(t=>t.issuer==='backpack'),known, mode,
+      detailMints:mode === 'discovery' ? mints : [], dexAvailable:!(cooldown && cooldown.retry_after>Date.now()),
+      primary:pacedMarketFetch(retryLimitedMarketFetch(env.DB,bounded,primaryDeadline),1000),
+      request:poolProviderRequest(env.DB,fetch,deadline),
+      discoveryObserved: async (mint, now) => {
+        await env.DB.prepare('INSERT INTO market_cache (key,payload,fetched_at,retry_after) VALUES (?,NULL,?,0) ON CONFLICT(key) DO UPDATE SET fetched_at=excluded.fetched_at')
+          .bind('pool-discovery:geckoterminal:'+mint,now).run();
+      },
+      primaryFailure: async error => {
+        if(error instanceof SourceHttpError && error.status===429) await env.DB.prepare(
+          'INSERT INTO market_cache (key,payload,fetched_at,retry_after) VALUES (?,NULL,0,?) ON CONFLICT(key) DO UPDATE SET retry_after=MAX(market_cache.retry_after,excluded.retry_after)',
+        ).bind('provider-cooldown:dexscreener',Date.now()+error.retryAfterMs).run();
+      },
+    });
+    for (const token of tokens) if (data[token.symbol]?.length)
+      await rememberPoolInventory(env.DB, token, data[token.symbol], Date.now());
+    return {data};
   } catch (error) {
     if (error instanceof SourceHttpError && error.status === 429) {
       await env.DB.prepare(
@@ -161,6 +187,18 @@ export function pacedMarketFetch(fetcher: typeof fetch = fetch, gapMs = 300): ty
 }
 
 export async function runMarketJob(env: MarketEnvironment & { MARKET_REFRESH: MarketJobBinding }, job: MarketJob) {
+  if (job.kind === 'snapshot') { await syncMarketChunk(env,job); return; }
+  if (!['batch', 'discovery', 'pool-refresh', 'globals', 'registry', 'holders'].includes(job.kind)) throw Error('Unsupported market job');
+  if (job.kind === 'discovery' || job.kind === 'pool-refresh') {
+    const result = await runPoolChunk(env, job.mints, job.kind === 'discovery' ? 'discovery' : 'refresh');
+    if ('error' in result) throw Error(result.error.message);
+    if (job.kind === 'pool-refresh') {
+      const registry = await backpackRegistry(env.DB, () => {}, env.SOLANA_RPC_URL, fetch, Date.now(), true);
+      for (const token of registryTokens(registry)) if (token.issuer === 'backpack' && job.mints.includes(token.mint) && result.data[token.symbol])
+        await saveTokenPoolObservation(env.DB, token, result.data[token.symbol], Date.now());
+    }
+    return;
+  }
   if (job.kind === 'holders') { await refreshHoldingWallets(env); return; }
   const deferred: Promise<unknown>[] = [];
   const registry = await backpackRegistry(env.DB, (work) => deferred.push(work), env.SOLANA_RPC_URL, fetch, Date.now(), job.kind !== 'registry');
@@ -169,23 +207,16 @@ export async function runMarketJob(env: MarketEnvironment & { MARKET_REFRESH: Ma
     await Promise.all(deferred);
   } else if (job.kind === 'globals') {
     await readMarketGlobals(env, tokens, false);
-  } else if (job.kind === 'circulation') {
-    await circulationSnapshot(env.DB, (work) => deferred.push(work));
-    await Promise.all(deferred);
   } else if (job.kind === 'batch') {
     const batch = marketPartitions(tokens)[job.batch];
-    if (!Number.isSafeInteger(job.batch) || !batch) throw Error('Invalid scheduled market batch');
+    if (!Number.isSafeInteger(job.batch) || !batch?.some(token => token.issuer === 'backpack')) throw Error('Invalid scheduled market batch');
     const deadline = AbortSignal.timeout(16000);
     const bounded: typeof fetch = (input, init) => fetch(input, {
       ...init, signal: AbortSignal.any([deadline, ...(init?.signal ? [init.signal] : [])]),
     });
     await readMarketBatch(env.DB, batch, {
       rpcUrl: env.SOLANA_RPC_URL, verifiedStocks: tokens, fetcher: pacedMarketFetch(bounded),
-      // Refresh ahead of the next four-minute cycle; timing jitter must not
-      // skip a just-under-TTL batch for another whole cycle.
-      poolRefreshMs: POOL_REFRESH_MS - MARKET_REFRESH_MS,
-      poolLeaseMs: 120000,
-      poolLoader: () => scheduledPools(batch.map(token => token.mint), env.MARKET_REFRESH),
+      pools: false, // Independent pool jobs commit each token immediately.
     });
   }
 }
@@ -195,16 +226,29 @@ export async function runMarketSchedule(env: MarketEnvironment & { MARKET_REFRES
   const leaseKey = 'market-schedule:v1';
   const lease = await env.DB.prepare(
     'INSERT INTO market_cache (key,payload,fetched_at,retry_after) VALUES (?,NULL,?,?) ON CONFLICT(key) DO UPDATE SET fetched_at=excluded.fetched_at,retry_after=excluded.retry_after WHERE market_cache.retry_after<=? AND market_cache.fetched_at<? RETURNING key',
-  ).bind(leaseKey, scheduledTime, now + 180000, now, scheduledTime).first();
+  ).bind(leaseKey, scheduledTime, now + 300000, now, scheduledTime).first();
   if (!lease) return;
   try {
   const registry = await backpackRegistry(env.DB, () => {}, env.SOLANA_RPC_URL, fetch, Date.now(), true);
-  const batches = scheduledBatches(marketPartitions(registryTokens(registry)).length, scheduledTime);
+  const tokens = registryTokens(registry);
+  const partitions = marketPartitions(tokens);
+  const activeBatches = partitions.flatMap((batch, index) => batch.some(token => token.issuer === 'backpack') ? [index] : []);
+  const batches = scheduledBatches(activeBatches.length, scheduledTime).map(index => activeBatches[index]);
   // Same deployed Worker, private RPC entrypoint. Each bounded job gets its own
   // request budget; no public refresh endpoint or second deployment is needed.
+  const mints = tokens.filter(t => t.issuer === 'backpack').map(t => t.mint);
+  const discoveries = scheduledDiscoveryMints(mints, scheduledTime);
+  const refreshes = scheduledRefreshMints(mints, scheduledTime);
+  const refreshJobs: MarketJob[] = [];
+  for (let offset = 0; offset < refreshes.length; offset += 10)
+    refreshJobs.push({kind: 'pool-refresh', mints: refreshes.slice(offset, offset + 10)});
+  const discoveryJobs: MarketJob[] = [];
+  for (let offset = 0; offset < discoveries.length; offset += 4)
+    discoveryJobs.push({kind: 'discovery', mints: discoveries.slice(offset, offset + 4)});
   const jobs: MarketJob[] = [
     ...batches.map((batch) => ({ kind: 'batch' as const, batch })),
-    { kind: 'globals' }, { kind: 'circulation' }, { kind: 'registry' }, { kind: 'holders' },
+    ...discoveryJobs, ...refreshJobs,
+    { kind: 'globals' }, { kind: 'registry' }, { kind: 'holders' },
   ];
   let failures = 0;
   for (const job of jobs) {

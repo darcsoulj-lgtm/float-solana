@@ -91,7 +91,7 @@ export function stockPoolPolicy(
 }
 
 export function poolMetrics(input: readonly Pool[]) {
-  const pools = [...new Map(input.map((p) => [p.address, p])).values()];
+  const pools = [...new Map(input.filter(p => !p.unavailable).map((p) => [p.address, p])).values()];
   const sum = (key: 'volume24h' | 'liquidity') => {
     const values = pools
       .map((p) => p[key])
@@ -99,7 +99,12 @@ export function poolMetrics(input: readonly Pool[]) {
         (n): n is number =>
           typeof n === 'number' && Number.isFinite(n) && n >= 0,
       );
-    return values.length ? values.reduce((a, b) => a + b, 0) : null;
+    const total = values.length ? values.reduce((a, b) => a + b, 0) : null;
+    const incomplete = input.some(p => p.unavailable ||
+      (key === 'volume24h' && p.volumeDisputed) ||
+      typeof p[key] !== 'number' || !Number.isFinite(p[key]) || p[key]! < 0);
+    // A zero subset cannot establish a zero total when other pools are unknown.
+    return total === 0 && incomplete ? null : total;
   };
-  return { pools, volume24h: sum('volume24h'), liquidity: sum('liquidity') };
+  return { pools, partial: input.some(p => p.unavailable || p.volumeDisputed || p.volume24h == null || !Number.isFinite(p.volume24h) || p.volume24h < 0), volume24h: sum('volume24h'), liquidity: sum('liquidity') };
 }
