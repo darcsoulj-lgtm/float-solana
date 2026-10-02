@@ -117,7 +117,8 @@ void test('All issuers exclude meme activity from prices, totals and recent pool
     const good = pair(token.mint, usdc.mint, 0);
     const d = market(api.parsePools([bad, good, good], [token]));
     const result = api.issuerDashboard(d, issuer.id, now);
-    assert.equal(result.volume, 0);
+    assert.equal(result.volume, result.rows.some(r => !r.pools.length) ? null : 0);
+    assert.equal(api.poolMetrics(result.pools).volume24h, 0);
     assert.equal(result.liquidity, 20);
     assert.deepEqual(
       result.recentPools.map((p) => p.address),
@@ -199,7 +200,8 @@ void test('A stock-stock pool counts for both stocks but only once in an issuer 
   const data = market(api.parsePools([raw, raw], [a, b]));
   assert.equal(api.tokenObservation(data, a.symbol, now).poolVolume24h, 75);
   assert.equal(api.tokenObservation(data, b.symbol, now).poolVolume24h, 75);
-  assert.equal(api.issuerDashboard(data, 'backpack', now).volume, 75);
+  assert.equal(api.issuerDashboard(data, 'backpack', now).volume, null);
+  assert.equal(api.poolMetrics(api.issuerDashboard(data, 'backpack', now).pools).volume24h, 75);
 });
 
 void test('A warm legacy pool cache cannot reintroduce excluded activity, including when refresh fails', async () => {
@@ -297,7 +299,7 @@ void test('missing or disputed pool volume plus an observed zero is unknown, nev
     assert.equal(api.poolMetrics(rows).volume24h,null);
     assert.equal(api.poolMetrics(rows).partial,true);
     assert.equal(api.tokenObservation(market({[stock.symbol]:rows}),stock.symbol,now).poolVolume24h,null);
-    assert.equal(api.poolMetrics([{...zero,volume24h:25},missing]).volume24h,25);
+    assert.equal(api.poolMetrics([{...zero,volume24h:25},missing]).volume24h,null);
   }
   assert.equal(api.poolMetrics([zero]).volume24h,0);
 });

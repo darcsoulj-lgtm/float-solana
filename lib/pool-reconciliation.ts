@@ -1,6 +1,10 @@
 import type { Pool } from './market-data';
 import { POOL_PROVIDERS, type PoolProvider } from './pool-provider-adapters';
 import type { StockToken } from './tokens';
+import {
+  comparablePoolVolume,
+  qualifiedPoolVolume,
+} from './pool-volume-policy';
 
 export const POOL_RETAIN_MS = 24 * 3600000;
 export const POOL_HEALTH_MS = 15 * 60000;
@@ -13,12 +17,7 @@ const validTime = (p: Pool, now: number) =>
   p.observedAt > 0 &&
   p.observedAt <= now &&
   now - p.observedAt <= POOL_RETAIN_MS;
-const validVolume = (p: Pool) =>
-  typeof p.volume24h === 'number' &&
-  Number.isFinite(p.volume24h) &&
-  p.volume24h >= 0 &&
-  !p.unavailable &&
-  !p.volumeDisputed;
+const validVolume = qualifiedPoolVolume;
 
 // Source evidence is recorded before the canonical resolver. It provides an
 // independent address baseline without another token registry or valuation rule.
@@ -37,7 +36,12 @@ export async function recordPoolEvidence(
   const previous: Pool[] = row?.payload ? JSON.parse(row.payload) : [];
   const byAddress = new Map<string, Pool>();
   for (const p of [...previous, ...fresh]) {
-    if (!belongs(p, token) || !validTime(p, now) || !validVolume(p)) continue;
+    if (
+      !belongs(p, token) ||
+      !validTime(p, now) ||
+      (!validVolume(p) && (comparablePoolVolume(p) || p.unavailable))
+    )
+      continue;
     if (p.volume24h === 0 && p.liquidity === 0 && !byAddress.has(p.address))
       continue;
     const prior = byAddress.get(p.address);
@@ -135,7 +139,8 @@ export function reconcilePoolCoverage(
       !byAddress.has(address) || !validVolume(byAddress.get(address)!),
   );
   for (const p of canonical)
-    if (p.unavailable && !missing.includes(p.address)) missing.push(p.address);
+    if (!validVolume(p) && !missing.includes(p.address))
+      missing.push(p.address);
   const stale = canonical
     .filter(
       (p) =>

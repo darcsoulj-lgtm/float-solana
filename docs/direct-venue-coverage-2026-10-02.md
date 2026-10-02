@@ -23,3 +23,14 @@ Manifest, ZeroFi and HumidiFi remain indexer-sourced. Manifest publishes base/ta
 - Full local release gate: 574 tests passed, strict types, lint and production build passed.
 - Isolated real Worker/private RPC/D1 verification passed, including concurrent readers, retained original timestamps, automatic discovery recovery and immutable snapshot ingestion.
 - Production collection and rendered methodology verification are separate release checks; this document alone does not prove them.
+
+
+## Volume source qualification repair
+
+Captured DRAM, AMC and MU evidence showed materially different Raydium day.volume and indexed rolling-24h values for the same known pools. The resolver withheld these pools but positive-subset sums were displayed as normal totals. Sunrise's public client uses Birdeye token-level trade data; its documented public API has no historical-volume endpoint. Its figures are a comparison, not validated ground truth.
+
+Pool discovery remains broad and exact-mint checked. A shared pool-volume policy quarantines Raydium statistics from selection, conflict/zero confirmation, display, and saved-value recovery until window/filter/valuation equivalence is established. Its identity and liquidity remain useful. Qualified sources retain the existing material-disagreement guard; providers are never summed per pool.
+
+All known unresolved volumes now block the aggregate, including positive subsets. Absent token observations also block market totals. Valid dated observations may still be retained within the existing 24-hour display policy; neither retained data nor indexer agreement proves complete chain coverage. Recovery and the existing collection health/repair queue use the same qualification rule.
+
+Regression evidence includes captured DRAM/AMC/MU observations, old Raydium evidence, outage retention, false zeros, comparable-source conflicts, aggregate incompleteness, deduplication and recovery. Production acceptance requires a new collector generation and ordinary public reads, not only a passing build.

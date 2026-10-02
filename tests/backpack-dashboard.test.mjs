@@ -48,7 +48,8 @@ void test('Issuer aggregate counts shared pools once; token rows retain their ow
   d.pools.data.MU = [pool('shared', 100, 50), pool('mu-only', 20, 10)];
   d.pools.data.SPCX = [pool('shared', 100, 50)];
   const result = api.backpackDashboard(d, now);
-  assert.equal(result.volume, 120);
+  assert.equal(result.volume, null);
+  assert.equal(result.pools.reduce((n,p)=>n+p.volume24h,0), 120);
   assert.equal(result.liquidity, 60);
   assert.equal(result.volumeCovered, 2);
   assert.equal(
@@ -61,7 +62,8 @@ void test('Unknown volume stays unknown; confirmed zero is zero', () => {
   const d = blank();
   assert.equal(api.backpackDashboard(d, now).volume, null);
   d.pools.data.MU = [pool('zero', 0, 0)];
-  assert.equal(api.backpackDashboard(d, now).volume, 0);
+  assert.equal(api.backpackDashboard(d, now).volume, null);
+  assert.equal(api.backpackDashboard(d, now).rows.find(r=>r.token.symbol==='MU').dexVolume, 0);
   assert.equal(api.backpackDashboard(d, now).liquidity, 0);
 });
 void test('Expired, stale and future-dated pools cannot enter public metrics', () => {
@@ -359,7 +361,8 @@ void test('Issuer totals include pools beyond the three initially displayed', ()
   assert.equal(row.pools.length, 5);
   assert.equal(row.dexVolume, 50);
   assert.equal(row.poolLiquidity, 15);
-  assert.equal(result.volume, 50);
+  assert.equal(result.volume, null);
+  assert.equal(result.pools.reduce((n,p)=>n+p.volume24h,0), 50);
   assert.equal(result.liquidity, 15);
 });
 void test('Sort keeps unknown values last in either direction and search matches company names', () => {
@@ -423,7 +426,8 @@ void test('Every issuer uses isolated, deduplicated pool totals with unknown val
     d.pools.data[other.symbol] = [pool('outside', 1e9, 1e9)];
     const result = api.issuerDashboard(d, issuer.id, now);
     assert.equal(result.rows.length, tokens.length);
-    assert.equal(result.volume, 125);
+    assert.equal(result.volume, tokens.length > 2 ? null : 125);
+    assert.equal(result.pools.reduce((n,p)=>n+p.volume24h,0),125);
     assert.equal(result.liquidity, 50);
     assert.ok(result.rows.every((r) => r.token.issuer === issuer.id));
     assert.equal(api.issuerDashboard(blank(), issuer.id, now).volume, null);

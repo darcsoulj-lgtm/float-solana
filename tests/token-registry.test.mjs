@@ -124,7 +124,8 @@ void test('Live-registry discovery verifies unseen mints then adds them without 
       .rows.find((r) => r.token.symbol === 'NEXT').value,
     1200,
   );
-  assert.equal(api.issuerDashboard(d, 'backpack').volume, 40);
+  assert.equal(api.issuerDashboard(d, 'backpack').volume, null);
+  assert.equal(api.issuerDashboard(d, 'backpack').rows.find(r=>r.token.symbol==='NEXT').dexVolume,40);
   assert.equal(api.trackedValuation(d).total, 1200);
   assert.ok(
     api.parseListings([f.asset], [], additions).find((t) => t.symbol === 'NEXT')

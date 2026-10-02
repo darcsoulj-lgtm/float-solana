@@ -121,6 +121,7 @@ void test('One stale market batch does not hide a fresh Ondo pool observation', 
       asOf: { NVDAon: now - 1000 },
     },
   };
-  assert.equal(issuerDashboard(d, 'ondo', now).volume, 25);
+  assert.equal(issuerDashboard(d, 'ondo', now).volume, null);
+  assert.equal(issuerDashboard(d, 'ondo', now).rows.find(r=>r.token.symbol==='NVDAon').dexVolume,25);
   assert.equal(issuerDashboard(d, 'ondo', now + 300000).volume, null);
 });

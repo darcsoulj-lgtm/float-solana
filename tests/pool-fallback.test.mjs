@@ -34,7 +34,7 @@ void test('detail and list share token freshness and partial observations', () =
   const detail = api.tokenPoolSource(source,'DJT',1000000);
   assert.equal(detail.fetchedAt,990000);
   assert.equal(detail.stale,false);
-  assert.equal(api.poolMetrics(detail.data).volume24h,900);
+  assert.equal(api.poolMetrics(detail.data).volume24h,null);
   assert.match(detail.error,/Some pools/);
   assert.equal(api.tokenPoolSource(source,'DJT',1300000).stale,true);
   assert.equal(api.tokenPoolSource(source,'UNKNOWN',1000000).data,null);
@@ -281,8 +281,10 @@ void test('zero primary response triggers bounded venue fallback and stays unres
  const recovered=await api.collectPoolFallbacks({...options,known:second.DJT,request:async provider=>{
  if(provider!=='raydium')throw Error('offline');
  return {success:true,data:[{id:old.address,mintA:{chainId:101,address:djt.mint},mintB:{chainId:101,address:usdc},tvl:100,day:{volume:0}}]};}});
- assert.equal(api.poolMetrics(recovered.DJT).volume24h,0);
- assert.equal(api.poolMetrics(recovered.DJT).partial,false);
+ assert.equal(api.poolMetrics(recovered.DJT).volume24h,null);
+ assert.equal(api.poolMetrics(recovered.DJT).partial,true);
+ const corroborated=api.resolvePoolSources([{...old,source:"dexscreener",volume24h:0,observedAt:Date.now()},{...old,source:"geckoterminal",volume24h:0,observedAt:Date.now()}],second.DJT,djt);
+ assert.equal(api.poolMetrics(corroborated).volume24h,0);
 });
 void test('zero versus positive volume is a conflict even below the usual dollar threshold',()=>{
  const result=api.resolvePoolSources([{...known,source:'dexscreener',volume24h:0},{...known,source:'meteora',volume24h:50}],[known],djt);

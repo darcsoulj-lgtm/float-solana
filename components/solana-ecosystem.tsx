@@ -152,7 +152,7 @@ export function SolanaEcosystem({
           <span className="metric-label">
             <span>Tracked pool volume · 24h</span>
             <MetricInfo label="About market volume" learnMore="/data-methodology#pools">
-              Trading in the pools we track over 24 hours. Coverage is partial; update times differ.
+              24-hour trading volume from connected exchanges. A dash means a known pool or token is unresolved. Coverage may still miss trades outside tracked pools.
             </MetricInfo>
           </span>
           <strong>{usd(marketActivity.volume24h)}</strong>

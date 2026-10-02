@@ -33,6 +33,9 @@ export function publicationIssues(expected, text, headers, now=Date.now()) {
     for(const p of actual){
       if(p.observedAt>now+60000)issues.push(token.symbol+': future pool observation');
       if(p.volume24h!=null&&(!Number.isFinite(p.volume24h)||p.volume24h<0))issues.push(token.symbol+': invalid pool volume');
+      // Independent publication guard: old/unqualified venue statistics must
+      // not silently re-enter via a cached snapshot or a retention regression.
+      if(p.source==='raydium'&&p.volume24h!=null)issues.push(token.symbol+': unqualified Raydium volume published');
     }
     for(const p of token.pools){
       if(p.unavailable||p.volumeDisputed||p.volume24h==null||!p.observedAt||now-p.observedAt>24*3600000)continue;
@@ -41,7 +44,7 @@ export function publicationIssues(expected, text, headers, now=Date.now()) {
       // A newer collection may have landed during verification. Its observed
       // zero or disagreement is meaningful; never insist on a larger total.
       if(served.observedAt>p.observedAt)continue;
-      if(served.observedAt!==p.observedAt||served.volume24h!==p.volume24h||served.unavailable||served.volumeDisputed)
+      if(served.observedAt!==p.observedAt||served.volume24h!==p.volume24h||(p.source&&served.source!==p.source)||served.unavailable||served.volumeDisputed)
         issues.push(token.symbol+': observation not published '+p.address);
     }
   }

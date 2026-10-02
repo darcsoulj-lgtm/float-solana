@@ -1,6 +1,7 @@
 import { parsePools, type Pool } from './market-data';
 import type { StockToken } from './tokens';
 import type { StonkfunPoolIdentity } from './stock-pools';
+import { comparablePoolVolume } from './pool-volume-policy';
 
 export type PoolProvider =
   | 'dexscreener'
@@ -122,7 +123,9 @@ export function parseProviderPools(
         baseToken: { address: obj(p.mintA).address },
         quoteToken: { address: obj(p.mintB).address },
         liquidity: { usd: number(p.tvl) },
-        volume: { h24: number(obj(p.day).volume) },
+        volume: {
+          h24: provider === 'raydium' ? null : number(obj(p.day).volume),
+        },
       };
     if (provider === 'byreal')
       return {
@@ -193,7 +196,10 @@ export function resolvePoolSources(
   const knownByAddress = new Map(known.map((p) => [p.address, p]));
   const knownAddresses = new Set(knownByAddress.keys());
   const groups = new Map<string, Pool[]>();
-  for (const p of candidates) {
+  for (const candidate of candidates) {
+    const p = comparablePoolVolume(candidate)
+      ? candidate
+      : { ...candidate, volume24h: null, volumeDisputed: undefined };
     if (p.unavailable || (p.volume24h == null && p.liquidity == null)) continue;
     if (
       p.volume24h === 0 &&
@@ -233,11 +239,15 @@ export function resolvePoolSources(
       amounts.length > 1 &&
       ((low === 0 && high >= 1) ||
         (high - low > 1000 && high - low > high * 0.25));
+    const currentZeros = pools.filter(
+      (p) => current(p) && comparablePoolVolume(p) && p.volume24h === 0,
+    );
+    const confirmedZero =
+      currentZeros.some(isDirectPoolSource) ||
+      new Set(currentZeros.map((p) => p.source)).size >= 2;
     const unconfirmedZero =
       needsZeroConfirmation(chosen, knownByAddress.get(chosen.address)) &&
-      !pools.some(
-        (p) => p.volume24h === 0 && isDirectPoolSource(p) && current(p),
-      );
+      !confirmedZero;
     if (conflicting || unconfirmedZero) {
       chosen.volume24h = null;
       chosen.volumeDisputed = true;

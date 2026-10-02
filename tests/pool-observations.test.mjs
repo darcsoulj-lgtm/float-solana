@@ -32,7 +32,7 @@ void test('active and newly discovered pools refresh beside a missing pool, then
  const fetcher=async input=>{const url=String(input.url??input);return Response.json(url.includes('stonkfun')?{data:{tokens:[]}}:
  url.includes('/latest/dex/pairs/')?{pairs:recovered?[pair(address1,20)]:[]}:[pair(address2,50)]);};
  const fresh=await api.fetchPools(fetcher,[a],[a],{knownPools:[old],detailMints:[a.mint],isolateMissing:true});
- assert.equal(api.poolMetrics(fresh[a.symbol]).volume24h,50);
+ assert.equal(api.poolMetrics(fresh[a.symbol]).volume24h,null);
  assert.equal(api.poolMetrics(fresh[a.symbol]).partial,true);
  const merged=api.mergePoolObservations(api.poolObservations({[a.symbol]:[old]},1),fresh,1000000);
  assert.equal(merged.asOf[a.symbol],1000000);

@@ -1,5 +1,6 @@
 import type { StockToken } from './tokens';
 import type { Pool } from './market-data';
+import { qualifiedPoolVolume } from './pool-volume-policy';
 
 // Bump whenever eligibility changes: old broad snapshots must never be reused.
 export const POOL_POLICY_VERSION = 'stonkfun-v2';
@@ -21,9 +22,14 @@ export function parseStonkfunPoolRegistry(
   raw: unknown,
   stocks: readonly StockToken[],
 ): StonkfunPoolIdentity[] {
-  const root = raw && typeof raw === 'object' ? raw as Record<string, unknown> : {};
-  const data = root.data && typeof root.data === 'object' ? root.data as Record<string, unknown> : {};
-  if (!Array.isArray(data.tokens)) throw new Error('Invalid Stonkfun pool registry');
+  const root =
+    raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  const data =
+    root.data && typeof root.data === 'object'
+      ? (root.data as Record<string, unknown>)
+      : {};
+  if (!Array.isArray(data.tokens))
+    throw new Error('Invalid Stonkfun pool registry');
   if (data.network !== undefined && data.network !== 'mainnet-beta')
     throw new Error('Unexpected Stonkfun network');
   const verified = new Set(stocks.map((stock) => stock.mint));
@@ -31,18 +37,28 @@ export function parseStonkfunPoolRegistry(
   for (const item of data.tokens) {
     if (!item || typeof item !== 'object') continue;
     const row = item as Record<string, unknown>;
-    const quote = row.quote && typeof row.quote === 'object' ? row.quote as Record<string, unknown> : {};
+    const quote =
+      row.quote && typeof row.quote === 'object'
+        ? (row.quote as Record<string, unknown>)
+        : {};
     if (
-      typeof row.pool !== 'string' || !solanaAddress.test(row.pool) ||
-      typeof row.mint !== 'string' || !solanaAddress.test(row.mint) ||
-      typeof quote.mint !== 'string' || !verified.has(quote.mint) ||
+      typeof row.pool !== 'string' ||
+      !solanaAddress.test(row.pool) ||
+      typeof row.mint !== 'string' ||
+      !solanaAddress.test(row.mint) ||
+      typeof quote.mint !== 'string' ||
+      !verified.has(quote.mint) ||
       row.mint === quote.mint
-    ) continue;
+    )
+      continue;
     byAddress.set(row.pool, {
       address: row.pool,
       launchMint: row.mint,
       stockMint: quote.mint,
-      symbol: typeof row.symbol === 'string' && row.symbol.length <= 24 ? row.symbol : 'Stonkfun',
+      symbol:
+        typeof row.symbol === 'string' && row.symbol.length <= 24
+          ? row.symbol
+          : 'Stonkfun',
     });
   }
   return [...byAddress.values()];
@@ -65,9 +81,9 @@ export function stockPoolPolicy(
   stonkfunPools: readonly StonkfunPoolIdentity[] = [],
 ) {
   const verified = new Map(stocks.map((t) => [t.mint, t.symbol]));
-  const stonkfun = new Map(stonkfunPools.map((pool) => [
-    `${pool.launchMint}:${pool.stockMint}`, pool,
-  ]));
+  const stonkfun = new Map(
+    stonkfunPools.map((pool) => [`${pool.launchMint}:${pool.stockMint}`, pool]),
+  );
   const standard = new Map<string, string>([
     ...POOL_SETTLEMENT_ASSETS.map((t) => [t.mint, t.symbol] as const),
     ...verified,
@@ -83,28 +99,49 @@ export function stockPoolPolicy(
     accepts: (base: string, quote: string) => {
       if (base === quote) return false;
       if (isStonkfun(base, quote)) return true;
-      return standard.has(base) && standard.has(quote) &&
-        (verified.has(base) || verified.has(quote));
+      return (
+        standard.has(base) &&
+        standard.has(quote) &&
+        (verified.has(base) || verified.has(quote))
+      );
     },
     symbol: (mint: string) => allowed.get(mint)!,
   };
 }
 
 export function poolMetrics(input: readonly Pool[]) {
-  const pools = [...new Map(input.filter(p => !p.unavailable).map((p) => [p.address, p])).values()];
+  const pools = [
+    ...new Map(
+      input.filter((p) => !p.unavailable).map((p) => [p.address, p]),
+    ).values(),
+  ];
   const sum = (key: 'volume24h' | 'liquidity') => {
     const values = pools
+      .filter((p) => key !== 'volume24h' || qualifiedPoolVolume(p))
       .map((p) => p[key])
       .filter(
         (n): n is number =>
           typeof n === 'number' && Number.isFinite(n) && n >= 0,
       );
     const total = values.length ? values.reduce((a, b) => a + b, 0) : null;
-    const incomplete = input.some(p => p.unavailable ||
-      (key === 'volume24h' && p.volumeDisputed) ||
-      typeof p[key] !== 'number' || !Number.isFinite(p[key]) || p[key]! < 0);
-    // A zero subset cannot establish a zero total when other pools are unknown.
-    return total === 0 && incomplete ? null : total;
+    const incomplete = input.some(
+      (p) =>
+        p.unavailable ||
+        (key === 'volume24h' && !qualifiedPoolVolume(p)) ||
+        typeof p[key] !== 'number' ||
+        !Number.isFinite(p[key]) ||
+        p[key]! < 0,
+    );
+    // A positive subset is not a valid total either. Withhold the aggregate
+    // whenever a known pool is unresolved; keep individual observations intact.
+    return incomplete && (key === 'volume24h' || total === 0) ? null : total;
   };
-  return { pools, partial: input.some(p => p.unavailable || p.delayed || p.volumeDisputed || p.volume24h == null || !Number.isFinite(p.volume24h) || p.volume24h < 0), volume24h: sum('volume24h'), liquidity: sum('liquidity') };
+  return {
+    pools,
+    partial: input.some(
+      (p) => p.delayed || !qualifiedPoolVolume(p),
+    ),
+    volume24h: sum('volume24h'),
+    liquidity: sum('liquidity'),
+  };
 }

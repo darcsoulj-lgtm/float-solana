@@ -1,5 +1,6 @@
 import type { Pool } from './market-data';
 import { isDirectPoolSource } from './pool-provider-adapters';
+import { qualifiedPoolVolume } from './pool-volume-policy';
 
 // This is a capability map, not a venue allowlist. Unknown venues discovered by
 // indexers remain eligible under the existing exact-mint/pool identity policy.
@@ -40,8 +41,7 @@ export function poolVenueCoverage(pools: readonly Pool[], now = Date.now()) {
       unresolved: 0,
     };
     row.pools++;
-    if (pool.unavailable || pool.volumeDisputed || pool.volume24h == null)
-      row.unresolved++;
+    if (!qualifiedPoolVolume(pool)) row.unresolved++;
     else {
       if (isDirectPoolSource(pool)) row.direct++;
       else row.indexed++;

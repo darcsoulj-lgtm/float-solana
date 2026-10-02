@@ -7,6 +7,13 @@ const expected={tokens:[{symbol:'DRAM',pools:[pool]}]};
 const market={backpack:{fetchedAt:now},catalog:{fetchedAt:now},pools:{data:{DRAM:[pool]}}};
 const headers=new Headers({'cache-control':'no-store'});
 const check=(value=market,h=headers)=>publicationIssues(expected,JSON.stringify(value),h,now);
+void test('publication independently rejects unqualified venue volume and a mismatched selected source',()=>{
+ assert.match(check({...market,pools:{data:{DRAM:[{...pool,source:'raydium'}]}}}).join(';'),/unqualified Raydium/);
+ const identity={...pool,source:'raydium',volume24h:null};
+ const identityMarket={...market,pools:{data:{DRAM:[identity]}}};
+ assert.deepEqual(publicationIssues({tokens:[{symbol:'DRAM',pools:[identity]}]},JSON.stringify(identityMarket),headers,now),[]);
+ assert.match(publicationIssues({tokens:[{symbol:'DRAM',pools:[{...pool,source:'dexscreener'}]}]},JSON.stringify({...market,pools:{data:{DRAM:[{...pool,source:'geckoterminal'}]}}}),headers,now).join(';'),/not published/);
+});
 void test('publication verifier detects percentage-unit regressions even with fresh market data',()=>{
  const row={externalFirstPrice:100,externalPrice:105,externalChange24h:5,externalChangeUnit:'percent'};
  const value={...market,backpack:{fetchedAt:now,data:{MU:row}}};

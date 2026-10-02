@@ -21,6 +21,7 @@ for (const file of [
   'holder-news',
   'market-data',
   'stock-pools',
+  'pool-volume-policy',
   'avatar-image',
 ]) {
   const source = await readFile(
@@ -35,7 +36,7 @@ for (const file of [
       },
     })
     .outputText.replace(
-      /from '\.\/(solana-network|stock-pools|tokens|token-registry|validation|community-types|community-post|editorial|editorial-starter|market-data)'/g,
+      /from '\.\/(pool-volume-policy|solana-network|stock-pools|tokens|token-registry|validation|community-types|community-post|editorial|editorial-starter|market-data)'/g,
       "from './$1.mjs'",
     );
   await writeFile(

@@ -58,7 +58,7 @@ export function issuerDashboard(
   return {
     rows,
     pools,
-    volume: metrics.volume24h,
+    volume: rows.some(row => row.dexVolume == null) ? null : metrics.volume24h,
     liquidity: metrics.liquidity,
     mintedValue:
       issuer === 'xstocks' ? null : sumKnown(rows.map((r) => r.issuedValue)),

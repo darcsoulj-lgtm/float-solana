@@ -838,7 +838,7 @@ export function MarketOverviewPanel({
           <th aria-sort={sortable ? sortAria('change') : undefined}>{sortable ? sortHeader('change', '24h change') : '24h change'}</th>
           <th aria-sort={sortable ? sortAria('volume') : undefined}><span className="metric-label">
             {sortable ? sortHeader('volume', 'DEX volume · 24h') : 'DEX volume · 24h'}
-            <MetricInfo label="About DEX volume" learnMore="/data-methodology#pools">Trading in tracked pools over 24 hours. Coverage is partial. A dash means missing data, not zero.</MetricInfo>
+            <MetricInfo label="About DEX volume" learnMore="/data-methodology#pools">Trading in tracked pools over 24 hours. A dash means a known pool is unresolved. Coverage can still miss trades outside tracked pools.</MetricInfo>
           </span></th>
           <th aria-sort={sortable ? sortAria('liquidity') : undefined}><span className="metric-label">
             {sortable ? sortHeader('liquidity', 'Pool liquidity') : 'Pool liquidity'}

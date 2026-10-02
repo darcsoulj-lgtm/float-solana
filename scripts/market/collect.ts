@@ -282,6 +282,7 @@ const verification = {
       pools: canonical(t.mint).map((p) => ({
         address: p.address,
         volume24h: p.volume24h,
+        source: p.source,
         observedAt: p.observedAt,
         unavailable: p.unavailable,
         volumeDisputed: p.volumeDisputed,

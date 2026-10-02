@@ -50,8 +50,14 @@ export function displayPoolActivity(
   // A shared pool can have multiple token observations. Keep its newest one.
   observations.sort((a, b) => a.time - b.time);
   const unique = [...new Map(observations.map((item) => [item.pool.address, item])).values()];
+  const metrics = poolMetrics(unique.map((item) => item.pool));
+  const missingToken = symbols.some(symbol =>
+    !lastObserved(data?.pools?.asOf?.[symbol] ?? data?.pools?.fetchedAt, now) ||
+    !data?.pools?.data?.[symbol]?.length);
   return {
-    ...poolMetrics(unique.map((item) => item.pool)),
+    ...metrics,
+    volume24h: missingToken ? null : metrics.volume24h,
+    partial: missingToken || metrics.partial,
     saved: unique.some((item) => item.saved),
     oldestAt: unique.length ? Math.min(...unique.map((item) => item.time)) : null,
     newestAt: unique.length ? Math.max(...unique.map((item) => item.time)) : null,

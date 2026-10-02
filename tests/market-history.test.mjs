@@ -12,13 +12,15 @@ const stockPoolSource = await readFile(
   new URL('../lib/stock-pools.ts', import.meta.url),
   'utf8',
 );
+const policyModule = { exports: {} };
+compileFunction(ts.transpileModule(await readFile(new URL('../lib/pool-volume-policy.ts', import.meta.url),'utf8'), {compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText,['require','module','exports'])(() => ({}),policyModule,policyModule.exports);
 const stockPoolModule = { exports: {} };
 compileFunction(
   ts.transpileModule(stockPoolSource, {
     compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
   }).outputText,
   ['require', 'module', 'exports'],
-)(() => ({}), stockPoolModule, stockPoolModule.exports);
+)((name) => name === './pool-volume-policy' ? policyModule.exports : {}, stockPoolModule, stockPoolModule.exports);
 const { outputText } = ts.transpileModule(source, {
   compilerOptions: {
     target: ts.ScriptTarget.ES2022,
