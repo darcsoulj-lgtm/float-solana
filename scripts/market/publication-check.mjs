@@ -15,7 +15,9 @@ export function publicationIssues(expected, text, headers, now=Date.now()) {
   const observations=Object.values(market.pools.data).flat().filter(p=>Number.isSafeInteger(p.observedAt)&&p.observedAt<=now+60000&&!p.unavailable);
   if(!observations.some(p=>now-p.observedAt<=15*60000))issues.push('No recent public pool observations');
   for(const token of expected.tokens){
-    const actual=market.pools.data[token.symbol];
+    // A verified new listing can legitimately have no pool observation yet.
+    // Only collected observations are required to reach the public response.
+    const actual=market.pools.data[token.symbol]??(token.pools.length===0?[]:undefined);
     if(!Array.isArray(actual)){issues.push(token.symbol+': absent from public market');continue;}
     const byAddress=new Map(actual.map(p=>[p.address,p]));
     if(byAddress.size!==actual.length)issues.push(token.symbol+': duplicate public pools');

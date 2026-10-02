@@ -6,7 +6,14 @@ on:
   push:
     branches: [main]
     paths:
-      - 'scripts/market/**'
+      - 'scripts/market/collect.ts'
+      - 'scripts/market/state.ts'
+      - 'scripts/market/publish.py'
+      - 'lib/pool-*.ts'
+      - 'lib/stock-pools.ts'
+      - 'lib/market-data.ts'
+      - 'lib/market-scheduler.ts'
+      - 'lib/backpack-registry.ts'
       - '.github/workflows/market-data.yml'
 permissions:
   contents: read

@@ -11,6 +11,8 @@ void test('independent publication check detects a collected pool omitted by a v
  assert.deepEqual(check(),[]);
  assert.match(check({...market,pools:{data:{DRAM:[]}}}).join(';'),/collected pool missing/);
  assert.match(check({...market,pools:{data:{DRAM:[{...pool,volume24h:0}]}}}).join(';'),/not published/);
+ const pending={tokens:[...expected.tokens,{symbol:'NEW',pools:[]}]};
+ assert.deepEqual(publicationIssues(pending,JSON.stringify(market),headers,now),[]);
 });
 void test('same-window values must match; a newer verified zero is accepted instead of maximizing volume',()=>{
  assert.deepEqual(check({...market,pools:{data:{DRAM:[{...pool,volume24h:0,observedAt:observedAt+1}]}}}),[]);
