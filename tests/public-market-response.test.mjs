@@ -11,7 +11,14 @@ void test('public market cache shares only public payload across cookies and ign
   const second=await publicMarketResponse(new Request('https://float.test/api/backpack-market?a=2',{headers:{cookie:'hp_member=two'}}),load,cache,p=>jobs.push(p));
   assert.equal(reads,1);assert.deepEqual(await first.json(),await second.json());
   assert.equal(second.headers.get('X-Float-Cache'),'HIT');assert.equal(second.headers.get('Set-Cookie'),null);
-  assert.equal(second.headers.get('Cache-Control'),'public, max-age=30');
+  assert.equal(first.headers.get('Cache-Control'),'no-store');
+  assert.equal(second.headers.get('Cache-Control'),'no-store');
+  assert.equal([...entries.values()][0].headers.get('Cache-Control'),'public, max-age=30');
+});
+void test('a Cloudflare cache hit cannot leak the zone four-hour browser TTL',async()=>{
+  const response=await publicMarketResponse(new Request('https://float.test/api/backpack-market'),async()=>{throw Error('must use cache');},{match:async()=>Response.json({prices:{}},{headers:{'Cache-Control':'public, max-age=14400'}}),put:async()=>{}},()=>{});
+  assert.equal(response.headers.get('Cache-Control'),'no-store');
+  assert.equal(response.headers.get('X-Float-Cache'),'HIT');
 });
 void test('provider/database failures never populate the public response cache',async()=>{
   let writes=0;
