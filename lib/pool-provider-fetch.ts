@@ -35,7 +35,7 @@ export function poolProviderRequest(
       .first<{ retry_after: number }>();
     if (cooldown && cooldown.retry_after > now)
       throw Error(`${provider} cooling down`);
-    const spacing = provider === 'geckoterminal' ? 2200 : 500;
+    const spacing = provider === 'geckoterminal' ? 6500 : 500;
     const slot = await db
       .prepare(
         'INSERT INTO market_cache (key,payload,fetched_at,retry_after) VALUES (?,NULL,0,?) ON CONFLICT(key) DO UPDATE SET retry_after=MAX(market_cache.retry_after,?)+? WHERE market_cache.retry_after<? RETURNING retry_after',
@@ -45,7 +45,7 @@ export function poolProviderRequest(
         now + spacing,
         now,
         spacing,
-        now + 6000,
+        now + Math.max(6000, spacing + 6000),
       )
       .first<{ retry_after: number }>();
     if (!slot) throw Error('Pool provider queue full');

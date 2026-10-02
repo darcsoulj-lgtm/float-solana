@@ -1,0 +1,809 @@
+{
+  "total": 9,
+  "pages": 1,
+  "current_page": 1,
+  "page_size": 100,
+  "data": [
+    {
+      "address": "BH1MejaYpvgzGhGa6JJHsTduDE943y3taf65ocukyjwU",
+      "name": "DRAM-USDC",
+      "token_x": {
+        "address": "DRAMjSWR7HRfJKjRkvQWYL2bcaejaVhuxEcjf4pAY4Cw",
+        "name": "Roundhill Memory ETF - Backpack Securities",
+        "symbol": "DRAM",
+        "decimals": 6,
+        "is_verified": true,
+        "holders": 3608,
+        "freeze_authority_disabled": false,
+        "total_supply": 14760.298966,
+        "price": 62.039864904631784,
+        "market_cap": 915726.9538026162
+      },
+      "token_y": {
+        "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        "name": "USD Coin",
+        "symbol": "USDC",
+        "decimals": 6,
+        "is_verified": true,
+        "holders": 5248202,
+        "freeze_authority_disabled": false,
+        "total_supply": 7757869655.222625,
+        "price": 0.9999126186659502,
+        "market_cap": 7757191762.222767
+      },
+      "reserve_x": "FhBQ93xTAejr53fjjrtrnUgGTMJirYj7YneK3BkMi4cX",
+      "reserve_y": "DFGz4FH7kfoHuDYZQzRKu9Lny7PReDQBFMfFRQgsbGtf",
+      "token_x_amount": 12.586665,
+      "token_y_amount": 928.850442,
+      "created_at": 1790898285000,
+      "reward_mint_x": "11111111111111111111111111111111",
+      "reward_mint_y": "11111111111111111111111111111111",
+      "pool_config": {
+        "bin_step": 10,
+        "base_fee_pct": 0.1,
+        "max_fee_pct": 0.0,
+        "protocol_fee_pct": 10.0,
+        "collect_fee_mode": 0
+      },
+      "dynamic_fee_pct": 0.0001235,
+      "tvl": 1708.881214799109,
+      "current_price": 61.987755605121,
+      "apr": 3.3176412074123127,
+      "apy": 14917058.252413534,
+      "has_farm": false,
+      "farm_apr": 0.0,
+      "farm_apy": 0.0,
+      "volume": {
+        "30m": 1429.760483001965,
+        "1h": 20290.320471806277,
+        "2h": 62749.652548321515,
+        "4h": 62749.652548321515,
+        "12h": 62749.652548321515,
+        "24h": 62749.652548321515
+      },
+      "fees": {
+        "30m": 1.344511004321013,
+        "1h": 18.430341600391323,
+        "2h": 56.69454736790336,
+        "4h": 56.69454736790336,
+        "12h": 56.69454736790336,
+        "24h": 56.69454736790336
+      },
+      "protocol_fees": {
+        "30m": 0.1459134806294665,
+        "1h": 2.0395879380632023,
+        "2h": 6.2598412952712605,
+        "4h": 6.2598412952712605,
+        "12h": 6.2598412952712605,
+        "24h": 6.2598412952712605
+      },
+      "fee_tvl_ratio": {
+        "30m": 0.07867785031969408,
+        "1h": 1.0785033764068814,
+        "2h": 3.3176412074123127,
+        "4h": 3.3176412074123127,
+        "12h": 3.3176412074123127,
+        "24h": 3.3176412074123127
+      },
+      "cumulative_metrics": {
+        "volume": 62749.65254832151,
+        "fees": 56.6945473679034
+      },
+      "is_blacklisted": false,
+      "launchpad": "",
+      "tags": []
+    },
+    {
+      "address": "W6qXSxpq18hYZUF1un4UZL4cxJdTsuND24VT3bZMU9Z",
+      "name": "DRAM-MU",
+      "token_x": {
+        "address": "DRAMjSWR7HRfJKjRkvQWYL2bcaejaVhuxEcjf4pAY4Cw",
+        "name": "Roundhill Memory ETF - Backpack Securities",
+        "symbol": "DRAM",
+        "decimals": 6,
+        "is_verified": true,
+        "holders": 3608,
+        "freeze_authority_disabled": false,
+        "total_supply": 14760.298966,
+        "price": 62.06361470512591,
+        "market_cap": 916077.5079582924
+      },
+      "token_y": {
+        "address": "MUxEsUKSMACyw5fZf68wxf5FLnZVhtU9CwH8uNNGay1",
+        "name": "Micron Technology - Backpack Securities",
+        "symbol": "MU",
+        "decimals": 6,
+        "is_verified": true,
+        "holders": 5793,
+        "freeze_authority_disabled": false,
+        "total_supply": 5154.848043344451,
+        "price": 1092.2833890200018,
+        "market_cap": 5630554.890667402
+      },
+      "reserve_x": "DQ7UycrP3AFucwJ3i7NQ74nk7JVkGycZu8VAnGKMXiSG",
+      "reserve_y": "Hh2469SWuosYhdLTqhHfyBEf57BH8i3ps1r7tHQWRYpc",
+      "token_x_amount": 34.468275,
+      "token_y_amount": 0.016377751109122082,
+      "created_at": 1784088880000,
+      "reward_mint_x": "11111111111111111111111111111111",
+      "reward_mint_y": "11111111111111111111111111111111",
+      "pool_config": {
+        "bin_step": 15,
+        "base_fee_pct": 0.15,
+        "max_fee_pct": 0.0,
+        "protocol_fee_pct": 10.0,
+        "collect_fee_mode": 0
+      },
+      "dynamic_fee_pct": 0.0,
+      "tvl": 2154.8235974318645,
+      "current_price": 0.05754131370247074,
+      "apr": 0.0846862623868328,
+      "apy": 36.202702119916054,
+      "has_farm": false,
+      "farm_apr": 0.0,
+      "farm_apy": 0.0,
+      "volume": {
+        "30m": 0.0,
+        "1h": 0.0,
+        "2h": 609.7603479432646,
+        "4h": 609.7603479432646,
+        "12h": 1116.223849926871,
+        "24h": 1234.9519198936148
+      },
+      "fees": {
+        "30m": 0.0,
+        "1h": 0.0,
+        "2h": 0.9484966983551456,
+        "4h": 0.9484966983551456,
+        "12h": 1.6585111277822318,
+        "24h": 1.8248395656945384
+      },
+      "protocol_fees": {
+        "30m": 0.0,
+        "1h": 0.0,
+        "2h": 0.0955263837892388,
+        "4h": 0.0955263837892388,
+        "12h": 0.1658461723743498,
+        "24h": 0.18168883800737384
+      },
+      "fee_tvl_ratio": {
+        "30m": 0.0,
+        "1h": 0.0,
+        "2h": 0.04401737105002801,
+        "4h": 0.04401737105002801,
+        "12h": 0.07696737355943467,
+        "24h": 0.0846862623868328
+      },
+      "cumulative_metrics": {
+        "volume": 584344.2795597527,
+        "fees": 818.0979484668683
+      },
+      "is_blacklisted": false,
+      "launchpad": "",
+      "tags": []
+    },
+    {
+      "address": "465Uv5cQX4Buo9cnYDhxRGRPjMTewewDS8JkjQuxDZB3",
+      "name": "DRAM-USDC",
+      "token_x": {
+        "address": "DRAMjSWR7HRfJKjRkvQWYL2bcaejaVhuxEcjf4pAY4Cw",
+        "name": "Roundhill Memory ETF - Backpack Securities",
+        "symbol": "DRAM",
+        "decimals": 6,
+        "is_verified": true,
+        "holders": 3608,
+        "freeze_authority_disabled": false,
+        "total_supply": 14760.298966,
+        "price": 62.06361470512591,
+        "market_cap": 916077.5079582924
+      },
+      "token_y": {
+        "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        "name": "USD Coin",
+        "symbol": "USDC",
+        "decimals": 6,
+        "is_verified": true,
+        "holders": 5248202,
+        "freeze_authority_disabled": false,
+        "total_supply": 7757869655.222625,
+        "price": 0.9999126186659502,
+        "market_cap": 7757191762.222767
+      },
+      "reserve_x": "3BFothwDuXNxPKLqfa2pf872vFejYadxXskCEPUQX6nh",
+      "reserve_y": "EVsRqmmSRJ2nfmtG4kUQHJFSeTjmbe47zs4uTfoyNUSJ",
+      "token_x_amount": 81.955291,
+      "token_y_amount": 773.3593589999999,
+      "created_at": 1782767969000,
+      "reward_mint_x": "11111111111111111111111111111111",
+      "reward_mint_y": "11111111111111111111111111111111",
+      "pool_config": {
+        "bin_step": 20,
+        "base_fee_pct": 1.0,
+        "max_fee_pct": 0.0,
+        "protocol_fee_pct": 10.0,
+        "collect_fee_mode": 0
+      },
+      "dynamic_fee_pct": 0.0007999999999999999,
+      "tvl": 5867.902155591136,
+      "current_price": 62.169933817826994,
+      "apr": 0.16542244390197242,
+      "apy": 82.81290496613582,
+      "has_farm": false,
+      "farm_apr": 0.0,
+      "farm_apy": 0.0,
+      "volume": {
+        "30m": 0.0,
+        "1h": 30.625914723034786,
+        "2h": 802.9577796639061,
+        "4h": 802.9577796639061,
+        "12h": 985.3856568767476,
+        "24h": 1041.3578970080184
+      },
+      "fees": {
+        "30m": 0.0,
+        "1h": 0.2762364932668797,
+        "2h": 7.556254239458816,
+        "4h": 7.556254239458816,
+        "12h": 9.202566952158868,
+        "24h": 9.706827151555377
+      },
+      "protocol_fees": {
+        "30m": 0.0,
+        "1h": 0.030381458033976433,
+        "2h": 0.7965569224684828,
+        "4h": 0.7965569224684828,
+        "12h": 0.978690496769925,
+        "24h": 1.0347115206364466
+      },
+      "fee_tvl_ratio": {
+        "30m": 0.0,
+        "1h": 0.00470758519726973,
+        "2h": 0.12877266933053683,
+        "4h": 0.12877266933053683,
+        "12h": 0.15682890934693502,
+        "24h": 0.16542244390197242
+      },
+      "cumulative_metrics": {
+        "volume": 153978.7556034203,
+        "fees": 1397.4583161858577
+      },
+      "is_blacklisted": false,
+      "launchpad": "",
+      "tags": []
+    },
+    {
+      "address": "7BUmeqygc8G1vqZSr2dGf6q3eqB9xQ7UHSug93BWTAZB",
+      "name": "DRAM-SOL",
+      "token_x": {
+        "address": "DRAMjSWR7HRfJKjRkvQWYL2bcaejaVhuxEcjf4pAY4Cw",
+        "name": "Roundhill Memory ETF - Backpack Securities",
+        "symbol": "DRAM",
+        "decimals": 6,
+        "is_verified": true,
+        "holders": 3608,
+        "freeze_authority_disabled": false,
+        "total_supply": 14760.298966,
+        "price": 62.039864904631784,
+        "market_cap": 915726.9538026162
+      },
+      "token_y": {
+        "address": "So11111111111111111111111111111111111111112",
+        "name": "Wrapped SOL",
+        "symbol": "SOL",
+        "decimals": 9,
+        "is_verified": true,
+        "holders": 3820662,
+        "freeze_authority_disabled": true,
+        "total_supply": 635073379.3102121,
+        "price": 118.85974913392852,
+        "market_cap": 69898532586.01158
+      },
+      "reserve_x": "HUY2GDY6yd1AddmCaRa2xuh3ZQS1eq3i6BqmWtdEtRTP",
+      "reserve_y": "FW6kbVKV4TarFX3GKNsL3yHXqTQS6mSFDufVQXw7TK3p",
+      "token_x_amount": 0.770925,
+      "token_y_amount": 0.430877938,
+      "created_at": 1790900439000,
+      "reward_mint_x": "11111111111111111111111111111111",
+      "reward_mint_y": "11111111111111111111111111111111",
+      "pool_config": {
+        "bin_step": 10,
+        "base_fee_pct": 0.1,
+        "max_fee_pct": 0.0,
+        "protocol_fee_pct": 10.0,
+        "collect_fee_mode": 0
+      },
+      "dynamic_fee_pct": 0.0012997,
+      "tvl": 99.0131093675408,
+      "current_price": 0.521063848823166,
+      "apr": 0.2515954178155156,
+      "apy": 150.21990854611755,
+      "has_farm": false,
+      "farm_apr": 0.0,
+      "farm_apy": 0.0,
+      "volume": {
+        "30m": 126.86549834795171,
+        "1h": 252.49443766213312,
+        "2h": 252.49443766213312,
+        "4h": 252.49443766213312,
+        "12h": 252.49443766213312,
+        "24h": 252.49443766213312
+      },
+      "fees": {
+        "30m": 0.12903946508760095,
+        "1h": 0.2491124462053977,
+        "2h": 0.2491124462053977,
+        "4h": 0.2491124462053977,
+        "12h": 0.2491124462053977,
+        "24h": 0.2491124462053977
+      },
+      "protocol_fees": {
+        "30m": 0.011672956765892433,
+        "1h": 0.022917713033110697,
+        "2h": 0.022917713033110697,
+        "4h": 0.022917713033110697,
+        "12h": 0.022917713033110697,
+        "24h": 0.022917713033110697
+      },
+      "fee_tvl_ratio": {
+        "30m": 0.13032563658676857,
+        "1h": 0.2515954178155156,
+        "2h": 0.2515954178155156,
+        "4h": 0.2515954178155156,
+        "12h": 0.2515954178155156,
+        "24h": 0.2515954178155156
+      },
+      "cumulative_metrics": {
+        "volume": 252.4944376621332,
+        "fees": 0.24911244620539763
+      },
+      "is_blacklisted": false,
+      "launchpad": "",
+      "tags": []
+    },
+    {
+      "address": "9NtcdcnacGdWnBfZbC3VfXdYAQCYhF4pHVGHXHfqC7Ds",
+      "name": "SKHY-DRAM",
+      "token_x": {
+        "address": "SKHYhSjuRWHgikq8eRKbtBbpABgJSkd7ytQV14i9EQ3",
+        "name": "SK Hynix - Backpack Securities",
+        "symbol": "SKHY",
+        "decimals": 6,
+        "is_verified": true,
+        "holders": 11313,
+        "freeze_authority_disabled": false,
+        "total_supply": 10878.172806,
+        "price": 191.5466191538883,
+        "market_cap": 2083677.2235610664
+      },
+      "token_y": {
+        "address": "DRAMjSWR7HRfJKjRkvQWYL2bcaejaVhuxEcjf4pAY4Cw",
+        "name": "Roundhill Memory ETF - Backpack Securities",
+        "symbol": "DRAM",
+        "decimals": 6,
+        "is_verified": true,
+        "holders": 3607,
+        "freeze_authority_disabled": false,
+        "total_supply": 14760.298966,
+        "price": 61.9488347211408,
+        "market_cap": 914383.3210793594
+      },
+      "reserve_x": "DFyK8QXXX6SHSGaAXZPxBMHbirXNdVPxw1ASjTaXSPDP",
+      "reserve_y": "CEgVF7iD4BfVxvMZiDN6ZLVwB6wza92NY5RvdnQsZWKw",
+      "token_x_amount": 1.397062,
+      "token_y_amount": 19.481281,
+      "created_at": 1787192544000,
+      "reward_mint_x": "11111111111111111111111111111111",
+      "reward_mint_y": "11111111111111111111111111111111",
+      "pool_config": {
+        "bin_step": 15,
+        "base_fee_pct": 0.15,
+        "max_fee_pct": 0.0,
+        "protocol_fee_pct": 10.0,
+        "collect_fee_mode": 0
+      },
+      "dynamic_fee_pct": 0.0015187999999999998,
+      "tvl": 1475.7512233680527,
+      "current_price": 3.086861395359189,
+      "apr": 0.02023379362379785,
+      "apy": 7.664085658567776,
+      "has_farm": false,
+      "farm_apr": 0.0,
+      "farm_apy": 0.0,
+      "volume": {
+        "30m": 10.445719737271016,
+        "1h": 31.82160779522744,
+        "2h": 113.01441373185936,
+        "4h": 113.01441373185936,
+        "12h": 209.5634466214761,
+        "24h": 213.5801498999851
+      },
+      "fees": {
+        "30m": 0.014505261948660208,
+        "1h": 0.04421630462859568,
+        "2h": 0.15839667913536418,
+        "4h": 0.15839667913536418,
+        "12h": 0.29266033996801477,
+        "24h": 0.2986004569369638
+      },
+      "protocol_fees": {
+        "30m": 0.001526805325062272,
+        "1h": 0.00452949165749323,
+        "2h": 0.014888710411786363,
+        "4h": 0.014888710411786363,
+        "12h": 0.027991924423357985,
+        "24h": 0.028357526423553422
+      },
+      "fee_tvl_ratio": {
+        "30m": 0.0009829069912986677,
+        "1h": 0.0029961895967588925,
+        "2h": 0.010733291399471876,
+        "4h": 0.010733291399471876,
+        "12h": 0.019831278831677797,
+        "24h": 0.020233793623797847
+      },
+      "cumulative_metrics": {
+        "volume": 8550.367486249806,
+        "fees": 12.541289226628152
+      },
+      "is_blacklisted": false,
+      "launchpad": "",
+      "tags": []
+    },
+    {
+      "address": "1WWGJPdcWe39xnWkp58SJ4r6W12QdEU7tQCwnRMjfsq",
+      "name": "DRAM-SOL",
+      "token_x": {
+        "address": "DRAMjSWR7HRfJKjRkvQWYL2bcaejaVhuxEcjf4pAY4Cw",
+        "name": "Roundhill Memory ETF - Backpack Securities",
+        "symbol": "DRAM",
+        "decimals": 6,
+        "is_verified": true,
+        "holders": 3573,
+        "freeze_authority_disabled": false,
+        "total_supply": 14760.362528,
+        "price": 61.7634336726453,
+        "market_cap": 911650.671982327
+      },
+      "token_y": {
+        "address": "So11111111111111111111111111111111111111112",
+        "name": "Wrapped SOL",
+        "symbol": "SOL",
+        "decimals": 9,
+        "is_verified": true,
+        "holders": 3820662,
+        "freeze_authority_disabled": true,
+        "total_supply": 635073385.7710822,
+        "price": 118.9155841362361,
+        "market_cap": 69931368563.72107
+      },
+      "reserve_x": "ANifDdsQtf4hXhFsbZcMGRDEKGi3ZysaPhgrmpkZHX3s",
+      "reserve_y": "HTFZPpgYsHroSGawwwFJZfaRUg1tyWjpQ91dpcM9N3He",
+      "token_x_amount": 0.0,
+      "token_y_amount": 1.1e-08,
+      "created_at": 1782484702000,
+      "reward_mint_x": "11111111111111111111111111111111",
+      "reward_mint_y": "11111111111111111111111111111111",
+      "pool_config": {
+        "bin_step": 20,
+        "base_fee_pct": 1.0,
+        "max_fee_pct": 0.0,
+        "protocol_fee_pct": 10.0,
+        "collect_fee_mode": 1
+      },
+      "dynamic_fee_pct": 0.0,
+      "tvl": 1.304688161202e-06,
+      "current_price": 1.01341513063867,
+      "apr": 0.0,
+      "apy": 0.0,
+      "has_farm": false,
+      "farm_apr": 0.0,
+      "farm_apy": 0.0,
+      "volume": {
+        "30m": 0.0,
+        "1h": 0.0,
+        "2h": 0.0,
+        "4h": 0.0,
+        "12h": 0.0,
+        "24h": 0.0
+      },
+      "fees": {
+        "30m": 0.0,
+        "1h": 0.0,
+        "2h": 0.0,
+        "4h": 0.0,
+        "12h": 0.0,
+        "24h": 0.0
+      },
+      "protocol_fees": {
+        "30m": 0.0,
+        "1h": 0.0,
+        "2h": 0.0,
+        "4h": 0.0,
+        "12h": 0.0,
+        "24h": 0.0
+      },
+      "fee_tvl_ratio": {
+        "30m": 0.0,
+        "1h": 0.0,
+        "2h": 0.0,
+        "4h": 0.0,
+        "12h": 0.0,
+        "24h": 0.0
+      },
+      "cumulative_metrics": {
+        "volume": 68.56428190338649,
+        "fees": 0.6188898231840843
+      },
+      "is_blacklisted": false,
+      "launchpad": "",
+      "tags": []
+    },
+    {
+      "address": "6x15kq4Gdjpv7PwJbW5ZYyqUtuDof3sso5ETRjLw8YKo",
+      "name": "DRAM-USDC",
+      "token_x": {
+        "address": "DRAMjSWR7HRfJKjRkvQWYL2bcaejaVhuxEcjf4pAY4Cw",
+        "name": "Roundhill Memory ETF - Backpack Securities",
+        "symbol": "DRAM",
+        "decimals": 6,
+        "is_verified": true,
+        "holders": 3570,
+        "freeze_authority_disabled": false,
+        "total_supply": 14760.362528,
+        "price": 61.75827366212702,
+        "market_cap": 911574.5083564288
+      },
+      "token_y": {
+        "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        "name": "USD Coin",
+        "symbol": "USDC",
+        "decimals": 6,
+        "is_verified": true,
+        "holders": 5248202,
+        "freeze_authority_disabled": false,
+        "total_supply": 7757933204.556875,
+        "price": 0.999902975864992,
+        "market_cap": 7757180497.798253
+      },
+      "reserve_x": "5op7n7QgWemTo1GV14gPJnmDJWN7moFXvyjf2sQFCKQN",
+      "reserve_y": "EjYbGVDXuShMfp4XfW88Sx3kZiDB8eVxt66T1thg6TYK",
+      "token_x_amount": 3e-06,
+      "token_y_amount": 1e-06,
+      "created_at": 1787048110000,
+      "reward_mint_x": "11111111111111111111111111111111",
+      "reward_mint_y": "11111111111111111111111111111111",
+      "pool_config": {
+        "bin_step": 100,
+        "base_fee_pct": 0.8,
+        "max_fee_pct": 0.0,
+        "protocol_fee_pct": 10.0,
+        "collect_fee_mode": 0
+      },
+      "dynamic_fee_pct": 0.0,
+      "tvl": 0.000168073934763066,
+      "current_price": 55.69741099866139,
+      "apr": 0.0,
+      "apy": 0.0,
+      "has_farm": false,
+      "farm_apr": 0.0,
+      "farm_apy": 0.0,
+      "volume": {
+        "30m": 0.0,
+        "1h": 0.0,
+        "2h": 0.0,
+        "4h": 0.0,
+        "12h": 0.0,
+        "24h": 0.0
+      },
+      "fees": {
+        "30m": 0.0,
+        "1h": 0.0,
+        "2h": 0.0,
+        "4h": 0.0,
+        "12h": 0.0,
+        "24h": 0.0
+      },
+      "protocol_fees": {
+        "30m": 0.0,
+        "1h": 0.0,
+        "2h": 0.0,
+        "4h": 0.0,
+        "12h": 0.0,
+        "24h": 0.0
+      },
+      "fee_tvl_ratio": {
+        "30m": 0.0,
+        "1h": 0.0,
+        "2h": 0.0,
+        "4h": 0.0,
+        "12h": 0.0,
+        "24h": 0.0
+      },
+      "cumulative_metrics": {
+        "volume": 158.1637772143103,
+        "fees": 1.1484211504536166
+      },
+      "is_blacklisted": false,
+      "launchpad": "",
+      "tags": []
+    },
+    {
+      "address": "8nRXWGQSuw2so9h86vgWBUP9TwRUiTxWXsRtLKH5Aeb8",
+      "name": "DRAM-SOL",
+      "token_x": {
+        "address": "DRAMjSWR7HRfJKjRkvQWYL2bcaejaVhuxEcjf4pAY4Cw",
+        "name": "Roundhill Memory ETF - Backpack Securities",
+        "symbol": "DRAM",
+        "decimals": 6,
+        "is_verified": true,
+        "holders": 3578,
+        "freeze_authority_disabled": false,
+        "total_supply": 14760.362529,
+        "price": 61.77888400379872,
+        "market_cap": 911878.724533108
+      },
+      "token_y": {
+        "address": "So11111111111111111111111111111111111111112",
+        "name": "Wrapped SOL",
+        "symbol": "SOL",
+        "decimals": 9,
+        "is_verified": true,
+        "holders": 3820662,
+        "freeze_authority_disabled": true,
+        "total_supply": 635073385.7710822,
+        "price": 118.6704273415786,
+        "market_cap": 69787197803.5333
+      },
+      "reserve_x": "4wHjZFNEaaKRUrMAb5mjtjVUDd5CW4THH2CCtcSva4Na",
+      "reserve_y": "5yfN23bWvSFqRmCqZJb5P23PQpuzTpUtz5eDtdb1YTbB",
+      "token_x_amount": 0.0,
+      "token_y_amount": 0.0,
+      "created_at": 1782481970000,
+      "reward_mint_x": "11111111111111111111111111111111",
+      "reward_mint_y": "11111111111111111111111111111111",
+      "pool_config": {
+        "bin_step": 100,
+        "base_fee_pct": 2.0,
+        "max_fee_pct": 0.0,
+        "protocol_fee_pct": 10.0,
+        "collect_fee_mode": 1
+      },
+      "dynamic_fee_pct": 0.0,
+      "tvl": 0.0,
+      "current_price": 0.0,
+      "apr": 0.0,
+      "apy": 0.0,
+      "has_farm": false,
+      "farm_apr": 0.0,
+      "farm_apy": 0.0,
+      "volume": {
+        "30m": 0.0,
+        "1h": 0.0,
+        "2h": 0.0,
+        "4h": 0.0,
+        "12h": 0.0,
+        "24h": 0.0
+      },
+      "fees": {
+        "30m": 0.0,
+        "1h": 0.0,
+        "2h": 0.0,
+        "4h": 0.0,
+        "12h": 0.0,
+        "24h": 0.0
+      },
+      "protocol_fees": {
+        "30m": 0.0,
+        "1h": 0.0,
+        "2h": 0.0,
+        "4h": 0.0,
+        "12h": 0.0,
+        "24h": 0.0
+      },
+      "fee_tvl_ratio": {
+        "30m": 0.0,
+        "1h": 0.0,
+        "2h": 0.0,
+        "4h": 0.0,
+        "12h": 0.0,
+        "24h": 0.0
+      },
+      "cumulative_metrics": {
+        "volume": 0.0,
+        "fees": 0.0
+      },
+      "is_blacklisted": false,
+      "launchpad": "",
+      "tags": []
+    },
+    {
+      "address": "CsQojnynSbDNpbD2Jv9GeZd5dHKwe431uid25xdvrSQY",
+      "name": "DRAM-USDC",
+      "token_x": {
+        "address": "DRAMjSWR7HRfJKjRkvQWYL2bcaejaVhuxEcjf4pAY4Cw",
+        "name": "Roundhill Memory ETF - Backpack Securities",
+        "symbol": "DRAM",
+        "decimals": 6,
+        "is_verified": true,
+        "holders": 3554,
+        "freeze_authority_disabled": false,
+        "total_supply": 14760.362528,
+        "price": 61.942279059063075,
+        "market_cap": 914290.4947223136
+      },
+      "token_y": {
+        "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        "name": "USD Coin",
+        "symbol": "USDC",
+        "decimals": 6,
+        "is_verified": true,
+        "holders": 5248202,
+        "freeze_authority_disabled": false,
+        "total_supply": 7757930103.163558,
+        "price": 0.9999146554373898,
+        "market_cap": 7757268006.012143
+      },
+      "reserve_x": "5Ak1zmtU3e5wVrzfoep7xohMP2LSgStGhpiTCAD1wMzZ",
+      "reserve_y": "67ZD4pZBa4UbyJkLft5eKY8a4Vo2MWWMokqypBDamoBw",
+      "token_x_amount": 3.3e-05,
+      "token_y_amount": 0.001084,
+      "created_at": 1782485393000,
+      "reward_mint_x": "11111111111111111111111111111111",
+      "reward_mint_y": "11111111111111111111111111111111",
+      "pool_config": {
+        "bin_step": 50,
+        "base_fee_pct": 0.5,
+        "max_fee_pct": 0.0,
+        "protocol_fee_pct": 10.0,
+        "collect_fee_mode": 1
+      },
+      "dynamic_fee_pct": 0.0,
+      "tvl": 0.003124748397461905,
+      "current_price": 61.84905560661436,
+      "apr": 0.0,
+      "apy": 0.0,
+      "has_farm": false,
+      "farm_apr": 0.0,
+      "farm_apy": 0.0,
+      "volume": {
+        "30m": 0.0,
+        "1h": 0.0,
+        "2h": 0.0,
+        "4h": 0.0,
+        "12h": 0.0,
+        "24h": 0.0
+      },
+      "fees": {
+        "30m": 0.0,
+        "1h": 0.0,
+        "2h": 0.0,
+        "4h": 0.0,
+        "12h": 0.0,
+        "24h": 0.0
+      },
+      "protocol_fees": {
+        "30m": 0.0,
+        "1h": 0.0,
+        "2h": 0.0,
+        "4h": 0.0,
+        "12h": 0.0,
+        "24h": 0.0
+      },
+      "fee_tvl_ratio": {
+        "30m": 0.0,
+        "1h": 0.0,
+        "2h": 0.0,
+        "4h": 0.0,
+        "12h": 0.0,
+        "24h": 0.0
+      },
+      "cumulative_metrics": {
+        "volume": 141839.10630767478,
+        "fees": 651.1326495907423
+      },
+      "is_blacklisted": false,
+      "launchpad": "",
+      "tags": []
+    }
+  ]
+}

@@ -24,6 +24,7 @@ for (const file of [
   'holder-tier-server',
   'market-service',
   'pool-observations',
+  'pool-inventory',
   'backpack-registry',
   'holder-news',
   'headline-cache',
@@ -40,7 +41,7 @@ for (const file of [
       },
     })
     .outputText.replace(
-      /from '\.\/(pool-observations|solana-network|ondo-valuation|request-body|validation|stock-pools|tokens|token-registry|market-service|backpack-registry|market-data|market-cache|cmc-data|token-supply|token-observation|holder-tier|holder-news)'/g,
+      /from '\.\/(pool-inventory|pool-observations|solana-network|ondo-valuation|request-body|validation|stock-pools|tokens|token-registry|market-service|backpack-registry|market-data|market-cache|cmc-data|token-supply|token-observation|holder-tier|holder-news)'/g,
       "from './$1.mjs'",
     );
   await writeFile(dir + '/' + file + '.mjs', out);

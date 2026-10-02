@@ -42,3 +42,7 @@ export function overlayTokenPools(previous: PoolObservations, tokens: readonly S
   }
   return poolObservations({kind:'pool-observations-v1', data, asOf}, null);
 }
+
+export function prioritizePoolDiscovery(mints: readonly string[], checkedAt: ReadonlyMap<string, number>, activity: ReadonlyMap<string, number> = new Map()) {
+  return [...mints].sort((a,b)=>(checkedAt.get(a)??0)-(checkedAt.get(b)??0) || (activity.get(b)??0)-(activity.get(a)??0));
+}

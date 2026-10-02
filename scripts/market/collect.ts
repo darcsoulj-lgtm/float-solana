@@ -7,6 +7,7 @@ import {runMarketJob,runPoolChunk} from '../../lib/market-scheduler';
 import {backpackRegistry,registryTokens,REGISTRY_KEY,tokenBatchKey} from '../../lib/backpack-registry';
 import {TOKEN_REVIEW_DATE} from '../../lib/tokens';
 import {marketPartitions} from '../../lib/market-overview-server';
+import {prioritizePoolDiscovery} from '../../lib/pool-inventory';
 import {parseMarketRows} from '../../lib/market-snapshot-sync';
 
 const raw=new DatabaseSync(':memory:');raw.exec('CREATE TABLE market_cache(key TEXT PRIMARY KEY,payload TEXT,fetched_at INTEGER,retry_after INTEGER)');
@@ -52,11 +53,15 @@ if(bootstrap.ok){
 const start=Date.now();let failures=0;
 // Persisted success times prevent a throttled provider from repeatedly checking
 // the same early symbols while later/new listings starve.
-const discoveryMints=[...mints].sort((a,b)=>{
- const at=raw.prepare('SELECT fetched_at FROM market_cache WHERE key=?').get('pool-discovery:geckoterminal:'+a)?.fetched_at as number|undefined;
- const bt=raw.prepare('SELECT fetched_at FROM market_cache WHERE key=?').get('pool-discovery:geckoterminal:'+b)?.fetched_at as number|undefined;
- return (at??0)-(bt??0);
-});
+const checkedAt=new Map(mints.map(mint=>[mint,(raw.prepare('SELECT fetched_at FROM market_cache WHERE key=?').get('pool-discovery:geckoterminal:'+mint)?.fetched_at as number|undefined)??0]));
+const activity=new Map(mints.map(mint=>{
+ const row=raw.prepare('SELECT payload FROM market_cache WHERE key=?').get('pool-token-stonkfun-v2:'+mint);
+ const pools=row?.payload?JSON.parse(row.payload as string) as {volume24h:number|null}[]:[];
+ return [mint,pools.reduce((n,p)=>n+(p.volume24h??0),0)] as const;
+}));
+// A conservative free-provider budget; oldest successful checks win, with
+// higher observed activity breaking ties. Known values refresh for all tokens.
+const discoveryMints=prioritizePoolDiscovery(mints,checkedAt,activity).slice(0,16);
 for(let i=0;i<discoveryMints.length;i+=4)try{await runMarketJob(env,{kind:'discovery',mints:discoveryMints.slice(i,i+4)});}catch{failures++;}
 for(let i=0;i<mints.length;i+=10)try{await runMarketJob(env,{kind:'pool-refresh',mints:mints.slice(i,i+10)});}catch{failures++;}
 for(const [batch,rows] of marketPartitions(tokens).entries())if(rows.some(t=>t.issuer==='backpack'))await runMarketJob(env,{kind:'batch',batch});

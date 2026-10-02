@@ -4,11 +4,11 @@ import { bundle } from './helpers/bundle.mjs';
 const {
   parseOndoVolume,
   fetchPools,
-  rotatingPoolMints,
+  scheduledDiscoveryMints,
   TOKENS,
   issuerDashboard,
 } = await bundle(
-  `export * from './lib/ondo-volume'; export {fetchPools} from './lib/market-data'; export {rotatingPoolMints} from './lib/market-scheduler'; export {TOKENS} from './lib/tokens'; export {issuerDashboard} from './lib/issuer-dashboard';`,
+  `export * from './lib/ondo-volume'; export {fetchPools} from './lib/market-data'; export {scheduledDiscoveryMints} from './lib/market-scheduler'; export {TOKENS} from './lib/tokens'; export {issuerDashboard} from './lib/issuer-dashboard';`,
 );
 const now = Date.UTC(2026, 8, 27, 6);
 const day = Date.UTC(2026, 8, 25) / 1000;
@@ -54,13 +54,13 @@ void test('Ondo daily volume takes only the explicit Solana day, never global to
   }
   assert.throws(() => parseOndoVolume(fixture(), now + 4 * 86400000));
 });
-void test('Rotating discovery reaches every mint with at most two details per cycle', () => {
-  for (const n of [1, 2, 29, 30]) {
+void test('Independent discovery reaches every mint within ceil(count/8) minute slots', () => {
+  for (const n of [1, 2, 29, 30, 69, 70, 101]) {
     const m = Array.from({ length: n }, (_, i) => 'mint' + i);
     const seen = new Set();
-    for (let i = 0; i < n; i++) {
-      const selected = rotatingPoolMints(m, i * 4 * 60000);
-      assert.ok(selected.length <= 2);
+    for (let i = 0; i < Math.ceil(n / 8); i++) {
+      const selected = scheduledDiscoveryMints(m, i * 60000);
+      assert.ok(selected.length <= 8);
       selected.forEach((v) => seen.add(v));
     }
     assert.equal(seen.size, n);

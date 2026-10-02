@@ -10,6 +10,8 @@ export {TOKENS,TOKEN_REVIEW_DATE} from './lib/tokens';
 export {tokenBatchKey} from './lib/backpack-registry';
 export {POOL_POLICY_VERSION} from './lib/stock-pools';
 export {SourceHttpError} from './lib/market-data';
+export * from './lib/pool-inventory';
+export {readMarketBatch} from './lib/market-service';
 `);
 function database() {
   const raw = new DatabaseSync(':memory:');
@@ -50,7 +52,7 @@ void test('the public overview reads all saved batches without waiting on any pr
     assert.equal(saved.prices.stale,true);
     assert.equal(calls,0);
     assert.equal(stats().writes,0);
-    assert.equal(stats().reads-before.reads,2); // one bulk read, one circulation read
+    assert.equal(stats().reads-before.reads,2); // bounded bulk reads; D1 bind limit remains safe
   } finally {globalThis.fetch=previousFetch;raw.close();}
 });
 void test('provider requests are serialized and queued requests stop at the first 429', async () => {
@@ -79,11 +81,13 @@ void test('failed refresh keeps its old payload and time and backs off across po
 });
 void test('duplicate cron delivery does not duplicate jobs and a failed job does not stop other batches', async () => {
   const {raw,d1}=database();
-  const jobs=[];const scheduledTime=Math.floor(Date.now()/60000)*60000;
+  const jobs=[];const scheduledTime=Math.floor(Date.now()/240000)*240000;
   const env={DB:d1,MARKET_REFRESH:{async run(job){jobs.push(job);if(job.kind==='batch'&&jobs.length===1)throw Error('timeout');}}};
   await assert.rejects(api.runMarketSchedule(env,scheduledTime),/scheduled market jobs failed/);
   const count=jobs.length;
   assert.ok(jobs.some(job=>job.kind==='globals'));
+  assert.ok(!jobs.some(job=>job.kind==='circulation'));
+  for (const job of jobs.filter(job=>job.kind==='batch')) assert.ok(api.marketPartitions(api.TOKENS)[job.batch].some(token=>token.issuer==='backpack'));
   await api.runMarketSchedule(env,scheduledTime);
   assert.equal(jobs.length,count);
   raw.close();
@@ -96,7 +100,7 @@ void test('90-token caches preserve complete chunks and stop after a failed prov
     calls.push(chunk);
     return {data:Object.fromEntries(chunk.map(mint=>[mint,[]]))};
   }});
-  assert.deepEqual(calls.map(chunk=>chunk.length),[30,30,30]);
+  assert.deepEqual(calls.map(chunk=>chunk.length),Array(9).fill(10));
   assert.equal(Object.keys(data).length,90);
   assert.deepEqual(calls.flat(),mints);
   let count=0;
@@ -189,4 +193,90 @@ void test('Backpack overview preserves canonical cache keys and prices but exclu
   assert.ok(scoped.totalBatches < all.totalBatches);
   assert.equal(stats().writes, 0);
   raw.close();
+});
+
+void test('global refresh contacts only Backpack, even when upstreams fail', async () => {
+  const {raw,d1}=database(); const previous=globalThis.fetch; const urls=[];
+  globalThis.fetch=async input=>{urls.push(typeof input==='string'?input:input instanceof URL?input.href:input.url);return new Response('',{status:503});};
+  try {
+    const result=await api.readMarketGlobals({DB:d1},api.TOKENS,false);
+    assert.ok(urls.length>0);
+    assert.ok(urls.every(url=>new URL(url).hostname==='api.backpack.exchange'));
+    assert.equal(result.valuations,undefined);assert.equal(result.ondoVolume,undefined);
+    assert.equal(result.markets.fetchedAt,null);
+  } finally {globalThis.fetch=previous;raw.close();}
+});
+void test('every scheduled cycle excludes retired issuer batches and jobs', async () => {
+  for(let slot=0;slot<4;slot++) {
+    const {raw,d1}=database();const jobs=[];
+    await api.runMarketSchedule({DB:d1,MARKET_REFRESH:{async run(job){jobs.push(job);}}},240000+slot*60000);
+    assert.deepEqual(jobs.filter(job=>!['batch','discovery','pool-refresh'].includes(job.kind)).map(job=>job.kind),['globals','registry','holders']);
+    for(const job of jobs.filter(job=>job.kind==='batch')) assert.ok(api.marketPartitions(api.TOKENS)[job.batch].some(token=>token.issuer==='backpack'));
+    raw.close();
+  }
+});
+void test('retired circulation jobs are rejected before accessing providers', async () => {
+  await assert.rejects(api.runMarketJob({}, {kind:'circulation'}),/Unsupported market job/);
+});
+
+void test('mixed canonical caches request only Backpack mint identities', async () => {
+  const {raw,d1}=database(); const calls=[];
+  const active=api.TOKENS.find(token=>token.issuer==='backpack');
+  const retired=api.TOKENS.find(token=>token.issuer==='xstocks');
+  await api.readMarketBatch(d1,[active,retired],{pools:false,fetcher:async(input,init)=>{
+    const url=typeof input==='string'?input:input instanceof URL?input.href:input.url;
+    calls.push(url+(typeof init?.body==='string'?init.body:''));
+    return new Response('',{status:503});
+  }});
+  assert.ok(calls.length>=2);
+  assert.ok(calls.some(call=>call.includes(active.mint)));
+  assert.ok(calls.every(call=>!call.includes(retired.mint)));
+  raw.close();
+});
+
+void test('independent refresh covers the entire Backpack registry within four minute slots; discovery is private and bounded', async () => {
+  for (const count of [1, 44, 70, 79]) {
+    const mints=Array.from({length:count},(_,i)=>'mint'+i);
+    const seen=new Set(Array.from({length:Math.ceil(count/20)},(_,i)=>api.scheduledRefreshMints(mints,i*60000)).flat());
+    assert.equal(seen.size,count);
+  }
+  const {raw,d1}=database(),jobs=[];
+  await api.runMarketSchedule({DB:d1,MARKET_REFRESH:{async run(job){jobs.push(job);}}},60000);
+  assert.deepEqual(jobs.filter(j=>j.kind==='discovery').map(j=>j.mints.length),[4,4]);
+  assert.deepEqual(jobs.filter(j=>j.kind==='pool-refresh').map(j=>j.mints.length),[10,10]);
+  const allowed=new Set(api.TOKENS.filter(t=>t.issuer==='backpack').map(t=>t.mint));
+  assert.ok(jobs.filter(j=>j.mints).every(j=>j.mints.every(m=>allowed.has(m))));
+  raw.close();
+});
+void test('discovery inventory retains pool identities through omissions without renewing volume or token freshness',async()=>{
+  const {raw,d1}=database(); const token=api.TOKENS.find(t=>t.issuer==='backpack');
+  const p={address:'A'.repeat(32),baseMint:token.mint,quoteMint:'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',dex:'zerofi',volume24h:500000,liquidity:5000,price:10,change24h:1};
+  await api.rememberPoolInventory(d1,token,[p],1000);
+  await api.rememberPoolInventory(d1,token,[],2000);
+  const inventory=await api.readPoolInventory(d1,[token]);
+  assert.equal(inventory.length,1);assert.equal(inventory[0].volume24h,null);assert.equal(inventory[0].unavailable,true);
+  const prior={kind:'pool-observations-v1',data:{[token.symbol]:[]},asOf:{[token.symbol]:500}};
+  const empty=api.overlayTokenPools(prior,[token],new Map(),3000);assert.equal(empty.asOf[token.symbol],500);
+  await api.saveTokenPoolObservation(d1,token,[p],2000);
+  await api.saveTokenPoolObservation(d1,token,[{...p,volume24h:1}],1500);
+  const row=raw.prepare('SELECT * FROM market_cache WHERE key=?').get(api.poolObservationKey(token));
+  assert.equal(row.fetched_at,2000);assert.equal(JSON.parse(row.payload)[0].volume24h,500000);
+  const saved=api.overlayTokenPools(prior,[token],new Map([[api.poolObservationKey(token),row]]),3000);
+  assert.equal(saved.asOf[token.symbol],2000);assert.equal(saved.data[token.symbol][0].volume24h,500000);
+  raw.close();
+});
+void test('public list reads independently committed pool values with the same timestamps as detail and no provider requests',async()=>{
+  const {raw,d1}=database();const token=api.TOKENS.find(t=>t.issuer==='backpack');const time=Date.now();
+  await api.saveTokenPoolObservation(d1,token,[{address:'A'.repeat(32),volume24h:500000,liquidity:500}],time);
+  const overview=await api.readMarketOverview({DB:d1},api.TOKENS,{additions:[],checkedAt:time},'backpack');
+  const detail=await api.readMarketBatch(d1,api.TOKENS.slice(0,90),{cacheOnly:true});
+  assert.equal(overview.pools.data[token.symbol][0].volume24h,500000);
+  assert.equal(overview.pools.asOf[token.symbol],time);assert.equal(detail.pools.asOf[token.symbol],time);
+  raw.close();
+});
+
+void test('provider discovery prioritizes unchecked/new tokens after throttling rather than restarting at the same early symbols',()=>{
+ assert.deepEqual(api.prioritizePoolDiscovery(['A','B','NEW','D'],new Map([['A',100],['B',200],['D',50]])),['NEW','D','A','B']);
+ assert.deepEqual(api.prioritizePoolDiscovery(['A','B','C'],new Map([['A',1000]])),['B','C','A']);
+ assert.deepEqual(api.prioritizePoolDiscovery(['A','B','C'],new Map(),new Map([['A',1],['B',50],['C',10]])),['B','C','A']);
 });

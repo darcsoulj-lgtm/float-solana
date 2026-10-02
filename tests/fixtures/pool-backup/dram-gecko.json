@@ -1,0 +1,190 @@
+{
+  "data": [
+    {
+      "id": "solana_AoFqHa5Mm7GDD81S9P69ibtUuLBZa2JpDZH3jz3YcXCr",
+      "type": "pool",
+      "attributes": {
+        "base_token_price_usd": "62.1129533501",
+        "base_token_price_native_currency": "0.523135437388129",
+        "quote_token_price_usd": "1.00256164812341",
+        "quote_token_price_native_currency": "0.00843055539962502",
+        "base_token_price_quote_token": "62.0523100307",
+        "quote_token_price_base_token": "0.0161154355",
+        "address": "AoFqHa5Mm7GDD81S9P69ibtUuLBZa2JpDZH3jz3YcXCr",
+        "name": "DRAM / USDC",
+        "pool_created_at": "2026-06-25T23:20:22Z",
+        "token_price_usd": "62.1129533501",
+        "fdv_usd": "916809.799568688",
+        "market_cap_usd": "930715.768871306",
+        "price_change_percentage": {
+          "m5": "-0.04",
+          "m15": "0.921",
+          "m30": "0.159",
+          "h1": "0.62",
+          "h6": "0.52",
+          "h24": "2.42"
+        },
+        "transactions": {
+          "m5": {
+            "buys": 0,
+            "sells": 3,
+            "buyers": 0,
+            "sellers": 3
+          },
+          "m15": {
+            "buys": 20,
+            "sells": 35,
+            "buyers": 20,
+            "sellers": 34
+          },
+          "m30": {
+            "buys": 124,
+            "sells": 75,
+            "buyers": 101,
+            "sellers": 63
+          },
+          "h1": {
+            "buys": 466,
+            "sells": 280,
+            "buyers": 310,
+            "sellers": 208
+          },
+          "h6": {
+            "buys": 1646,
+            "sells": 1542,
+            "buyers": 922,
+            "sellers": 902
+          },
+          "h24": {
+            "buys": 1716,
+            "sells": 1578,
+            "buyers": 941,
+            "sellers": 914
+          }
+        },
+        "volume_usd": {
+          "m5": "574.5308327306",
+          "m15": "4016.2913969077",
+          "m30": "19517.0839122544",
+          "h1": "120844.868063966",
+          "h6": "460199.390528582",
+          "h24": "496172.566449334"
+        },
+        "reserve_in_usd": "91752.1552"
+      },
+      "relationships": {
+        "base_token": {
+          "data": {
+            "id": "solana_DRAMjSWR7HRfJKjRkvQWYL2bcaejaVhuxEcjf4pAY4Cw",
+            "type": "token"
+          }
+        },
+        "quote_token": {
+          "data": {
+            "id": "solana_EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+            "type": "token"
+          }
+        },
+        "dex": {
+          "data": {
+            "id": "zerofi",
+            "type": "dex"
+          }
+        }
+      }
+    },
+    {
+      "id": "solana_BH1MejaYpvgzGhGa6JJHsTduDE943y3taf65ocukyjwU",
+      "type": "pool",
+      "attributes": {
+        "base_token_price_usd": "62.1962122217",
+        "base_token_price_native_currency": "0.517972620264122",
+        "quote_token_price_usd": "1.00235698648369682453098261259734914865483299496940167230935871",
+        "quote_token_price_native_currency": "0.00843146605361781",
+        "base_token_price_quote_token": "61.4332806383",
+        "quote_token_price_base_token": "0.01627782188",
+        "address": "BH1MejaYpvgzGhGa6JJHsTduDE943y3taf65ocukyjwU",
+        "name": "DRAM / USDC",
+        "pool_created_at": "2026-10-01T23:44:59Z",
+        "token_price_usd": "62.1962122217",
+        "fdv_usd": "918038.730818401",
+        "market_cap_usd": "931963.340279798",
+        "price_change_percentage": {
+          "m5": "0.08",
+          "m15": "0.887",
+          "m30": "-0.119",
+          "h1": "0.22",
+          "h6": "0.4",
+          "h24": "0.4"
+        },
+        "transactions": {
+          "m5": {
+            "buys": 8,
+            "sells": 8,
+            "buyers": 8,
+            "sellers": 8
+          },
+          "m15": {
+            "buys": 18,
+            "sells": 18,
+            "buyers": 16,
+            "sellers": 18
+          },
+          "m30": {
+            "buys": 32,
+            "sells": 61,
+            "buyers": 27,
+            "sellers": 57
+          },
+          "h1": {
+            "buys": 141,
+            "sells": 262,
+            "buyers": 96,
+            "sellers": 143
+          },
+          "h6": {
+            "buys": 324,
+            "sells": 465,
+            "buyers": 228,
+            "sellers": 270
+          },
+          "h24": {
+            "buys": 324,
+            "sells": 465,
+            "buyers": 228,
+            "sellers": 270
+          }
+        },
+        "volume_usd": {
+          "m5": "286.3775974389",
+          "m15": "946.9600128066",
+          "m30": "2161.7817406072",
+          "h1": "27393.7334234086",
+          "h6": "62661.0637377489",
+          "h24": "62661.0637377489"
+        },
+        "reserve_in_usd": "1711.6163"
+      },
+      "relationships": {
+        "base_token": {
+          "data": {
+            "id": "solana_DRAMjSWR7HRfJKjRkvQWYL2bcaejaVhuxEcjf4pAY4Cw",
+            "type": "token"
+          }
+        },
+        "quote_token": {
+          "data": {
+            "id": "solana_EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+            "type": "token"
+          }
+        },
+        "dex": {
+          "data": {
+            "id": "meteora",
+            "type": "dex"
+          }
+        }
+      }
+    }
+  ]
+}

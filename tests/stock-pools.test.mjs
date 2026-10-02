@@ -244,7 +244,7 @@ void test('A warm legacy pool cache cannot reintroduce excluded activity, includ
   };
   try {
     const result = await api.readMarketBatch(db, [stock], { history: false });
-    assert.equal(calls, 2);
+    assert.equal(calls, 0, 'retired issuer caches never initiate provider requests');
     assert.equal(result.pools.data, null);
     assert.ok(result.pools.error);
     assert.equal(
@@ -284,4 +284,34 @@ void test('recorded SPCX response restores all 21 eligible returned pools, not j
   assert.equal(pools.SPCX.length,21);
   assert.equal(new Set(pools.SPCX.map(p=>p.address)).size,21);
   assert.equal(calls.filter(p=>p.includes('/token-pairs/')).length,3);
+});
+
+void test('missing or disputed pool volume plus an observed zero is unknown, never a zero total', () => {
+  const zero = {...api.parsePools([pair(stock.mint, usdc.mint, 0)], [stock])[stock.symbol][0]};
+  for (const missing of [
+    {...zero,address:'missing',unavailable:true,volume24h:null},
+    {...zero,address:'missing',volumeDisputed:true,volume24h:null},
+    {...zero,address:'missing',volume24h:null},
+  ]) {
+    const rows = [zero,missing];
+    assert.equal(api.poolMetrics(rows).volume24h,null);
+    assert.equal(api.poolMetrics(rows).partial,true);
+    assert.equal(api.tokenObservation(market({[stock.symbol]:rows}),stock.symbol,now).poolVolume24h,null);
+    assert.equal(api.poolMetrics([{...zero,volume24h:25},missing]).volume24h,25);
+  }
+  assert.equal(api.poolMetrics([zero]).volume24h,0);
+});
+void test('scheduled pool collection preserves batch observations after a known-address or detail request fails; strict snapshots still reject',async()=>{
+ const [a,b]=api.TOKENS.filter(t=>t.issuer==='backpack');
+ const good=pair(a.mint,usdc.mint,12345);const extra=pair(b.mint,usdc.mint,88);
+ const old={address:good.pairAddress,baseMint:a.mint,quoteMint:usdc.mint};const failures=[];
+ const fetcher=async input=>{
+ const url=String(input);if(url.includes('stonkfun'))return Response.json({data:{tokens:[]}});
+ if(url.includes('/tokens/v1/'))return Response.json([good]);
+ if(url.endsWith('/'+b.mint))return Response.json([extra]);
+ return new Response('',{status:503});};
+ const result=await api.fetchPools(fetcher,[a,b],[a,b],{knownPools:[old],detailMints:[a.mint,b.mint],isolateMissing:true,onFailure:async error=>{failures.push(error);}});
+ assert.equal(result[a.symbol][0].volume24h,12345);assert.equal(result[b.symbol][0].volume24h,88);
+ assert.equal(failures.length,2);
+ await assert.rejects(api.fetchPools(fetcher,[a,b],[a,b],{knownPools:[old],detailMints:[a.mint,b.mint]}));
 });
