@@ -91,7 +91,7 @@ export function retainPoolValues(
     }
   return current.map((p) => {
     const old = prior.get(p.address);
-    return p.unavailable && !p.volumeDisputed && old
+    return (p.unavailable || p.volume24h == null) && !p.volumeDisputed && old
       ? { ...old, delayed: true }
       : p;
   });

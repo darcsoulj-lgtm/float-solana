@@ -140,3 +140,15 @@ void test('recovery restores the total without duplicate providers or a permanen
   assert.ok(!resolved[0].volumeDisputed);
   assert.equal(api.poolMetrics(resolved).volume24h, 10000);
 });
+void test('identity-only refresh preserves a qualified saved volume and original time, including confirmed zero', () => {
+  for (const volume24h of [0, 10000]) {
+    const old = {...base, source:'geckoterminal', volume24h, observedAt:now-600000};
+    const identity = {...old, source:'orca', volume24h:null, observedAt:now};
+    const [retained] = api.retainPoolValues([identity], [old], token, now);
+    assert.equal(retained.volume24h, volume24h);
+    assert.equal(retained.source, 'geckoterminal');
+    assert.equal(retained.observedAt, old.observedAt);
+    assert.equal(retained.delayed, true);
+    assert.equal(api.retainPoolValues([{...identity,volumeDisputed:true}], [old], token, now)[0].volume24h, null);
+  }
+});

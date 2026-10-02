@@ -328,3 +328,14 @@ void test('a later provider throttle preserves successful discovery values witho
  await assert.rejects(api.collectPoolFallbacks({...options,now:now+300000}),/No pool provider/);
  await assert.rejects(api.collectPoolFallbacks({...options,recent:discovered.map(p=>({...p,observedAt:now+60001}))}),/No pool provider/);
 });
+void test('saved unqualified Raydium volume cannot suppress a missing-pool Gecko repair request', async()=>{
+ const now=Date.now(), old={...known,source:'raydium',volume24h:50000,observedAt:now-60000};
+ const requested=[];
+ const result=await api.collectPoolFallbacks({tokens:[djt],verified:api.TOKENS,known:[old],recent:[old],detailMints:[],dexAvailable:false,now,
+  primary:async()=>Response.json({data:{tokens:[]}}),request:async(provider,url)=>{
+   if(provider==='geckoterminal'){requested.push(url);return fixture('gecko-missing');}
+   throw Error('offline');
+  }});
+ assert.ok(requested.some(url=>url.includes('/pools/multi/')&&url.includes(old.address)));
+ assert.equal(result.DJT.find(p=>p.address===old.address).source,'geckoterminal');
+});

@@ -8,6 +8,7 @@ import {
 import type { PoolRequest } from './pool-provider-fetch';
 import type { StockToken } from './tokens';
 import type { StonkfunPoolIdentity } from './stock-pools';
+import { qualifiedPoolVolume } from './pool-volume-policy';
 
 const chunks = <T>(rows: T[], size: number): T[][] =>
   Array.from({ length: Math.ceil(rows.length / size) }, (_, i) =>
@@ -160,7 +161,7 @@ export async function collectPoolFallbacks(options: {
         .flat()
         .filter(
           (p) =>
-            p.volume24h != null &&
+            qualifiedPoolVolume(p) &&
             p.liquidity != null &&
             !needsZeroConfirmation(p, knownByAddress.get(p.address)),
         )
