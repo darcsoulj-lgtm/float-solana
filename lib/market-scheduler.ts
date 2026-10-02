@@ -90,6 +90,11 @@ export async function runPoolChunk(env: MarketEnvironment, mints: string[], mode
       const row = await env.DB.prepare('SELECT payload FROM market_cache WHERE key=?').bind(poolObservationKey(token)).first<{payload: string | null}>();
       if (row?.payload) knownPools.push(...JSON.parse(row.payload) as Pool[]);
     }
+    const recent: Pool[] = [];
+    if (mode === 'refresh') for (const token of tokens) {
+      const row = await env.DB.prepare('SELECT payload FROM market_cache WHERE key=?').bind('pool-discovery-values:'+token.mint).first<{payload:string|null}>();
+      if (row?.payload) recent.push(...JSON.parse(row.payload) as Pool[]);
+    }
     const deadline = AbortSignal.timeout(45000);
     const primaryDeadline = AbortSignal.timeout(18000);
     const bounded: typeof fetch = (input, init) => fetch(input, {
@@ -98,7 +103,7 @@ export async function runPoolChunk(env: MarketEnvironment, mints: string[], mode
     const cooldown = await env.DB.prepare('SELECT retry_after FROM market_cache WHERE key=?')
       .bind('provider-cooldown:dexscreener').first<{retry_after:number}>();
     const known = [...new Map(knownPools.map(p => [p.address, p])).values()];
-    const data = await collectPoolFallbacks({tokens, verified:stocks.filter(t=>t.issuer==='backpack'),known, mode,
+    const data = await collectPoolFallbacks({tokens, verified:stocks.filter(t=>t.issuer==='backpack'),known, mode, recent,
       detailMints:mode === 'discovery' ? mints : [], dexAvailable:!(cooldown && cooldown.retry_after>Date.now()),
       primary:pacedMarketFetch(retryLimitedMarketFetch(env.DB,bounded,primaryDeadline),1000),
       request:poolProviderRequest(env.DB,fetch,deadline),
@@ -114,6 +119,9 @@ export async function runPoolChunk(env: MarketEnvironment, mints: string[], mode
     });
     for (const token of tokens) if (data[token.symbol]?.length)
       await rememberPoolInventory(env.DB, token, data[token.symbol], Date.now());
+    if (mode === 'discovery') for (const token of tokens) if (data[token.symbol]?.length)
+      await env.DB.prepare('INSERT INTO market_cache (key,payload,fetched_at,retry_after) VALUES (?,?,?,0) ON CONFLICT(key) DO UPDATE SET payload=excluded.payload,fetched_at=excluded.fetched_at')
+        .bind('pool-discovery-values:'+token.mint,JSON.stringify(data[token.symbol]),Date.now()).run();
     return {data};
   } catch (error) {
     if (error instanceof SourceHttpError && error.status === 429) {
@@ -195,7 +203,8 @@ export async function runMarketJob(env: MarketEnvironment & { MARKET_REFRESH: Ma
     if (job.kind === 'pool-refresh') {
       const registry = await backpackRegistry(env.DB, () => {}, env.SOLANA_RPC_URL, fetch, Date.now(), true);
       for (const token of registryTokens(registry)) if (token.issuer === 'backpack' && job.mints.includes(token.mint) && result.data[token.symbol])
-        await saveTokenPoolObservation(env.DB, token, result.data[token.symbol], Date.now());
+        await saveTokenPoolObservation(env.DB, token, result.data[token.symbol],
+          Math.min(Date.now(), ...result.data[token.symbol].flatMap(p => !p.unavailable && p.observedAt ? [p.observedAt] : [])));
     }
     return;
   }

@@ -312,3 +312,17 @@ void test('backups are dispatched while the primary request is still pending',as
  await new Promise(r=>setTimeout(r,10));assert.equal(started,true);release();
  const result=await pending;assert.equal(result.DJT[0].source,'meteora');
 });
+void test('a later provider throttle preserves successful discovery values without renewing their observation time',async()=>{
+ const dram=api.TOKENS.find(t=>t.symbol==='DRAM'&&t.issuer==='backpack'), now=Date.now();
+ const discovered=api.parseProviderPools('geckoterminal',await fixture('dram-gecko'),[dram],api.TOKENS,[],now-90000).DRAM;
+ const options={tokens:[dram],verified:api.TOKENS,known:discovered,detailMints:[],dexAvailable:false,now,
+  primary:async()=>Response.json({data:{tokens:[]}}),request:async()=>{throw Error('429');},recent:discovered};
+ const result=await api.collectPoolFallbacks(options);
+ const pool=result.DRAM.find(p=>p.dex==='zerofi');
+ assert.ok(pool.volume24h>0);assert.equal(pool.observedAt,now-90000);
+ const fresher={...pool,volume24h:pool.volume24h*2,observedAt:now};
+ const chosen=api.resolvePoolSources([pool,fresher],discovered,dram).find(p=>p.address===pool.address);
+ assert.equal(chosen.volume24h,fresher.volume24h);assert.equal(chosen.observedAt,now);assert.ok(!chosen.volumeDisputed);
+ await assert.rejects(api.collectPoolFallbacks({...options,now:now+300000}),/No pool provider/);
+ await assert.rejects(api.collectPoolFallbacks({...options,recent:discovered.map(p=>({...p,observedAt:now+60001}))}),/No pool provider/);
+});

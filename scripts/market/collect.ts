@@ -62,8 +62,12 @@ const activity=new Map(mints.map(mint=>{
 // A conservative free-provider budget; oldest successful checks win, with
 // higher observed activity breaking ties. Known values refresh for all tokens.
 const discoveryMints=prioritizePoolDiscovery(mints,checkedAt,activity).slice(0,16);
+// Spend the free indexer budget on missing known values before new discovery.
+// Active markets lead the queue; no symbol is hardcoded or excluded.
+const refreshMints=[...mints].sort((a,b)=>(activity.get(b)??0)-(activity.get(a)??0));
+for(let i=0;i<refreshMints.length;i+=10)try{await runMarketJob(env,{kind:'pool-refresh',mints:refreshMints.slice(i,i+10)});}catch{failures++;}
 for(let i=0;i<discoveryMints.length;i+=4)try{await runMarketJob(env,{kind:'discovery',mints:discoveryMints.slice(i,i+4)});}catch{failures++;}
-for(let i=0;i<mints.length;i+=10)try{await runMarketJob(env,{kind:'pool-refresh',mints:mints.slice(i,i+10)});}catch{failures++;}
+for(let i=0;i<discoveryMints.length;i+=10)try{await runMarketJob(env,{kind:'pool-refresh',mints:discoveryMints.slice(i,i+10)});}catch{failures++;}
 for(const [batch,rows] of marketPartitions(tokens).entries())if(rows.some(t=>t.issuer==='backpack'))await runMarketJob(env,{kind:'batch',batch});
 await runMarketJob(env,{kind:'globals'});
 const all=raw.prepare('SELECT * FROM market_cache').all();

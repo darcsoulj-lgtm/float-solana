@@ -132,7 +132,9 @@ export function resolvePoolSources(
     )
       continue;
     const group = groups.get(p.address) ?? [];
-    group.push(p);
+    const sameSource = group.findIndex(prior => prior.source === p.source);
+    if (sameSource < 0) group.push(p);
+    else if ((p.observedAt ?? 0) >= (group[sameSource].observedAt ?? 0)) group[sameSource] = p;
     groups.set(p.address, group);
   }
   const priority: PoolProvider[] = [

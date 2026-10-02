@@ -32,6 +32,7 @@ export async function collectPoolFallbacks(options: {
   primaryFailure?: (error: unknown) => Promise<void>;
   mode?: 'refresh' | 'discovery';
   discoveryObserved?: (mint: string, now: number) => Promise<void>;
+  recent?: readonly Pool[];
 }) {
   const { tokens, verified, known, detailMints, request } = options;
   if (known.some(p => !p.baseMint || !p.quoteMint)) throw Error('Unverified legacy pool identity');
@@ -57,6 +58,14 @@ export async function collectPoolFallbacks(options: {
   const official = stonkfunPoolRegistry(options.primary, verified).then(rows => [...oldOfficial, ...rows]);
   const candidates: Record<string, Pool[]> = {};
   const observed = new Set<string>();
+  // Discovery already obtained a real observation. A later throttled refresh
+  // must not discard it. Only original, still-current observations qualify.
+  for (const token of tokens) {
+    const recent = (options.recent ?? []).filter(p =>
+      (p.baseMint === token.mint || p.quoteMint === token.mint) && !p.unavailable && !p.volumeDisputed &&
+      p.observedAt != null && p.observedAt <= now && now - p.observedAt < 300000);
+    if (recent.length) { candidates[token.symbol] = [...recent]; observed.add(token.symbol); }
+  }
   const failures: Partial<Record<PoolProvider, number>> = {};
   async function primaryFailure(error: unknown) {
     failures.dexscreener = (failures.dexscreener ?? 0) + 1;
