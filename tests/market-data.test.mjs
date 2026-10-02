@@ -58,6 +58,7 @@ const {
   publicJson,
   fetchCatalog,
   fetchBackpackMarkets,
+  normalizeBackpackChanges,
   fetchPools,
   fetchPrices,
   numeric,
@@ -139,7 +140,8 @@ void test('Backpack ticker adapter keeps external reference data separate from v
     {
       symbol: 'MU.US_USDC',
       lastPrice: '75.25',
-      priceChangePercent: '1.5',
+      firstPrice: '74.13793103448276',
+      priceChangePercent: '0.015',
       volume: '120',
       quoteVolume: '9030',
       trades: 12,
@@ -160,7 +162,9 @@ void test('Backpack ticker adapter keeps external reference data separate from v
   assert.deepEqual(result.MU, {
     market: 'MU.US_USDC',
     externalPrice: 75.25,
+    externalFirstPrice: 74.13793103448276,
     externalChange24h: 1.5,
+    externalChangeUnit: 'percent',
     externalVolume24h: 120,
     externalQuoteVolume24h: 9030,
     externalTrades: 12,
@@ -168,6 +172,51 @@ void test('Backpack ticker adapter keeps external reference data separate from v
     venueQuoteVolume24h: 9030,
     venueTrades: 12,
   });
+});
+void test('Backpack live-shaped fractional returns match first/last prices in percentage points', async () => {
+  const observations = [
+    ['NKE', '35.167', '31.52', '-0.103705'],
+    ['MU', '1062.835', '1107.565', '0.042086'],
+    ['DRAM', '61.126', '62.741', '0.026421'],
+    ['BB', '9.025', '9.24', '0.023823'],
+    ['NVDA', '230.793', '233.515', '0.011794'],
+    ['DJT', '9.105', '8.821', '-0.031192'],
+  ];
+  const rows = observations.map(([symbol, firstPrice, lastPrice, priceChangePercent]) => ({
+    symbol: symbol + '.US_USDC', firstPrice, lastPrice, priceChangePercent,
+  }));
+  const tokens = observations.map(([symbol]) => ({ ...TOKENS.find(t => t.symbol === 'MU'), symbol }));
+  const result = await fetchBackpackMarkets(async () => Response.json(rows), tokens);
+  for (const [symbol, first, last] of observations) {
+    const expected = (Number(last) / Number(first) - 1) * 100;
+    assert.ok(Math.abs(result[symbol].externalChange24h - expected) < 0.00011, symbol);
+    assert.equal(result[symbol].externalChangeUnit, 'percent');
+  }
+  assert.equal(result.MU.externalChange24h.toFixed(2), '4.21');
+  assert.equal(result.NKE.externalChange24h.toFixed(2), '-10.37');
+});
+void test('Backpack change conversion preserves zero, small and >100% returns and rejects invalid/inconsistent units', async () => {
+  for (const [first, last, raw, expected] of [
+    ['100', '100', '0', 0], ['100', '100.01', '0.0001', 0.01],
+    ['100', '250', '1.5', 150], ['100', '50', '-0.5', -50],
+    ['100', '105', '5', null], ['100', '105', null, null],
+    ['100', '105', 'bad', null], ['100', '105', '1e999', null],
+  ]) {
+    const result = await fetchBackpackMarkets(async () => Response.json([{
+      symbol: 'MU.US_USDC', firstPrice: first, lastPrice: last, priceChangePercent: raw,
+    }]), [TOKENS.find(t => t.symbol === 'MU')]);
+    assert.equal(result.MU.externalChange24h, expected);
+  }
+});
+void test('legacy Backpack cache conversion is idempotent and preserves the original payload', () => {
+  const legacy = { MU: { externalPrice: 100, externalChange24h: 0.042086 },
+    BB: { externalChange24h: 0 }, NEW: { externalChange24h: null } };
+  const normalized = normalizeBackpackChanges(legacy);
+  assert.equal(normalized.MU.externalChange24h, 4.2086);
+  assert.equal(normalized.BB.externalChange24h, 0);
+  assert.equal(normalized.NEW.externalChange24h, null);
+  assert.deepEqual(normalizeBackpackChanges(normalized), normalized);
+  assert.equal(legacy.MU.externalChange24h, 0.042086);
 });
 void test('Full September 11 audit covers every enabled security and validates all 41 finalized mints', async () => {
   const audit = JSON.parse(

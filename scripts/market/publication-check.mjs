@@ -12,6 +12,15 @@ export function publicationIssues(expected, text, headers, now=Date.now()) {
     const time=market[name]?.fetchedAt;
     if(!Number.isSafeInteger(time)||time>now+60000||now-time>15*60000)issues.push(name+' collection is not fresh');
   }
+  // Verify percentage semantics independently of the provider adapter. A fresh
+  // timestamp and a successful pool import cannot hide a 100x unit regression.
+  for(const [symbol, row] of Object.entries(market.backpack?.data??{})){
+    if(row.externalChangeUnit!=='percent')issues.push(symbol+': unnormalized Backpack price change');
+    const change=row.externalChange24h,first=row.externalFirstPrice,last=row.externalPrice;
+    if(change!=null&&!Number.isFinite(change))issues.push(symbol+': invalid price change');
+    if(change!=null&&Number.isFinite(first)&&first>0&&Number.isFinite(last)&&last>0&&
+      Math.abs(change-(last/first-1)*100)>0.00011)issues.push(symbol+': price change disagrees with first/last prices');
+  }
   const observations=Object.values(market.pools.data).flat().filter(p=>Number.isSafeInteger(p.observedAt)&&p.observedAt<=now+60000&&!p.unavailable);
   if(!observations.some(p=>now-p.observedAt<=15*60000))issues.push('No recent public pool observations');
   for(const token of expected.tokens){

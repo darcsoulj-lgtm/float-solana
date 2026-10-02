@@ -7,6 +7,14 @@ const expected={tokens:[{symbol:'DRAM',pools:[pool]}]};
 const market={backpack:{fetchedAt:now},catalog:{fetchedAt:now},pools:{data:{DRAM:[pool]}}};
 const headers=new Headers({'cache-control':'no-store'});
 const check=(value=market,h=headers)=>publicationIssues(expected,JSON.stringify(value),h,now);
+void test('publication verifier detects percentage-unit regressions even with fresh market data',()=>{
+ const row={externalFirstPrice:100,externalPrice:105,externalChange24h:5,externalChangeUnit:'percent'};
+ const value={...market,backpack:{fetchedAt:now,data:{MU:row}}};
+ assert.deepEqual(check(value),[]);
+ assert.match(check({...value,backpack:{...value.backpack,data:{MU:{...row,externalChange24h:0.05}}}}).join(';'),/disagrees with first\/last/);
+ assert.match(check({...value,backpack:{...value.backpack,data:{MU:{...row,externalChangeUnit:undefined}}}}).join(';'),/unnormalized/);
+ assert.deepEqual(check({...value,backpack:{...value.backpack,data:{MU:{...row,externalChange24h:null}}}}),[]);
+});
 void test('independent publication check detects a collected pool omitted by a valid-looking public response',()=>{
  assert.deepEqual(check(),[]);
  assert.match(check({...market,pools:{data:{DRAM:[]}}}).join(';'),/collected pool missing/);

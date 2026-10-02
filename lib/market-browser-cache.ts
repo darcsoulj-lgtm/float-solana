@@ -1,4 +1,5 @@
 import type { MarketOverview } from './market-data';
+import { normalizeBackpackChanges } from './market-data';
 import { TOKEN_REVIEW_DATE } from './tokens';
 
 // Only public market observations cross a reload. Never persist holdings or sessions.
@@ -21,6 +22,9 @@ export function savedMarketPages(storage: Pick<Storage, 'getItem' | 'removeItem'
         storage.removeItem(key);
         continue;
       }
+      if (saved.page.backpack?.data) saved.page.backpack = {
+        ...saved.page.backpack, data: normalizeBackpackChanges(saved.page.backpack.data),
+      };
       pages[batch] = saved.page;
     } catch {
       storage.removeItem(key);

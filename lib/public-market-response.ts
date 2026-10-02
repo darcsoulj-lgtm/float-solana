@@ -6,12 +6,15 @@ export async function publicMarketResponse(
   defer: (work: Promise<unknown>) => void,
 ) {
   // Ignore cookies, query strings and arbitrary headers in the cache identity.
-  const key = new Request(new URL('/api/backpack-market?schema=1', request.url).toString());
+  const key = new Request(new URL('/api/backpack-market?schema=3', request.url).toString());
   let cached: Response | undefined;
   try { cached = await cache.match(key); } catch { /* Cache failure falls back to D1. */ }
   if (cached) {
     const response = new Response(cached.body, cached);
     response.headers.set('X-Float-Cache', 'HIT');
+    // Cache API hits may carry Cloudflare's zone-level Browser Cache TTL
+    // (four hours by default). Only the internal copy may be cached.
+    response.headers.set('Cache-Control', 'no-store');
     return response;
   }
   const data = await load();
@@ -21,5 +24,6 @@ export async function publicMarketResponse(
     'X-Float-Cache': 'MISS',
   }});
   defer(cache.put(key, response.clone()).catch(() => {}));
+  response.headers.set('Cache-Control', 'no-store');
   return response;
 }

@@ -35,7 +35,10 @@ export const BACKPACK_TICKER_REFRESH_MS = 60000;
 export type BackpackMarket = {
   market: string;
   externalPrice: number | null;
+  externalFirstPrice?: number | null;
   externalChange24h: number | null;
+  // Cache rows written before this marker contain Backpack's fractional return.
+  externalChangeUnit?: 'percent';
   externalVolume24h: number | null;
   externalQuoteVolume24h: number | null;
   externalTrades: number | null;
@@ -170,6 +173,33 @@ function tickerRows(raw: unknown) {
   return raw.map(record).filter((row) => typeof row.symbol === 'string');
 }
 
+// Backpack names this field Percent but returns a ratio: 0.05 means 5%.
+// Validate against the same ticker's first/last prices when available; never
+// guess units from magnitude (a real move can exceed 100% or be very small).
+function backpackChangePercent(row: Record<string, unknown>) {
+  const ratio = numeric(row.priceChangePercent);
+  if (ratio === null) return null;
+  const percent = ratio * 100;
+  if (!Number.isFinite(percent)) return null;
+  const first = positive(row.firstPrice), last = positive(row.lastPrice);
+  if (first !== null && last !== null &&
+    Math.abs(percent - (last / first - 1) * 100) > 0.00011) return null;
+  return percent;
+}
+
+// Explicit legacy-schema migration at the shared cache-read boundary. Preserve
+// prices and observation times during rollout; already normalized rows are
+// unchanged, so reads and subsequent collections cannot multiply twice.
+export function normalizeBackpackChanges(data: Record<string, BackpackMarket>) {
+  return Object.fromEntries(Object.entries(data).map(([symbol, row]) => {
+    if (row.externalChangeUnit === 'percent') return [symbol, row];
+    const ratio = numeric(row.externalChange24h);
+    const percent = ratio === null ? null : ratio * 100;
+    return [symbol, { ...row, externalChangeUnit: 'percent' as const,
+      externalChange24h: percent !== null && Number.isFinite(percent) ? percent : null }];
+  }));
+}
+
 function tickerMap(
   raw: unknown,
   tokens: readonly StockToken[],
@@ -178,6 +208,7 @@ function tickerMap(
   {
     market: string;
     price: number | null;
+    firstPrice: number | null;
     change24h: number | null;
     volume24h: number | null;
     quoteVolume24h: number | null;
@@ -189,6 +220,7 @@ function tickerMap(
     {
       market: string;
       price: number | null;
+      firstPrice: number | null;
       change24h: number | null;
       volume24h: number | null;
       quoteVolume24h: number | null;
@@ -204,7 +236,8 @@ function tickerMap(
     result[token.symbol] = {
       market,
       price: positive(row.lastPrice),
-      change24h: numeric(row.priceChangePercent),
+      firstPrice: positive(row.firstPrice),
+      change24h: backpackChangePercent(row),
       volume24h: nonnegative(row.volume),
       quoteVolume24h: nonnegative(row.quoteVolume),
       trades: nonnegative(row.trades),
@@ -242,7 +275,9 @@ export async function fetchBackpackMarkets(
     out[token.symbol] = {
       market: e?.market || v?.market || `${token.symbol}.US_USDC`,
       externalPrice: e?.price ?? null,
+      externalFirstPrice: e?.firstPrice ?? null,
       externalChange24h: e?.change24h ?? null,
+      externalChangeUnit: 'percent',
       externalVolume24h: e?.volume24h ?? null,
       externalQuoteVolume24h: e?.quoteVolume24h ?? null,
       externalTrades: e?.trades ?? null,

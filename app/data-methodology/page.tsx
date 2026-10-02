@@ -19,7 +19,7 @@ export default function Page() {
     </section>
     <section className="panel" id="prices"><h2>Prices &amp; supply</h2>
       <p>We prefer Backpack’s external stock reference when available. It reflects external stock-market data, not the token’s DEX execution price. Fallbacks use DefiLlama or a tracked DEX pool. Each value keeps its source and observation time.</p>
-      <p>The 24-hour change follows the selected source. Open a token’s page for its source and timestamp. Prices are observations, not guaranteed buy or sell quotes.</p>
+      <p>The 24-hour change follows the selected source. Backpack’s fractional return is converted to a percentage and checked against its starting and ending prices when available. It uses a rolling 24-hour window, which can differ from the stock exchange’s daily change. Open a token’s page for its source and timestamp. Prices are observations, not guaranteed buy or sell quotes.</p>
       <p><strong>Tracked tokens:</strong> the number of tokens in the verified Backpack listings we track. The count follows supported new listings automatically; it does not mean every token has price or volume data.</p>
       <p>Supply counts minted units on Solana, including issuer-held tokens. We verify token addresses and decimals. Wallet balances also use verified display-unit adjustments; minted supply and displayed wallet balances can differ.</p>
     </section>

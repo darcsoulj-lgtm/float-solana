@@ -206,6 +206,24 @@ void test('global refresh contacts only Backpack, even when upstreams fail', asy
     assert.equal(result.markets.fetchedAt,null);
   } finally {globalThis.fetch=previous;raw.close();}
 });
+void test('public cache reads migrate legacy ratios once while retaining prices and observation timestamps', async () => {
+ const {raw,d1,stats}=database(); const previous=globalThis.fetch;
+ globalThis.fetch=async()=>{throw Error('public reads must not request a provider');};
+ try {
+  const keys=await api.marketGlobalKeys(api.TOKENS),observed=Date.now()-1000;
+  const legacy={MU:{market:'MU.US_USDC',externalPrice:1107.565,externalChange24h:0.042086}};
+  raw.prepare('INSERT INTO market_cache VALUES (?,?,?,0)').run(keys.backpack,JSON.stringify(legacy),observed);
+  const first=await api.readMarketGlobals({DB:d1},api.TOKENS),second=await api.readMarketGlobals({DB:d1},api.TOKENS);
+  assert.equal(first.backpack.data.MU.externalChange24h,4.2086);
+  assert.equal(first.backpack.data.MU.externalPrice,1107.565);
+  assert.equal(first.backpack.fetchedAt,observed);
+  assert.deepEqual(second.backpack,first.backpack);
+  assert.equal(stats().writes,0);
+  const normalized={MU:{...legacy.MU,externalChange24h:4.2086,externalChangeUnit:'percent'}};
+  raw.prepare('UPDATE market_cache SET payload=? WHERE key=?').run(JSON.stringify(normalized),keys.backpack);
+  assert.equal((await api.readMarketGlobals({DB:d1},api.TOKENS)).backpack.data.MU.externalChange24h,4.2086);
+ } finally {globalThis.fetch=previous;raw.close();}
+});
 void test('every scheduled cycle excludes retired issuer batches and jobs', async () => {
   for(let slot=0;slot<4;slot++) {
     const {raw,d1}=database();const jobs=[];

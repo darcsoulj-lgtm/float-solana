@@ -7,7 +7,7 @@ import { POOL_POLICY_VERSION } from './stock-pools';
 import type { RegistryStatus } from './token-registry';
 import {
   MARKET_MAX_AGE_MS, BACKPACK_TICKER_REFRESH_MS,
-  fetchCatalog, fetchBackpackMarkets, mergeMarketPages,
+  fetchCatalog, fetchBackpackMarkets, normalizeBackpackChanges, mergeMarketPages,
 } from './market-data';
 
 export type MarketEnvironment = { DB: D1Database; SOLANA_RPC_URL?: string; CMC_API_KEY?: string };
@@ -39,7 +39,8 @@ export async function readMarketGlobals(
   const backpackTokens = tokens.filter((t) => t.issuer === 'backpack');
   // Sequential provider jobs avoid a burst of unrelated requests on every visit.
   const catalog = await read(keys.catalog, 300000, () => fetchCatalog(fetch, backpackTokens));
-  const backpack = await read(keys.backpack, BACKPACK_TICKER_REFRESH_MS, () => fetchBackpackMarkets(fetch, backpackTokens));
+  const savedBackpack = await read(keys.backpack, BACKPACK_TICKER_REFRESH_MS, () => fetchBackpackMarkets(fetch, backpackTokens));
+  const backpack = { ...savedBackpack, data: savedBackpack.data ? normalizeBackpackChanges(savedBackpack.data) : null };
   return { catalog, markets: emptySource({}), backpack };
 }
 
