@@ -7,6 +7,10 @@ const hosts: Record<PoolProvider, readonly string[]> = {
   orca: ['api.orca.so'],
   raydium: ['api-v3.raydium.io'],
   meteora: ['dlmm.datapi.meteora.ag'],
+  'meteora-damm-v1': ['damm-api.meteora.ag'],
+  'meteora-damm-v2': ['damm-v2.datapi.meteora.ag'],
+  byreal: ['api2.byreal.io'],
+  pancakeswap: ['sol-explorer.pancakeswap.com'],
 };
 export type PoolRequest = (
   provider: PoolProvider,
