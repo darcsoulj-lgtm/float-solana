@@ -21,12 +21,18 @@ export function publicationIssues(expected, text, headers, now=Date.now()) {
     if(change!=null&&Number.isFinite(first)&&first>0&&Number.isFinite(last)&&last>0&&
       Math.abs(change-(last/first-1)*100)>0.00011)issues.push(symbol+': price change disagrees with first/last prices');
   }
-  const observations=Object.values(market.pools.data).flat().filter(p=>Number.isSafeInteger(p.observedAt)&&p.observedAt<=now+60000&&!p.unavailable);
+  // The public payload omits per-pool times only when they equal the enclosing
+  // symbol's asOf (or legacy batch time). Reconstruct that same observation,
+  // never the request time, before freshness and immutable-value comparisons.
+  const publicPools=Object.fromEntries(Object.entries(market.pools.data).map(([symbol,pools])=>[
+    symbol,Array.isArray(pools)?pools.map(p=>({...p,observedAt:p.observedAt===undefined?(market.pools.asOf?.[symbol]??market.pools.fetchedAt):p.observedAt})):pools,
+  ]));
+  const observations=Object.values(publicPools).filter(Array.isArray).flat().filter(p=>Number.isSafeInteger(p.observedAt)&&p.observedAt<=now+60000&&!p.unavailable);
   if(!observations.some(p=>now-p.observedAt<=15*60000))issues.push('No recent public pool observations');
   for(const token of expected.tokens){
     // A verified new listing can legitimately have no pool observation yet.
     // Only collected observations are required to reach the public response.
-    const actual=market.pools.data[token.symbol]??(token.pools.length===0?[]:undefined);
+    const actual=publicPools[token.symbol]??(token.pools.length===0?[]:undefined);
     if(!Array.isArray(actual)){issues.push(token.symbol+': absent from public market');continue;}
     const byAddress=new Map(actual.map(p=>[p.address,p]));
     if(byAddress.size!==actual.length)issues.push(token.symbol+': duplicate public pools');
