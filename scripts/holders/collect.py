@@ -39,10 +39,17 @@ class Client:
   return doc['result']
 def registry_url(url):
  request=urllib.request.Request(url,headers={'User-Agent':'Mozilla/5.0 (compatible; FloatHolderCensus/1.0; +https://joinfloat.xyz)','Accept':'application/json'})
- with urllib.request.urlopen(request,timeout=30) as response:
-  raw=response.read(1000001)
-  if len(raw)>1000000:raise ValueError('Registry too large')
-  return validate_registry(json.loads(raw))
+ for attempt in range(3):
+  try:
+   with urllib.request.urlopen(request,timeout=30) as response:
+    raw=response.read(1000001)
+    if len(raw)>1000000:raise ValueError('Registry too large')
+    return validate_registry(json.loads(raw))
+  except urllib.error.HTTPError as error:
+   if error.code not in (500,502,503,504) or attempt==2:raise
+  except (urllib.error.URLError,TimeoutError):
+   if attempt==2:raise
+  time.sleep(2*(attempt+1))
 def parse_accounts(accounts,mint,program):
  owners=set();seen=set();total=0;expected=decode58(mint)
  if not isinstance(accounts,list):raise ProviderError('Missing accounts')
