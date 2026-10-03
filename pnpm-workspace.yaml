@@ -22,4 +22,5 @@ allowBuilds:
   sharp: true
   workerd: true
 patchedDependencies:
+  braces@3.0.3: patches/braces@3.0.3.patch
   vinext@1.0.0-beta.5: patches/vinext@1.0.0-beta.5.patch

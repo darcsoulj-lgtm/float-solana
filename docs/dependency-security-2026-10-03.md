@@ -1,0 +1,11 @@
+# Release check repair — 2026-10-03
+
+The GitHub Release checks run 37095457073 on 6a0d35d failed before compilation at the dependency audit. GHSA-vfj7-8cjw-p6xm affects braces <=3.0.3 through deeply nested strings or direct AST input. It is reachable through build tooling (shadcn and vinext glob dependencies); the advisory itself is not evidence of a compromised production application. No application request handler imports braces.
+
+The npm registry still publishes 3.0.3 as latest. Although the registry audit report lists >=3.0.4 as fixed, that version is not published. We backport the five runtime files from upstream PR micromatch/braces#72, commit d0d575e55e74a4e0218e5248fafb79efc3e54ebb, into a pnpm patch. This proposal is not an upstream released fix. Parsing braces and parentheses and all three recursive AST walkers enforce maximum nesting 100; existing length and range bounds remain.
+
+The shared local and GitHub release gate runs the live registry audit. Only this exact advisory on 3.0.3 can be considered locally mitigated, and only after every active dependency path resolves to the reviewed file hashes and executable regression probes reject the attack. A missing/changed patch, unpatched installed package, different affected version, incomplete audit/graph, service error, or any other moderate/high/critical advisory fails the gate. The raw registry warning remains explicitly reported; no severity threshold was lowered and no blanket ignore list was added.
+
+Tests cover deeply nested strings (including parentheses), direct ASTs, attempts to override the cap, ordinary glob expansion, lower custom depth and existing expansion bounds, patch removal/tampering, another advisory, another affected version, and incomplete audit reports. Type checks, lint, every discovered test suite and production compilation follow the security gate.
+
+When an official release fixes the advisory, replace the local patch with that compatible release, regenerate the lockfile, remove the scoped mitigation/manifest, and repeat the full local and GitHub gate. Do not remove the advisory check merely because npm changes its metadata. Local success is not proof of a GitHub run passing or live wallet/provider verification.

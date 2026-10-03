@@ -8,6 +8,7 @@ const suites = readdirSync('tests')
   .map((name) => 'tests/' + name);
 if (!suites.length) throw Error('No regression suites found');
 for (const [label, args] of [
+  ['Dependency security', ['scripts/check-dependency-security.mjs']],
   ['Types', ['node_modules/typescript/bin/tsc', '--noEmit']],
   ['Lint', ['node_modules/oxlint/bin/oxlint']],
   ['Tests', ['--test', ...suites]],
