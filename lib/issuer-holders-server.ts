@@ -22,8 +22,10 @@ export async function readHoldingWallets(db: D1Database, now = Date.now()) {
 export async function refreshHoldingWallets(env: MarketEnvironment, fetcher: typeof fetch = fetch, now = Date.now()) {
   // Existing minute scheduler invokes this; a lease bounds the small aggregate fetch.
   const nextCheck = now + 300000;
-  const lease = await env.DB.prepare('INSERT INTO market_cache (key,payload,fetched_at,retry_after) VALUES (?,NULL,0,?) ON CONFLICT(key) DO UPDATE SET retry_after=excluded.retry_after WHERE market_cache.retry_after<=? RETURNING key')
-    .bind(HOLDER_CACHE_KEY, nextCheck, now).first();
+  // Reclaim obsolete one-hour leases when migrating to the shorter cadence.
+  // An active five-minute lease cannot satisfy the second condition.
+  const lease = await env.DB.prepare('INSERT INTO market_cache (key,payload,fetched_at,retry_after) VALUES (?,NULL,0,?) ON CONFLICT(key) DO UPDATE SET retry_after=excluded.retry_after WHERE market_cache.retry_after<=? OR market_cache.retry_after>? RETURNING key')
+    .bind(HOLDER_CACHE_KEY, nextCheck, now, nextCheck).first();
   if (!lease) return;
   const response = await fetcher(SNAPSHOT_URL + '?check=' + Math.floor(now / 300000), {redirect:'manual', signal:AbortSignal.timeout(10000)});
   if (!response.ok) throw Error(`Holder snapshot HTTP ${response.status}`);
