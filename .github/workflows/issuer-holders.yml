@@ -20,6 +20,8 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           persist-credentials: false
+      - name: Verify census failure and listing-change boundaries
+        run: python3 -m unittest discover -s scripts/holders -p 'test_*.py'
       - name: Read last published aggregate
         run: |
           python3 - <<'PY'
