@@ -9,6 +9,8 @@ on:
       - 'scripts/market/collect.ts'
       - 'scripts/market/state.ts'
       - 'scripts/market/publish.py'
+      - 'scripts/market/publication-check.mjs'
+      - 'tests/market-publication.test.mjs'
       - 'lib/pool-*.ts'
       - 'lib/stock-pools.ts'
       - 'lib/market-data.ts'
@@ -35,6 +37,8 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '24'
+      - name: Verify the public observation contract before collection
+        run: node --test tests/market-publication.test.mjs
       - name: Compile the shared collector without application dependencies
         run: npx --yes esbuild@0.25.12 scripts/market/collect.ts --bundle --platform=node --format=esm --outfile=/tmp/float-market-collector.mjs
       - name: Collect verified listings and pool observations
