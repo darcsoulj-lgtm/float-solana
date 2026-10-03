@@ -21,10 +21,11 @@ export async function readHoldingWallets(db: D1Database, now = Date.now()) {
 }
 export async function refreshHoldingWallets(env: MarketEnvironment, fetcher: typeof fetch = fetch, now = Date.now()) {
   // Existing minute scheduler invokes this; a lease bounds the small aggregate fetch.
+  const nextCheck = now + 300000;
   const lease = await env.DB.prepare('INSERT INTO market_cache (key,payload,fetched_at,retry_after) VALUES (?,NULL,0,?) ON CONFLICT(key) DO UPDATE SET retry_after=excluded.retry_after WHERE market_cache.retry_after<=? RETURNING key')
-    .bind(HOLDER_CACHE_KEY, now + 3600000, now).first();
+    .bind(HOLDER_CACHE_KEY, nextCheck, now).first();
   if (!lease) return;
-  const response = await fetcher(SNAPSHOT_URL, {redirect:'manual', signal:AbortSignal.timeout(10000)});
+  const response = await fetcher(SNAPSHOT_URL + '?check=' + Math.floor(now / 300000), {redirect:'manual', signal:AbortSignal.timeout(10000)});
   if (!response.ok) throw Error(`Holder snapshot HTTP ${response.status}`);
   const reader = response.body?.getReader();
   if (!reader) throw Error('Missing holder snapshot');
@@ -53,5 +54,5 @@ export async function refreshHoldingWallets(env: MarketEnvironment, fetcher: typ
   if (!merged.some((row, i) => row !== previous[i])) return;
   // Only validated aggregate counts enter the public cache; no addresses.
   await env.DB.prepare('UPDATE market_cache SET payload=?,fetched_at=? WHERE key=? AND retry_after=?')
-    .bind(JSON.stringify(holderDocument(merged)), now, HOLDER_CACHE_KEY, now + 3600000).run();
+    .bind(JSON.stringify(holderDocument(merged)), now, HOLDER_CACHE_KEY, nextCheck).run();
 }
