@@ -7,6 +7,21 @@ const expected={tokens:[{symbol:'DRAM',pools:[pool]}]};
 const market={backpack:{fetchedAt:now},catalog:{fetchedAt:now},pools:{data:{DRAM:[pool]}}};
 const headers=new Headers({'cache-control':'no-store'});
 const check=(value=market,h=headers)=>publicationIssues(expected,JSON.stringify(value),h,now);
+void test('compact public timestamps retain freshness, immutable value and future-time guards',()=>{
+ const {observedAt:omitted,...compactPool}=pool;
+ const compact={...market,pools:{data:{DRAM:[compactPool]},asOf:{DRAM:omitted},fetchedAt:omitted-86400000}};
+ assert.equal(compact.pools.data.DRAM[0].observedAt,undefined);
+ assert.deepEqual(check(compact),[]);
+ assert.match(check({...compact,pools:{...compact.pools,data:{DRAM:[{...compact.pools.data.DRAM[0],volume24h:0}]}}}).join(';'),/not published/);
+ assert.match(check({...compact,pools:{...compact.pools,asOf:{DRAM:now-16*60000}}}).join(';'),/No recent public pool observations/);
+ assert.match(check({...compact,pools:{...compact.pools,asOf:{DRAM:now+60001}}}).join(';'),/future pool observation/);
+ const mixed={...compact,pools:{...compact.pools,data:{DRAM:[{...compactPool,observedAt:observedAt-1000}]}}};
+ assert.match(check(mixed).join(';'),/not published/);
+ const legacy={...compact,pools:{data:compact.pools.data,fetchedAt:observedAt}};
+ assert.deepEqual(check(legacy),[]);
+ const unknown={...compact,pools:{data:compact.pools.data}};
+ assert.match(check(unknown).join(';'),/No recent public pool observations/);
+});
 void test('publication independently rejects unqualified venue volume and a mismatched selected source',()=>{
  assert.match(check({...market,pools:{data:{DRAM:[{...pool,source:'raydium'}]}}}).join(';'),/unqualified Raydium/);
  const identity={...pool,source:'raydium',volume24h:null};
