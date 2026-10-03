@@ -7,10 +7,17 @@ export type SnapshotChunkJob={kind:'snapshot';commit:string;hash:string};
 export type MarketManifest={version:1;generatedAt:number;commit:string;chunks:string[]};
 const hashPattern=/^[a-f0-9]{64}$/;
 const allowedKey=/^(backpack-verified-listings-v1|pool-token-stonkfun-v2:[1-9A-HJ-NP-Za-km-z]{32,44}|(?:llama-prices-v3|llama-history-v1|solana-supplies-v4|backpack-catalog-v2|backpack-tickers-v1):[a-zA-Z0-9:-]+)$/;
-export function parseMarketManifest(raw:unknown,now=Date.now()):MarketManifest {
+// Structural validation is shared with the recovery trigger. An old generation
+// must be eligible for recollection even when it is too old to import.
+export function parseMarketGeneration(raw:unknown,now=Date.now()):MarketManifest {
  const m=raw as Partial<MarketManifest>;
- if(!m||m.version!==1||!Number.isSafeInteger(m.generatedAt)||m.generatedAt!>now+60000||now-m.generatedAt!>48*3600000||typeof m.commit!=='string'||!/^[a-f0-9]{40}$/.test(m.commit)||!Array.isArray(m.chunks)||!m.chunks.length||m.chunks.length>100||new Set(m.chunks).size!==m.chunks.length||!m.chunks.every(h=>typeof h==='string'&&hashPattern.test(h)))throw Error('Invalid market manifest');
+ if(!m||m.version!==1||!Number.isSafeInteger(m.generatedAt)||m.generatedAt!<=0||m.generatedAt!>now+60000||typeof m.commit!=='string'||!/^[a-f0-9]{40}$/.test(m.commit)||!Array.isArray(m.chunks)||!m.chunks.length||m.chunks.length>100||new Set(m.chunks).size!==m.chunks.length||!m.chunks.every(h=>typeof h==='string'&&hashPattern.test(h)))throw Error('Invalid market manifest');
  return m as MarketManifest;
+}
+export function parseMarketManifest(raw:unknown,now=Date.now()):MarketManifest {
+ const m=parseMarketGeneration(raw,now);
+ if(now-m.generatedAt>48*3600000)throw Error('Invalid market manifest');
+ return m;
 }
 async function boundedText(url:string,limit:number,fetcher:typeof fetch) {
  const response=await fetcher(url,{redirect:'manual',signal:AbortSignal.timeout(10000)});
