@@ -15,7 +15,13 @@ export class MarketRefresh extends WorkerEntrypoint<FloatEnvironment> {
   async holderCollectionTrigger() { await triggerHolderCollection(this.env); }
 }
 const worker = {
-  fetch: handler.fetch,
+  async fetch(request: Request, env: FloatEnvironment, context: ExecutionContext) {
+    // Public custom-domain requests have no trusted ChatGPT identity proxy.
+    const headers = new Headers(request.headers);
+    const identityHeaders = Array.from(headers.keys()).filter(name => name.toLowerCase().startsWith('oai-authenticated-user-'));
+    for (const name of identityHeaders) headers.delete(name);
+    return handler.fetch(new Request(request, {headers}), env, context);
+  },
   async scheduled(event: ScheduledController, env: FloatEnvironment) {
     if (env.MARKET_COLLECTION_SOURCE === 'github') {
       await syncMarketSchedule(env);
