@@ -18,7 +18,20 @@ void test('absent, stale, future and syntactically or structurally malformed pre
 void test('projection drops unexpected top-level private data and rejects nested private fields or oversized snapshots',()=>{
  const input=market();input.walletAddress='private';input.member={id:'private'};const text=api.serializePublicMarketSnapshot(input);assert.equal(text.includes('private'),false);
  input.prices.data.MU={price:100,walletAddress:'private'};assert.throws(()=>api.serializePublicMarketSnapshot(input),/Invalid public market snapshot/);
- const large=market();large.prices.data.MU={price:100,note:'x'.repeat(400001)};assert.throws(()=>api.serializePublicMarketSnapshot(large),/Invalid public market snapshot/);
+ const large=market();large.prices.data.MU={price:100,note:'x'.repeat(api.PUBLIC_MARKET_SNAPSHOT_MAX_BYTES+1)};assert.throws(()=>api.serializePublicMarketSnapshot(large),/Invalid public market snapshot/);
+});
+void test('the explicit storage ceiling uses UTF8 bytes at both writer and single-read boundary',async()=>{
+ const input=market();input.prices.data.MU={price:100,note:''};
+ const overhead=Buffer.byteLength(api.serializePublicMarketSnapshot(input)),count=Math.floor((api.PUBLIC_MARKET_SNAPSHOT_MAX_BYTES-overhead)/3);
+ input.prices.data.MU.note='€'.repeat(count);const text=api.serializePublicMarketSnapshot(input);assert.ok(Buffer.byteLength(text)<=api.PUBLIC_MARKET_SNAPSHOT_MAX_BYTES);
+ const {raw,db}=database();raw.prepare('INSERT INTO market_cache VALUES (?,?,?,0)').run(api.PUBLIC_MARKET_SNAPSHOT_KEY,text,now);assert.equal(await api.readPublicMarketSnapshot(db,now),text);
+ input.prices.data.MU.note+='€';assert.throws(()=>api.serializePublicMarketSnapshot(input),/Invalid public market snapshot/);
+ const oversized=JSON.stringify(input);assert.ok(oversized.length<api.PUBLIC_MARKET_SNAPSHOT_MAX_BYTES);raw.prepare('INSERT OR REPLACE INTO market_cache VALUES (?,?,?,0)').run(api.PUBLIC_MARKET_SNAPSHOT_KEY,oversized,now);await assert.rejects(api.readPublicMarketSnapshot(db,now),e=>e.status===503);raw.close();
+});
+void test('growth beyond the warning threshold preserves every pool observation and metric',()=>{
+ const input=market(),pools=Array.from({length:4500},(_,index)=>({address:'pool-'+index,dex:'fixture',quote:'USDC',price:10,change24h:1,liquidity:100,volume24h:index+1,source:'dexscreener',observedAt:now-1000}));input.pools.data.MU=pools;
+ const text=api.serializePublicMarketSnapshot(input),saved=JSON.parse(text).pools.data.MU;assert.ok(Buffer.byteLength(text)>api.PUBLIC_MARKET_SNAPSHOT_WARNING_BYTES);assert.ok(Buffer.byteLength(text)<api.PUBLIC_MARKET_SNAPSHOT_MAX_BYTES);
+ assert.equal(saved.length,pools.length);assert.deepEqual(saved.map(p=>p.address),pools.map(p=>p.address));assert.deepEqual(saved.map(p=>p.volume24h),pools.map(p=>p.volume24h));assert.deepEqual(saved.map(p=>p.observedAt),pools.map(p=>p.observedAt));
 });
 void test('raw JSON response uses schema4, retains exact bytes and no-store through cache hits',async()=>{
  const entries=new Map(),jobs=[],cache={match:async r=>entries.get(r.url)?.clone(),put:async(r,v)=>entries.set(r.url,v)},text=api.serializePublicMarketSnapshot(market());let loads=0;

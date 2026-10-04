@@ -30,3 +30,51 @@ export function referenceDateRange(times: (number | null | undefined)[]) {
   const last = dates.at(-1)!;
   return `${label(first)}${last === first ? '' : ` – ${label(last)}`} · UTC`;
 }
+
+
+type DisplayObservation = {
+  price: number | null;
+  lastPrice?: number | null;
+  priceTime?: number | null;
+  lastPriceTime?: number | null;
+  priceSource?: string | null;
+  lastPriceSource?: string | null;
+  change24h: number | null;
+  changeTime?: number | null;
+  changeSource?: string | null;
+  changeDelayed?: boolean;
+  historicalReference?: boolean;
+  historicalDisplayReference?: {
+    price: number;
+    change24h: number;
+    observedAt: number;
+  } | null;
+};
+
+// A historical return describes its historical close, never a newer quote.
+// This presentation companion does not alter the current observation used by
+// portfolio or holder eligibility checks.
+export function displayedMarketReference(observation: DisplayObservation) {
+  const reference = observation.historicalDisplayReference;
+  return reference ? {
+    price: reference.price,
+    change: reference.change24h,
+    priceTime: reference.observedAt,
+    changeTime: reference.observedAt,
+    priceSource: 'Backpack · external',
+    changeSource: 'Backpack · external',
+    saved: true,
+    historical: true,
+    changeDelayed: true,
+  } : {
+    price: observation.price ?? observation.lastPrice ?? null,
+    change: observation.change24h,
+    priceTime: (observation.price == null ? observation.lastPriceTime : observation.priceTime) ?? null,
+    changeTime: observation.changeTime ?? null,
+    priceSource: (observation.price == null ? observation.lastPriceSource : observation.priceSource) ?? null,
+    changeSource: observation.changeSource ?? null,
+    saved: observation.price == null && observation.lastPrice != null,
+    historical: observation.historicalReference === true,
+    changeDelayed: observation.changeDelayed === true,
+  };
+}

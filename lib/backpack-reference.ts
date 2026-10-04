@@ -1,12 +1,18 @@
 import { fetchBackpackChart, type BackpackChart } from './backpack-charts';
-import type { BackpackMarket, SourceResult } from './market-data';
+import type { BackpackMarket, HistoricalExternalReference, SourceResult } from './market-data';
 import type { CacheRow } from './market-cache';
 import type { StockToken } from './tokens';
+import { BACKPACK_REFERENCE_RETAIN_MS, validatedHistoricalReferencePair } from './market-freshness';
+export { BACKPACK_REFERENCE_RETAIN_MS, validatedHistoricalReferencePair } from './market-freshness';
 
 export const BACKPACK_HISTORY_REFRESH_MS = 60 * 60000;
-export const BACKPACK_REFERENCE_RETAIN_MS = 96 * 60 * 60000;
 export const backpackHistoryKey = (mint: string) => 'backpack-reference-history-v1:' + mint;
 const validPrice = (row: BackpackMarket | undefined) => row?.externalPrice != null && Number.isFinite(row.externalPrice) && row.externalPrice > 0;
+
+export function historicalReferencePair(row:BackpackMarket | undefined,now:number):HistoricalExternalReference | null {
+  return row?.externalBasis==='hourly-history' && typeof row.externalPrice==='number' && typeof row.externalChange24h==='number' && typeof row.externalObservedAt==='number'
+    ? validatedHistoricalReferencePair({price:row.externalPrice,change24h:row.externalChange24h,observedAt:row.externalObservedAt,firstPrice:row.externalFirstPrice??null},now) : null;
+}
 
 // Only completed, traded hours reach this adapter. Compare the last observed
 // close with an actual close 24 hours earlier; never interpolate a weekend.
@@ -52,7 +58,13 @@ export function overlayBackpackHistory(source: SourceResult<Record<string, Backp
     try { history = JSON.parse(cached.payload) as BackpackMarket; } catch { continue; }
     const observedAt = history.externalObservedAt;
     if (!validPrice(history) || history.market !== token.symbol + '.US_USDC' || history.externalBasis !== 'hourly-history' || !observedAt || observedAt > now || now - observedAt > BACKPACK_REFERENCE_RETAIN_MS) continue;
-    if (validPrice(current) && currentTime && currentTime >= observedAt) continue;
+    if (validPrice(current) && currentTime && currentTime >= observedAt) {
+      const pair=historicalReferencePair(history,now);
+      const {historicalExternalReference:_previousPair,...quote}=current!;
+      data[token.symbol]=typeof current!.externalChange24h!=='number' || !Number.isFinite(current!.externalChange24h)
+        ? {...quote,...(pair?{historicalExternalReference:pair}:{})} : quote;
+      continue;
+    }
     data[token.symbol] = history;
     asOf[token.symbol] = observedAt;
   }

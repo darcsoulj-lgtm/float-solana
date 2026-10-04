@@ -10,6 +10,7 @@ import { readTradingActivity } from './trading-activity-server';
 import type { HoldingWallets } from './issuer-holders';
 import type { MarketOverview } from './market-data';
 import type { StockToken } from './tokens';
+import { PUBLIC_MARKET_SNAPSHOT_KEY, PUBLIC_MARKET_SNAPSHOT_MAX_AGE_MS, PUBLIC_MARKET_SNAPSHOT_WARNING_BYTES } from './public-market-snapshot';
 
 export const ACTIVE_HEALTH_KEY = 'market-active-health:v1';
 const BASELINE_KEY = 'market-health-listings:v1';
@@ -62,7 +63,10 @@ export function activeHealthIssues(input: {
   const allListingsSettled=tokens.filter(t=>t.issuer==='backpack').every(t=>now-(firstSeen[t.mint]??now)>=NEW_LISTING_GRACE);
   if(settled && (!holder || !recent(holder.checkedAt,30*HOUR,now)))issues.push({source:'holders',code:'holder_collection_overdue',affected:1});
   else if(settled && allListingsSettled && (holder?.registryHash!==holderScope.registryHash || holder.tokens!==holderScope.mints.length))issues.push({source:'holders',code:'holder_registry_mismatch',affected:1});
-  if(settled && !recent(controls.get('public-backpack-snapshot:v1')?.fetched_at,15*60000,now))issues.push({source:'snapshot',code:'snapshot_publication_overdue',affected:1});
+  const publicSnapshot=controls.get(PUBLIC_MARKET_SNAPSHOT_KEY);
+  if(!publicSnapshot?.payload || publicSnapshot.fetched_at>now || !recent(publicSnapshot.fetched_at,PUBLIC_MARKET_SNAPSHOT_MAX_AGE_MS,now))issues.push({source:'snapshot',code:'snapshot_publication_overdue',affected:1});
+  const prepared=publicSnapshot?.payload;
+  if(prepared && new TextEncoder().encode(prepared).byteLength>=PUBLIC_MARKET_SNAPSHOT_WARNING_BYTES)issues.push({source:'snapshot-capacity',code:'snapshot_payload_large',affected:1});
   if(settled && !recent(activityAt,24*HOUR+(market.tokenVolumes?.intervalMs??2*HOUR)+2*HOUR,now))issues.push({source:'activity',code:'activity_recording_overdue',affected:1});
   return issues;
 }
@@ -90,8 +94,8 @@ export async function readActiveMarketHealth(database:D1Database,now=Date.now())
   const row=await database.prepare('SELECT payload FROM market_cache WHERE key=?').bind(ACTIVE_HEALTH_KEY).first<{payload:string|null}>();
   try{
     const value=JSON.parse(row?.payload??'null') as ActiveHealthSummary|null;
-    const sources=['references','reference-history','supplies','volume','volume-collector','holders','activity','snapshot'];
-    const codes=['reference_coverage_missing','history_collection_overdue','supply_collection_overdue','volume_coverage_overdue','volume_budget_exhausted','volume_collector_unhealthy','holder_collection_overdue','holder_registry_mismatch','activity_recording_overdue','snapshot_publication_overdue'];
+    const sources=['references','reference-history','supplies','volume','volume-collector','holders','activity','snapshot','snapshot-capacity'];
+    const codes=['reference_coverage_missing','history_collection_overdue','supply_collection_overdue','volume_coverage_overdue','volume_budget_exhausted','volume_collector_unhealthy','holder_collection_overdue','holder_registry_mismatch','activity_recording_overdue','snapshot_publication_overdue','snapshot_payload_large'];
     if(value?.version===1 && ['ok','degraded'].includes(value.status) && value.status===(value.issues?.length?'degraded':'ok') && recent(value.checkedAt,15*60000,now) && Array.isArray(value.issues) && value.issues.length<=10 && value.issues.every(i=>sources.includes(i.source)&&codes.includes(i.code)&&Number.isSafeInteger(i.affected)&&i.affected>0)){
       const c=value.coverage,coverage=c && Number.isSafeInteger(c.tracked)&&c.tracked>0&&[c.references,c.supplies,c.volume].every(n=>Number.isSafeInteger(n)&&n>=0&&n<=c.tracked)?{references:c.references,supplies:c.supplies,volume:c.volume,tracked:c.tracked}:undefined;
       return{status:value.issues.length?'degraded':'ok',checkedAt:value.checkedAt,issues:value.issues.map(({source,code,affected})=>({source,code,affected})),...(coverage?{coverage}:{})};

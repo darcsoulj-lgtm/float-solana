@@ -5,7 +5,7 @@ import { freshTokenMarket } from './cmc-data';
 import type { MarketOverview, SourceResult } from './market-data';
 import { ISSUERS, TOKENS, type IssuerId } from './tokens';
 import { ONDO_VALUE_MAX_AGE_MS } from './ondo-valuation';
-import { CURRENT_PRICE_MAX_AGE_MS, SUPPLY_MAX_AGE_MS, DISPLAY_OBSERVATION_MAX_AGE_MS, VALUATION_PAIR_MAX_SKEW_MS } from './market-freshness';
+import { CURRENT_PRICE_MAX_AGE_MS, SUPPLY_MAX_AGE_MS, DISPLAY_OBSERVATION_MAX_AGE_MS, VALUATION_PAIR_MAX_SKEW_MS, BACKPACK_REFERENCE_RETAIN_MS, validatedHistoricalReferencePair } from './market-freshness';
 const ondoMints = new Map(
   TOKENS.filter((t) => t.issuer === 'ondo').map((t) => [t.symbol, t.mint]),
 );
@@ -26,7 +26,7 @@ function recent(
 }
 // A dated reference may inform an estimate through a long market weekend.
 // This is not a live quote and must never qualify a holder tier.
-export const LAST_PRICE_MAX_AGE_MS = 96 * 60 * 60 * 1000;
+export const LAST_PRICE_MAX_AGE_MS = BACKPACK_REFERENCE_RETAIN_MS;
 // Last-good display retention is separate from current-data validity. A
 // provider outage must not blank the table after a few missed refresh cycles.
 const LAST_OBSERVATION_DISPLAY_MAX_AGE_MS = DISPLAY_OBSERVATION_MAX_AGE_MS;
@@ -174,8 +174,9 @@ export function tokenObservation(
       ? (freshReference.price / history.price - 1) * 100
       : null;
   const change24h =
-    backpackMarket?.externalChange24h ??
-    (cmc?.price != null
+    backpackMarket?.externalPrice != null
+      ? backpackMarket.externalChange24h ?? null
+      : (cmc?.price != null
       ? cmc.change24h
       : selectedReference
         ? referenceChange
@@ -234,7 +235,14 @@ export function tokenObservation(
   const storedBackpack = data?.backpack?.data?.[symbol];
   const oldBackpackTime = storedBackpack?.externalObservedAt ?? data?.backpack?.asOf?.[symbol] ?? data?.backpack?.fetchedAt;
   const historyReference = storedBackpack?.externalBasis === 'hourly-history';
-  const oldBackpack = lastObserved(oldBackpackTime, now, historyReference ? LAST_PRICE_MAX_AGE_MS : LAST_OBSERVATION_DISPLAY_MAX_AGE_MS)
+  const displayAdjustmentAt = data?.supplies?.data?.[symbol]?.adjustmentAt;
+  const historicalUnitsCompatible = (at:number | null | undefined) => !displayAdjustmentAt ||
+    (!!at && Number.isFinite(displayAdjustmentAt) && at>=displayAdjustmentAt);
+  const candidateHistoricalPair = token?.issuer === 'backpack' && storedBackpack?.market === symbol + '.US_USDC'
+    ? validatedHistoricalReferencePair(storedBackpack.historicalExternalReference,now) : null;
+  const storedHistoricalPair = candidateHistoricalPair && historicalUnitsCompatible(candidateHistoricalPair.observedAt) ? candidateHistoricalPair : null;
+  const oldBackpack = lastObserved(oldBackpackTime, now, historyReference ? LAST_PRICE_MAX_AGE_MS : LAST_OBSERVATION_DISPLAY_MAX_AGE_MS) &&
+    (!historyReference || historicalUnitsCompatible(oldBackpackTime))
     ? data?.backpack?.data?.[symbol]
     : undefined;
   const oldCmc = data?.markets?.data?.[symbol];
@@ -268,7 +276,20 @@ export function tokenObservation(
   // Keep issuedValue strict for eligibility, research and financial calculations.
   // A preferred historical stock reference is presentation only. It must not
   // suppress a newer validated price/supply pair from an independent source.
-  const valuationQuote = lastQuotes.find(quote => lastObserved(quote.time, now) && !!oldSupplyTime && Math.abs(quote.time - oldSupplyTime) <= VALUATION_PAIR_MAX_SKEW_MS);
+  const observedPairQuote = lastQuotes.find(quote => lastObserved(quote.time, now) && !!oldSupplyTime && Math.abs(quote.time - oldSupplyTime) <= VALUATION_PAIR_MAX_SKEW_MS);
+  // A stock reference can stop trading over a long weekend while minted
+  // supply continues to change. Estimate today's verified supply at the last
+  // official hourly close only for display; never widen arbitrary quote pairs.
+  const officialHistoricalQuote = token?.issuer === 'backpack' && historyReference && oldBackpack?.market === symbol + '.US_USDC' &&
+    typeof oldBackpack.externalPrice === 'number' && Number.isFinite(oldBackpack.externalPrice) && oldBackpack.externalPrice > 0
+      ? {value:oldBackpack.externalPrice,time:oldBackpackTime!,source:'Backpack · external'}
+      : storedHistoricalPair ? {value:storedHistoricalPair.price,time:storedHistoricalPair.observedAt,source:'Backpack · external'} : undefined;
+  const historicalValuationQuote = officialHistoricalQuote && supply?.valuationSafe === true &&
+    lastObserved(oldSupplyTime, now, SUPPLY_MAX_AGE_MS) &&
+    lastObserved(officialHistoricalQuote.time, now, BACKPACK_REFERENCE_RETAIN_MS)
+      ? officialHistoricalQuote : undefined;
+  const valuationQuote = observedPairQuote ?? historicalValuationQuote;
+  const historicalValuation = !observedPairQuote && !!historicalValuationQuote;
   const savedPrice = valuationQuote?.value;
   const savedPriceTime = valuationQuote?.time;
   const savedComparables = [
@@ -279,9 +300,10 @@ export function tokenObservation(
   ].filter((q): q is {value:number;time:number} => !!q && typeof q.value === 'number' && Number.isFinite(q.value) && q.value > 0 && !!q.time && !!savedPriceTime && Math.abs(q.time-savedPriceTime) <= VALUATION_PAIR_MAX_SKEW_MS);
   const savedConflict = savedComparables.length > 1 && Math.max(...savedComparables.map(q=>q.value)) / Math.min(...savedComparables.map(q=>q.value)) - 1 > .05;
   const savedValue = token?.issuer === 'backpack' && issuedValue === null &&
-    savedPrice != null && lastObserved(savedPriceTime, now) &&
+    savedPrice != null && lastObserved(savedPriceTime, now, historicalValuation ? BACKPACK_REFERENCE_RETAIN_MS : LAST_OBSERVATION_DISPLAY_MAX_AGE_MS) &&
     lastSupply?.valuationSafe === true && Number.isFinite(lastSupply.supply) && lastSupply.supply >= 0 &&
-    lastObserved(oldSupplyTime, now) && Math.abs(savedPriceTime!-oldSupplyTime!) <= VALUATION_PAIR_MAX_SKEW_MS &&
+    lastObserved(oldSupplyTime, now, historicalValuation ? SUPPLY_MAX_AGE_MS : LAST_OBSERVATION_DISPLAY_MAX_AGE_MS) &&
+    (historicalValuation || Math.abs(savedPriceTime!-oldSupplyTime!) <= VALUATION_PAIR_MAX_SKEW_MS) &&
     (!lastSupply.adjustmentAt || savedPriceTime! >= lastSupply.adjustmentAt) && !savedConflict
       ? savedPrice * lastSupply.supply : null;
   // Keep the dated percentage paired with the displayed Backpack price during
@@ -291,12 +313,14 @@ export function tokenObservation(
     typeof oldBackpack?.externalChange24h === 'number' && Number.isFinite(oldBackpack.externalChange24h)
       ? oldBackpack.externalChange24h : null;
   const displayedChange = lastChange ?? change24h;
+  const historicalDisplayReference = displayedChange===null ? storedHistoricalPair : null;
   const lastPoolMetrics = poolMetrics(oldPools);
   const displayMetrics = poolDisplayMetrics(oldPools, now, oldPoolTime);
   const providerVolume = birdeyeTokenVolume(data, token, now);
   return {
     symbol,
     historicalReference: price === null && historyReference && lastQuote?.source === 'Backpack · external',
+    historicalDisplayReference,
     lastCirculation,
     lastCirculationTime: lastCirculation ? circulationTime : null,
     circulation,
@@ -389,6 +413,8 @@ export function tokenObservation(
     lastIssuedValuePriceSource: savedValue !== null ? valuationQuote?.source ?? null : null,
     lastIssuedValuePriceTime: savedValue !== null ? savedPriceTime ?? null : null,
     lastIssuedValueSupplyTime: savedValue !== null ? oldSupplyTime ?? null : null,
+    lastIssuedValueHistoricalReference: savedValue !== null && historicalValuation,
+    lastIssuedValueBasis: savedValue !== null ? historicalValuation ? 'historical-stock-reference' as const : 'observed-pair' as const : null,
   };
 }
 export function issuedCoverage(
@@ -525,6 +551,7 @@ export function trackedValuation(data: MarketOverview | null, now: number, scope
     issuer.rows.map((row) => ({
       symbol: row.symbol,
       issuer: issuer.id,
+      lastIssuedValueHistoricalReference: row.lastIssuedValueHistoricalReference,
       value:
         issuer.basis === 'circulating' ? row.circulatingValue : row.issuedValue,
     })),
@@ -571,6 +598,8 @@ export function tokenValuation(
     : {
         value: observation.issuedValue ?? (issuer === 'backpack' ? observation.lastIssuedValue : null),
         label: 'Tokenized value',
-        basis: issuer === 'backpack' && observation.issuedValue === null && observation.lastIssuedValue !== null ? 'Minted · last observed' : 'Minted',
+        basis: issuer === 'backpack' && observation.issuedValue === null && observation.lastIssuedValue !== null
+          ? observation.lastIssuedValueHistoricalReference ? 'Minted · stock reference estimate' : 'Minted · last observed'
+          : 'Minted',
       };
 }

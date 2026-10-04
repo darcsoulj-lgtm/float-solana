@@ -35,7 +35,7 @@ import type { Holding } from '@/lib/community-types';
 import { MarketStockRow } from './market-stock-row';
 import { SolanaEcosystem } from './solana-ecosystem';
 import { tokenObservation, tokenValuation } from '@/lib/token-observation';
-import { referenceDateRange } from '@/lib/market-presentation';
+import { displayedMarketReference, referenceDateRange } from '@/lib/market-presentation';
 import Link from '@/components/site-link';
 const money = (n: number | null | undefined, compact = false) =>
   n === null || n === undefined
@@ -147,10 +147,11 @@ export function MarketOverviewPanel({
       );
     const value = (token: StockToken) => {
       const item = observations.get(token.symbol)!;
+      const display = displayedMarketReference(item);
       return sort.key === 'price'
-        ? (item.price ?? item.lastPrice)
+        ? display.price
         : sort.key === 'change'
-          ? item.change24h
+          ? display.change
           : sort.key === 'volume'
             ? item.dexVolume24h
               : token.issuer === 'xstocks'
@@ -256,7 +257,9 @@ export function MarketOverviewPanel({
     pageGroups = groups.slice(currentPage * pageSize, currentPage * pageSize + pageSize);
   const datedReferences = referenceDateRange(pageTokens.flatMap(token => {
     const row = observations.get(token.symbol);
-    return row?.historicalReference ? [row.lastPriceTime, row.changeTime] : [];
+    if (!row) return [];
+    const display = displayedMarketReference(row);
+    return display.historical ? [display.priceTime, display.changeTime] : [];
   }));
   const token = tokens.find((t) => t.symbol === selected)!,
     listing = data?.catalog.data?.find((t) => t.symbol === selected),
@@ -264,6 +267,7 @@ export function MarketOverviewPanel({
     pools = (detailedPools.data || []).filter(pool => !pool.unavailable);
   const detailMetrics = poolDisplayMetrics(detailedPools.data || [], now, detailedPools.fetchedAt);
   const observation = tokenObservation(data, selected, now);
+  const detailReference = displayedMarketReference(observation);
   const providerVolumeMode = !!data?.tokenVolumes && token.issuer === 'backpack';
   const detailVolume = providerVolumeMode ? observation.dexVolume24h : detailMetrics.observedVolume24h;
   const volumeTime = providerVolumeMode ? observation.dexVolumeTime : detailedPools.fetchedAt;
@@ -307,37 +311,37 @@ export function MarketOverviewPanel({
           className={`market-metrics token-metrics ${detailVolume === null ? 'two-metrics' : ''}`}
         >
           <div>
-            <span>Token price {observation.price == null && observation.lastPrice != null && <MetricInfo label="Last observed price" learnMore="/data-methodology#updates">{time(observation.lastPriceTime)} · {observation.lastPriceSource}. Not a live price.</MetricInfo>}</span>
-            <strong>{money(observation.price ?? observation.lastPrice)}</strong>
-            {observation.priceDelayed && (
+            <span>Token price {detailReference.saved && <MetricInfo label="Last observed price" learnMore="/data-methodology#updates">{time(detailReference.priceTime)} · {detailReference.priceSource}. Not a live price.</MetricInfo>}</span>
+            <strong>{money(detailReference.price)}</strong>
+            {observation.priceDelayed && !detailReference.saved && (
               <span className="quote-delay"><MetricInfo label="Quote timestamp" learnMore="/data-methodology#updates">Last quote: {time(observation.priceTime)}. It may not be current.</MetricInfo></span>
             )}
-            {observation.price == null && observation.lastPrice != null && (
-              <small>As of {time(observation.lastPriceTime)}</small>
+            {detailReference.saved && (
+              <small>As of {time(detailReference.priceTime)}</small>
             )}
           </div>
           <div>
             <span
               title={
-                observation.change24h === null
+                detailReference.change === null
                   ? observation.changeUnavailableReason
-                  : observation.changeSource
+                  : detailReference.changeSource ?? undefined
               }
             >
               24h change
             </span>
             <strong
               className={
-                observation.change24h === null
+                detailReference.change === null
                   ? undefined
-                  : observation.change24h < 0
+                  : detailReference.change! < 0
                     ? 'market-negative'
                     : 'market-positive'
               }
             >
-              {pct(observation.change24h)}
+              {pct(detailReference.change)}
             </strong>
-            {observation.changeDelayed && <small>As of {time(observation.changeTime)}</small>}
+            {detailReference.changeDelayed && <small>As of {time(detailReference.changeTime)}</small>}
           </div>
           {(
             <div>
@@ -365,19 +369,19 @@ export function MarketOverviewPanel({
           </div>
           <div>
             <span>
-              {tokenValuation(observation, token.issuer).label} <MetricInfo label="About tokenized value" learnMore="/data-methodology#value">{token.issuer === 'xstocks' ? 'Estimated value of circulating tokens, excluding issuer inventory.' : 'Estimated value of issued tokens, including issuer holdings.'}</MetricInfo>
+              {tokenValuation(observation, token.issuer).label} <MetricInfo label="About tokenized value" learnMore="/data-methodology#value">{token.issuer === 'xstocks' ? 'Estimated value of circulating tokens, excluding issuer inventory.' : observation.lastIssuedValueHistoricalReference ? 'Last stock price × fresh minted supply, including issuer holdings. Not a current quote.' : 'Estimated value of issued tokens, including issuer holdings.'}</MetricInfo>
             </span>
             <strong>
               {money(tokenValuation(observation, token.issuer).value, true)}
             </strong>
-            {token.issuer === 'backpack' && observation.issuedValue === null && observation.lastIssuedValue !== null && <small>Last observed · {time(observation.lastIssuedValueTime)}</small>}
+            {token.issuer === 'backpack' && observation.issuedValue === null && observation.lastIssuedValue !== null && <small>{observation.lastIssuedValueHistoricalReference ? 'Stock reference' : 'Last observed'} · {time(observation.lastIssuedValueTime)}</small>}
           </div>
         </div>
-        {((token.issuer !== 'xstocks' && !observation.valuationSource && observation.priceConflict) || observation.valuationUnavailableReason === 'units' || (observation.price === null && observation.lastPrice === null)) && (
+        {((token.issuer !== 'xstocks' && !observation.valuationSource && observation.priceConflict) || observation.valuationUnavailableReason === 'units' || (detailReference.price === null)) && (
           <p className="market-footnote market-source-line">
             {token.issuer !== 'xstocks' && !observation.valuationSource && observation.priceConflict && 'Value unavailable: price sources differ by more than 5%. '}
             {observation.valuationUnavailableReason === 'units' && 'Value unavailable: token units are not yet confirmed. '}
-            {observation.price === null && observation.lastPrice === null && 'Price unavailable.'}
+            {detailReference.price === null && 'Price unavailable.'}
           </p>
         )}
         {observed && (
@@ -576,17 +580,17 @@ export function MarketOverviewPanel({
             <div>
               <dt>Price</dt>
               <dd>
-                {(observation.price == null ? observation.lastPriceSource : observation.priceSource) || 'Unavailable'} · {time(observation.price == null ? observation.lastPriceTime : observation.priceTime)}
+                {detailReference.priceSource || 'Unavailable'} · {time(detailReference.priceTime)}
               </dd>
             </div>
             <div>
               <dt>24h change</dt>
               <dd>
-                {observation.change24h === null
+                {detailReference.change === null
                   ? observation.changeUnavailableReason
-                  : observation.changeSource}
-                {observation.changeDelayed && <> · Updated {time(observation.changeTime)}</>}
-                {observation.historyTime && (
+                  : detailReference.changeSource}
+                {detailReference.changeDelayed && <> · Updated {time(detailReference.changeTime)}</>}
+                {!detailReference.historical && observation.historyTime && (
                   <>
                     {' '}
                     · {time(observation.historyTime)} to{' '}
@@ -658,7 +662,7 @@ export function MarketOverviewPanel({
               <dt>Tokenized value · total supply</dt>
               <dd>
                 {money(tokenValuation(observation, token.issuer).value, true)} · includes issuer-held tokens.
-                {token.issuer === 'backpack' && observation.issuedValue === null && observation.lastIssuedValue !== null && <><br />Last observed estimate · {observation.lastIssuedValuePriceSource}. Price: {time(observation.lastIssuedValuePriceTime)}. Supply: {time(observation.lastIssuedValueSupplyTime)}.</>}
+                {token.issuer === 'backpack' && observation.issuedValue === null && observation.lastIssuedValue !== null && <><br />{observation.lastIssuedValueHistoricalReference ? 'Stock reference estimate' : 'Last observed estimate'} · {observation.lastIssuedValuePriceSource}. Price: {time(observation.lastIssuedValuePriceTime)}. Supply: {time(observation.lastIssuedValueSupplyTime)}.</>}
               </dd>
             </div>
             {detailVolume !== null && <div>
@@ -703,14 +707,15 @@ export function MarketOverviewPanel({
     ) : null;
   const renderTokenRow = (t: StockToken) => {
     const row = observations.get(t.symbol)!;
-    const change = row.change24h;
-    const changeTitle = row.changeDelayed ? `Last observed 24h change · ${time(row.changeTime)}` : row.changeSource;
+    const display = displayedMarketReference(row);
+    const change = display.change;
+    const changeTitle = display.changeDelayed ? `Last observed 24h change · ${time(display.changeTime)}` : display.changeSource ?? undefined;
     const isSelected = detailOpen && selected === t.symbol;
     const supply = t.issuer === 'xstocks'
       ? (row.circulation?.circulatingSupply ?? row.lastCirculation?.circulatingSupply)
       : (row.valuationSupply ?? row.supply?.supply);
     const displayedSupply = t.issuer === 'xstocks' ? supply : (supply ?? row.lastSupply);
-    const displayedPrice = row.price ?? row.lastPrice;
+    const displayedPrice = display.price;
     const displayedVolume = row.dexVolume24h;
     return (
       <Fragment key={t.symbol}>
@@ -723,7 +728,7 @@ export function MarketOverviewPanel({
           mobileMarket={
             <>
               <span className="stock-row-price-line"><strong>{money(displayedPrice)}</strong>
-              {row.price == null && row.lastPrice != null && <small><MetricInfo label={`Last price for ${t.symbol}`}>{time(row.lastPriceTime)} · {row.lastPriceSource}. Not a live price.</MetricInfo></small>}
+              {display.saved && <small><MetricInfo label={`Last price for ${t.symbol}`}>{time(display.priceTime)} · {display.priceSource}. Not a live price.</MetricInfo></small>}
               </span>
               <span
                 className={
@@ -735,7 +740,7 @@ export function MarketOverviewPanel({
                 }
               >
                 {pct(change)}
-                {row.changeDelayed && !row.historicalReference && <small> · delayed</small>}
+                {display.changeDelayed && !display.historical && <small> · delayed</small>}
               </span>
             </>
           }
@@ -756,7 +761,7 @@ export function MarketOverviewPanel({
               {displayedSupply == null ? '—' : displayedSupply > 0 && displayedSupply < 0.01 ? '<0.01' : new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(displayedSupply)}
             </span>
           </td>
-          <td className="market-price-cell" title={row.price == null && row.lastPrice != null ? `Last observed · ${time(row.lastPriceTime)} · ${row.lastPriceSource}` : undefined}>
+          <td className="market-price-cell" title={display.saved ? `Last observed · ${time(display.priceTime)} · ${display.priceSource}` : undefined}>
             <span className="market-mobile-label">Token price</span>
             <span className="market-metric-value">
               {money(displayedPrice)}
@@ -768,7 +773,7 @@ export function MarketOverviewPanel({
           <td title={changeTitle} className={change === null ? undefined : change < 0 ? 'market-negative' : 'market-positive'}>
             <span className="market-mobile-label">24h change</span>
             {pct(change)}
-            {row.changeDelayed && !row.historicalReference && <small> · delayed</small>}
+            {display.changeDelayed && !display.historical && <small> · delayed</small>}
           </td>
           <td><span className="market-mobile-label">24h volume</span><span className="market-metric-value market-volume-value">{money(displayedVolume, true)}</span></td>
         </MarketStockRow>
@@ -933,7 +938,7 @@ export function MarketOverviewPanel({
         {!issuerScope && <span>{issuers.length ? issuers.map(issuerName).join(', ') : 'All issuers'}</span>}
       </div>}
       {showTokens && datedReferences && (
-        <p className="market-reference-note">Last stock prices &amp; changes · {datedReferences}. <Link href="/data-methodology#prices">Details ↗</Link></p>
+        <p className="market-reference-note">Older prices &amp; changes · {datedReferences}. <Link href="/data-methodology#prices">Details ↗</Link></p>
       )}
       {showTokens ? renderTokenTable(pageTokens, true) : (
         <div className="market-company-list" aria-label="Companies and their issuer tokens">

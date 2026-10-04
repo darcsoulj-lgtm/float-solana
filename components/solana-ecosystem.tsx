@@ -116,6 +116,7 @@ export function SolanaEcosystem({
     .filter(issuer => issuer.total !== null && issuer.observedAt != null && issuer.observedAt > 0)
     .map(issuer => issuer.observedAt!);
   const oldestValuation = valuationTimes.length ? Math.min(...valuationTimes) : null;
+  const historicalEstimateCount = coverage.valued.filter(row => row.lastIssuedValueHistoricalReference).length;
   return (
     <section
       className="ecosystem-overview"
@@ -132,13 +133,14 @@ export function SolanaEcosystem({
               {issuerScope ? 'Estimated value of issued tokens, including issuer holdings.' : 'Estimated tokenized value on Solana. Supply basis varies by issuer.'}
               <br />{data ? `${coverage.valued.length} / ${coverage.rows.length} tokens included.` : 'Loading coverage.'}
               {oldestValuation && <><br />Oldest update: {new Date(oldestValuation).toLocaleString()}.</>}
+              {historicalEstimateCount > 0 && <><br />Includes last stock prices × fresh minted supply.</>}
               {coverage.delayed && <><br />Includes delayed data.</>}
               {coverage.mixedBases && <><br />Supply basis varies by issuer.</>}
             </MetricInfo>
           </span>
           <strong>{usd(coverage.total)}</strong>
           <small>
-            {coverage.delayed ? (coverage.partial ? 'Partial · delayed update' : 'Delayed update') : coverage.partial ? 'Partial coverage' : issuerScope ? '' : `${coverage.issuerCount}/${ISSUERS.length} issuers`}
+            {historicalEstimateCount > 0 ? historicalEstimateCount === coverage.valued.length ? 'Stock reference estimate' : 'Includes stock references' : coverage.delayed ? (coverage.partial ? 'Partial · delayed update' : 'Delayed update') : coverage.partial ? 'Partial coverage' : issuerScope ? '' : `${coverage.issuerCount}/${ISSUERS.length} issuers`}
           </small>
         </div>
         {issuerScope && <HoldingWallets issuer={issuerScope} compact expectedTokens={data ? tokens.length : undefined} />}

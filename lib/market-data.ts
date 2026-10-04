@@ -32,6 +32,12 @@ export type Listing = {
   bookState: string | null;
 };
 export const BACKPACK_TICKER_REFRESH_MS = 60000;
+export type HistoricalExternalReference = {
+  price:number;
+  change24h:number;
+  observedAt:number;
+  firstPrice:number | null;
+};
 export type BackpackMarket = {
   market: string;
   externalPrice: number | null;
@@ -41,6 +47,7 @@ export type BackpackMarket = {
   externalChangeUnit?: 'percent';
   externalObservedAt?: number;
   externalBasis?: 'hourly-history';
+  historicalExternalReference?: HistoricalExternalReference;
   externalVolume24h: number | null;
   externalQuoteVolume24h: number | null;
   externalTrades: number | null;

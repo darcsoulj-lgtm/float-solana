@@ -843,6 +843,25 @@ void test('displayed historical prices and saved valuations keep matching timest
  assert.match(html,/Tokenized value · total supply<\/dt><dd>\$12K/);
  assert.doesNotMatch(html,/No recent price is available\./);
 });
+void test('historical display pairs remain dated in the table and detail while stock-reference estimates keep both source dates',async()=>{
+ const historical=Date.UTC(2026,9,2,20),fresh=Date.UTC(2026,9,4,2);
+ const observation={price:120,priceTime:fresh,priceSource:'Backpack · external',change24h:null,lastIssuedValue:12000,lastIssuedValueHistoricalReference:true,lastIssuedValuePriceSource:'Backpack · external',lastIssuedValuePriceTime:historical,lastIssuedValueSupplyTime:fresh,lastIssuedValueTime:historical,historicalDisplayReference:{price:105,change24h:4.2,observedAt:historical,firstPrice:100}};
+ const detail=await marketFixture({assetSymbol:'MU',issuerScope:'backpack'}, {}, observation);
+ const html=renderToStaticMarkup(detail.render());
+ assert.match(html,/Token price.*?\$105\.00/s);
+ assert.match(html,/24h change.*?\+4\.20%/s);
+ assert.doesNotMatch(html,/\$120\.00/);
+ assert.match(html,/Stock reference · /);
+ assert.match(html,/Stock reference estimate · Backpack · external\. Price:/);
+ assert.match(html,/Supply:/);
+ assert.doesNotMatch(html,/Last observed estimate/);
+ const table=await marketFixture({issuerScope:'backpack'}, {}, observation);
+ const tableHtml=renderToStaticMarkup(table.render());
+ assert.match(tableHtml,/Older prices &amp; changes · Oct 2 · UTC/);
+ assert.match(tableHtml,/\$105\.00/);
+ assert.match(tableHtml,/\+4\.20%/);
+ assert.doesNotMatch(tableHtml,/\$120\.00/);
+});
 void test('one market table filters to owned tokens without removing market-wide metrics', async () => {
   const f = await marketFixture();
   const tree = f.render();
@@ -957,6 +976,18 @@ void test('issuer multi-selection filters rows and leaves market totals intact',
   assert.doesNotMatch(renderToStaticMarkup(tree), /Pool liquidity/);
 });
 
+void test('historical stock estimates are identified in summary copy without suggesting failed collection',async()=>{
+ const issuers=[{id:'backpack',name:'Backpack',url:'https://backpack.exchange',basis:'minted',total:500,rows:[{}],valued:[{}]}];
+ const {SolanaEcosystem}=await component('solana-ecosystem.tsx',{
+  './metric-info':{MetricInfo:({children,label})=>React.createElement('span',{'aria-label':label},children)},
+  '@/lib/tokens':{TOKENS:[{symbol:'MU',underlyingSymbol:'MU'}],ISSUERS:issuers},
+  '@/lib/token-observation':{displayPoolActivity:poolDisplay.displayPoolActivity,trackedValuation:()=>({total:500,issuers,partial:false,mixedBases:false,delayed:true,rows:[{}],valued:[{symbol:'MU',value:500,lastIssuedValueHistoricalReference:true}],issuerCount:1})},
+ });
+ const html=renderToStaticMarkup(React.createElement(SolanaEcosystem,{data:null,now:1,onIssuer:()=>{},select:()=>{}}));
+ assert.match(html,/Stock reference estimate/);
+ assert.match(html,/last stock prices × fresh minted supply/);
+ assert.doesNotMatch(html,/Delayed update/);
+});
 void test('Ecosystem overview shows one valuation total and metric help without duplicate coverage', async () => {
   const issuers = [
     {

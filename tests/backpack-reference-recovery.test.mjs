@@ -36,7 +36,7 @@ void test('dated recovery survives a fresh null snapshot and remains display-onl
  const data={tokens:[token],scope:'backpack',markets:source({}),prices:source({}),pools:source({}),catalog:source([]),supplies:source({MU:{supply:10,valuationSafe:true}}),backpack};
  const row=a.tokenObservation(data,'MU',now);assert.equal(row.price,null);assert.equal(row.lastPrice,105);assert.ok(Math.abs(row.change24h-5)<1e-9);
  assert.equal(row.changeTime,quote.externalObservedAt);assert.equal(row.lastPriceTime,quote.externalObservedAt);assert.equal(row.changeDelayed,true);
- assert.equal(row.issuedValue,null);assert.equal(row.lastIssuedValue,null);assert.equal(row.historicalReference,true);
+ assert.equal(row.issuedValue,null);assert.equal(row.lastIssuedValue,1050);assert.equal(row.lastIssuedValueHistoricalReference,true);assert.equal(row.historicalReference,true);
  const expired=a.overlayBackpackHistory(source({}),[token],saved,now+97*3600000);assert.deepEqual(expired.data,{});
  const future=a.overlayBackpackHistory(source({}),[token],new Map([[a.backpackHistoryKey(token.mint),{payload:JSON.stringify({...quote,externalObservedAt:now+1}),fetched_at:now}]]),now);assert.deepEqual(future.data,{});
  const fresh=a.overlayBackpackHistory(source({MU:{...quote,externalPrice:110,externalBasis:undefined,externalObservedAt:now}}),[token],saved,now);assert.equal(fresh.data.MU.externalPrice,110);

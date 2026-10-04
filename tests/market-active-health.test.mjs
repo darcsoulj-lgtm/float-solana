@@ -60,15 +60,26 @@ void test('the real cache-only monitor catches missing production lanes without 
  const db={prepare(sql){return{args:[],bind(...args){this.args=args;return this;},async first(){return raw.prepare(sql).get(...this.args)??null;},async all(){return{results:raw.prepare(sql).all(...this.args)};},async run(){return{meta:{changes:raw.prepare(sql).run(...this.args).changes}};},sql};},async batch(statements){return statements.map(s=>({results:raw.prepare(s.sql).all(...s.args)}));}};
  const original=globalThis.fetch;let providerCalls=0;globalThis.fetch=async()=>{providerCalls++;throw Error('Forbidden provider request');};
  try{
-  const first=await api.checkActiveMarketHealth({DB:db},now);assert.equal(first.status,'ok');assert.ok(first.coverage.tracked>0);
+  const first=await api.checkActiveMarketHealth({DB:db},now);assert.equal(first.status,'degraded');assert.deepEqual(first.issues,[{source:'snapshot',code:'snapshot_publication_overdue',affected:1}]);assert.ok(first.coverage.tracked>0);
   const later=await api.checkActiveMarketHealth({DB:db},now+2*HOUR);assert.equal(later.status,'degraded');assert.ok(later.issues.some(i=>i.source==='references'));assert.ok(later.issues.some(i=>i.source==='supplies'));assert.ok(later.issues.some(i=>i.source==='activity'));assert.equal(providerCalls,0);
   const publicSummary=await api.readActiveMarketHealth(db,now+2*HOUR);assert.equal(publicSummary.status,'degraded');assert.ok(publicSummary.coverage.tracked===first.coverage.tracked);assert.equal(publicSummary.coverage.references,0);
  }finally{globalThis.fetch=original;raw.close();}
 });
 
 void test('a stale prepared public snapshot is detected independently of otherwise healthy collection',()=>{
- const input=fixture();input.controls.get('public-backpack-snapshot:v1').fetched_at=now-16*60000;
+ const input=fixture();input.controls.get('public-backpack-snapshot:v1').fetched_at=now-6*60000;
  assert.deepEqual(api.activeHealthIssues(input),[{source:'snapshot',code:'snapshot_publication_overdue',affected:1}]);
+});
+void test('new-listing grace never suppresses global snapshot absence, expiry or a future assembly time',()=>{
+ const input=fixture();input.firstSeen[token.mint]=now;
+ for(const at of [now-6*60000,now+1]){input.controls.get('public-backpack-snapshot:v1').fetched_at=at;assert.deepEqual(api.activeHealthIssues(input),[{source:'snapshot',code:'snapshot_publication_overdue',affected:1}]);}
+ input.controls.delete('public-backpack-snapshot:v1');assert.deepEqual(api.activeHealthIssues(input),[{source:'snapshot',code:'snapshot_publication_overdue',affected:1}]);
+});
+void test('snapshot growth warns before its storage ceiling using UTF8 bytes without exposing the payload',async()=>{
+ const input=fixture();input.controls.get('public-backpack-snapshot:v1').payload='x'.repeat(399999);assert.deepEqual(api.activeHealthIssues(input),[]);
+ input.controls.get('public-backpack-snapshot:v1').payload='€'.repeat(140000);const issues=api.activeHealthIssues(input);assert.deepEqual(issues,[{source:'snapshot-capacity',code:'snapshot_payload_large',affected:1}]);
+ const payload=JSON.stringify({version:1,status:'degraded',checkedAt:now,issues});const db={prepare(){return{bind(){return this;},async first(){return{payload};}};}};
+ const summary=await api.readActiveMarketHealth(db,now);assert.equal(summary.status,'degraded');assert.deepEqual(summary.issues,issues);assert.equal(JSON.stringify(summary).includes('€'),false);
 });
 void test('expiry index migration is idempotent and selects expired rows through indexed range scans',async()=>{
  const {readFile}=await import('node:fs/promises'),raw=new DatabaseSync(':memory:');
