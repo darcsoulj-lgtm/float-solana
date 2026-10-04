@@ -21,7 +21,7 @@ def request_json(url, headers=None, body=None, limit=12000000):
         with urllib.request.urlopen(req, timeout=45) as response:
             if response.status == 204: return None
             raw = response.read(limit + 1)
-        if len(raw) > limit: raise ValueError('Oversized provider data')
+        if len(raw) > limit: raise ValueError('Oversized provider data at ' + urllib.parse.urlsplit(url).hostname)
         return json.loads(raw)
     except urllib.error.HTTPError as error:
         raise RuntimeError('Source HTTP ' + str(error.code) + ' at ' + urllib.parse.urlsplit(url).hostname) from None
@@ -139,7 +139,7 @@ def stock_volume(symbol, start, end, headers, closed, fetch=request_json, pause=
 def main():
     now = datetime.now(timezone.utc); start, end = window(now)
     market = request_json(SITE+'/api/backpack-market', limit=4000000)
-    assets = request_json('https://api.backpack.exchange/api/v1/assets', limit=2000000)
+    assets = request_json('https://api.backpack.exchange/api/v1/assets', limit=8000000)
     selected, coverage = select_tokens(market, assets, now)
     settings = job({'action':'begin'})
     for value in settings.values(): print('::add-mask::'+value, flush=True)
