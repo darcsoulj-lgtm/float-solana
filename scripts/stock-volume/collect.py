@@ -1,0 +1,186 @@
+"""Daily, quota-bounded comparison. Provider keys stay inside the authorized runner.
+No raw trade datasets, credentials or wallet data are published.
+"""
+import json, os, re, sys, time, urllib.request, urllib.parse, urllib.error
+from datetime import datetime, timedelta, timezone
+from decimal import Decimal as D
+from zoneinfo import ZoneInfo
+
+ET = ZoneInfo('America/New_York')
+SITE = 'https://joinfloat.xyz'
+AUDIENCE = SITE + '/stock-volume-collector'
+KNOWN = {'A': set('B C E F H I K L M N O P Q R T U V X Z 4 5 6 7 9'.split()) | {' '},
+         'B': set('B C E F H I K L M N O P Q R T U V X Z 4 5 6 7 9'.split()) | {' '},
+         'C': set('@ A B C D F G H I K L M N O P Q R T U V W X Y Z 4 5 6 7 9'.split())}
+EXCLUDED = {'M', 'Q', '9'}
+
+def request_json(url, headers=None, body=None, limit=12000000):
+    req = urllib.request.Request(url, data=json.dumps(body).encode() if body is not None else None,
+        headers={'Accept': 'application/json', **({'Content-Type': 'application/json'} if body is not None else {}), **(headers or {})})
+    try:
+        with urllib.request.urlopen(req, timeout=45) as response:
+            if response.status == 204: return None
+            raw = response.read(limit + 1)
+        if len(raw) > limit: raise ValueError('Oversized provider data')
+        return json.loads(raw)
+    except urllib.error.HTTPError as error:
+        raise RuntimeError('Source HTTP ' + str(error.code)) from None
+    except urllib.error.URLError:
+        raise RuntimeError('Source network error') from None
+
+def identity():
+    url = os.environ['ACTIONS_ID_TOKEN_REQUEST_URL'] + '&audience=' + urllib.parse.quote(AUDIENCE, safe='')
+    value = request_json(url, {'Authorization': 'Bearer ' + os.environ['ACTIONS_ID_TOKEN_REQUEST_TOKEN']}, limit=16000)['value']
+    print('::add-mask::' + value, flush=True)
+    return value
+
+def job(body):
+    return request_json(SITE + '/api/stock-volume-job', {'Authorization': 'Bearer ' + identity()}, body, limit=16000)
+
+def window(now):
+    end = now.astimezone(ET).replace(hour=0, minute=0, second=0, microsecond=0)
+    return end - timedelta(days=1), end
+
+def iso(value): return value.astimezone(timezone.utc).isoformat().replace('+00:00', 'Z')
+def parse_time(value):
+    value = re.sub(r'\.(\d+)(?=Z|[+-]\d{2}:\d{2}$)', lambda m: '.' + (m[1] + '000000')[:6], value)
+    return datetime.fromisoformat(value.replace('Z', '+00:00'))
+
+def select_tokens(market, assets, now):
+    canonical = {}
+    for asset in assets:
+        if not asset.get('symbol', '').endswith('.US'): continue
+        symbol = asset['symbol'][:-3]
+        matches = [t for t in asset.get('tokens', []) if t.get('blockchain') == 'Solana']
+        if len(matches) != 1: continue
+        mint = matches[0].get('contractAddress')
+        if re.fullmatch(r'[1-9A-HJ-NP-Za-km-z]{32,44}', mint or ''):
+            if symbol in canonical: raise ValueError('Duplicate official token')
+            canonical[symbol] = {'symbol': symbol, 'mint': mint, 'name': asset['displayName']}
+    data = market.get('tokenVolumes', {}).get('data', {})
+    candidates = []
+    for symbol, token in canonical.items():
+        v = data.get(symbol, {})
+        if v.get('mint') != token['mint']: continue
+        amount, observed = v.get('usd24h'), v.get('observedAt')
+        if not isinstance(amount, (float, int)) or amount < 0 or not D(str(amount)).is_finite(): continue
+        if not isinstance(observed, int) or observed > int(now.timestamp()*1000)+60000 or int(now.timestamp()*1000)-observed > 24*3600000: continue
+        candidates.append({**token, 'observedUsd': amount})
+    candidates.sort(key=lambda x: (-x['observedUsd'], x['symbol']))
+    if len(candidates) < 5: raise ValueError('Insufficient fresh ranking observations')
+    return candidates[:5], {'available': len(candidates), 'total': len(canonical), 'unavailable': sorted(set(canonical)-{t['symbol'] for t in candidates})}
+
+def token_volume(payload, mint, start, end):
+    if payload.get('success') is not True: raise ValueError('Unsuccessful token series')
+    data = payload.get('data', {})
+    if data.get('has_more') or data.get('hasMore'): raise ValueError('Incomplete token pagination')
+    items = data.get('items'); seen = set(); values = []
+    if not isinstance(items, list): raise ValueError('Missing token series')
+    for item in items:
+        stamp = item.get('unix_time', item.get('unixTime'))
+        volume = item.get('v_usd', item.get('vUsd'))
+        if not isinstance(stamp, int) or stamp % 3600 or stamp in seen: raise ValueError('Invalid candle time')
+        seen.add(stamp)
+        if item.get('address', mint) != mint or item.get('type', '1H') != '1H' or item.get('currency', 'usd') != 'usd': raise ValueError('Wrong token identity or basis')
+        value = D(str(volume))
+        if not value.is_finite() or value < 0: raise ValueError('Invalid token dollars')
+        if int(start.timestamp()) <= stamp < int(end.timestamp()): values.append(value)
+    # Sparse series can omit inactive hours; a wholly absent day is not proven zero.
+    if not values: raise ValueError('Token day unavailable')
+    return sum(values, D(0))
+
+class TradeAccumulator:
+    def __init__(self, start, end):
+        self.start, self.end = start, end
+        self.seen = set(); self.shares = D(0); self.usd = D(0); self.count = 0
+    def add(self, trades):
+        for trade in trades:
+            t = parse_time(trade['t'])
+            if not self.start <= t < self.end: raise ValueError('Trade outside comparison day')
+            key = (trade['x'], str(trade['i']), trade['t'])
+            if key in self.seen: raise ValueError('Duplicate eligible tape identity')
+            self.seen.add(key)
+            update = trade.get('u')
+            if update in ('canceled', 'incorrect'): continue
+            if update not in (None, '', 'corrected'): raise ValueError('Unknown correction status')
+            conditions = trade.get('c')
+            if not isinstance(conditions, list) or not conditions or any(c not in KNOWN.get(trade.get('z'), set()) for c in conditions): raise ValueError('Unknown trade condition')
+            if EXCLUDED.intersection(conditions): continue
+            price, size = D(str(trade['p'])), D(str(trade['s']))
+            if not price.is_finite() or not size.is_finite() or price <= 0 or size <= 0: raise ValueError('Invalid eligible trade')
+            self.shares += size; self.usd += price*size; self.count += 1
+    def reconcile(self, bar, closed=False):
+        if closed:
+            if bar is not None or self.count or self.shares: raise ValueError('Unexpected closed-market trades')
+            return D(0)
+        if not bar or self.shares != D(str(bar['v'])) or self.count != bar.get('n'): raise ValueError('Stock tape does not reconcile')
+        if parse_time(bar['t']).astimezone(ET) != self.start: raise ValueError('Wrong stock daily boundary')
+        return self.usd
+
+def stock_volume(symbol, start, end, headers, closed, fetch=request_json, pause=time.sleep):
+    query = {'symbols':symbol, 'start':iso(start), 'end':iso(end), 'feed':'sip', 'currency':'USD', 'asof':start.date().isoformat()}
+    daily = fetch('https://data.alpaca.markets/v2/stocks/bars?' + urllib.parse.urlencode({**query, 'timeframe':'1Day', 'limit':100, 'adjustment':'raw'}), headers)
+    if daily.get('next_page_token') or set(daily.get('bars', {})) - {symbol}: raise ValueError('Invalid daily stock response')
+    bars = daily.get('bars', {}).get(symbol, [])
+    if len(bars) > 1: raise ValueError('Unexpected daily bar count')
+    acc = TradeAccumulator(start, end); cursor = None; cursors = set()
+    for _ in range(400):
+        pause(0.35)
+        q = {**query, 'limit':10000, 'sort':'asc', **({'page_token':cursor} if cursor else {})}
+        payload = fetch('https://data.alpaca.markets/v2/stocks/trades?' + urllib.parse.urlencode(q), headers)
+        trades = payload.get('trades')
+        if not isinstance(trades, dict) or set(trades)-{symbol} or not isinstance(trades.get(symbol, []), list): raise ValueError('Wrong stock identity')
+        acc.add(trades.get(symbol, [])); cursor = payload.get('next_page_token')
+        if not cursor: return acc.reconcile(bars[0] if bars else None, closed)
+        if cursor in cursors: raise ValueError('Stock pagination loop')
+        cursors.add(cursor)
+    raise ValueError('Stock pagination incomplete')
+
+def main():
+    now = datetime.now(timezone.utc); start, end = window(now)
+    market = request_json(SITE+'/api/backpack-market', limit=4000000)
+    assets = request_json('https://api.backpack.exchange/api/v1/assets', limit=2000000)
+    selected, coverage = select_tokens(market, assets, now)
+    settings = job({'action':'begin'})
+    for value in settings.values(): print('::add-mask::'+value, flush=True)
+    headers = {'APCA-API-KEY-ID':settings['alpacaId'], 'APCA-API-SECRET-KEY':settings['alpacaSecret']}
+    date = start.date().isoformat()
+    calendar = request_json('https://paper-api.alpaca.markets/v2/calendar?'+urllib.parse.urlencode({'start':date,'end':date}), headers)
+    if not isinstance(calendar, list) or len(calendar)>1 or any(c.get('date')!=date for c in calendar): raise ValueError('Invalid US market calendar')
+    closed = not calendar
+    rows = []
+    for token in selected:
+        symbol, mint = token['symbol'], token['mint']
+        asset = request_json('https://paper-api.alpaca.markets/v2/assets/'+urllib.parse.quote(symbol), headers, limit=16000)
+        if asset.get('symbol') != symbol or asset.get('class') != 'us_equity' or asset.get('status') != 'active' or asset.get('exchange') not in ('NASDAQ','NYSE','AMEX','ARCA','BATS','OTC'): raise ValueError('US stock identity unavailable')
+        query = {'address':mint,'type':'1H','currency':'usd','mode':'range','time_from':int(start.timestamp()),'time_to':int(end.timestamp())-1,'ui_amount_mode':'scaled','padding':'false'}
+        candles = request_json('https://public-api.birdeye.so/defi/v3/ohlcv?'+urllib.parse.urlencode(query), {'X-API-KEY':settings['birdeye'],'x-chain':'solana'}, limit=2000000)
+        token_usd = token_volume(candles, mint, start, end)
+        stock_usd = stock_volume(symbol, start, end, headers, closed)
+        rows.append({'symbol':symbol,'mint':mint,'name':asset.get('name') or token['name'],'listingExchange':asset['exchange'],'tokenUsd':float(token_usd),'stockUsd':float(stock_usd),'reconciled':True,**({'stockMarketClosed':True} if closed else {})})
+        print(json.dumps({'symbol':symbol,'date':date,'reconciled':True,'marketClosed':closed}),flush=True)
+        time.sleep(1.1)
+    result = {'period':1,'startUtc':iso(start),'endUtc':iso(end),'timeZone':'America/New_York','tokenSource':'birdeye','stockSource':'alpaca-sip','coverage':coverage,'rows':rows,'selectionBasis':'latest-market-volume','selectedAt':int(now.timestamp()*1000),'generatedAt':int(datetime.now(timezone.utc).timestamp()*1000)}
+    job({'action':'publish','comparison':result})
+    check = request_json(SITE+'/api/stock-volume')
+    if check['comparisons'][0]['endUtc'] != result['endUtc'] or check['comparisons'][0].get('generatedAt') != result['generatedAt']: raise ValueError('Published comparison verification failed')
+    print('Published and verified '+date+' matched stock-volume comparison',flush=True)
+
+def check_public(payload, now):
+    _, end = window(now)
+    comparisons = payload.get('comparisons', [])
+    if payload.get('status') != 'daily' or len(comparisons) != 1 or comparisons[0].get('endUtc') != iso(end) or len(comparisons[0].get('rows', [])) != 5:
+        raise ValueError('Daily stock comparison missing or delayed')
+    print('Daily stock comparison publication is current', flush=True)
+
+if __name__ == '__main__':
+    try:
+        if '--check' in sys.argv: check_public(request_json(SITE+'/api/stock-volume'), datetime.now(timezone.utc))
+        else: main()
+    except Exception as error:
+        if '--check' not in sys.argv:
+            try: job({'action':'failed'})
+            except Exception: pass
+        # Only fixed error types/messages, never provider response bodies or keys.
+        print('::error::Daily stock comparison failed: '+type(error).__name__+': '+str(error)[:160],flush=True)
+        raise SystemExit(1) from None

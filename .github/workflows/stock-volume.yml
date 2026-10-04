@@ -1,0 +1,43 @@
+name: Daily stock-volume comparison
+on:
+  schedule:
+    - cron: '30 6 * * *'
+    - cron: '15 9 * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/stock-volume.yml'
+      - 'scripts/stock-volume/collect.py'
+      - 'scripts/stock-volume/test_collect.py'
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: daily-stock-volume
+  cancel-in-progress: false
+jobs:
+  collect:
+    if: github.event.repository.private == false && github.event.schedule != '15 9 * * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Verify calendar, ranking, tape and missing-data rules
+        run: python3 -m unittest discover -s scripts/stock-volume -p 'test_*.py'
+      - name: Collect, reconcile, publish and verify
+        run: python3 scripts/stock-volume/collect.py
+  verify-daily-publication:
+    if: github.event.repository.private == false && github.event.schedule == '15 9 * * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Detect missed collection or delayed publication
+        run: python3 scripts/stock-volume/collect.py --check
