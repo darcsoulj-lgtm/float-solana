@@ -60,3 +60,9 @@ void test('a known unit adjustment invalidates both historical price/return disp
  const row=a.tokenObservation(fresh,'MU',now);assert.equal(row.price,110);assert.equal(row.issuedValue,1100);assert.equal(row.historicalDisplayReference,null);assert.equal(row.change24h,null);
  const compatible=fixture();compatible.supplies.data.MU.adjustmentAt=now-31*HOUR;assert.equal(a.tokenObservation(compatible,'MU',now).lastPrice,105);
 });
+void test('a fresh DEX price without a return retains the validated primary historical stock display pair',()=>{
+ const data=fixture();data.pools=source({MU:[{address:'pool',dex:'fixture',price:110,change24h:null,observedAt:now}]});
+ const row=a.tokenObservation(data,'MU',now);assert.equal(row.price,110);assert.equal(row.priceSource,'DEX pool');assert.equal(row.issuedValue,1100);assert.equal(row.change24h,null);
+ assert.deepEqual(row.historicalDisplayReference,{price:105,change24h:5,observedAt:now-30*HOUR,firstPrice:100});assert.equal(data.backpack.data.MU.historicalExternalReference,undefined);
+ data.supplies.data.MU.adjustmentAt=now-29*HOUR;assert.equal(a.tokenObservation(data,'MU',now).historicalDisplayReference,null);
+});

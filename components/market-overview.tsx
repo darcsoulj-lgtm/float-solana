@@ -268,6 +268,7 @@ export function MarketOverviewPanel({
   const detailMetrics = poolDisplayMetrics(detailedPools.data || [], now, detailedPools.fetchedAt);
   const observation = tokenObservation(data, selected, now);
   const detailReference = displayedMarketReference(observation);
+  const currentValueQuote = detailReference.historical && observation.issuedValue !== null;
   const providerVolumeMode = !!data?.tokenVolumes && token.issuer === 'backpack';
   const detailVolume = providerVolumeMode ? observation.dexVolume24h : detailMetrics.observedVolume24h;
   const volumeTime = providerVolumeMode ? observation.dexVolumeTime : detailedPools.fetchedAt;
@@ -369,7 +370,7 @@ export function MarketOverviewPanel({
           </div>
           <div>
             <span>
-              {tokenValuation(observation, token.issuer).label} <MetricInfo label="About tokenized value" learnMore="/data-methodology#value">{token.issuer === 'xstocks' ? 'Estimated value of circulating tokens, excluding issuer inventory.' : observation.lastIssuedValueHistoricalReference ? 'Last stock price × fresh minted supply, including issuer holdings. Not a current quote.' : 'Estimated value of issued tokens, including issuer holdings.'}</MetricInfo>
+              {tokenValuation(observation, token.issuer).label} <MetricInfo label="About tokenized value" learnMore="/data-methodology#value">{token.issuer === 'xstocks' ? 'Estimated value of circulating tokens, excluding issuer inventory.' : observation.lastIssuedValueHistoricalReference ? 'Last stock price × fresh minted supply, including issuer holdings. Not a current quote.' : 'Estimated value of issued tokens, including issuer holdings.'}{currentValueQuote && <><br />Uses current token quote.</>}</MetricInfo>
             </span>
             <strong>
               {money(tokenValuation(observation, token.issuer).value, true)}
@@ -662,6 +663,7 @@ export function MarketOverviewPanel({
               <dt>Tokenized value · total supply</dt>
               <dd>
                 {money(tokenValuation(observation, token.issuer).value, true)} · includes issuer-held tokens.
+                {currentValueQuote && <><br />Uses current token quote · {observation.priceSource}. Price: {money(observation.price)} · {time(observation.priceTime)}.</>}
                 {token.issuer === 'backpack' && observation.issuedValue === null && observation.lastIssuedValue !== null && <><br />{observation.lastIssuedValueHistoricalReference ? 'Stock reference estimate' : 'Last observed estimate'} · {observation.lastIssuedValuePriceSource}. Price: {time(observation.lastIssuedValuePriceTime)}. Supply: {time(observation.lastIssuedValueSupplyTime)}.</>}
               </dd>
             </div>

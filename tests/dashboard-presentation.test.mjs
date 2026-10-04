@@ -862,6 +862,15 @@ void test('historical display pairs remain dated in the table and detail while s
  assert.match(tableHtml,/\+4\.20%/);
  assert.doesNotMatch(tableHtml,/\$120\.00/);
 });
+void test('historical stock display does not misrepresent the current token quote used for value',async()=>{
+ const historical=Date.UTC(2026,9,2,20),fresh=Date.UTC(2026,9,4,2);
+ const f=await marketFixture({assetSymbol:'MU',issuerScope:'backpack'}, {}, {price:120,priceTime:fresh,priceSource:'DEX pool',change24h:null,issuedValue:24000,historicalDisplayReference:{price:105,change24h:4.2,observedAt:historical,firstPrice:100}});
+ const html=renderToStaticMarkup(f.render());
+ assert.match(html,/Token price.*?\$105\.00/s);
+ assert.match(html,/24h change.*?\+4\.20%/s);
+ assert.match(html,/Uses current token quote · DEX pool\. Price: \$120\.00/);
+ assert.doesNotMatch(html,/Stock reference estimate|Last observed estimate/);
+});
 void test('one market table filters to owned tokens without removing market-wide metrics', async () => {
   const f = await marketFixture();
   const tree = f.render();
@@ -986,7 +995,10 @@ void test('historical stock estimates are identified in summary copy without sug
  const html=renderToStaticMarkup(React.createElement(SolanaEcosystem,{data:null,now:1,onIssuer:()=>{},select:()=>{}}));
  assert.match(html,/Stock reference estimate/);
  assert.match(html,/last stock prices × fresh minted supply/);
- assert.doesNotMatch(html,/Delayed update/);
+ assert.doesNotMatch(html,/Delayed update|Includes delayed data/);
+ issuers[0].valued=[{lastIssuedValueHistoricalReference:true,priceDelayed:true},{lastIssuedValueHistoricalReference:false,priceDelayed:true}];
+ const mixed=renderToStaticMarkup(React.createElement(SolanaEcosystem,{data:null,now:1,onIssuer:()=>{},select:()=>{}}));
+ assert.match(mixed,/Includes delayed data/,'Retained observed pairs still disclose their delay');
 });
 void test('Ecosystem overview shows one valuation total and metric help without duplicate coverage', async () => {
   const issuers = [

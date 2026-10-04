@@ -117,6 +117,9 @@ export function SolanaEcosystem({
     .map(issuer => issuer.observedAt!);
   const oldestValuation = valuationTimes.length ? Math.min(...valuationTimes) : null;
   const historicalEstimateCount = coverage.valued.filter(row => row.lastIssuedValueHistoricalReference).length;
+  const delayedObservedValues = historicalEstimateCount === 0 ? coverage.delayed : coverage.issuers.some(issuer =>
+    issuer.total !== null && ((issuer.basis === 'circulating' && issuer.delayed) || issuer.valued.some(row =>
+      !row.lastIssuedValueHistoricalReference && (row.valuationTime ? now - row.valuationTime > 3600000 : row.priceDelayed))));
   return (
     <section
       className="ecosystem-overview"
@@ -134,7 +137,7 @@ export function SolanaEcosystem({
               <br />{data ? `${coverage.valued.length} / ${coverage.rows.length} tokens included.` : 'Loading coverage.'}
               {oldestValuation && <><br />Oldest update: {new Date(oldestValuation).toLocaleString()}.</>}
               {historicalEstimateCount > 0 && <><br />Includes last stock prices × fresh minted supply.</>}
-              {coverage.delayed && <><br />Includes delayed data.</>}
+              {delayedObservedValues && <><br />Includes delayed data.</>}
               {coverage.mixedBases && <><br />Supply basis varies by issuer.</>}
             </MetricInfo>
           </span>

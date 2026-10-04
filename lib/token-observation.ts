@@ -239,7 +239,10 @@ export function tokenObservation(
   const historicalUnitsCompatible = (at:number | null | undefined) => !displayAdjustmentAt ||
     (!!at && Number.isFinite(displayAdjustmentAt) && at>=displayAdjustmentAt);
   const candidateHistoricalPair = token?.issuer === 'backpack' && storedBackpack?.market === symbol + '.US_USDC'
-    ? validatedHistoricalReferencePair(storedBackpack.historicalExternalReference,now) : null;
+    ? validatedHistoricalReferencePair(storedBackpack.historicalExternalReference,now) ??
+      (historyReference && typeof storedBackpack.externalPrice==='number' && typeof storedBackpack.externalChange24h==='number' && typeof oldBackpackTime==='number'
+        ? validatedHistoricalReferencePair({price:storedBackpack.externalPrice,change24h:storedBackpack.externalChange24h,observedAt:oldBackpackTime,firstPrice:storedBackpack.externalFirstPrice??null},now) : null)
+    : null;
   const storedHistoricalPair = candidateHistoricalPair && historicalUnitsCompatible(candidateHistoricalPair.observedAt) ? candidateHistoricalPair : null;
   const oldBackpack = lastObserved(oldBackpackTime, now, historyReference ? LAST_PRICE_MAX_AGE_MS : LAST_OBSERVATION_DISPLAY_MAX_AGE_MS) &&
     (!historyReference || historicalUnitsCompatible(oldBackpackTime))
