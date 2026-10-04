@@ -10,7 +10,7 @@ class DailyComparisonTests(unittest.TestCase):
         with patch('urllib.request.urlopen', side_effect=urllib.error.HTTPError('https://example.com?key=private',403,'blocked',{},None)) as call:
             with self.assertRaisesRegex(RuntimeError, '^Source HTTP 403 at example.com$'):
                 request_json('https://example.com?key=private')
-            self.assertEqual(call.call_args[0][0].get_header('User-agent'),'Float-Stock-Collector/1.0')
+            self.assertIn('FloatStockCollector/1.0',call.call_args[0][0].get_header('User-agent'))
     def test_calendar_dst(self):
         for day,hours in [('2026-03-09T12:00:00+00:00',23),('2026-11-02T12:00:00+00:00',25),('2026-10-04T12:00:00+00:00',24)]:
             a,b=window(datetime.fromisoformat(day));self.assertEqual((b.timestamp()-a.timestamp())/3600,hours)

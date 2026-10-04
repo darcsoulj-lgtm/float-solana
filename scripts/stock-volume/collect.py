@@ -16,7 +16,7 @@ EXCLUDED = {'M', 'Q', '9'}
 
 def request_json(url, headers=None, body=None, limit=12000000):
     req = urllib.request.Request(url, data=json.dumps(body).encode() if body is not None else None,
-        headers={'Accept': 'application/json', 'User-Agent': 'Float-Stock-Collector/1.0', **({'Content-Type': 'application/json'} if body is not None else {}), **(headers or {})})
+        headers={'Accept': 'application/json', 'User-Agent': 'Mozilla/5.0 (compatible; FloatStockCollector/1.0; +https://joinfloat.xyz)', **({'Content-Type': 'application/json'} if body is not None else {}), **(headers or {})})
     try:
         with urllib.request.urlopen(req, timeout=45) as response:
             if response.status == 204: return None
@@ -24,7 +24,8 @@ def request_json(url, headers=None, body=None, limit=12000000):
         if len(raw) > limit: raise ValueError('Oversized provider data at ' + urllib.parse.urlsplit(url).hostname)
         return json.loads(raw)
     except urllib.error.HTTPError as error:
-        raise RuntimeError('Source HTTP ' + str(error.code) + ' at ' + urllib.parse.urlsplit(url).hostname) from None
+        source = urllib.parse.urlsplit(url)
+        raise RuntimeError('Source HTTP ' + str(error.code) + ' at ' + source.hostname + source.path) from None
     except urllib.error.URLError:
         raise RuntimeError('Source network error at ' + urllib.parse.urlsplit(url).hostname) from None
 
@@ -32,6 +33,11 @@ def identity():
     url = os.environ['ACTIONS_ID_TOKEN_REQUEST_URL'] + '&audience=' + urllib.parse.quote(AUDIENCE, safe='')
     value = request_json(url, {'Authorization': 'Bearer ' + os.environ['ACTIONS_ID_TOKEN_REQUEST_TOKEN']}, limit=16000)['value']
     print('::add-mask::' + value, flush=True)
+    # Public scope metadata only: never log the token, signature or credentials.
+    import base64
+    encoded = value.split('.')[1]
+    claims = json.loads(base64.urlsafe_b64decode(encoded + '=' * (-len(encoded) % 4)))
+    print(json.dumps({'collectorIdentity': {k: claims.get(k) for k in ('repository','ref','workflow_ref','sub','event_name')}, 'identityLifetimeSeconds':claims.get('exp',0)-claims.get('iat',0)}),flush=True)
     return value
 
 def job(body):
