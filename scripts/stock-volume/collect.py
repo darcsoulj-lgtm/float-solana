@@ -52,7 +52,7 @@ def parse_time(value):
     value = re.sub(r'\.(\d+)(?=Z|[+-]\d{2}:\d{2}$)', lambda m: '.' + (m[1] + '000000')[:6], value)
     return datetime.fromisoformat(value.replace('Z', '+00:00'))
 
-def select_tokens(market, assets, now):
+def select_tokens(market, assets, now, verified_mints):
     canonical = {}
     for asset in assets:
         if not asset.get('symbol', '').endswith('.US'): continue
@@ -60,7 +60,7 @@ def select_tokens(market, assets, now):
         matches = [t for t in asset.get('tokens', []) if t.get('blockchain') == 'Solana']
         if len(matches) != 1: continue
         mint = matches[0].get('contractAddress')
-        if re.fullmatch(r'[1-9A-HJ-NP-Za-km-z]{32,44}', mint or ''):
+        if mint in verified_mints and re.fullmatch(r'[1-9A-HJ-NP-Za-km-z]{32,44}', mint or ''):
             if symbol in canonical: raise ValueError('Duplicate official token')
             canonical[symbol] = {'symbol': symbol, 'mint': mint, 'name': asset['displayName']}
     data = market.get('tokenVolumes', {}).get('data', {})
@@ -146,7 +146,13 @@ def main():
     now = datetime.now(timezone.utc); start, end = window(now)
     market = request_json(SITE+'/api/backpack-market', limit=4000000)
     assets = request_json('https://api.backpack.exchange/api/v1/assets', limit=8000000)
-    selected, coverage = select_tokens(market, assets, now)
+    import hashlib
+    registry = request_json(SITE+'/api/issuer-holders/registry', limit=1000000)
+    scoped = [r for r in registry.get('issuers',[]) if r.get('issuer')=='backpack']
+    if registry.get('version')!=1 or len(scoped)!=1: raise ValueError('Verified Backpack scope unavailable')
+    mints=scoped[0].get('mints',[])
+    if not mints or len(mints)!=len(set(mints)) or scoped[0].get('registryHash')!=hashlib.sha256('\n'.join(sorted(mints)).encode()).hexdigest(): raise ValueError('Invalid verified Backpack scope')
+    selected, coverage = select_tokens(market, assets, now, set(mints))
     settings = job({'action':'begin'})
     for value in settings.values(): print('::add-mask::'+value, flush=True)
     headers = {'APCA-API-KEY-ID':settings['alpacaId'], 'APCA-API-SECRET-KEY':settings['alpacaSecret']}

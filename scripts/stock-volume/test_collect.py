@@ -41,10 +41,14 @@ class DailyComparisonTests(unittest.TestCase):
         assets=[{'symbol':f'T{i}.US','displayName':f'Token {i}','tokens':[{'blockchain':'Solana','contractAddress':MINT[:-1]+str(i+1)}]} for i in range(7)]
         volumes={f'T{i}':{'mint':assets[i]['tokens'][0]['contractAddress'],'usd24h':i+1,'observedAt':ms} for i in range(7)}
         volumes['T0']['observedAt']=ms-25*3600000;volumes['T1']['mint']='wrong'
-        selected,coverage=select_tokens({'tokenVolumes':{'data':volumes}},assets,now)
+        selected,coverage=select_tokens({'tokenVolumes':{'data':volumes}},assets,now,{t['tokens'][0]['contractAddress'] for t in assets})
         self.assertEqual([t['symbol'] for t in selected],['T6','T5','T4','T3','T2']);self.assertEqual(coverage['unavailable'],['T0','T1'])
+        foreign={**assets[-1],'symbol':'FOREIGN.US'}
+        foreign['tokens']=[{'blockchain':'Solana','contractAddress':'2'*44}]
+        picked,scoped=select_tokens({'tokenVolumes':{'data':{**volumes,'FOREIGN':{'mint':'2'*44,'usd24h':1e12,'observedAt':ms}}}},assets+[foreign],now,{t['tokens'][0]['contractAddress'] for t in assets})
+        self.assertEqual(scoped['total'],7);self.assertNotIn('FOREIGN',[t['symbol'] for t in picked])
         del volumes['T6']
-        with self.assertRaises(ValueError):select_tokens({'tokenVolumes':{'data':volumes}},assets,now)
+        with self.assertRaises(ValueError):select_tokens({'tokenVolumes':{'data':volumes}},assets,now,{t['tokens'][0]['contractAddress'] for t in assets})
     def test_pagination_and_empty_closed_day(self):
         a,b=window(datetime(2026,10,4,12,tzinfo=timezone.utc))
         def closed(url,headers):return {'bars':{}} if '/bars?' in url else {'trades':{}}
