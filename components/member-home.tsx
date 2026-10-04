@@ -52,7 +52,7 @@ export function MemberHomePanel({
           }
         })
         .catch(() => {
-          if (active) setThreadError('Discussions could not update.');
+          if (active) setThreadError('Posts could not update.');
         });
     load();
     const timer = setInterval(() => {
@@ -120,7 +120,7 @@ export function MemberHomePanel({
         aria-labelledby="home-discussions-title"
       >
         <div className="section-heading">
-          <h2 id="home-discussions-title">Holder discussions</h2>
+          <h2 id="home-discussions-title">From the community</h2>
           <button onClick={onDiscussions}>
             View all <ArrowRight size={15} />
           </button>
@@ -132,7 +132,7 @@ export function MemberHomePanel({
           </output>
         )}
         {!threads && !threadError ? (
-          <output className="inline-status">Loading discussions…</output>
+          <output className="inline-status">Loading posts…</output>
         ) : threads?.threads.length ? (
           <div className="home-thread-list">
             {threads.threads.slice(0, 3).map((t) => (
@@ -161,7 +161,7 @@ export function MemberHomePanel({
               <p>No discussions for your holdings yet.</p>
               <button className="home-create" onClick={onCreate}>
                 <Plus size={16} />
-                Start a discussion
+                Create post
               </button>
             </div>
           )

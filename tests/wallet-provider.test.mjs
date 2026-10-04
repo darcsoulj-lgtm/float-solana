@@ -7,6 +7,8 @@ import { createRequire } from 'node:module';
 import ts from 'typescript';
 import { runInNewContext } from 'node:vm';
 import { ed25519 } from '@noble/curves/ed25519.js';
+import { tradeFixture } from './helpers/trade-db.mjs';
+import { bundle } from './helpers/bundle.mjs';
 const require = createRequire(import.meta.url);
 const dir = await mkdtemp(tmpdir() + '/hp-wallet-');
 const source = await readFile(
@@ -151,6 +153,28 @@ function signInChallenge(p) {
     message: new TextEncoder().encode(communitySignInMessage(input)),
   };
 }
+
+void test('trade challenge authenticates through Phantom SIWS when generic signing fails', async (t) => {
+  const { tradeAuth } = await bundle("export * from './lib/trading/auth';");
+  const f = tradeFixture();
+  t.after(() => f.sql.close());
+  const p = phantomFixture({ reject: true });
+  const connection = routeWallet('phantom', [], p.providers);
+  await connection.connect();
+  const auth = tradeAuth(f.db);
+  const origin = 'http://127.0.0.1:3012';
+  const challenge = await auth.challenge(p.key.toString(), origin);
+  assert.match(challenge.input.nonce, /^[a-zA-Z0-9]{32}$/);
+  assert.equal(challenge.input.domain, '127.0.0.1:3012');
+  assert.equal(challenge.message, walletSignInText(challenge.input));
+  assert.match(challenge.input.statement, /private order records/);
+  assert.equal(Date.parse(challenge.input.expirationTime) - Date.parse(challenge.input.issuedAt), 300000);
+  const signature = await connection.signIn(challenge.input, new TextEncoder().encode(challenge.message));
+  const session = await auth.verify(challenge.id, Array.from(signature), origin);
+  assert.equal(session.wallet, p.key.toString());
+  assert.deepEqual(p.calls, ['connect', 'signIn']);
+  await assert.rejects(auth.verify(challenge.id, Array.from(signature), origin), /expired/);
+});
 
 void test('SIWS fields bind the server origin, account, mainnet, alphanumeric nonce and five-minute expiry', () => {
   const p = phantomFixture(),
@@ -329,7 +353,7 @@ void test('Missing native Phantom never falls back to a named registration or sh
         backpack: b.provider,
         solana: b.provider,
       }),
-    /dedicated Solana connection/,
+    /Phantom is unavailable/,
   );
   assert.deepEqual(b.calls, []);
 });
@@ -341,7 +365,7 @@ for (const collision of ['isBackpack', 'sameObject', 'sameRequest']) {
     if (collision === 'sameObject') p.providers.backpack = p.provider;
     if (collision === 'sameRequest')
       p.providers.backpack = { request: Reflect.get(p.provider, 'request') };
-    assert.throws(() => routeWallet('phantom', [], p.providers), /conflicts/);
+    assert.throws(() => routeWallet('phantom', [], p.providers), /Phantom is unavailable/);
     assert.deepEqual(p.calls, []);
   });
 }

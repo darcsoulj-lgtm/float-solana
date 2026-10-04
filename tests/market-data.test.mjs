@@ -17,12 +17,15 @@ for (const file of [
   'cmc-data',
   'token-supply',
   'token-observation',
+  'birdeye-volume',
+  'market-freshness',
   'ondo-valuation',
   'request-body',
   'validation',
   'holder-tier',
   'holder-tier-server',
   'market-service',
+  'market-source-observations',
   'pool-observations',
   'pool-inventory',
   'pool-reconciliation',
@@ -44,7 +47,7 @@ for (const file of [
       },
     })
     .outputText.replace(
-      /from '\.\/(pool-volume-policy|pool-provider-adapters|pool-reconciliation|pool-inventory|pool-observations|solana-network|ondo-valuation|request-body|validation|stock-pools|tokens|token-registry|market-service|backpack-registry|market-data|market-cache|cmc-data|token-supply|token-observation|holder-tier|holder-news)'/g,
+      /from '\.\/(birdeye-volume|market-freshness|market-source-observations|pool-volume-policy|pool-provider-adapters|pool-reconciliation|pool-inventory|pool-observations|solana-network|ondo-valuation|request-body|validation|stock-pools|tokens|token-registry|market-service|backpack-registry|market-data|market-cache|cmc-data|token-supply|token-observation|holder-tier|holder-news)'/g,
       "from './$1.mjs'",
     );
   await writeFile(dir + '/' + file + '.mjs', out);
@@ -792,7 +795,7 @@ void test('Stale supply or prices never produce a current valuation; timestamped
     ),
   };
   assert.equal(tokenObservation(data, 'TTWO', now).priceSource, 'DefiLlama');
-  data.supplies.fetchedAt = now - 300001;
+  data.supplies.fetchedAt = now - 20 * 60000 - 1;
   assert.equal(tokenObservation(data, 'TTWO', now).issuedValue, null);
   data.prices.data.TTWO.timestamp = now - 900001;
   assert.equal(tokenObservation(data, 'TTWO', now).priceDelayed, true);
@@ -1139,7 +1142,8 @@ void test('last observations remain display-only while a batch refreshes', async
   assert.equal(row.lastPriceTime, old);
   assert.equal(row.lastPoolVolume24h, 100);
   assert.equal(row.lastPoolLiquidity, 500);
-  assert.equal(row.lastSupply, 10);
+  assert.equal(row.supply.supply, 10);
+  assert.equal(row.lastSupply, null);
   assert.equal(row.issuedValue, null);
   const delayed = tokenObservation(mergeMarketPages([page], true), 'MU', now + 2 * 60 * 60 * 1000);
   assert.equal(delayed.lastPrice, 2);
@@ -2035,9 +2039,4 @@ void test('public market fetch identifies Float and keeps upstream bodies out of
     assert.equal(logs[0][1].providerCode,'1015');
     assert.ok(!JSON.stringify(logs).includes('private-untrusted-body'));
   } finally {console.warn=oldWarn;}
-});
-
-void test('an empty successful external ticker response cannot overwrite references with venue-only nulls',async()=>{
- const token=TOKENS.find(t=>t.issuer==='backpack'&&t.symbol==='MU');
- await assert.rejects(()=>fetchBackpackMarkets(async url=>Response.json(String(url).includes('External')?[]:[{symbol:'MU.US_USDC',firstPrice:'100',lastPrice:'105',priceChangePercent:'0.05'}]),[token]),/external references unavailable/);
 });

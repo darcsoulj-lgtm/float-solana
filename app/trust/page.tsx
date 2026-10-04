@@ -1,3 +1,4 @@
+import Link from '@/components/site-link';
 export default function Page() {
   return (
     <div className="page info-page">
@@ -23,6 +24,7 @@ export default function Page() {
       </section>
       <section className="panel">
         <h2>What we store</h2>
+        <p>Trading uses a separate, private 24-hour wallet session. Where enabled, we store your wallet address, order details and transaction signature to prevent duplicate submissions and recover interrupted trades. Resolved records become eligible for deletion after 30 days during later trading sign-ins. Unresolved orders remain for recovery. These details are never added to your public profile. Signing in does not authorize a trade.</p>
         <p>
           We store a private hash of your wallet address, display name,
           supported token symbols and verification slots/times, verification
@@ -84,6 +86,11 @@ export default function Page() {
           authenticate through an explicitly allowed ChatGPT identity or
           administrator wallet. Access is checked on the server.
         </p>
+      </section>
+      <section className="panel">
+        <h2>Website analytics</h2>
+        <p>We use Cloudflare Web Analytics to measure visits, page views and page performance on public pages. Analytics does not use tracking cookies. We do not attach wallet addresses, balances or membership records. Wallet connection, profile, trading and internal preview pages are excluded. Counts are estimates and may miss visitors whose browsers block analytics.</p>
+        <p><Link href="/analytics-settings">Exclude visits from this browser</Link>. This preference is saved on your device and resets if you clear website data.</p>
       </section>
       <section className="panel">
         <h2>Post translations</h2>

@@ -3,7 +3,9 @@ import { normalizeBackpackChanges } from './market-data';
 import { TOKEN_REVIEW_DATE } from './tokens';
 
 // Only public market observations cross a reload. Never persist holdings or sessions.
-const prefix = `float-public-market:v2:${TOKEN_REVIEW_DATE}:`;
+// v3 preserves provider volume scope; v2 omitted Birdeye observations and
+// could briefly restore a differently calculated pool total on reload.
+const prefix = `float-public-market:v3:${TOKEN_REVIEW_DATE}:`;
 const maxSnapshotAge = 24 * 60 * 60 * 1000;
 
 export function savedMarketPages(storage: Pick<Storage, 'getItem' | 'removeItem'>, count: number, startIndex = 0) {
@@ -53,6 +55,8 @@ export function saveMarketPage(
     valuations: page.valuations,
     ondoVolume: page.ondoVolume,
     history: page.history,
+    tokenVolumes: page.tokenVolumes,
+    issuerComparisonEnabled: page.issuerComparisonEnabled,
   };
   try {
     storage.setItem(prefix + batch, JSON.stringify({ savedAt: Date.now(), page: publicPage }));

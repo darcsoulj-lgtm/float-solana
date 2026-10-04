@@ -634,7 +634,7 @@
     position: relative;
     width: 100%;
     border: 0;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
     gap: 14px;
     display: flex !important;
@@ -643,7 +643,16 @@
     display: grid;
     flex: 1;
     min-width: 0;
-    padding-right: 104px;
+    padding-right: 0;
+    align-content: start;
+    min-height: 44px;
+    line-height: 24px;
+  }
+  .market-token-table .stock-row-trigger > .stock-row-logo {
+    top: 12px;
+  }
+  .market-token-table .stock-row-name {
+    font-weight: 600;
   }
   .market-token-table .stock-row-trigger > strong,
   .market-token-table .stock-row-trigger > span:not(.stock-row-mobile-market):not(.stock-row-logo):not(.stock-row-identity),
@@ -657,20 +666,27 @@
   }
   .market-table .stock-row-mobile-market {
     display: grid !important;
-    position: absolute;
-    top: 50%;
-    right: 2px;
-    z-index: 1;
-    transform: translateY(-50%);
-    gap: 4px;
-    min-width: 88px;
+    flex: 0 0 auto;
+    gap: 2px;
     color: var(--foreground);
     text-align: right;
     font-size: 12px;
+    font-weight: 400;
+    line-height: 18px;
+    font-variant-numeric: tabular-nums;
   }
-  .stock-row-mobile-market strong {
+  .stock-row-price-line {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+    min-height: 24px;
+  }
+  .market-table .stock-row-mobile-market strong {
     color: var(--foreground) !important;
     font-size: 14px;
+    font-weight: 600;
+    line-height: 24px;
   }
   .market-token-table td .market-mobile-label {
     display: none;
@@ -899,11 +915,66 @@
 .data-methodology a, .holdings-info-popover .metric-learn-more { color: var(--foreground); }
 
 /* Keep the public landing page focused on its two entry points. */
+body:has(.public-club) { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; }
+body:has(.public-club) > main { flex: 1 0 auto; display: flex; flex-direction: column; justify-content: center; }
+body:has(.public-club) > main > .public-club { width: 100%; margin-block: 0; }
+body:has(.public-club) > :is(header, footer) { width: 100%; flex-shrink: 0; margin-block: 0; }
 .public-club .public-hero { padding: clamp(56px, 9vh, 100px) 0 clamp(64px, 10vh, 112px); }
-.public-club .public-hero h1 { max-width: 850px; margin: 22px auto; text-wrap: balance; }
-.public-club .public-hero .small-dot { background: var(--muted-foreground); }
+.public-club .public-hero h1 { max-width: 850px; margin: 0 auto 24px; font-size: clamp(38px, 4.2vw, 56px); letter-spacing: -1.8px; line-height: 1.12; text-wrap: balance; }
+.public-club .public-hero > p { max-width: 620px; margin: 0 auto; text-wrap: balance; }
+.public-club .hero-actions { margin: 32px 0 0; gap: 16px; }
 @media (max-width: 700px) {
-  .public-club .public-hero { padding: 40px 0 56px; }
-  .public-club .public-hero h1 { font-size: 38px; letter-spacing: -1.5px; }
+  .public-club .public-hero { padding: 56px 0 64px; }
+  .public-club .public-hero h1 { max-width: 420px; font-size: 38px; letter-spacing: -1.3px; margin-bottom: 20px; }
+  .public-club .public-hero > p { max-width: 360px; }
   .public-club .hero-actions { gap: 12px; }
+}
+@media (max-width: 420px) {
+  .public-club .hero-actions { flex-direction: column; }
+  .public-club .hero-actions a { width: 100%; max-width: 280px; min-height: 48px; justify-content: center; }
+}
+
+/* Feed previews share one spacing rhythm; full attachments belong in the post. */
+:is(.member-shell, .public-discussions) .thread-post.is-feed { padding-block: 24px; }
+:is(.member-shell, .public-discussions) .thread-post.is-feed .thread-bottom { margin-top: 16px; }
+.attachment-summary { display: flex; align-items: center; gap: 12px; width: 100%; max-width: 640px; min-height: 68px; margin: 16px 0 0; padding: 12px 16px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); color: var(--foreground); text-align: left; font: inherit; }
+button.attachment-summary { cursor: pointer; }
+button.attachment-summary:hover { border-color: var(--muted-foreground); }
+button.attachment-summary:focus-visible { outline: 2px solid var(--ring); outline-offset: 3px; }
+.attachment-summary > img { flex: 0 0 28px; border-radius: 50%; object-fit: contain; }
+.attachment-summary-name { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 8px; min-width: 0; flex: 1; font-size: 14px; }
+.attachment-summary-name strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; font-weight: 600; }
+.attachment-summary-name > span { color: var(--muted-foreground); font-size: 12px; }
+.attachment-summary-value { flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; font-size: 14px; }
+.attachment-summary-value strong { font-weight: 600; font-variant-numeric: tabular-nums; }
+.attachment-summary-value small { font-size: 11px; color: var(--muted-foreground); }
+.trade-recovery-notice { position: fixed; bottom: 88px; left: 50%; transform: translateX(-50%); z-index: 45; display: flex; align-items: center; gap: 16px; max-width: calc(100% - 32px); padding: 8px 16px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); color: var(--foreground); box-shadow: 0 4px 20px #0002; font-size: 13px; }
+.trade-recovery-notice button { min-height: 44px; white-space: nowrap; text-decoration: underline; }
+@media (max-width: 420px) {
+  .attachment-summary { padding: 12px; gap: 8px; }
+  .attachment-summary-name { flex-direction: column; align-items: flex-start; }
+}
+
+/* One feed, two compact filter rows, shared by public and member views. */
+.community-feed-controls { display: grid; gap: 12px; margin: 0 0 24px; }
+.community-feed-navigation { display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--border); }
+.community-feed-tabs { display: flex; gap: 24px; }
+.community-feed-tabs button { background: none; border: 0; border-bottom: 2px solid transparent; padding: 14px 0; color: var(--muted-foreground); font: inherit; cursor: pointer; }
+.community-feed-tabs button[aria-pressed='true'] { color: var(--foreground); border-bottom-color: var(--primary); font-weight: 600; }
+.community-topic-filter { display: flex; align-items: center; min-width: 0; border: 1px solid transparent; border-radius: 999px; }
+.community-topic-filter[data-active="true"] { background: var(--muted); border-color: var(--border); }
+.community-topic-filter button { display: grid; place-items: center; width: 44px; height: 44px; flex-shrink: 0; border: 0; background: transparent; color: var(--muted-foreground); cursor: pointer; border-radius: 50%; }
+.community-topic-filter button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.community-topic-filter select { max-width: 190px; min-height: 44px; border: 0; background: transparent; color: var(--foreground); font: inherit; padding: 8px; cursor: pointer; }
+.community-post-search { display: flex; align-items: center; gap: 10px; border: 1px solid var(--border); border-radius: 10px; padding: 0 12px; color: var(--muted-foreground); background: var(--card); }
+.community-post-search input { min-width: 0; width: 100%; min-height: 44px; border: 0; outline: 0; background: transparent; color: var(--foreground); font: inherit; padding: 10px 0; }
+.community-post-search input::-webkit-search-cancel-button { display: none; }
+.community-post-search:focus-within { outline: 2px solid var(--primary); outline-offset: 2px; }
+.community-post-search button { display: grid; place-items: center; width: 32px; height: 36px; background: none; border: 0; color: inherit; cursor: pointer; }
+@media (max-width: 600px) {
+  .community-feed-navigation { gap: 10px; }
+  .community-feed-tabs { gap: 18px; }
+  .community-topic-filter { min-width: 0; }
+  .community-topic-filter select { max-width: 128px; font-size: 13px; }
+  .community-feed-tabs button { font-size: 14px; }
 }

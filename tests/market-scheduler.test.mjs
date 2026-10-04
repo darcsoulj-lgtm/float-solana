@@ -52,7 +52,7 @@ void test('the public overview reads all saved batches without waiting on any pr
     assert.equal(saved.prices.stale,true);
     assert.equal(calls,0);
     assert.equal(stats().writes,0);
-    assert.equal(stats().reads-before.reads,2); // bounded bulk reads; D1 bind limit remains safe
+    assert.equal(stats().reads-before.reads,3); // one extra bounded chunk for per-token official history; no provider calls
   } finally {globalThis.fetch=previousFetch;raw.close();}
 });
 void test('provider requests are serialized and queued requests stop at the first 429', async () => {

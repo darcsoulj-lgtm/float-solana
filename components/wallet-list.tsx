@@ -1,11 +1,11 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { ArrowUpRight, ChevronRight, LoaderCircle } from 'lucide-react';
 import { Button } from './ui/button';
 import { walletAvailability, subscribeWallets } from '@/lib/wallet-provider';
 import { api } from '@/lib/client';
-import { readWalletHandoff, walletHandoffId, WALLET_HANDOFF_KEY, type WalletHandoff } from '@/lib/wallet-handoff';
+import { activeWalletReturnContext, walletHandoffId, WALLET_HANDOFF_KEY } from '@/lib/wallet-handoff';
 import {
   isMobileBrowser,
   walletBrowserLink,
@@ -41,9 +41,9 @@ export function WalletList({
   const [help, setHelp] = useState('');
   const [mobile, setMobile] = useState(false);
   const [launchIntent, setLaunchIntent] = useState<string | null>(null);
-  const [installedApp, setInstalledApp] = useState(false);
-  const [needsHandoff, setNeedsHandoff] = useState(false);
-  const [handoff, setHandoff] = useState<WalletHandoff | null>(null);
+  const [launching, setLaunching] = useState<string | null>(null);
+  const launchLock = useRef(false);
+  const mounted = useRef(true);
   const [handoffError, setHandoffError] = useState('');
   useEffect(() => {
     const update = () => {
@@ -68,37 +68,53 @@ export function WalletList({
     };
   }, []);
   useEffect(() => {
-    let active = true;
-    const timeout = setTimeout(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
+  async function chooseWallet(id: string) {
+    if (disabled || launchLock.current) return;
+    launchLock.current = true;
+    setHandoffError('');
+    try {
+      // Read the current environment at the click. A Home Screen app may have
+      // suspended this same picker while a different wallet finished signing.
       const standalone = window.matchMedia('(display-mode: standalone)').matches ||
         (navigator as Navigator & { standalone?: boolean }).standalone === true;
-      setInstalledApp(standalone);
-      // Any mobile browser has a separate cookie jar from the wallet browser.
-      // Receiver pages reuse their incoming handoff instead of starting another.
-      const needsTransfer = standalone || (isMobileBrowser(navigator.userAgent, navigator.platform, navigator.maxTouchPoints) &&
-        !walletLaunchIntent(window.location.href) && !walletHandoffId(window.location.href));
-      setNeedsHandoff(needsTransfer);
-      if (!needsTransfer) return;
-      const existing = readWalletHandoff(localStorage);
-      if (existing) {
-        setHandoff(existing);
-        return;
+      const mobileNow = isMobileBrowser(navigator.userAgent, navigator.platform, navigator.maxTouchPoints);
+      const intent = walletLaunchIntent(window.location.href);
+      if (mobileNow && (standalone || intent !== id)) {
+        setLaunching(id);
+        const needsTransfer = standalone || (!intent && !walletHandoffId(window.location.href));
+        let handoffId: string | undefined;
+        if (needsTransfer) {
+          // Every launch gets a new one-use ID and secret. Never reuse a flow
+          // cached by a mounted picker, local storage, or a previous wallet.
+          const secret = Array.from(crypto.getRandomValues(new Uint8Array(32)), byte =>
+            byte.toString(16).padStart(2, '0')).join('');
+          const flow = await api<{ id: string; expiresAt: number }>('community/handoff/start', { secret });
+          if (!mounted.current) return;
+          localStorage.setItem(WALLET_HANDOFF_KEY, JSON.stringify({ ...flow, secret }));
+          handoffId = flow.id;
+        } else {
+          handoffId = activeWalletReturnContext(sessionStorage, window.location.href)?.id || undefined;
+        }
+        const walletUrl = walletBrowserLink(id, window.location.href, handoffId);
+        if (walletUrl) {
+          window.location.assign(walletUrl);
+          return;
+        }
       }
-      const secret = Array.from(crypto.getRandomValues(new Uint8Array(32)), (byte) =>
-        byte.toString(16).padStart(2, '0')).join('');
-      void api<{ id: string; expiresAt: number }>('community/handoff/start', { secret })
-        .then(({ id, expiresAt }) => {
-          if (!active) return;
-          const flow = { id, secret, expiresAt };
-          localStorage.setItem(WALLET_HANDOFF_KEY, JSON.stringify(flow));
-          setHandoff(flow);
-        })
-        .catch(() => {
-          if (active) setHandoffError('Could not prepare wallet connection. Close and reopen this panel.');
-        });
-    }, 0);
-    return () => { active = false; clearTimeout(timeout); };
-  }, []);
+      const latest = walletAvailability().find(w => w.id === id);
+      if (latest?.state !== 'detected') { setHelp(id); return; }
+      setHelp('');
+      onConnect(id);
+    } catch {
+      if (mounted.current) setHandoffError('Could not open your wallet. Please try again.');
+    } finally {
+      launchLock.current = false;
+      if (mounted.current) setLaunching(null);
+    }
+  }
   return (
     <div className="wallet-list" aria-label="Choose a Solana wallet">
       {(['phantom', 'backpack', 'solflare'] as const).map((id) => {
@@ -108,40 +124,14 @@ export function WalletList({
             key={id}
             variant="ghost"
             className="wallet-option"
-            disabled={disabled || (needsHandoff && !handoff)}
-            onClick={() => {
-              const standalone = window.matchMedia('(display-mode: standalone)').matches ||
-                (navigator as Navigator & { standalone?: boolean }).standalone === true;
-              if (needsHandoff && (!handoff || handoff.expiresAt <= Date.now())) {
-                setHandoffError('Wallet connection expired. Close and reopen this panel.');
-                return;
-              }
-              const latest = walletAvailability().find((w) => w.id === id);
-              // Mobile wallet browsers can expose another wallet's provider.
-              // First move through the selected wallet's own deep link, then
-              // require its named provider before requesting a signature.
-              if (mobile && (standalone || launchIntent !== id)) {
-                const walletUrl = walletBrowserLink(id, window.location.href, needsHandoff ? handoff?.id : walletHandoffId(window.location.href) || undefined);
-                if (walletUrl) {
-                  window.location.assign(walletUrl);
-                  return;
-                }
-              }
-              if (latest?.state !== 'detected') {
-                setHelp(id);
-                return;
-              }
-              setHelp('');
-              onConnect(id);
-            }}
+            disabled={disabled || launching !== null}
+            onClick={() => chooseWallet(id)}
           >
             <Image src={icons[id]} alt="" width={44} height={44} unoptimized />
             <span className="wallet-option-name">{labels[id]}</span>
             <span className="wallet-detected">
-              {disabled && selected === id ? (
+              {(disabled && selected === id) || launching === id ? (
                 <LoaderCircle size={18} className="animate-spin" />
-              ) : needsHandoff && !handoff ? (
-                'Preparing…'
               ) : mobile && launchIntent !== id ? (
                 'Open app'
               ) : state === 'detected' ? (
@@ -159,7 +149,6 @@ export function WalletList({
         );
       })}
       {handoffError && <p role="alert" className="error">{handoffError}</p>}
-      {needsHandoff && handoff && <p className="wallet-handoff-note">{installedApp ? "After signing, reopen Float from your Home Screen." : "After signing, return to this page to finish connecting."}</p>}
       {help && (
         <div className="wallet-browser-help" role="alert">
           <strong>

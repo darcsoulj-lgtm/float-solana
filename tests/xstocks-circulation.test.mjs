@@ -226,9 +226,11 @@ void test('Other issuer estimates remain available with minted labels and never 
       .value,
     mixed.circulation.data.AAOIx.valueUsd,
   );
-  // A feed error is not zero issuance, and stale snapshots cannot resurrect the estimate.
+  // A feed error keeps a dated Backpack display estimate, never a current valuation.
   mixed.supplies.stale = true;
-  assert.equal(api.issuerValuation(mixed, now, 'backpack').total, null);
+  assert.equal(api.issuerValuation(mixed, now, 'backpack').total, 84000);
+  assert.equal(api.issuerValuation(mixed, now, 'backpack').delayed, true);
+  assert.equal(api.tokenObservation(mixed, examples[0][1], now).issuedValue, null);
 });
 
 void test('Legacy minted observations remain usable except Ondo which requires a paired valuation', () => {
@@ -329,10 +331,12 @@ void test('Tracked estimate reconciles all five issuer cards without changing ci
   mixed.supplies.stale = true;
   assert.equal(
     api.trackedValuation(mixed, now).total,
-    84000,
-    'Paired Ondo value is independent of the RPC supply cache',
+    168000,
+    'Paired Ondo value and the dated Backpack display estimate survive an RPC refresh failure',
   );
   mixed.valuations.stale = true;
-  assert.equal(api.trackedValuation(mixed, now).total, null);
-  assert.equal(api.trackedValuation(mixed, now).issuerCount, 0);
+  assert.equal(api.trackedValuation(mixed, now).total, 84000);
+  assert.equal(api.trackedValuation(mixed, now).delayed, true);
+  assert.equal(api.trackedValuation(mixed, now + 25 * 3600000).total, null);
+  assert.equal(api.trackedValuation(mixed, now + 25 * 3600000).issuerCount, 0);
 });

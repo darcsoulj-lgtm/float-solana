@@ -1,5 +1,6 @@
 import { TOKENS, type StockToken } from './tokens';
 import { detectHoldings } from './solana';
+import { communityTokens } from './community-eligibility';
 import { AppError } from './validation';
 
 // Address comes ONLY from a session created after signature verification.
@@ -34,7 +35,7 @@ export async function refreshHoldings(
     rpcUrl,
     fetch,
     true,
-    tokens,
+    communityTokens(tokens),
   );
   const previous = (
     await db
@@ -123,7 +124,7 @@ export async function refreshHoldings(
     return { needsVerification: false, checked: false };
   if (!holdings.length)
     throw new AppError(
-      'No supported tokenized stocks remain in this wallet. Verify a wallet with a supported holding to return.',
+      'No Backpack tokenized stocks remain in this wallet. Reading stays open; verify a Backpack holding to participate.',
       401,
     );
   return { needsVerification: false, checked: true };

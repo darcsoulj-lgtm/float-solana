@@ -5,6 +5,9 @@ import { AppError } from './validation';
 export const runtime = () =>
   env as unknown as {
     DB: D1Database;
+    SOURCE_FINGERPRINT?: string;
+    TRADING_ENABLED?: string;
+    TRADING_RPC_URL?: string;
     MARKET_READ_LIMITER?: { limit(input: {key: string}): Promise<{success: boolean}> };
     AI?: Ai;
     MARKET_SCHEDULED?: string;
@@ -14,6 +17,8 @@ export const runtime = () =>
     ADMIN_WALLETS?: string;
     BENZINGA_API_KEY?: string;
     CMC_API_KEY?: string;
+    BIRDEYE_VOLUME_ENABLED?: string;
+    BIRDEYE_COMPARISON_ENABLED?: string;
     COINGECKO_PRO_API_KEY?: string;
   };
 export function db() {

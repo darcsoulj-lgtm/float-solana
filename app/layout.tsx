@@ -7,16 +7,19 @@ import './refinements.css';
 import './backpack-dashboard.css';
 import './member-experience.css';
 import './install-experience.css';
+import './issuer-comparison.css';
 import { InstallProvider, InstallEntry } from '@/components/install-experience';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { AgentTools } from '@/components/agent-tools';
+import { PausedTradeRecovery } from '@/components/stock-trade';
+import { visitorAnalyticsBootstrap } from '@/lib/visitor-analytics';
 export const metadata: Metadata = {
   title: {
     default: 'Float — For Backpack tokenized stock holders',
     template: '%s | Float',
   },
   icons: {
-    icon: { url: '/favicon.svg?v=float-refined-03', type: 'image/svg+xml' },
+    icon: { url: '/favicon.svg?v=float-contrast-04', type: 'image/svg+xml' },
     apple: { url: '/brand/float-192.png', type: 'image/png' },
   },
   manifest: '/manifest.webmanifest',
@@ -54,6 +57,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: visitorAnalyticsBootstrap }} />
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var t=localStorage.getItem('hp-theme')||'system';if(!['light','dark','system'].includes(t))t='system';document.documentElement.dataset.theme=t;document.documentElement.classList.toggle('dark',t==='dark'||(t==='system'&&matchMedia('(prefers-color-scheme: dark)').matches))}catch(e){}})()`,
@@ -63,6 +67,7 @@ export default function RootLayout({
       <body>
         <InstallProvider>
         <AgentTools />
+        <PausedTradeRecovery />
         <a className="skip" href="#main">
           Skip to content
         </a>
@@ -91,6 +96,7 @@ export default function RootLayout({
             <Link href="/trust">Privacy</Link>
             <Link href="/methodology">Membership</Link>
             <Link href="/docs">Help</Link>
+            <a href="https://x.com/joinfloatxyz" target="_blank" rel="noopener noreferrer" aria-label="Float on X (opens in a new tab)">X <span aria-hidden="true">↗</span></a>
           </div>
           <p className="legal">
             Community discussions are not investment advice. Independent of

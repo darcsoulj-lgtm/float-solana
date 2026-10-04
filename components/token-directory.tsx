@@ -16,7 +16,7 @@ export function TokenDirectory({ tokens }: { tokens: readonly StockToken[] }) {
     current = Math.min(page, last);
   return (
     <>
-      <fieldset className="issuer-filters" aria-label="Issuer">
+      {new Set(tokens.map(t=>t.issuer)).size>1&&<fieldset className="issuer-filters" aria-label="Issuer">
         <button
           aria-pressed={issuer === 'all'}
           onClick={() => {
@@ -26,7 +26,7 @@ export function TokenDirectory({ tokens }: { tokens: readonly StockToken[] }) {
         >
           All issuers
         </button>
-        {ISSUERS.map((i) => (
+        {ISSUERS.filter(i=>tokens.some(t=>t.issuer===i.id)).map((i) => (
           <button
             key={i.id}
             aria-pressed={issuer === i.id}
@@ -38,7 +38,7 @@ export function TokenDirectory({ tokens }: { tokens: readonly StockToken[] }) {
             {i.name}
           </button>
         ))}
-      </fieldset>
+      </fieldset>}
       <label className="directory-search">
         Find a token
         <input

@@ -1,9 +1,11 @@
+import { birdeyeTokenVolume } from './birdeye-volume';
 import { poolMetrics, poolDisplayMetrics } from './stock-pools';
 import { marketTokens } from './market-data';
 import { freshTokenMarket } from './cmc-data';
 import type { MarketOverview, SourceResult } from './market-data';
 import { ISSUERS, TOKENS, type IssuerId } from './tokens';
 import { ONDO_VALUE_MAX_AGE_MS } from './ondo-valuation';
+import { CURRENT_PRICE_MAX_AGE_MS, SUPPLY_MAX_AGE_MS, DISPLAY_OBSERVATION_MAX_AGE_MS, VALUATION_PAIR_MAX_SKEW_MS } from './market-freshness';
 const ondoMints = new Map(
   TOKENS.filter((t) => t.issuer === 'ondo').map((t) => [t.symbol, t.mint]),
 );
@@ -12,12 +14,13 @@ function recent(
   source: SourceResult<unknown> | undefined,
   now: number,
   symbol: string,
+  maxAge = CURRENT_PRICE_MAX_AGE_MS,
 ) {
   const timestamp = source?.asOf?.[symbol] ?? source?.fetchedAt;
   return (
     !!timestamp &&
     (!!source?.asOf?.[symbol] || !source?.stale) &&
-    now - timestamp <= 300000 &&
+    now - timestamp <= maxAge &&
     timestamp <= now + 60000
   );
 }
@@ -26,7 +29,7 @@ function recent(
 export const LAST_PRICE_MAX_AGE_MS = 96 * 60 * 60 * 1000;
 // Last-good display retention is separate from current-data validity. A
 // provider outage must not blank the table after a few missed refresh cycles.
-const LAST_OBSERVATION_DISPLAY_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+const LAST_OBSERVATION_DISPLAY_MAX_AGE_MS = DISPLAY_OBSERVATION_MAX_AGE_MS;
 const lastObserved = (
   timestamp: number | null | undefined,
   now: number,
@@ -81,7 +84,8 @@ export function tokenObservation(
     (candidate) => candidate.symbol === symbol,
   );
   const backpackMarket =
-    token?.issuer === 'backpack' && recent(data?.backpack, now, symbol)
+    token?.issuer === 'backpack' && recent(data?.backpack, now, symbol) &&
+    lastObserved(data?.backpack?.data?.[symbol]?.externalObservedAt ?? data?.backpack?.asOf?.[symbol] ?? data?.backpack?.fetchedAt, now, CURRENT_PRICE_MAX_AGE_MS)
       ? data?.backpack?.data?.[symbol]
       : undefined;
   const issuerValue =
@@ -118,7 +122,7 @@ export function tokenObservation(
     ref.timestamp <= now + 60000
       ? ref
       : undefined;
-  const supply = recent(data?.supplies, now, symbol)
+  const supply = recent(data?.supplies, now, symbol, token?.issuer === 'backpack' ? SUPPLY_MAX_AGE_MS : CURRENT_PRICE_MAX_AGE_MS)
     ? data?.supplies.data?.[symbol]
     : undefined;
   const freshReference =
@@ -225,10 +229,12 @@ export function tokenObservation(
       : undefined;
   const circulatingValue = circulation?.valueUsd ?? null;
   const metrics = poolMetrics(pools);
-  // Display-only fallbacks. They never enter valuation, tier, or current-volume
+  // Display-only fallbacks. They never enter strict valuation, tier, or current-volume
   // calculations; each value keeps the timestamp of its original observation.
-  const oldBackpackTime = data?.backpack?.asOf?.[symbol] ?? data?.backpack?.fetchedAt;
-  const oldBackpack = lastObserved(oldBackpackTime, now)
+  const storedBackpack = data?.backpack?.data?.[symbol];
+  const oldBackpackTime = storedBackpack?.externalObservedAt ?? data?.backpack?.asOf?.[symbol] ?? data?.backpack?.fetchedAt;
+  const historyReference = storedBackpack?.externalBasis === 'hourly-history';
+  const oldBackpack = lastObserved(oldBackpackTime, now, historyReference ? LAST_PRICE_MAX_AGE_MS : LAST_OBSERVATION_DISPLAY_MAX_AGE_MS)
     ? data?.backpack?.data?.[symbol]
     : undefined;
   const oldCmc = data?.markets?.data?.[symbol];
@@ -238,7 +244,7 @@ export function tokenObservation(
     ? data?.pools?.data?.[symbol] ?? []
     : [];
   const oldPoolPrice = oldPools.find((pool) => pool.price != null);
-  const lastQuote = [
+  const lastQuotes = [
     token?.issuer === 'backpack' && oldBackpack?.externalPrice != null
       ? { value: oldBackpack.externalPrice, time: oldBackpackTime, source: 'Backpack · external' }
       : null,
@@ -252,15 +258,45 @@ export function tokenObservation(
     oldPoolPrice?.price != null && lastObserved(oldPoolTime, now)
       ? { value: oldPoolPrice.price, time: oldPoolTime, source: 'DEX pool' }
       : null,
-  ].find((quote) => quote && Number.isFinite(quote.value) && quote.value > 0);
+  ].filter((quote): quote is { value: number; time: number; source: string } => !!quote && !!quote.time && Number.isFinite(quote.value) && quote.value > 0);
+  const lastQuote = lastQuotes[0];
   const oldSupplyTime = data?.supplies?.asOf?.[symbol] ?? data?.supplies?.fetchedAt;
   const lastSupply = lastObserved(oldSupplyTime, now)
     ? data?.supplies?.data?.[symbol]
     : undefined;
+  // Display-only estimate from an age-bounded, compatible observed pair.
+  // Keep issuedValue strict for eligibility, research and financial calculations.
+  // A preferred historical stock reference is presentation only. It must not
+  // suppress a newer validated price/supply pair from an independent source.
+  const valuationQuote = lastQuotes.find(quote => lastObserved(quote.time, now) && !!oldSupplyTime && Math.abs(quote.time - oldSupplyTime) <= VALUATION_PAIR_MAX_SKEW_MS);
+  const savedPrice = valuationQuote?.value;
+  const savedPriceTime = valuationQuote?.time;
+  const savedComparables = [
+    valuationQuote,
+    oldReference && (oldReference.confidence ?? 0) >= 0.8
+      ? {value: oldReference.price, time: oldReference.timestamp} : null,
+    oldPoolPrice ? {value: oldPoolPrice.price, time: oldPoolPrice.observedAt ?? oldPoolTime} : null,
+  ].filter((q): q is {value:number;time:number} => !!q && typeof q.value === 'number' && Number.isFinite(q.value) && q.value > 0 && !!q.time && !!savedPriceTime && Math.abs(q.time-savedPriceTime) <= VALUATION_PAIR_MAX_SKEW_MS);
+  const savedConflict = savedComparables.length > 1 && Math.max(...savedComparables.map(q=>q.value)) / Math.min(...savedComparables.map(q=>q.value)) - 1 > .05;
+  const savedValue = token?.issuer === 'backpack' && issuedValue === null &&
+    savedPrice != null && lastObserved(savedPriceTime, now) &&
+    lastSupply?.valuationSafe === true && Number.isFinite(lastSupply.supply) && lastSupply.supply >= 0 &&
+    lastObserved(oldSupplyTime, now) && Math.abs(savedPriceTime!-oldSupplyTime!) <= VALUATION_PAIR_MAX_SKEW_MS &&
+    (!lastSupply.adjustmentAt || savedPriceTime! >= lastSupply.adjustmentAt) && !savedConflict
+      ? savedPrice * lastSupply.supply : null;
+  // Keep the dated percentage paired with the displayed Backpack price during
+  // a short refresh failure. Never substitute a different venue or renew its age.
+  const lastChange = price === null && lastQuote?.source === 'Backpack · external' &&
+    lastObserved(oldBackpackTime, now, historyReference ? LAST_PRICE_MAX_AGE_MS : 15 * 60000) &&
+    typeof oldBackpack?.externalChange24h === 'number' && Number.isFinite(oldBackpack.externalChange24h)
+      ? oldBackpack.externalChange24h : null;
+  const displayedChange = lastChange ?? change24h;
   const lastPoolMetrics = poolMetrics(oldPools);
   const displayMetrics = poolDisplayMetrics(oldPools, now, oldPoolTime);
+  const providerVolume = birdeyeTokenVolume(data, token, now);
   return {
     symbol,
+    historicalReference: price === null && historyReference && lastQuote?.source === 'Backpack · external',
     lastCirculation,
     lastCirculationTime: lastCirculation ? circulationTime : null,
     circulation,
@@ -272,10 +308,14 @@ export function tokenObservation(
     valuationSupplyTime: issuerValue ? issuerValue.supplyAt ?? valued!.observedAt : null,
     valuationUrl: valued?.source ? 'https://app.ondo.finance/' : 'https://api.llama.fi/protocol/ondo-global-markets',
     valuationSupply: issuerValue?.supply,
+    dexVolume24h: data?.tokenVolumes && token?.issuer === 'backpack' ? providerVolume?.usd24h ?? null : displayMetrics.observedVolume24h,
+    dexVolumeTime: providerVolume?.observedAt ?? null,
+    dexVolumeProvider: data?.tokenVolumes && token?.issuer === 'backpack' ? 'Birdeye' : 'Tracked pools',
     poolVolume24h: metrics.volume24h,
     observedPoolVolume24h: displayMetrics.observedVolume24h,
     observedPoolCount: displayMetrics.observedCount,
     knownPoolCount: displayMetrics.knownCount,
+    poolCoveragePartial: metrics.partial || lastPoolMetrics.partial,
     cmcDexVolume24h: cmc?.dexVolume24h ?? null,
     onchainVolume24h: recent(data?.volumes, now, symbol)
       ? (data?.volumes?.data?.[symbol]?.usd24h ?? null)
@@ -304,16 +344,18 @@ export function tokenObservation(
     priceConflict,
     priceTime:
       backpackMarket?.externalPrice != null
-        ? (data?.backpack?.fetchedAt ?? null)
+        ? (backpackMarket.externalObservedAt ?? data?.backpack?.asOf?.[symbol] ?? data?.backpack?.fetchedAt ?? null)
         : cmc?.price != null
           ? cmc.timestamp
           : selectedReference
             ? selectedReference.timestamp
             : (data?.pools?.asOf?.[symbol] ?? data?.pools?.fetchedAt),
     change24h:
-      change24h !== null && Number.isFinite(change24h) ? change24h : null,
+      displayedChange !== null && Number.isFinite(displayedChange) ? displayedChange : null,
+    changeDelayed: lastChange !== null,
+    changeTime: lastChange !== null ? oldBackpackTime : backpackMarket?.externalChange24h != null ? backpackMarket.externalObservedAt ?? data?.backpack?.asOf?.[symbol] ?? data?.backpack?.fetchedAt : null,
     changeSource:
-      backpackMarket?.externalChange24h != null
+      lastChange !== null || backpackMarket?.externalChange24h != null
         ? 'Backpack · external'
         : cmc?.price != null
           ? 'CoinMarketCap'
@@ -342,16 +384,27 @@ export function tokenObservation(
     liquidity: metrics.liquidity,
     issuedValue:
       issuedValue !== null && Number.isFinite(issuedValue) ? issuedValue : null,
+    lastIssuedValue: savedValue !== null && Number.isFinite(savedValue) ? savedValue : null,
+    lastIssuedValueTime: savedValue !== null && Number.isFinite(savedValue) ? Math.min(savedPriceTime!,oldSupplyTime!) : null,
+    lastIssuedValuePriceSource: savedValue !== null ? valuationQuote?.source ?? null : null,
+    lastIssuedValuePriceTime: savedValue !== null ? savedPriceTime ?? null : null,
+    lastIssuedValueSupplyTime: savedValue !== null ? oldSupplyTime ?? null : null,
   };
 }
 export function issuedCoverage(
   data: MarketOverview | null,
   now = Date.now(),
   issuer?: IssuerId,
+  allowLastKnown = false,
 ) {
   const rows = marketTokens(data)
     .filter((t) => !issuer || t.issuer === issuer)
-    .map((t) => tokenObservation(data, t.symbol, now));
+    .map((t) => {
+      const row = tokenObservation(data, t.symbol, now);
+      return allowLastKnown && t.issuer === 'backpack' && row.issuedValue === null && row.lastIssuedValue !== null
+        ? {...row, issuedValue:row.lastIssuedValue, priceDelayed:true, priceTime:row.lastIssuedValueTime}
+        : row;
+    });
   const valued = rows.filter((r) => r.issuedValue !== null);
   return {
     rows,
@@ -438,7 +491,7 @@ export function issuerValuation(
   const circulating = issuer === 'xstocks';
   const coverage = circulating
     ? circulatingCoverage(data, now, issuer, true)
-    : issuedCoverage(data, now, issuer);
+    : issuedCoverage(data, now, issuer, true);
   return {
     ...coverage,
     delayed: 'delayed' in coverage ? coverage.delayed : coverage.datedCount > 0,
@@ -509,15 +562,15 @@ export function tokenValuation(
           observation.circulatingValue ??
           observation.lastCirculation?.valueUsd ??
           null,
-        label: 'Circulating value',
+        label: 'Tokenized value',
         basis:
           !observation.circulation && observation.lastCirculation
             ? 'Circulating · last verified'
             : 'Circulating',
       }
     : {
-        value: observation.issuedValue,
-        label: 'Minted value',
-        basis: 'Minted',
+        value: observation.issuedValue ?? (issuer === 'backpack' ? observation.lastIssuedValue : null),
+        label: 'Tokenized value',
+        basis: issuer === 'backpack' && observation.issuedValue === null && observation.lastIssuedValue !== null ? 'Minted · last observed' : 'Minted',
       };
 }

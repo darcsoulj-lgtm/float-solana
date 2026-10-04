@@ -1,0 +1,32 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { createRequire } from 'node:module';
+import { Keypair } from '@solana/web3.js';
+import { ed25519 } from '@noble/curves/ed25519.js';
+import { tradeFixture } from './helpers/trade-db.mjs';
+import { root } from './helpers/bundle.mjs';
+const require = createRequire(import.meta.url);
+const { build } = createRequire(require.resolve('wrangler/package.json'))('esbuild');
+const { outputFiles } = await build({stdin:{contents:"export {GET,POST} from './app/api/trade/[...path]/route';export {settings} from '@/lib/server';",resolveDir:root,loader:'ts'},bundle:true,platform:'node',format:'esm',write:false,banner:{js:`import {createRequire as testRequire} from 'node:module';const require=testRequire(${JSON.stringify(root+'package.json')});`},plugins:[{name:'isolated-runtime',setup(b){
+  b.onResolve({filter:/^@\/lib\/server$/},()=>({path:'runtime',namespace:'fixture'}));
+  b.onLoad({filter:/.*/,namespace:'fixture'},()=>({contents:'export const settings={};export const runtime=()=>settings;export const rateLimit=async()=>{};',loader:'ts'}));
+}}]});
+const {GET,POST,settings}=await import('data:text/javascript;base64,'+Buffer.from(outputFiles[0].text).toString('base64'));
+void test('paused trading preserves real wallet authentication, private recovery and revocation but blocks new trades', async t=>{
+  const f=tradeFixture();t.after(()=>f.sql.close());Object.assign(settings,{DB:f.db,TRADING_ENABLED:'false'});
+  const origin='https://joinfloat.xyz',pair=Keypair.generate();
+  const post=(action,body={},cookie='',requestOrigin=origin)=>POST(new Request(origin+'/api/trade/'+action,{method:'POST',headers:{'Content-Type':'application/json',Origin:requestOrigin,Cookie:cookie},body:JSON.stringify(body)}));
+  assert.equal((await (await GET(new Request(origin+'/api/trade/config'))).json()).enabled,false);
+  for(const action of ['quote','prepare','execute'])assert.equal((await post(action)).status,503);
+  assert.equal((await post('status')).status,401);
+  assert.equal((await post('challenge',{wallet:pair.publicKey.toBase58()},'','https://evil.example')).status,403);
+  const challenge=await post('challenge',{wallet:pair.publicKey.toBase58()});assert.equal(challenge.status,200);const c=await challenge.json();
+  const signature=Array.from(ed25519.sign(new TextEncoder().encode(c.message),pair.secretKey.slice(0,32)));
+  const verified=await post('verify',{id:c.id,signature});assert.equal(verified.status,200);const cookie=verified.headers.get('set-cookie').split(';')[0];
+  assert.match(verified.headers.get('set-cookie'),/HttpOnly.*SameSite=Strict.*Secure/);
+  assert.equal((await post('session',{},cookie)).status,200);
+  const status=await post('status',{},cookie);assert.equal(status.status,200);assert.match(status.headers.get('cache-control'),/no-store, private/);assert.equal(await status.json(),null);
+  assert.equal((await post('verify',{id:c.id,signature})).status,422);
+  assert.equal((await post('disconnect',{},cookie)).status,200);
+  assert.equal((await post('session',{},cookie)).status,401);
+});

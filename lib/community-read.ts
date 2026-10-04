@@ -3,6 +3,7 @@ import { AppError } from './validation';
 import {
   communityTopics,
   COMMUNITY_CHANNELS,
+  normalizeCommunityTopic,
   type CommunityThread,
   type CommunityReply,
 } from './community-types';
@@ -17,9 +18,10 @@ export async function readCommunityThreads(
   viewerId: string | null,
   tokens: readonly StockToken[],
 ) {
-  const topic = url.searchParams.get('topic') || 'all';
-  const feed = url.searchParams.get('feed') || 'all';
-  if (!['all', 'personal', 'saved', 'mine'].includes(feed))
+  const topic = normalizeCommunityTopic(url.searchParams.get('topic') || 'all');
+  const requestedFeed = url.searchParams.get('feed') || 'all';
+  const feed = requestedFeed === 'personal' ? 'following' : requestedFeed;
+  if (!['all', 'following', 'saved', 'mine'].includes(feed))
     throw new AppError('Unknown feed.');
   if (!viewerId && feed !== 'all')
     throw new AppError('Verify your wallet to view this feed.', 401);
@@ -33,6 +35,12 @@ export async function readCommunityThreads(
       .first())
   )
     throw new AppError('Unknown topic.');
+  const search = (url.searchParams.get('q') || '').trim();
+  if (search.length > 80) throw new AppError('Search is too long.');
+  const term = '%' + search.replace(/[\\%_]/g, c => '\\' + c) + '%';
+  const matchingSymbols = tokens.filter(t => [t.symbol,t.name,t.shortName].some(value => value.toLowerCase().includes(search.toLowerCase().replace(/^\$/, '')))).map(t => t.symbol);
+  const attachment = `CASE WHEN json_valid(t.attachment_json) THEN t.attachment_json ELSE '{}' END`;
+  const followed = `SELECT symbol FROM community_follows WHERE member_id=?`;
   const [stamp, key = '~'] = (
     url.searchParams.get('cursor') || String(Date.now() + 1)
   ).split(':');
@@ -42,12 +50,14 @@ export async function readCommunityThreads(
   const rows = (
     await database
       .prepare(
-        `SELECT t.id,t.member_id,t.topic,(SELECT name FROM community_rooms WHERE id=t.topic) room_name,t.title,t.body,t.attachment_json,t.created_at,t.updated_at,t.hidden,${authorColumns},EXISTS(SELECT 1 FROM community_bookmarks b WHERE b.member_id=? AND b.target_type='thread' AND b.target_id=t.id) saved,(SELECT count(*) FROM community_replies r WHERE r.thread_id=t.id AND r.hidden=0 AND r.member_id NOT IN (SELECT blocked_id FROM community_blocks WHERE blocker_id=?)) reply_count FROM community_threads t JOIN community_members m ON m.id=t.member_id WHERE t.hidden=0 AND t.member_id NOT IN (SELECT blocked_id FROM community_blocks WHERE blocker_id=?) AND (?='all' OR t.topic=?) AND (?='' OR t.id=?) AND (?!='personal' OR t.topic='general' OR t.topic IN (SELECT symbol FROM community_holdings WHERE member_id=? UNION SELECT symbol FROM community_follows WHERE member_id=?)) AND (?!='saved' OR EXISTS(SELECT 1 FROM community_bookmarks b WHERE b.member_id=? AND b.target_type='thread' AND b.target_id=t.id)) AND (?!='mine' OR t.member_id=?) AND (t.created_at<? OR (t.created_at=? AND t.id<?)) ORDER BY t.created_at DESC,t.id DESC LIMIT 31`,
+        `SELECT t.id,t.member_id,t.topic,(SELECT name FROM community_rooms WHERE id=t.topic) room_name,t.title,t.body,t.attachment_json,t.created_at,t.updated_at,t.hidden,${authorColumns},(SELECT COUNT(*) FROM community_likes l WHERE l.thread_id=t.id) like_count,EXISTS(SELECT 1 FROM community_likes l WHERE l.thread_id=t.id AND l.member_id=?) liked,EXISTS(SELECT 1 FROM community_bookmarks b WHERE b.member_id=? AND b.target_type='thread' AND b.target_id=t.id) saved,(SELECT count(*) FROM community_replies r WHERE r.thread_id=t.id AND r.hidden=0 AND r.member_id NOT IN (SELECT blocked_id FROM community_blocks WHERE blocker_id=?)) reply_count FROM community_threads t JOIN community_members m ON m.id=t.member_id WHERE t.hidden=0 AND t.member_id NOT IN (SELECT blocked_id FROM community_blocks WHERE blocker_id=?) AND (?='all' OR t.topic=? OR (?='channel-market-talk' AND t.topic='channel-onchain-stocks')) AND (?='' OR t.id=?) AND (?!='following' OR t.topic IN (${followed}) OR json_extract(${attachment},'$.chart.symbol') IN (${followed}) OR EXISTS(SELECT 1 FROM json_each(${attachment},'$.rows') row WHERE json_extract(CASE WHEN json_valid(row.value) THEN row.value ELSE '{}' END,'$.symbol') IN (${followed}))) AND (?='' OR t.title LIKE ? ESCAPE '\\' OR t.body LIKE ? ESCAPE '\\' OR t.topic IN (SELECT value FROM json_each(?)) OR json_extract(${attachment},'$.chart.symbol') IN (SELECT value FROM json_each(?)) OR EXISTS(SELECT 1 FROM json_each(${attachment},'$.rows') row WHERE json_extract(CASE WHEN json_valid(row.value) THEN row.value ELSE '{}' END,'$.symbol') IN (SELECT value FROM json_each(?)))) AND (?!='saved' OR EXISTS(SELECT 1 FROM community_bookmarks b WHERE b.member_id=? AND b.target_type='thread' AND b.target_id=t.id)) AND (?!='mine' OR t.member_id=?) AND (t.created_at<? OR (t.created_at=? AND t.id<?)) ORDER BY t.created_at DESC,t.id DESC LIMIT 31`,
       )
       .bind(
         viewerId,
         viewerId,
         viewerId,
+        viewerId,
+        topic,
         topic,
         topic,
         threadId,
@@ -55,6 +65,13 @@ export async function readCommunityThreads(
         feed,
         viewerId,
         viewerId,
+        viewerId,
+        threadId ? '' : search,
+        term,
+        term,
+        JSON.stringify(matchingSymbols),
+        JSON.stringify(matchingSymbols),
+        JSON.stringify(matchingSymbols),
         feed,
         viewerId,
         feed,
@@ -111,10 +128,11 @@ export async function readCommunityThreads(
       const { attachment_json, ...publicRow } = row;
       return {
         ...publicRow,
+        topic: normalizeCommunityTopic(row.topic),
         attachment: parseDiscussionAttachment(attachment_json),
         room_name:
           row.room_name ||
-          COMMUNITY_CHANNELS.find((channel) => channel.id === row.topic)
+          COMMUNITY_CHANNELS.find((channel) => channel.id === normalizeCommunityTopic(row.topic))
             ?.name ||
           row.room_name,
         ...(options

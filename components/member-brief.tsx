@@ -259,10 +259,9 @@ export function MemberBrief({
           <div className="news-update-status">
             {updatesDelayed && <output>Updates delayed</output>}
             <MetricInfo label="News sources and updates">
-              Headlines via Google News and Yahoo Finance. Last 7 days; checks
-              every 15 minutes while open.
+              Google News and Yahoo Finance. Last 7 days; updated every 15 minutes while open.
               {updatesDelayed &&
-                ' Some sources could not update. Saved headlines remain available and automatic checks continue.'}
+                ' Some updates are delayed.'}
               {data?.lastReviewed
                 ? ` Last checked ${new Date(data.lastReviewed).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}.`
                 : ''}

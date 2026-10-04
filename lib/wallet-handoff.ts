@@ -4,6 +4,27 @@ export const WALLET_HANDOFF_MS = 10 * 60 * 1000;
 export const WALLET_RETURN_KEY = 'float-wallet-return';
 export type WalletReturn = { id: string | null; completed: boolean; expiresAt: number };
 
+// Keep the wallet-browser hint, but never retain a one-use transfer in the
+// address after continuing locally or signing out.
+export function walletConnectionUrl(currentUrl: string) {
+  const url = new URL(currentUrl);
+  if (/^\/wallet\/connect\/[a-f0-9-]{36}\/?$/.test(url.pathname)) url.pathname = '/';
+  url.searchParams.delete(WALLET_HANDOFF_PARAM);
+  url.searchParams.delete('join');
+  return url.pathname + url.search + url.hash;
+}
+
+export function clearWalletReturn(storage: Pick<Storage, 'removeItem'>, currentUrl: string) {
+  try { storage.removeItem(WALLET_RETURN_KEY); } catch { /* Navigation still clears the incoming ID. */ }
+  return walletConnectionUrl(currentUrl);
+}
+
+export function activeWalletReturnContext(storage: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>, url: string, now = Date.now()) {
+  const context = walletReturnContext(storage, url, now);
+  // Completion remains available for the return screen, not another challenge.
+  return context?.completed ? null : context;
+}
+
 // This is navigation state only. The claim secret stays exclusively in the
 // originating browser; a completed flag never grants a session.
 export function walletReturnContext(storage: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>, url: string, now = Date.now()): WalletReturn | null {

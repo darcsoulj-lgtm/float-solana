@@ -4,9 +4,10 @@ import { HolderTierBadge } from './holder-tier-badge';
 import { MemberProfile } from './member-profile';
 import { TranslationControl, TranslatedReply } from './translation-control';
 import { useTranslation } from '@/hooks/use-translation';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Bookmark,
+  Heart,
   Flag,
   MessageCircle,
   MoreHorizontal,
@@ -93,6 +94,27 @@ export function Thread({
   onThreadBlocked?: () => void;
   onRequireVerification?: () => void;
 }) {
+  const [like, setLike] = useState({liked:!!t.liked,count:t.like_count ?? 0});
+  const [liking, setLiking] = useState(false);
+  const likeRequest = useRef(false);
+  useEffect(() => {
+    if (!likeRequest.current) setLike({liked:!!t.liked,count:t.like_count ?? 0});
+  }, [t.id,t.liked,t.like_count]);
+  async function changeLike() {
+    if (!memberId) {onRequireVerification?.();return;}
+    if (likeRequest.current) return;
+    likeRequest.current = true;
+    setLiking(true);setError('');
+    const previous = like;
+    const liked = !previous.liked;
+    setLike({liked,count:Math.max(0,previous.count + (liked ? 1 : -1))});
+    try {
+      const result = await api<{liked:boolean;like_count:number}>('community/threads/' + t.id + '/like',{liked});
+      setLike({liked:result.liked,count:result.like_count});
+    } catch (e) {
+      setLike(previous);setError(e instanceof Error ? e.message : 'Could not update like.');
+    } finally {likeRequest.current=false;setLiking(false);}
+  }
   const translation = useTranslation('thread', t.id, { title: t.title, body: t.body });
   const displayTitle = translation.value?.title ?? t.title;
   const displayBody = translation.value?.body ?? t.body;
@@ -129,7 +151,7 @@ export function Thread({
   }
   const replies = useCallback(async () => {
     setPage(await api<ReplyPage>('community/threads/' + t.id + '/replies'));
-  }, [t.id]);
+  }, [t.id, setPage]);
   const poll = t.poll;
   const pollClosed = !!poll?.closed;
   const hasVoted = !!poll?.options.some((option) => option.selected);
@@ -178,7 +200,7 @@ export function Thread({
         {(detail || t.member_id === memberId) && (
           <DropdownMenu>
             <DropdownMenuTrigger
-              render={<Button type="button" size="icon-sm" variant="ghost" className="thread-overflow" aria-label="Discussion options" />}
+              render={<Button type="button" size="icon-sm" variant="ghost" className="thread-overflow" aria-label="Post options" />}
             >
               <MoreHorizontal aria-hidden="true" />
             </DropdownMenuTrigger>
@@ -220,7 +242,7 @@ export function Thread({
           </button>
         )}
       </h3>
-      {detail || !onOpen ? (
+      {displayBody.trim() && (detail || !onOpen ? (
         <p style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
           {displayBody}
         </p>
@@ -228,8 +250,8 @@ export function Thread({
         <button type="button" className="thread-body-preview" onClick={onOpen}>
           <span>{displayBody}</span>
         </button>
-      )}
-      {t.attachment && <DiscussionAttachment attachment={t.attachment} />}
+      ))}
+      {t.attachment && <DiscussionAttachment attachment={t.attachment} compact={!detail} onOpen={onOpen} />}
       <TranslationControl translation={translation} />
       {poll && !detail && <span className="thread-poll-preview">Member poll</span>}
       {poll && detail && (
@@ -281,6 +303,13 @@ export function Thread({
         </section>
       )}
       <div className="thread-bottom">
+        <Button type="button" className="thread-icon-action thread-like-action" variant="ghost"
+          disabled={busy || liking} aria-pressed={like.liked} aria-busy={liking}
+          aria-label={`${like.liked ? 'Unlike' : 'Like'} post. ${like.count} ${like.count === 1 ? 'like' : 'likes'}`}
+          title={like.liked ? 'Unlike post' : 'Like post'} onClick={() => void changeLike()}>
+          <Heart aria-hidden="true" fill={like.liked ? 'currentColor' : 'none'} />
+          <span>{like.count}</span>
+        </Button>
         <Button
           type="button"
           className="thread-icon-action"
@@ -303,8 +332,8 @@ export function Thread({
           variant="ghost"
           disabled={busy}
           aria-pressed={!!t.saved}
-          aria-label={t.saved ? 'Remove bookmark' : 'Save discussion'}
-          title={t.saved ? 'Remove bookmark' : 'Save discussion'}
+          aria-label={t.saved ? 'Remove bookmark' : 'Save post'}
+          title={t.saved ? 'Remove bookmark' : 'Save post'}
           onClick={() =>
             run(async () => {
               await api('community/save', {
@@ -480,7 +509,7 @@ export function Thread({
         <DialogContent>
           <DialogTitle>Block {block?.alias}?</DialogTitle>
           <DialogDescription>
-            Their discussions and replies will be hidden from you. You can unblock them later in Profile.
+            Their posts and replies will be hidden from you. You can unblock them later in Profile.
           </DialogDescription>
           <Button
             variant="destructive"

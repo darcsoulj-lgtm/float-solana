@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
 import { DatabaseSync } from 'node:sqlite';
 import { bundle } from './helpers/bundle.mjs';
-const { readCommunityThreads, readCommunityReplies, AppError, textValue } = await bundle(
-  "export * from './lib/community-read'; export { AppError, textValue } from './lib/validation';",
+const { readCommunityThreads, readCommunityReplies, AppError, textValue, setThreadLike } = await bundle(
+  "export * from './lib/community-read'; export * from './lib/community-likes'; export { AppError, textValue } from './lib/validation';",
 );
 async function fixture(run) {
   const sql = new DatabaseSync(':memory:');
@@ -21,7 +21,8 @@ async function fixture(run) {
       INSERT INTO community_blocks(blocker_id,blocked_id,created_at) VALUES('a','b',10);
       INSERT INTO community_polls(thread_id,closes_at,created_at) VALUES('visible',9999999999999,10);
       INSERT INTO community_poll_options(id,thread_id,label,position) VALUES('opt-a','visible','Yes',0),('opt-b','visible','No',1);
-      INSERT INTO community_poll_votes(thread_id,member_id,option_id,created_at) VALUES('visible','a','opt-a',10);`);
+      INSERT INTO community_poll_votes(thread_id,member_id,option_id,created_at) VALUES('visible','a','opt-a',10);
+      INSERT INTO community_likes(thread_id,member_id,created_at) VALUES('visible','a',10);`);
     const database = {
       prepare(query) {
         return {
@@ -64,6 +65,8 @@ void test('guest feed reads public metadata without bookmarks, private holdings,
     assert.equal(alice.value_tier, null);
     assert.equal(result.threads[0].value_tier, null);
     assert.equal(alice.saved, 0);
+    assert.equal(alice.like_count,1);
+    assert.equal(alice.liked,0);
     assert.equal(alice.reply_count, 1);
     assert.equal(alice.poll.results_visible, false);
     assert.equal(alice.poll.total_votes, null);
@@ -80,6 +83,8 @@ void test('guest feed reads public metadata without bookmarks, private holdings,
       ['visible'],
     );
     assert.equal(member.threads[0].saved, 1);
+    assert.equal(member.threads[0].liked,1);
+    assert.equal(member.threads[0].like_count,1);
     assert.equal(member.threads[0].reply_count, 0);
     assert.equal(member.threads[0].poll.total_votes, 1);
   }));
@@ -139,6 +144,7 @@ void test('HTTP routes permit guest reading but reject every member mutation and
       '@/lib/discussion-attachment-server': {},
       '@/lib/editorial-server': { recordOperation: async () => {} },
       '@/lib/community-read': { readCommunityThreads, readCommunityReplies },
+      '@/lib/community-likes': {setThreadLike},
       '@/lib/community-server': {
         communityMember: async (req, required = true) => {
           const id = req.headers.get('x-test-member');
@@ -147,7 +153,8 @@ void test('HTTP routes permit guest reading but reject every member mutation and
           return null;
         },
       },
-      '@/lib/registry-server': {
+      '@/lib/community-eligibility': { communityTokens: tokens => tokens.filter(t => t.issuer === 'backpack') },
+    '@/lib/registry-server': {
         verifiedRegistry: async () => ({ tokens: [] }),
       },
       '@/lib/server': { db: () => database, rateLimit: async () => {} },
@@ -217,6 +224,7 @@ void test('HTTP routes permit guest reading but reject every member mutation and
       'attachments',
       'threads/visible/replies',
       'threads/visible/remove',
+      'threads/visible/like',
       'threads/visible/edit',
       'threads/visible/poll/vote',
       'replies/reply/remove',
@@ -238,6 +246,18 @@ void test('HTTP routes permit guest reading but reject every member mutation and
       );
       assert.equal(response.status, 401, path);
     }
+    const like = (id, member, liked, origin='https://float.example') => compiled.exports.POST(new Request(`https://float.example/api/community/threads/${id}/like`, {
+      method:'POST',headers:{origin,'content-type':'application/json','x-test-member':member},body:JSON.stringify({liked,memberId:'b'}),
+    }));
+    assert.equal((await like('visible','a',false,'https://evil.example')).status,403);
+    const unliked=await like('visible','a',false);
+    assert.equal(unliked.status,200);assert.deepEqual(await unliked.json(),{like_count:0,liked:false});
+    const liked=await like('visible','a',true);
+    assert.equal(liked.status,200);assert.deepEqual(await liked.json(),{like_count:1,liked:true});
+    assert.equal((await like('visible','a',true)).status,200);
+    assert.equal(sql.prepare("SELECT member_id FROM community_likes WHERE thread_id='visible'").get().member_id,'a');
+    assert.equal((await like('hidden','a',true)).status,404);
+    assert.equal((await like('visible','a','yes')).status,400);
     const edit = (id, member, body) => compiled.exports.POST(new Request(`https://float.example/api/community/threads/${id}/edit`, {
       method: 'POST',
       headers: { origin: 'https://float.example', 'content-type': 'application/json', 'x-test-member': member },
@@ -253,3 +273,42 @@ void test('HTTP routes permit guest reading but reject every member mutation and
     assert.ok(updated.updated_at > 10);
     assert.equal(sql.prepare("SELECT COUNT(*) count FROM community_replies WHERE thread_id='visible'").get().count, 2);
   }));
+void test('company and ticker search includes attached stocks, escaped text and only public posts', () => fixture(async(database,sql)=>{
+  const {TOKENS}=await bundle("export {TOKENS} from './lib/tokens';");
+  const insert=sql.prepare("INSERT INTO community_threads(id,member_id,topic,title,body,attachment_json,hidden,created_at,updated_at) VALUES(?,'b',?,?,?,?,?,100,100)");
+  insert.run('chart','channel-technology','My thesis','Read this',JSON.stringify({kind:'chart',chart:{symbol:'MU',name:'Micron'}}),0);
+  insert.run('portfolio','channel-market-talk','Allocation','',JSON.stringify({kind:'portfolio',rows:[{symbol:'MU',name:'Micron',percent:100}]}),0);
+  insert.run('ticker','MU','Stock thesis','',null,0);
+  insert.run('hidden-stock','MU','Secret','',null,1);
+  insert.run('literal','channel-market-talk','100% certain','',null,0);
+  insert.run('bad-json','channel-market-talk','Unrelated','', 'not-json',0);
+  for(const search of ['Micron','MU','$MU']) {
+    const results=await readCommunityThreads(database,url('?q='+encodeURIComponent(search)),null,TOKENS);
+    assert.deepEqual(results.threads.map(t=>t.id).sort(),['chart','portfolio','ticker']);
+  }
+  assert.deepEqual((await readCommunityThreads(database,url('?q=%25'),null,TOKENS)).threads.map(t=>t.id),['literal']);
+  assert.equal((await readCommunityThreads(database,url('?q='+encodeURIComponent("' OR 1=1 --")),null,TOKENS)).threads.length,0);
+  await assert.rejects(readCommunityThreads(database,url('?q='+'a'.repeat(81)),null,TOKENS),e=>e.status===400);
+  // Opening a post must not be blocked by the previous search phrase.
+  assert.equal((await readCommunityThreads(database,url('?thread=chart&q=unrelated'),null,TOKENS)).threads[0].id,'chart');
+}));
+void test('Following is isolated to followed stocks and includes chart and portfolio attachments',()=>fixture(async(database,sql)=>{
+  sql.exec("INSERT INTO community_follows(member_id,symbol) VALUES('a','MU'); DELETE FROM community_blocks;");
+  const insert=sql.prepare("INSERT INTO community_threads(id,member_id,topic,title,body,attachment_json,created_at,updated_at) VALUES(?,'b',?,'Idea','',?,100,100)");
+  insert.run('company','MU',null);
+  insert.run('attached','channel-technology',JSON.stringify({chart:{symbol:'MU'}}));
+  insert.run('allocation','channel-market-talk',JSON.stringify({rows:[{symbol:'MU'}]}));
+  for(const feed of ['following','personal']) {
+    assert.deepEqual((await readCommunityThreads(database,url('?feed='+feed),'a',[])).threads.map(t=>t.id).sort(),['allocation','attached','company']);
+    assert.equal((await readCommunityThreads(database,url('?feed='+feed),'b',[])).threads.length,0);
+    await assert.rejects(readCommunityThreads(database,url('?feed='+feed),null,[]),e=>e.status===401);
+  }
+}));
+void test('retired Onchain Stocks posts and links appear under Market Talk without deleting history',()=>fixture(async(database,sql)=>{
+  sql.exec("INSERT INTO community_threads(id,member_id,topic,title,body,created_at,updated_at) VALUES('legacy','b','channel-onchain-stocks','Custody','Question',100,100)");
+  for(const topic of ['channel-onchain-stocks','channel-market-talk']) {
+    const result=await readCommunityThreads(database,url('?topic='+topic),null,[]);
+    assert.equal(result.threads[0].id,'legacy');assert.equal(result.threads[0].topic,'channel-market-talk');assert.equal(result.threads[0].room_name,'Market Talk');
+  }
+  assert.equal(sql.prepare("SELECT topic FROM community_threads WHERE id='legacy'").get().topic,'channel-onchain-stocks');
+}));

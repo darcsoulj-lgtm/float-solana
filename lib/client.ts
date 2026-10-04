@@ -25,6 +25,9 @@ export async function api<T = unknown>(
   try {
     response = await fetch('/api/' + path, {
       signal: controller.signal,
+      // Bypass responses already cached under the old four-hour browser TTL.
+      // The public endpoint still shares its short server-side cache.
+      ...(/^backpack-market(?:\?|$)/.test(path) ? { cache: 'no-store' as const } : {}),
       method: body ? 'POST' : 'GET',
       headers: body ? { 'Content-Type': 'application/json' } : {},
       body: body ? JSON.stringify(body) : undefined,

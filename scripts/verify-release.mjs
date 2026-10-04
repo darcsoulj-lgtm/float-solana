@@ -13,6 +13,7 @@ for (const [label, args] of [
   ['Lint', ['node_modules/oxlint/bin/oxlint']],
   ['Tests', ['--test', ...suites]],
   ['Production build', ['node_modules/vinext/dist/cli.js', 'build']],
+  ['Offline public shells', ['scripts/build-public-shells.mjs']],
 ]) {
   console.log('\n' + label);
   const result = spawnSync(process.execPath, args, {

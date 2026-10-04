@@ -19,12 +19,23 @@ export function communitySignInInput(
   issuedAt: number,
   expiresAt: number,
 ): CommunitySignInInput {
+  return solanaSignInInput(origin, address, challengeId, issuedAt, expiresAt,
+    'Sign in to Float for 24-hour community access. Keep this wallet address for this session and store Backpack token balances privately to show your portfolio and verify access. No transaction or transfer is authorized.');
+}
+
+export function solanaSignInInput(
+  origin: string,
+  address: string,
+  challengeId: string,
+  issuedAt: number,
+  expiresAt: number,
+  statement: string,
+): CommunitySignInInput {
   const url = new URL(origin);
   return {
     domain: url.host,
     address,
-    statement:
-      'Sign in to Float for 24-hour community access. Keep this wallet address for this session and store supported balances privately to show your portfolio and verify access. No transaction or transfer is authorized.',
+    statement,
     uri: url.origin,
     version: '1',
     chainId: 'solana:mainnet',

@@ -36,7 +36,7 @@ await page.reload();
 await page.getByRole('button',{name:'Profile',exact:true}).click();
 assert.equal(await page.getByRole('combobox',{name:'Translation language',exact:true}).inputValue(),'en');
 await page.getByRole('combobox',{name:'Translation language',exact:true}).selectOption('ko');
-await page.getByRole('button',{name:'Discussions',exact:true}).click();
+await page.getByRole('button',{name:'Community',exact:true}).click();
 await page.getByRole('button',{name:'My posts',exact:true}).click();
 fail=true;await translate.click();
 await page.getByText('번역 요청 한도에 도달했어요. 나중에 다시 시도해 주세요.').waitFor();

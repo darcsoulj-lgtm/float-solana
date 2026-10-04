@@ -1,13 +1,13 @@
 import { POOL_POLICY_VERSION } from '@/lib/stock-pools';
 import { readMarketOverview } from '@/lib/market-overview-server';
-import { readMarketBatch } from '@/lib/market-service';
+import { marketBatches, readMarketBatch } from '@/lib/market-service';
+import { tokenPoolSource } from '@/lib/pool-observations';
 import {
   backpackRegistry,
   registryTokens,
   tokenBatchKey,
 } from '@/lib/backpack-registry';
 import { communityMember } from '@/lib/community-server';
-import { CMC_REFRESH_MS, fetchTokenMarkets } from '@/lib/cmc-data';
 import { db, rateLimit, runtime } from '@/lib/server';
 import { AppError } from '@/lib/validation';
 import { TOKEN_REVIEW_DATE, MARKET_BATCH_SIZE } from '@/lib/tokens';
@@ -24,8 +24,6 @@ import {
 import { marketSnapshot } from '@/lib/market-cache';
 import { readMarketDailyActivity } from '@/lib/market-history';
 import { waitUntil } from 'cloudflare:workers';
-import { CIRCULATION_MAX_AGE_MS } from '@/lib/xstocks-circulation';
-import { circulationSnapshot } from '@/lib/circulation-cache';
 export const dynamic = 'force-dynamic';
 const json = (data: unknown, status = 200) =>
   Response.json(data, {
@@ -68,9 +66,7 @@ export async function GET(req: Request) {
         loader,
         waitUntil,
         Date.now(),
-        key.startsWith('xstocks-circulation:')
-          ? CIRCULATION_MAX_AGE_MS
-          : key.startsWith('book:') || key.startsWith('token-pairs-')
+        key.startsWith('book:') || key.startsWith('token-pairs-')
             ? ttl
             : Math.max(ttl, MARKET_MAX_AGE_MS),
         undefined,
@@ -99,6 +95,11 @@ export async function GET(req: Request) {
     if (poolSymbol) {
       const token = registryList.find((t) => t.symbol === poolSymbol);
       if (!token) throw new AppError('Unsupported stock.');
+      if (scheduled) {
+        const canonical = marketBatches(registryList, [token])[0];
+        const shared = await readMarketBatch(database, canonical, { cacheOnly: true });
+        return json({ pools: tokenPoolSource(shared.pools, poolSymbol) });
+      }
       const pools = await snapshot(
         `token-pairs-${POOL_POLICY_VERSION}:` + token.mint,
         MARKET_REFRESH_MS,
@@ -143,26 +144,13 @@ export async function GET(req: Request) {
       );
       return json({ book, reason: null });
     }
-    const [observations, markets, circulation, backpack] = await Promise.all([
+    const [observations, backpack] = await Promise.all([
       readMarketBatch(database, tokens, {
         verifiedStocks: registryList,
         rpcUrl: runtime().SOLANA_RPC_URL,
         defer: waitUntil,
         cacheOnly: scheduled,
       }),
-      batch > 0
-        ? Promise.resolve({
-            data: {},
-            fetchedAt: null,
-            stale: false,
-            error: null,
-          })
-        : snapshot('cmc-tokens-v2', CMC_REFRESH_MS, () =>
-            fetchTokenMarkets(runtime().CMC_API_KEY),
-          ),
-      batch === 0
-        ? circulationSnapshot(database, waitUntil, Date.now(), fetch, scheduled)
-        : Promise.resolve(undefined),
       batch === 0
         ? snapshot(backpackTickerKey, BACKPACK_TICKER_REFRESH_MS, () =>
             fetchBackpackMarkets(fetch, backpackTokens),
@@ -173,9 +161,8 @@ export async function GET(req: Request) {
       registry,
       catalog,
       ...observations,
-      markets,
+      markets: { data: {}, fetchedAt: null, stale: false, error: null },
       ...(backpack ? { backpack } : {}),
-      ...(circulation ? { circulation } : {}),
       batch,
       totalBatches: Math.ceil(registryList.length / MARKET_BATCH_SIZE),
     });

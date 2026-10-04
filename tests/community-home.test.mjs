@@ -116,7 +116,7 @@ void test('home loads in one database batch and isolates holdings, session and b
     );
     assert.equal(a.sources.length, 3);
     assert.equal(a.holdingsRefreshAvailable, true);
-    assert.equal(a.rooms.length, 10);
+    assert.equal(a.rooms.length, 9);
     assert.ok(a.rooms.every((room) => room.id.startsWith('channel-')));
     assert.deepEqual(a.blockedMembers, []);
     sql.exec(

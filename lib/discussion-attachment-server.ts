@@ -30,7 +30,7 @@ export async function prepareDiscussionAttachment(database:D1Database, memberId:
   } else throw new AppError('Choose a chart or portfolio snapshot.');
   const id=crypto.randomUUID(),expiresAt=Date.now()+600000;
   await database.batch([
-    database.prepare('DELETE FROM community_attachment_drafts WHERE expires_at<? OR member_id=?').bind(Date.now(),memberId),
+    database.prepare('DELETE FROM community_attachment_drafts WHERE expires_at<?').bind(Date.now()),
     database.prepare('INSERT INTO community_attachment_drafts(id,member_id,payload,expires_at) VALUES(?,?,?,?)').bind(id,memberId,JSON.stringify(attachment),expiresAt),
   ]);
   return {id,expiresAt,attachment};

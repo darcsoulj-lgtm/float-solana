@@ -12,7 +12,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const symbol = asset.toUpperCase();
   return {
     title: `${symbol} · Backpack tokenized stock`,
-    description: `Explore Backpack-issued ${symbol}, with price, pool volume, liquidity and supply.`,
+    description: `Explore Backpack-issued ${symbol}: price, 24h volume and token supply.`,
   };
 }
 

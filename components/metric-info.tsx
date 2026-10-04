@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Link from '@/components/site-link';
-import { Info } from 'lucide-react';
+import { CircleAlert, Info } from 'lucide-react';
 import {
   Popover,
   PopoverTrigger,
@@ -13,15 +13,20 @@ export function MetricInfo({
   label,
   children,
   learnMore,
+  variant = 'info',
+  id,
 }: {
   label: string;
   learnMore?: string;
+  variant?: 'info' | 'status';
+  id?: string;
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
+        id={id}
         className="holdings-info-trigger"
         aria-label={label}
         openOnHover
@@ -31,9 +36,10 @@ export function MetricInfo({
           if (event.currentTarget.matches(':focus-visible')) setOpen(true);
         }}
       >
-        <Info size={14} aria-hidden="true" />
+        {variant === 'status' ? <CircleAlert size={14} aria-hidden="true" /> : <Info size={14} aria-hidden="true" />}
       </PopoverTrigger>
       <PopoverContent
+        id={id ? id + '-details' : undefined}
         className="holdings-info-popover"
         align="end"
         sideOffset={8}
@@ -42,7 +48,7 @@ export function MetricInfo({
         aria-label={label}
       >
         <PopoverDescription>{children}</PopoverDescription>
-        {learnMore && <Link className="metric-learn-more" href={learnMore}>How this is measured →</Link>}
+        {learnMore && <Link className="metric-learn-more" href={learnMore}>Methodology →</Link>}
       </PopoverContent>
     </Popover>
   );

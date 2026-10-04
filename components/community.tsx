@@ -2,7 +2,7 @@
 import { FloatLogo } from './float-logo';
 import Link from '@/components/site-link';
 import Image from 'next/image';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import {
   ArrowUpRight,
   ShieldCheck,
@@ -22,8 +22,13 @@ import { api, ApiError } from '@/lib/client';
 import type { CommunityStatus } from '@/lib/community-types';
 import type { CommunitySignInInput } from '@/lib/community-sign-in';
 import { selectedWallet, walletLabel } from '@/lib/wallet-provider';
-import { readWalletHandoff, walletReturnContext, WALLET_RETURN_KEY, type WalletReturn as WalletReturnState, WALLET_HANDOFF_KEY } from '@/lib/wallet-handoff';
+import { activeWalletReturnContext, clearWalletReturn, readWalletHandoff, walletReturnContext, WALLET_RETURN_KEY, type WalletReturn as WalletReturnState, WALLET_HANDOFF_KEY } from '@/lib/wallet-handoff';
 import { isMobileBrowser } from '@/lib/wallet-browser-link';
+
+const unsubscribeHydration = () => {};
+const subscribeHydration = () => unsubscribeHydration;
+const clientHydrationSnapshot = () => true;
+const serverHydrationSnapshot = () => false;
 
 export function Community({ appHandoffId }: { appHandoffId?: string } = {}) {
   const [status, setStatus] = useState<CommunityStatus | null>(null);
@@ -37,6 +42,7 @@ export function Community({ appHandoffId }: { appHandoffId?: string } = {}) {
       new URLSearchParams(window.location.search).get('join') === '1'),
   );
   const publicReading = typeof window !== 'undefined' && (new URLSearchParams(window.location.search).get('view') === 'home' || new URLSearchParams(window.location.search).has('thread'));
+  const publicReadReady = useSyncExternalStore(subscribeHydration, clientHydrationSnapshot, serverHydrationSnapshot);
   const [provider, setProvider] = useState('backpack');
   const [stage, setStage] = useState('');
   const [pending, setPending] = useState<{
@@ -75,16 +81,35 @@ export function Community({ appHandoffId }: { appHandoffId?: string } = {}) {
   // Only the newest request may publish membership state.
   const statusRequest = useRef(0);
   const invalidateStatus = useCallback(() => { ++statusRequest.current; }, []);
+  const claimRequest = useRef<Promise<{ ready: boolean }> | null>(null);
+  const signingOut = useRef(false);
+  const clearConnection = useCallback(() => {
+    invalidateStatus();
+    walletUnsubscribe.current?.();
+    walletUnsubscribe.current = null;
+    returnContext.current = null;
+    try { localStorage.removeItem(WALLET_HANDOFF_KEY); } catch { /* Storage may be blocked. */ }
+    const url = clearWalletReturn(sessionStorage, window.location.href);
+    window.history.replaceState(null, '', url);
+    setHandoffDone(false);
+    setHandoffWaiting(false);
+    setReturnLinked(false);
+    setPending(null);
+    setJoinError('');
+    setStage('');
+    setJoin(false);
+  }, [invalidateStatus]);
   const refresh = useCallback(async () => {
     const request = ++statusRequest.current;
     try {
       const s = await api<CommunityStatus>('community/status');
-      if (request === statusRequest.current) { setStatus(s); setError(''); }
+      if (request === statusRequest.current) { setStatus(s); setError(''); return s; }
     } catch (e) {
       if (request === statusRequest.current) setError((e as Error).message);
       throw e;
     }
   }, []);
+  const refreshStatus = useCallback(async () => { await refresh(); }, [refresh]);
   useEffect(() => {
     const update = () => { void refresh().catch(() => {}); };
     update();
@@ -114,7 +139,7 @@ export function Community({ appHandoffId }: { appHandoffId?: string } = {}) {
     let active = true;
     let checking = false;
     const claim = async () => {
-      if (!active || checking || document.visibilityState !== 'visible') return;
+      if (!active || checking || signingOut.current || document.visibilityState !== 'visible') return;
       const flow = readWalletHandoff(localStorage);
       if (!flow) {
         setHandoffWaiting(false);
@@ -123,8 +148,9 @@ export function Community({ appHandoffId }: { appHandoffId?: string } = {}) {
       setHandoffWaiting(true);
       checking = true;
       try {
-        const result = await api<{ ready: boolean }>('community/handoff/claim', flow);
-        if (active && result.ready) {
+        claimRequest.current = api<{ ready: boolean }>('community/handoff/claim', flow);
+        const result = await claimRequest.current;
+        if (active && !signingOut.current && result.ready && readWalletHandoff(localStorage)?.id === flow.id) {
           localStorage.removeItem(WALLET_HANDOFF_KEY);
           setHandoffWaiting(false);
           setJoin(false);
@@ -133,6 +159,7 @@ export function Community({ appHandoffId }: { appHandoffId?: string } = {}) {
       } catch {
         // Keep the pending flow for the next foreground check.
       } finally {
+        claimRequest.current = null;
         checking = false;
       }
     };
@@ -149,16 +176,31 @@ export function Community({ appHandoffId }: { appHandoffId?: string } = {}) {
       window.removeEventListener('pageshow', claim);
     };
   }, [refresh]);
+  const signOutWallet = async () => {
+    signingOut.current = true;
+    try {
+      // A claim can set a cookie. Finish it before revoking the session, so a
+      // late foreground response cannot sign the previous wallet back in.
+      await claimRequest.current?.catch(() => {});
+      await api('community/logout', {});
+      clearConnection();
+      setStatus(s => s ? { ...s, member: null } : s);
+      await refresh();
+    } finally {
+      signingOut.current = false;
+    }
+  };
   useEffect(() => {
     if (!status?.member) return;
     const timer = setTimeout(
       () => {
+        clearConnection();
         setStatus((s) => (s ? { ...s, member: null } : s));
       },
       Math.max(0, status.member.verified_until - Date.now()),
     );
     return () => clearTimeout(timer);
-  }, [status?.member]);
+  }, [status?.member, clearConnection]);
   function diagnostic(
     providerName: string,
     phase: string,
@@ -171,7 +213,7 @@ export function Community({ appHandoffId }: { appHandoffId?: string } = {}) {
       phase,
       code,
       flowId,
-      clientVersion: 13,
+      clientVersion: 14,
       method: providerName === 'phantom' ? 'signIn' : 'signMessage',
     }).catch(() => {});
   }
@@ -200,7 +242,7 @@ export function Community({ appHandoffId }: { appHandoffId?: string } = {}) {
     }
   }
   async function beginVerification(providerName: string) {
-    if (inFlight.current) return;
+    if (inFlight.current || signingOut.current) return;
     inFlight.current = true;
     setProvider(providerName);
     setBusy(true);
@@ -210,9 +252,9 @@ export function Community({ appHandoffId }: { appHandoffId?: string } = {}) {
     const flowId = crypto.randomUUID();
     let phase = 'connect';
     try {
-      const context = appHandoffId
-        ? { id: appHandoffId, completed: false, expiresAt: Date.now() + 600000 }
-        : walletReturnContext(sessionStorage, window.location.href) || returnContext.current;
+      const context = activeWalletReturnContext(sessionStorage, window.location.href);
+      walletUnsubscribe.current?.();
+      walletUnsubscribe.current = null;
       const p = selectedWallet(providerName);
       if (providerName === 'phantom' && 'requireSignIn' in p) p.requireSignIn();
       setStage(`Connecting to ${walletLabel(providerName)}…`);
@@ -309,6 +351,7 @@ export function Community({ appHandoffId }: { appHandoffId?: string } = {}) {
       diagnostic(pending.provider, phase, 'ok', pending.flowId);
       walletUnsubscribe.current?.();
       walletUnsubscribe.current = pending.connection.onAccountChange(() => {
+        clearConnection();
         setStatus((s) => (s ? { ...s, member: null } : s));
         setError(
           'Your connected account changed. Verify the new account to return.',
@@ -366,9 +409,20 @@ export function Community({ appHandoffId }: { appHandoffId?: string } = {}) {
     setStage('');
     setJoin(true);
   };
-  // Unknown membership is not a signed-out session. Never show the visitor
-  // landing page while the first server check is pending or has failed.
+  // Public posts do not require a membership check. While it is unresolved,
+  // reads remain available but an interaction can only retry that check; it
+  // cannot open a wallet flow or publish with an unverified session.
   if (status === null) {
+    if (publicReadReady && publicReading && !appHandoffId) {
+      return <>
+        {error && <p className="community-read-status" role="alert">We couldn’t check membership. You can still read posts. <Button variant="ghost" onClick={() => { void refresh().catch(() => {}); }}>Retry</Button></p>}
+        <PublicDiscussions verify={() => {
+          void refresh().then(checked => { if (checked && !checked.member) openJoin(); }).catch(() => {});
+        }} />
+      </>;
+    }
+    // Unknown membership is not a signed-out session. Preserve wallet return
+    // and account entry until their first check succeeds.
     return (
       <section
         className="community-entry"
@@ -393,15 +447,12 @@ export function Community({ appHandoffId }: { appHandoffId?: string } = {}) {
   }
   if (handoffDone && status.member) {
     return <WalletReturn linked={returnLinked} onContinue={() => {
-      try { sessionStorage.removeItem(WALLET_RETURN_KEY); } catch { /* Continue in this page. */ }
-      const url = new URL(window.location.href);
-      url.searchParams.delete('float_handoff');
-      url.searchParams.delete('join');
+      const url = clearWalletReturn(sessionStorage, window.location.href);
       if (appHandoffId) {
-        window.location.replace('/' + url.search + url.hash);
+        window.location.replace(url);
         return;
       }
-      window.history.replaceState(null, '', url.pathname + url.search + url.hash);
+      window.history.replaceState(null, '', url);
       returnContext.current = null;
       setHandoffDone(false);
     }} />;
@@ -413,7 +464,8 @@ export function Community({ appHandoffId }: { appHandoffId?: string } = {}) {
         <MemberDashboard
           key={status.member.id}
           status={status}
-          refreshStatus={refresh}
+          refreshStatus={refreshStatus}
+          signOutWallet={signOutWallet}
           renew={openJoin}
         />
       ) : publicReading ? (
@@ -421,19 +473,16 @@ export function Community({ appHandoffId }: { appHandoffId?: string } = {}) {
       ) : (
         <div className="club public-club">
           <section className="public-hero">
-            <div className="eyebrow">
-              <span className="small-dot" /> FOR BACKPACK TOKENIZED STOCK HOLDERS
-            </div>
-            <h1>Where tokenized stock holders talk.</h1>
+            <h1>Where holders connect.</h1>
             <p>
-              Share ideas. Ask questions. Talk with other holders. Read freely; verify a supported holding to join in.
+              Share ideas with verified Backpack tokenized stock holders.
             </p>
             <div className="hero-actions">
               <Link className="public-discussion-link" href="/?view=home">
-                Explore discussions <ArrowUpRight size={18} />
+                Explore community <ArrowUpRight size={18} />
               </Link>
               <Link className="hero-market-link" href="/markets">
-                Explore markets
+                View markets
               </Link>
             </div>
             {error && (

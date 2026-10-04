@@ -79,6 +79,8 @@ export function completeMarketActivity(
         if (
           !entry ||
           typeof entry !== 'object' ||
+          entry.unavailable === true ||
+          entry.volumeDisputed === true ||
           !poolAddress.test(entry.address) ||
           typeof entry.dex !== 'string' ||
           !measurement(entry.volume24h) ||

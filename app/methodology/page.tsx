@@ -1,17 +1,15 @@
 import Link from '@/components/site-link';
-import { TOKENS } from '@/lib/tokens';
 export default function Page() {
   return (
     <div className="page info-page">
       <h1>Membership</h1>
       <section className="panel">
         <h2>Eligibility</h2>
-        <p>Float focuses on Backpack tokenized stocks. Existing supported holdings from other issuers still qualify for community access.</p>
+        <p>Only verified holders of Backpack-issued stock or ETF tokens can participate.</p>
         <p>
-          Anyone can read discussions. To post, reply or vote, hold any of the
-          {TOKENS.length} supported stock or ETF tokens in a Solana wallet you
+          Anyone can read discussions. To post, reply or vote, hold a supported Backpack stock or ETF token in a Solana wallet you
           control and verify your wallet. One holding qualifies for every channel.
-          Exchange balances and perpetual positions do not qualify.{' '}
+          Tokens from other issuers, exchange balances and perpetual positions do not qualify.{' '}
           <Link href="/tokens">Supported tokens</Link>.
         </p>
       </section>
@@ -27,7 +25,7 @@ export default function Page() {
         <h2>Session</h2>
         <p>
           A session lasts 24 hours. Holdings are checked every minute while the
-          site is open. If a successful check finds no supported holdings,
+          site is open. Participation requires a recent successful Backpack balance check. If no qualifying holdings remain,
           posting, replying and voting end. Reading remains open to everyone.
           Checks are periodic, so changes are not instant.
         </p>
@@ -48,7 +46,7 @@ export default function Page() {
       <section className="panel">
         <h2>Holder tiers</h2>
         <p>
-          Tiers use the estimated USD value of supported tokenized stocks in
+          Tiers use the estimated USD value of Backpack tokenized stocks in
           your verified wallet: no badge under $100; Bronze $100–$999;
           Silver $1,000–$9,999; Gold
           $10,000–$99,999; Platinum $100,000–$999,999; Diamond $1 million or more.
@@ -56,7 +54,7 @@ export default function Page() {
         <p>
           Badges require reliable prices and current holdings checks. If value
           cannot be determined reliably, no value badge is shown. This does
-          not mean the wallet holds less than $100. A verified supported
+          not mean the wallet holds less than $100. A verified Backpack
           holding still lets you post, reply and vote, with or without a badge.
           Tiers do not indicate expertise or total wealth.
         </p>

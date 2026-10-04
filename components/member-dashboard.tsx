@@ -2,7 +2,9 @@
 import { DiscussionAttachmentComposer } from './discussion-attachment-composer';
 import type { PreparedAttachment } from '@/lib/discussion-attachments';
 import { InstallEntry } from './install-experience';
+import { CommunityFeedFilters } from './community-feed-filters';
 import { useCommunityFeed } from '@/hooks/use-community-feed';
+import { communityTokens } from '@/lib/community-eligibility';
 import { registryTokens } from '@/lib/token-registry';
 import { FloatLogo } from './float-logo';
 import { TranslationSettings } from './translation-control';
@@ -16,6 +18,7 @@ import {
   useCallback,
   useEffect,
   useId,
+  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -85,21 +88,24 @@ import {
   type MemberHome,
   type CommunitySource,
   COMMUNITY_CHANNELS,
+  normalizeCommunityTopic,
 } from '@/lib/community-types';
 type View = MemberView;
 const destinations = [
   { id: 'overview', label: 'Home', icon: Home },
-  { id: 'home', label: 'Discussions', icon: MessageSquare },
+  { id: 'home', label: 'Community', icon: MessageSquare },
   { id: 'markets', label: 'Markets', icon: ChartNoAxesCombined },
   { id: 'profile', label: 'Profile', icon: UserRound },
 ] as const;
 export function MemberDashboard({
   status,
   refreshStatus,
+  signOutWallet,
   renew,
 }: {
   status: CommunityStatus;
   refreshStatus: () => Promise<void>;
+  signOutWallet: () => Promise<void>;
   renew: () => void;
 }) {
   const member = status.member!;
@@ -112,8 +118,9 @@ export function MemberDashboard({
   const [topic, setTopic] = useState(() =>
     typeof window === 'undefined'
       ? 'all'
-      : new URLSearchParams(window.location.search).get('topic') || 'all',
+      : normalizeCommunityTopic(new URLSearchParams(window.location.search).get('topic') || 'all'),
   );
+  const [postSearch, setPostSearch] = useState(() => typeof window === 'undefined' ? '' : new URLSearchParams(window.location.search).get('q') || '');
   const [coverageSymbol, setCoverageSymbol] = useState('all');
   const [threadId, setThreadId] = useState(() =>
     typeof window === 'undefined'
@@ -124,7 +131,7 @@ export function MemberDashboard({
   const scrollPositions = useRef<Record<string, number>>({});
   const viewKey =
     view === 'home'
-      ? `home:${threadId ? `thread:${threadId}` : `feed:${feed}:${topic}`}`
+      ? `home:${threadId ? `thread:${threadId}` : `feed:${feed}:${topic}:${postSearch}`}`
       : view + ':' + (view === 'markets' ? market : '');
   if (!visited.has(view)) setVisited(new Set([...visited, view]));
   useEffect(() => {
@@ -138,6 +145,7 @@ export function MemberDashboard({
     for (const [key, value] of [
       ['feed', feed],
       ['topic', topic],
+      ['q', postSearch],
       ['thread', threadId],
     ]) {
       if (view === 'home' && value) url.searchParams.set(key, value);
@@ -148,7 +156,7 @@ export function MemberDashboard({
       '',
       url.pathname + url.search + url.hash,
     );
-  }, [view, market, feed, topic, threadId]);
+  }, [view, market, feed, topic, threadId, postSearch]);
   useEffect(() => {
     const restore = () => {
       scrollPositions.current[viewKey] = window.scrollY;
@@ -157,7 +165,8 @@ export function MemberDashboard({
       setMarket(next.market);
       setFeed(next.feed);
       const params = new URLSearchParams(window.location.search);
-      setTopic(params.get('topic') || 'all');
+      setTopic(normalizeCommunityTopic(params.get('topic') || 'all'));
+      setPostSearch(params.get('q') || '');
       setThreadId(params.get('thread') || '');
     };
     window.addEventListener('popstate', restore);
@@ -173,7 +182,7 @@ export function MemberDashboard({
     return () => cancelAnimationFrame(frame);
   }, [viewKey]);
   const [data, setData] = useState<MemberHome | null>(null);
-  const tokens = registryTokens(data?.registry);
+  const tokens = useMemo(() => communityTokens(registryTokens(data?.registry)), [data?.registry]);
   const [error, setError] = useState('');
   const [homeError, setHomeError] = useState('');
   const [communityRevision, setCommunityRevision] = useState(0);
@@ -220,6 +229,7 @@ export function MemberDashboard({
   const [draftBody, setDraftBody] = useState('');
   const [draftAttachment, setDraftAttachment] = useState<PreparedAttachment|null>(null);
   const [attachmentBusy, setAttachmentBusy] = useState(false);
+  const [attachmentRequired, setAttachmentRequired] = useState(false);
   const [sharePortfolio, setSharePortfolio] = useState(false);
   const [draftPoll, setDraftPoll] = useState(false);
   const [draftPollOptions, setDraftPollOptions] = useState(['', '']);
@@ -261,7 +271,7 @@ export function MemberDashboard({
     expiresAt: 0,
   });
   const [notifyReplies, setNotifyReplies] = useState(!!member.notify_replies);
-  const query = `community/threads?topic=${encodeURIComponent(topic)}&feed=${feed}&thread=${encodeURIComponent(threadId)}`;
+  const query = `community/threads?topic=${encodeURIComponent(threadId ? 'all' : topic)}&feed=${threadId ? 'all' : feed}&q=${encodeURIComponent(postSearch)}&thread=${encodeURIComponent(threadId)}`;
   const {
     threads,
     cursor,
@@ -494,7 +504,7 @@ export function MemberDashboard({
         : COMMUNITY_CHANNELS[0].id,
     );
     setDraftBody('');
-    setDraftAttachment(null); setSharePortfolio(false); setAttachmentBusy(false);
+    setDraftAttachment(null); setSharePortfolio(false); setAttachmentBusy(false); setAttachmentRequired(false);
     setDraftPoll(false);
     setDraftPollOptions(['', '']);
     setDraftPollDuration('3d');
@@ -588,8 +598,7 @@ export function MemberDashboard({
             disabled={busy}
             onClick={() =>
               run(async () => {
-                await api('community/logout', {});
-                await refreshStatus();
+                await signOutWallet();
               })
             }
           >
@@ -629,7 +638,7 @@ export function MemberDashboard({
                       type="button"
                       className="discussion-heading-back"
                       onClick={closeDiscussion}
-                      aria-label="Back to discussions"
+                      aria-label="Back to community"
                     >
                       <ArrowLeft size={24} aria-hidden="true" />
                     </button>
@@ -637,14 +646,14 @@ export function MemberDashboard({
                   <h1>
                     {view === 'home'
                       ? threadId
-                        ? 'Discussion'
-                        : 'Discussions'
+                        ? 'Post'
+                        : 'Community'
                       : 'Profile'}
                   </h1>
                 </div>
                 {view === 'home' && !threadId && (
                   <Button onClick={() => startDiscussion()}>
-                    <Plus size={17} /> New discussion
+                    <Plus size={17} /> Create post
                   </Button>
                 )}
               </div>
@@ -902,7 +911,7 @@ export function MemberDashboard({
                 </section>
                 <div className="profile-setting">
                   <div>
-                    <h3>Replies to your discussions</h3>
+                    <h3>Replies to your posts</h3>
                     <p>
                       Show new replies in your in-app notifications. No emails
                       or wallet messages.
@@ -918,7 +927,7 @@ export function MemberDashboard({
                   <section className="profile-blocked" aria-labelledby="blocked-users-heading">
                     <div>
                       <h3 id="blocked-users-heading">Blocked users</h3>
-                      <p>Their discussions and replies are hidden from you.</p>
+                      <p>Their posts and replies are hidden from you.</p>
                     </div>
                     <div className="blocked-user-list">
                       {data.blockedMembers.map((blocked) => (
@@ -958,50 +967,10 @@ export function MemberDashboard({
               </form>
             ) : (
               <>
-                {!threadId && <div
-                  className="channel-filters"
-                  aria-label="Discussion channels"
-                >
-                  <div className="channel-filter-scroll">
-                    <button
-                      aria-pressed={topic === 'all' && feed === 'all'}
-                      onClick={() => {
-                        setTopic('all');
-                        setFeed('all');
-                        setThreadId('');
-                      }}
-                    >
-                      All
-                    </button>
-                    {COMMUNITY_CHANNELS.map((channel) => (
-                      <button
-                        key={channel.id}
-                        aria-pressed={topic === channel.id && feed === 'all'}
-                        onClick={() => {
-                          setTopic(channel.id);
-                          setFeed('all');
-                          setThreadId('');
-                        }}
-                      >
-                        {channel.name}
-                      </button>
-                    ))}
-                    <button aria-pressed={feed === 'mine'} onClick={() => {
-                      setFeed('mine'); setTopic('all'); setThreadId('');
-                    }}>My posts</button>
-                    <button
-                      className="channel-saved"
-                      aria-pressed={feed === 'saved'}
-                      onClick={() => {
-                        setFeed('saved');
-                        setTopic('all');
-                        setThreadId('');
-                      }}
-                    >
-                      <Bookmark size={15} aria-hidden="true" /> Saved
-                    </button>
-                  </div>
-                </div>}
+                {!threadId && <CommunityFeedFilters feed={feed} topic={topic} search={postSearch}
+                  onFeed={value => {setFeed(value);setThreadId('');}}
+                  onTopic={value => {setTopic(value);setThreadId('');}}
+                  onSearch={setPostSearch} />}
                 {feedError && (
                   <p className="inline-status" role="alert">
                     {feedError}{' '}
@@ -1038,23 +1007,21 @@ export function MemberDashboard({
                     <MessageSquare size={26} />
                     <h3>
                       {threadId
-                        ? 'This discussion is unavailable.'
+                        ? 'This post is unavailable.'
                         : feed === 'mine'
                           ? 'No posts yet.'
                           : feed === 'saved'
-                          ? 'No saved discussions.'
+                          ? 'No saved posts.'
                           : topic === 'all'
-                            ? 'No discussions yet.'
-                            : `No ${roomName(topic)} discussions yet.`}
+                            ? (postSearch ? 'No matching posts.' : 'No posts yet.')
+                            : `No ${roomName(topic)} posts yet.`}
                     </h3>
                     <p>
                       {feed === 'saved'
-                        ? 'Saved discussions appear here.'
+                        ? 'Saved posts appear here.'
                         : threadId
                           ? 'It may have been removed by its author or a moderator.'
-                          : feed === 'personal'
-                            ? 'No matching discussions. Try All or start one.'
-                            : 'Start a discussion.'}
+                            : 'Create post.'}
                     </p>
                     {view === 'home' && !threadId && (
                       <Button
@@ -1064,8 +1031,8 @@ export function MemberDashboard({
                         }
                       >
                         {feed !== 'all'
-                          ? 'Browse discussions'
-                          : 'Start a discussion'}{' '}
+                          ? 'Browse community'
+                          : 'Create post'}{' '}
                         <ArrowUpRight size={15} />
                       </Button>
                     )}
@@ -1126,7 +1093,7 @@ export function MemberDashboard({
                       <p className="source-empty">
                         {feed === 'saved'
                           ? 'Sources you save will appear here.'
-                          : 'No curated source links for this selection yet. Explore all discussions to browse the library.'}
+                          : 'No curated source links for this selection yet. Explore all posts to browse the library.'}
                       </p>
                     )}
                   </section>
@@ -1219,8 +1186,7 @@ export function MemberDashboard({
             disabled={busy}
             onClick={() =>
               run(async () => {
-                await api('community/logout', {});
-                await refreshStatus();
+                await signOutWallet();
               })
             }
           >
@@ -1235,7 +1201,7 @@ export function MemberDashboard({
         }}
       >
         <DialogContent className="compose-dialog">
-          <DialogTitle>New discussion</DialogTitle>
+          <DialogTitle>Create post</DialogTitle>
           <p className="public-reading-note">Posts and replies are public. Holdings stay private unless you choose to share a snapshot.</p>
           <DialogDescription>
             Anyone can read. Verified holders can post.
@@ -1249,6 +1215,10 @@ export function MemberDashboard({
               if (posting.current || attachmentBusy) return;
               setDraftAttempted(true);
               setDraftError('');
+              if (attachmentRequired && (!draftAttachment || draftAttachment.expiresAt <= Date.now())) {
+                setDraftError('Your attachment is not ready. Try again or remove it before posting.');
+                return;
+              }
               const payload = {
                 title: draftTitle,
                 body: draftBody,
@@ -1280,19 +1250,15 @@ export function MemberDashboard({
               posting.current = true;
               setDraftPosting(true);
               try {
-                await api<{ id: string }>(
+                const published = await api<{ id: string }>(
                   'community/threads',
                   payload,
                 );
                 setCommunityRevision((n) => n + 1);
-                setFeed('all');
-                setTopic(draftTopic);
-                setThreadId('');
-                setView('home');
-                scrollPositions.current[`home:feed:all:${draftTopic}`] = 0;
+                openDiscussion(published.id);
                 window.scrollTo({ top: 0, behavior: 'instant' });
                 await refreshFeed().catch(() => { /* The feed exposes its own retry. Posting already succeeded. */ });
-                setNotice('Discussion posted.');
+                setNotice('Post published.');
                 setCompose(false);
               } catch (e) {
                 setDraftError(
@@ -1306,14 +1272,14 @@ export function MemberDashboard({
               }
             }}
           >
-            <fieldset className="compose-kind" aria-label="Discussion type">
+            <fieldset className="compose-kind" aria-label="Post type">
               <button
                 type="button"
                 aria-pressed={!draftPoll}
                 disabled={draftPosting}
                 onClick={() => setDraftPoll(false)}
               >
-                Discussion
+                Post
               </button>
               <button
                 type="button"
@@ -1325,12 +1291,12 @@ export function MemberDashboard({
               </button>
             </fieldset>
             <div className="discussion-field">
-              <label htmlFor={`${draftId}-topic`}>Channel</label>
+              <label htmlFor={`${draftId}-topic`}>Topic <span className="muted">(optional)</span></label>
               <SearchPicker
                 inputId={`${draftId}-topic`}
-                label="Discussion channel"
-                placeholder="Search channels…"
-                emptyMessage="No matching channel."
+                label="Post topic"
+                placeholder="Choose a topic…"
+                emptyMessage="No matching topic."
                 disabled={draftPosting}
                 value={draftTopic}
                 onChange={setDraftTopic}
@@ -1351,7 +1317,7 @@ export function MemberDashboard({
               </label>
               <input
                 id={`${draftId}-title`}
-                aria-label={draftPoll ? 'Poll question' : 'Discussion title'}
+                aria-label={draftPoll ? 'Poll question' : 'Post title'}
                 aria-invalid={!!draftErrors.title}
                 aria-describedby={`${draftId}-title-help`}
                 value={draftTitle}
@@ -1361,7 +1327,7 @@ export function MemberDashboard({
                 placeholder={
                   draftPoll
                     ? 'Ask verified members a question…'
-                    : 'Discussion title'
+                    : 'Post title'
                 }
                 maxLength={POST_LIMITS.title.max}
                 required
@@ -1479,20 +1445,20 @@ export function MemberDashboard({
                 </select>
               </div>
             )}
-            {compose && <DiscussionAttachmentComposer tokens={tokens} value={draftAttachment} onChange={setDraftAttachment} disabled={draftPosting} onBusy={setAttachmentBusy} consent={sharePortfolio} onConsent={setSharePortfolio} />}
+            {compose && <DiscussionAttachmentComposer tokens={tokens} value={draftAttachment} onChange={setDraftAttachment} disabled={draftPosting} onBusy={setAttachmentBusy} onRequired={setAttachmentRequired} consent={sharePortfolio} onConsent={setSharePortfolio} />}
             {draftError && (
               <p className="error" role="alert">
                 {draftError}
               </p>
             )}
-            <Button type="submit" disabled={draftPosting || attachmentBusy || (draftAttachment?.attachment.kind === 'portfolio' && !sharePortfolio)}>
+            <Button type="submit" disabled={draftPosting || attachmentBusy || (attachmentRequired && !draftAttachment) || (draftAttachment?.attachment.kind === 'portfolio' && !sharePortfolio)}>
               {draftPosting
                 ? draftPoll
                   ? 'Creating poll…'
                   : 'Posting…'
                 : draftPoll
                   ? 'Create poll'
-                  : 'Post discussion'}{' '}
+                  : 'Publish post'}{' '}
               <ArrowUpRight size={16} />
             </Button>
           </form>
@@ -1502,7 +1468,7 @@ export function MemberDashboard({
         <DialogContent>
           <DialogTitle>Notifications</DialogTitle>
           <DialogDescription>
-            Replies to your discussions appear here.
+            Replies to your posts appear here.
           </DialogDescription>
           {data?.notifications.length ? (
             <>

@@ -1,7 +1,9 @@
 import { db, digest } from './server';
 import { AppError, textValue } from './validation';
-import { type CommunityMember } from './community-types';
+import { normalizeCommunityTopic, type CommunityMember } from './community-types';
 import { TOKENS, type StockToken } from './tokens';
+import { communityTokens, hasCommunityHolding } from './community-eligibility';
+import { backpackRegistry, registryTokens } from './backpack-registry';
 import {
   communityPostErrors,
   POLL_DURATIONS,
@@ -18,9 +20,9 @@ export function communityCookie(req: Request) {
   const value = values[0].slice(10);
   return /^[a-f0-9-]{72}$/.test(value) ? value : null;
 }
-export async function communityMember(req: Request, required = true) {
+export async function communityMember(req: Request, required = true, eligibilityCheck = true) {
   const session = communityCookie(req);
-  const member = session
+  let member = session
     ? await db()
         .prepare(
           'SELECT m.id,m.alias,m.bio,m.avatar_key,m.qualifying_symbol,m.show_badge,m.show_value_badge,m.notify_replies,m.verified_until,m.suspended,m.created_at FROM community_sessions s JOIN community_members m ON m.id=s.member_id WHERE s.hash=? AND s.expires_at>? AND m.verified_until>? AND m.suspended=0',
@@ -28,9 +30,14 @@ export async function communityMember(req: Request, required = true) {
         .bind(await digest(session), Date.now(), Date.now())
         .first<CommunityMember>()
     : null;
+  if (member && eligibilityCheck) {
+    // Cache-only: admission checks never start provider work on a reader request.
+    const registry = await backpackRegistry(db(), () => {}, undefined, fetch, Date.now(), true);
+    if (!await hasCommunityHolding(db(), member.id, registryTokens(registry))) member = null;
+  }
   if (!member && required)
     throw new AppError(
-      'Verify a supported tokenized stock to enter the member community. Membership checks expire after 24 hours.',
+      'Verify a Backpack tokenized-stock holding to participate. Anyone can read.',
       401,
     );
   return member;
@@ -42,12 +49,13 @@ export function validateCommunityPost(
   b: Record<string, unknown>,
   tokens: readonly StockToken[] = TOKENS,
 ) {
-  const error = Object.values(communityPostErrors(b, tokens))[0];
+  const topic = normalizeCommunityTopic(typeof b.topic === 'string' ? b.topic : 'channel-market-talk');
+  const error = Object.values(communityPostErrors({...b, topic}, communityTokens(tokens)))[0];
   if (error) throw new AppError(error);
   return {
     title: String(b.title).trim(),
     body: String(b.body).trim(),
-    topic: String(b.topic),
+    topic,
   };
 }
 export function validateCommunityPoll(value: unknown): PollDraft | null {

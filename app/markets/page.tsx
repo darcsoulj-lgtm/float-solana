@@ -6,7 +6,7 @@ import { MarketOverviewPanel } from '@/components/market-overview';
 export const metadata: Metadata = {
   title: 'Backpack tokenized stocks',
   description:
-    'Explore Backpack-issued tokenized stocks, with tracked value, prices, pool volume and liquidity.',
+    'Explore Backpack tokenized stocks, tokenized value, prices and DEX volume.',
 };
 
 export default function Page() {

@@ -5,16 +5,21 @@ import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import ts from 'typescript';
 import { bundle } from './helpers/bundle.mjs';
+const birdeyeVolume = await bundle("export * from './lib/birdeye-volume';");
 const poolDisplay = await bundle("export {displayPoolActivity} from './lib/token-observation';");
 const holderHistory = await bundle("export * from './lib/holder-history';");
+const poolObservations = await bundle("export * from './lib/pool-observations';");
+const stockLogos = await bundle("export * from './lib/stock-logo';");
 const stockPools = await bundle("export * from './lib/stock-pools';");
 const marketBrowse = await bundle("export * from './lib/market-browse';");
+const marketPresentation = await bundle("export * from './lib/market-presentation';");
 const communityTypes = await bundle("export * from './lib/community-types';");
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 const require = createRequire(import.meta.url);
 const Empty = () => null;
 async function component(file, overrides) {
+  const feedControls = file === 'member-dashboard.tsx' ? await component('community-feed-filters.tsx', {'@/lib/community-types': communityTypes}) : null;
   const source = await readFile(
     new URL('../components/' + file, import.meta.url),
     'utf8',
@@ -29,7 +34,7 @@ async function component(file, overrides) {
   const compiledModule = { exports: {} };
   compileFunction(outputText, ['require', 'module', 'exports'])(
     (id) =>
-      (id === '@/lib/stock-logo-assets.json' ? { default: require('../lib/stock-logo-assets.json') } : id === './discussion-attachment-composer' ? { DiscussionAttachmentComposer: Empty } : id === './discussion-attachment' ? { DiscussionAttachment: Empty } : id === './install-experience' ? { InstallEntry: Empty } : id === '@/lib/holder-history' ? holderHistory : id === './holder-trend' ? {HolderTrend: Empty} : id === '@/components/site-link'
+      (id === '@/lib/stock-logo' ? stockLogos : id === '@/lib/stock-logo-assets.json' ? { default: require('../lib/stock-logo-assets.json') } : id === './community-feed-filters' ? feedControls : id === './discussion-attachment-composer' ? { DiscussionAttachmentComposer: Empty } : id === './discussion-attachment' ? { DiscussionAttachment: Empty } : id === './install-experience' ? { InstallEntry: Empty } : id === '@/lib/holder-history' ? holderHistory : id === './holder-trend' ? {HolderTrend: Empty} : id === '@/components/site-link'
         ? {
             default: ({ children, ...props }) =>
               React.createElement('a', props, children),
@@ -50,6 +55,8 @@ async function component(file, overrides) {
                 loadMore: async () => {},
               }),
             }
+          : id === '@/lib/community-eligibility'
+            ? { communityTokens: tokens => tokens.filter(t => t.issuer === 'backpack') }
           : id === '@/lib/token-registry'
             ? { registryTokens: () => overrides['@/lib/tokens']?.TOKENS ?? [] }
             : id === '@/lib/market-data'
@@ -58,11 +65,11 @@ async function component(file, overrides) {
                   marketTokens: () => overrides['@/lib/tokens']?.TOKENS ?? [],
                 }
               : overrides[id]) ??
-      (id === '@/lib/stock-pools'
+      (id === '@/lib/market-presentation' ? marketPresentation : id === '@/lib/birdeye-volume' ? birdeyeVolume : id === '@/lib/pool-observations' ? poolObservations : id === '@/lib/stock-pools'
         ? stockPools
         : id === '@/lib/wallet-handoff'
           ? { readWalletHandoff: () => null, walletHandoffId: () => null, WALLET_HANDOFF_KEY: 'float-wallet-handoff' }
-        : id === './holding-wallets'
+        : id === './issuer-comparison' ? { IssuerComparisonPanel: Empty } : id === './market-activity-history' ? { MarketActivityHistory: Empty } : id === './holding-wallets'
           ? { HoldingWallets: Empty }
         : id === './ondo-primary-volume'
           ? { OndoPrimaryVolume: () => null }
@@ -152,6 +159,8 @@ void test('discussion feed stays compact and dedicated detail owns replies', asy
     body: 'A body that belongs in the feed preview.',
     created_at: Date.now(),
     reply_count: 27,
+    like_count: 12,
+    liked: 1,
     saved: 0,
     value_tier: null,
     poll: null,
@@ -166,9 +175,14 @@ void test('discussion feed stays compact and dedicated detail owns replies', asy
   );
   assert.match(feed, /aria-label="27 replies"/);
   assert.match(feed, /lucide-message-circle/);
-  assert.match(feed, /aria-label="Save discussion"/);
+  assert.match(feed, /aria-label="Unlike post. 12 likes"/);
+  assert.ok(feed.indexOf('aria-label="Unlike post. 12 likes"') < feed.indexOf('aria-label="27 replies"'));
+  assert.match(feed, /aria-label="Save post"/);
   assert.doesNotMatch(feed, />Save</);
   assert.match(feed, /thread-body-preview/);
+  const titleOnly = renderToStaticMarkup(React.createElement(Thread, {...common,thread:{...thread,body:'   '},onOpen:()=>{}}));
+  assert.doesNotMatch(titleOnly, /thread-body-preview/);
+  assert.match(titleOnly, /thread-open/);
   assert.doesNotMatch(feed, /Write a reply/);
   const detail = renderToStaticMarkup(
     React.createElement(Thread, { ...common, detail: true }),
@@ -378,6 +392,7 @@ async function renderDashboard(search, interact) {
             useEffect: () => {},
             useRef: (initial) => ({ current: initial }),
             useCallback: (fn) => fn,
+      useMemo: (fn) => fn(),
             useId: () => 'test-id',
           },
         }
@@ -467,7 +482,7 @@ void test('discussion composer offers the curated channels and normalizes legacy
     value: id,
     label: name,
   }));
-  assert.equal(expected.length, 10);
+  assert.equal(expected.length, 9);
   assert.deepEqual(
     expected.filter(({ value }) =>
       ['channel-crypto', 'channel-off-topic'].includes(value),
@@ -492,14 +507,14 @@ void test('discussion composer offers the curated channels and normalizes legacy
           (e) =>
             typeof e.props?.onClick === 'function' &&
             React.Children.toArray(e.props.children).includes(
-              ' New discussion',
+              ' Create post',
             ),
         );
-        assert.ok(create, 'New discussion action exists');
+        assert.ok(create, 'Create post action exists');
         create.props.onClick();
         const picker = findElement(
           render(),
-          (e) => e.props?.label === 'Discussion channel',
+          (e) => e.props?.label === 'Post topic',
         );
         assert.deepEqual(picker.props.items, expected);
         assert.equal(
@@ -508,11 +523,11 @@ void test('discussion composer offers the curated channels and normalizes legacy
             ? topic
             : expected[0].value,
         );
-        assert.equal(picker.props.placeholder, 'Search channels…');
-        assert.equal(picker.props.emptyMessage, 'No matching channel.');
+        assert.equal(picker.props.placeholder, 'Choose a topic…');
+        assert.equal(picker.props.emptyMessage, 'No matching topic.');
         picker.props.onChange(expected[4].value);
         assert.equal(
-          findElement(render(), (e) => e.props?.label === 'Discussion channel')
+          findElement(render(), (e) => e.props?.label === 'Post topic')
             .props.value,
           expected[4].value,
         );
@@ -522,28 +537,28 @@ void test('discussion composer offers the curated channels and normalizes legacy
 });
 void test('discussion detail puts one icon-only back action beside the title', async () => {
   const html = await renderDashboard('?view=home&thread=thread-1');
-  assert.match(html, /aria-label="Back to discussions"/);
+  assert.match(html, /aria-label="Back to community"/);
   assert.match(html, /discussion-title-row/);
-  assert.match(html, /<h1>Discussion<\/h1>/);
-  assert.doesNotMatch(html, /‹ Discussions|← Back to discussions/);
+  assert.match(html, /<h1>Post<\/h1>/);
+  assert.doesNotMatch(html, /‹ Discussions|← Back to community/);
 });
 void test('old Saved links open Discussions with Saved selected, not a separate destination', async () => {
   const html = await renderDashboard('?view=saved');
-  assert.match(html, /<h1>Discussions<\/h1>/);
-  assert.match(html, /<button class="channel-saved" aria-pressed="true">[^]*?Saved<\/button>/);
+  assert.match(html, /<h1>Community<\/h1>/);
+  assert.match(html, /<button[^>]*aria-pressed="true"[^>]*>Saved<\/button>/);
   assert.doesNotMatch(html.split('</aside>')[0], />Saved</);
   assert.match(html, /Holders only/);
   assert.doesNotMatch(html, /Members only/);
 });
-void test('Discussion channels filter one feed without a separate directory', async () => {
+void test('Community channels filter one feed without a separate directory', async () => {
   const html = await renderDashboard('?view=topics');
-  assert.match(html, /aria-label="Discussion channels"/);
-  assert.match(html, /<button aria-pressed="true">All<\/button>/);
+  assert.match(html, /aria-label="Community feeds"/);
+  assert.match(html, /<button[^>]*aria-pressed="true"[^>]*>Feed<\/button>/);
   assert.match(html, /Technology/);
   assert.doesNotMatch(html, /Find a channel|>Follow<|>Channels<\/button>/);
   const selected = await renderDashboard('?view=home&topic=channel-technology');
-  assert.match(selected, /<button aria-pressed="true">Technology<\/button>/);
-  assert.match(selected, /No Technology discussions yet/);
+  assert.match(selected, /<option value="channel-technology" selected="">Technology<\/option>/);
+  assert.match(selected, /No Technology posts yet/);
 });
 void test('Profile stays Profile after navigation and displays the private value badge control', async () => {
   const html = await renderDashboard('?view=profile');
@@ -554,15 +569,15 @@ void test('Profile stays Profile after navigation and displays the private value
 
 void test('Saved filter survives a fresh page load through its own URL', async () => {
   const html = await renderDashboard('?view=home&feed=saved');
-  assert.match(html, /<h1>Discussions<\/h1>/);
-  assert.match(html, /<button class="channel-saved" aria-pressed="true">[^]*?Saved<\/button>/);
+  assert.match(html, /<h1>Community<\/h1>/);
+  assert.match(html, /<button[^>]*aria-pressed="true"[^>]*>Saved<\/button>/);
 });
 
 void test('old Calendar links open Home and Calendar is absent from sidebar destinations', async () => {
   const html = await renderDashboard('?view=calendar');
   assert.match(html, /member-shell markets-view home-view/);
   assert.doesNotMatch(html.split('</aside>')[0], />Calendar</);
-  for (const name of ['Home', 'Markets', 'Discussions', 'Profile'])
+  for (const name of ['Home', 'Markets', 'Community', 'Profile'])
     assert.ok(html.split('</aside>')[0].includes(name));
 });
 
@@ -688,7 +703,7 @@ void test('agenda failures are explicit and longer agendas expose bounded pagina
   );
 });
 
-async function marketFixture(props = {}, valuation = {}) {
+async function marketFixture(props = {}, valuation = {}, observation = {}) {
   const states = [];
   let index = 0;
   const Wrap = ({ children }) => React.createElement('div', null, children);
@@ -796,6 +811,7 @@ async function marketFixture(props = {}, valuation = {}) {
         poolVolume24h: symbol === 'MU' ? 300 : 200,
         priceTime: null,
         supply: null,
+        ...observation,
       }),
     },
   });
@@ -816,6 +832,17 @@ function findElement(tree, predicate) {
   }
   return null;
 }
+void test('displayed historical prices and saved valuations keep matching timestamps in expanded disclosures',async()=>{
+ const historical=Date.now()-36*3600000,saved=Date.now()-3600000;
+ const f=await marketFixture({assetSymbol:'MU',issuerScope:'backpack'}, {}, {price:null,lastPrice:105,lastPriceTime:historical,lastPriceSource:'Backpack · external',priceTime:saved,priceSource:'Unavailable',lastIssuedValue:12000,lastIssuedValuePriceSource:'DefiLlama',lastIssuedValuePriceTime:saved,lastIssuedValueSupplyTime:saved,lastIssuedValueTime:saved});
+ const html=renderToStaticMarkup(f.render());
+ const label=at=>new Date(at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+ assert.ok(html.includes('Backpack · external · '+label(historical)));
+ assert.ok(!html.includes('Backpack · external · '+label(saved)));
+ assert.match(html,/Last observed estimate · DefiLlama/);
+ assert.match(html,/Tokenized value · total supply<\/dt><dd>\$12K/);
+ assert.doesNotMatch(html,/No recent price is available\./);
+});
 void test('one market table filters to owned tokens without removing market-wide metrics', async () => {
   const f = await marketFixture();
   const tree = f.render();
@@ -927,10 +954,10 @@ void test('issuer multi-selection filters rows and leaves market totals intact',
   tree = f.render();
   assert.match(renderToStaticMarkup(tree), /Alphabet/);
   assert.match(renderToStaticMarkup(tree), /About DEX volume/);
-  assert.match(renderToStaticMarkup(tree), /Pool liquidity/);
+  assert.doesNotMatch(renderToStaticMarkup(tree), /Pool liquidity/);
 });
 
-void test('Ecosystem overview keeps valuation estimates and their caveats inside collapsed coverage', async () => {
+void test('Ecosystem overview shows one valuation total and metric help without duplicate coverage', async () => {
   const issuers = [
     {
       id: 'xstocks',
@@ -987,25 +1014,28 @@ void test('Ecosystem overview keeps valuation estimates and their caveats inside
       select: () => {},
     }),
   );
-  assert.equal((html.match(/<details/g) || []).length, 1);
+  assert.equal((html.match(/<details/g) || []).length, 0);
   assert.doesNotMatch(html, /View DEX breakdown/);
   assert.match(html, /Issuer overview/);
-  assert.match(html, /<option value="value" selected="">Tracked value/);
+  assert.match(html, /<option value="value" selected="">Tokenized value/);
   const headline = html.split('<details')[0];
-  assert.match(headline, /Tracked value/);
+  assert.match(headline, /Tokenized value/);
   assert.match(headline, /\$1.5K/);
   assert.doesNotMatch(headline, /circulating market cap/);
   assert.doesNotMatch(html, /Stonkfun|Stock-linked ecosystem/);
   assert.match(headline, /Tracked tokens/);
   assert.match(headline, /assets/);
   assert.doesNotMatch(html, /<details[^>]*\sopen(?:[ =>])/);
-  assert.match(html, /<summary>Current coverage<\/summary>/);
-  assert.match(html, /href="\/data-methodology#value"/);
-  assert.match(html, /2 \/ 2 issuers/);
-  assert.match(html, /Tracked value/);
-  assert.match(html, /Mixed supply bases/);
-  assert.match(html, /Partial coverage/);
-  assert.match(html, /Includes delayed data/);
+
+
+
+  assert.match(html, /Tokenized value/);
+
+  assert.match(html, /Partial · delayed update/);
+  assert.match(html, /aria-label="About tokenized value"/);
+  assert.match(html, /aria-label="About market volume"/);
+  assert.doesNotMatch(html, /Current coverage|Largest tracked values|Valuation coverage by issuer/);
+
   assert.match(html, /\$1.5K/);
   assert.doesNotMatch(
     html,
@@ -1213,7 +1243,7 @@ void test('Home portfolio links filter the existing news area and market navigat
   assert.equal(selected, 'MU');
   const html = renderToStaticMarkup(tree);
   assert.match(html, /Latest news/);
-  assert.match(html, /Holder discussions/);
+  assert.match(html, /From the community/);
   assert.match(html, /Explore markets/);
   assert.doesNotMatch(html, /Backpack dashboard/);
 });
@@ -1472,7 +1502,10 @@ void test('Holding wallets render exact counts, dated coverage and issuer-only s
   const logic = await bundle("export * from './lib/issuer-holders';");
   const seed = JSON.parse(await readFile(new URL('../public/data/issuer-holders.json', import.meta.url), 'utf8'));
   const { HoldingWallets } = await component('holding-wallets.tsx', {
-    '@/public/data/issuer-holders.json': { default: seed },
+    react: {...React, useState: initial => {
+      const state = React.useState(initial);
+      return initial === null ? [logic.parseHolderSnapshot(seed), () => {}] : state;
+    }},
     '@/lib/issuer-holders': logic,
     '@/lib/tokens': { issuerName: id => id },
   });
@@ -1483,6 +1516,13 @@ void test('Holding wallets render exact counts, dated coverage and issuer-only s
   assert.match(html, /tracked tokens/);
   assert.doesNotMatch(html, /201,275/);
   assert.equal(renderToStaticMarkup(React.createElement(HoldingWallets, { issuer: 'tessera' })), '');
+});
+
+void test('Holding wallets initial render never flashes a bundled obsolete count', async () => {
+  const logic = await bundle("export * from './lib/issuer-holders';");
+  const { HoldingWallets } = await component('holding-wallets.tsx', {'@/lib/issuer-holders': logic, '@/lib/tokens': {issuerName: id => id}});
+  const html=renderToStaticMarkup(React.createElement(HoldingWallets,{issuer:'backpack',compact:true}));
+  assert.doesNotMatch(html,/201,275|222,290/);assert.match(html,/—/);
 });
 
 void test('Backpack scope excludes other issuer rows even when a filter callback requests them', async () => {
@@ -1499,4 +1539,25 @@ void test('Backpack scope excludes other issuer rows even when a filter callback
   assert.ok(findElement(tree, e => e.props?.issuerScope === 'backpack'));
   // Scoped wallet summary now lives inside the scoped ecosystem grid.
   assert.equal(findElement(tree, e => e.props?.issuer === 'backpack'), null);
+});
+
+void test('topic filter shows its scope and clearing restores all topics without changing the feed', async () => {
+  const { CommunityFeedFilters } = await component('community-feed-filters.tsx', {
+    react: { ...React, useId: () => 'topics', useState: value => [value, () => {}], useEffect: () => {} },
+    '@/lib/community-types': communityTypes,
+  });
+  const actions = [];
+  const props = { feed: 'saved', topic: 'channel-technology', search: 'MU', onFeed: v => actions.push(['feed',v]), onTopic: v => actions.push(['topic',v]), onSearch: v => actions.push(['search',v]) };
+  const tree = CommunityFeedFilters(props);
+  const html = renderToStaticMarkup(tree);
+  assert.match(html, /data-active="true"/);
+  assert.match(html, /aria-label="Clear topic filter"/);
+  assert.match(html, /aria-label="Filter posts by topic"/);
+  const walk = node => Array.isArray(node) ? node.flatMap(walk) : React.isValidElement(node) ? [node, ...walk(node.props.children)] : [];
+  const clear = walk(tree).find(node => node.props['aria-label'] === 'Clear topic filter');
+  clear.props.onClick();
+  assert.deepEqual(actions, [['topic', 'all']]);
+  const unfiltered = renderToStaticMarkup(CommunityFeedFilters({...props, topic: 'all'}));
+  assert.doesNotMatch(unfiltered, /aria-label="Clear topic filter"/);
+  assert.match(unfiltered, /<option value="all" selected="">All topics<\/option>/);
 });

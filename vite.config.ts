@@ -16,6 +16,7 @@ const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === 'seatbelt';
 
 const localBindingConfig = {
   main: './float-worker.ts',
+  ...(process.env.FLOAT_LOCAL_TRADING === '1' ? {vars:{TRADING_ENABLED:'true',TRADING_RPC_URL:'https://solana-rpc.publicnode.com'}} : {}),
   compatibility_flags: ['nodejs_compat'],
   d1_databases: d1
     ? [

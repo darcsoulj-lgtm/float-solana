@@ -80,7 +80,7 @@ export function calculateHolderTier(
         : o.priceSource === 'CoinMarketCap'
           ? data.markets
           : data.prices;
-    const priceTime = priceCache?.asOf?.[h.symbol] ?? priceCache?.fetchedAt ?? 0;
+    const priceTime = (o.priceSource === 'Backpack · external' ? data.backpack?.data?.[h.symbol]?.externalObservedAt : undefined) ?? priceCache?.asOf?.[h.symbol] ?? priceCache?.fetchedAt ?? 0;
     expiresAt = Math.min(
       expiresAt,
       h.verified_at + 180000,

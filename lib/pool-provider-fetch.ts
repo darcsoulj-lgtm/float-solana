@@ -1,5 +1,6 @@
 import { publicJson, SourceHttpError } from './market-data';
 import type { PoolProvider } from './pool-provider-adapters';
+import { MarketWorkError } from './market-work-store';
 
 const hosts: Record<PoolProvider, readonly string[]> = {
   dexscreener: ['api.dexscreener.com', 'www.stonkfun.xyz'],
@@ -26,10 +27,10 @@ export function poolProviderRequest(
   const calls = new Map<PoolProvider, number>();
   return async (provider, url) => {
     if (!hosts[provider].includes(new URL(url).hostname))
-      throw Error('Untrusted pool provider');
+      throw new MarketWorkError('invalid_response',30000,'Untrusted pool provider');
     const count = calls.get(provider) ?? 0;
     if (count >= (provider === 'geckoterminal' ? 8 : 6))
-      throw Error('Pool provider request budget reached');
+      throw new MarketWorkError('request_budget',30000,'Pool provider request budget reached');
     calls.set(provider, count + 1);
     const now = Date.now(),
       cooldownKey = `provider-cooldown:${provider}`;
@@ -38,7 +39,7 @@ export function poolProviderRequest(
       .bind(cooldownKey)
       .first<{ retry_after: number }>();
     if (cooldown && cooldown.retry_after > now)
-      throw Error(`${provider} cooling down`);
+      throw new MarketWorkError('provider_cooldown', cooldown.retry_after-now,`${provider} cooling down`);
     const spacing = provider === 'geckoterminal' ? 15000 : 500;
     const slot = await db
       .prepare(
@@ -52,7 +53,7 @@ export function poolProviderRequest(
         now + Math.max(6000, spacing + 6000),
       )
       .first<{ retry_after: number }>();
-    if (!slot) throw Error('Pool provider queue full');
+    if (!slot) throw new MarketWorkError('request_budget',30000,'Pool provider queue full');
     const wait = Math.max(0, slot.retry_after - spacing - Date.now());
     if (wait)
       await new Promise<void>((resolve, reject) => {

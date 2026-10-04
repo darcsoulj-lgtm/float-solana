@@ -25,3 +25,16 @@ void test('provider/database failures never populate the public response cache',
   await assert.rejects(publicMarketResponse(new Request('https://float.test/api/backpack-market'),async()=>{throw Error('db down');},{match:async()=>undefined,put:async()=>{writes++;}},()=>{}),/db down/);
   assert.equal(writes,0);
 });
+void test('activity history uses a separate shared identity and preserves no-store on hits',async()=>{
+  const entries=new Map();const jobs=[];
+  const cache={match:async r=>entries.get(r.url)?.clone(),put:async(r,v)=>{entries.set(r.url,v);}};
+  const request=new Request('https://float.test/api/trading-activity?wallet=ignored',{headers:{cookie:'hp_member=ignored'}});
+  const options={path:'/api/trading-activity?schema=1',maxAgeSeconds:300};
+  const response=await publicMarketResponse(request,async()=>({points:[]}),cache,p=>jobs.push(p),options);
+  await Promise.all(jobs);
+  assert.deepEqual([...entries.keys()],['https://float.test/api/trading-activity?schema=1']);
+  assert.equal([...entries.values()][0].headers.get('Cache-Control'),'public, max-age=300');
+  assert.equal(response.headers.get('Cache-Control'),'no-store');
+  const hit=await publicMarketResponse(request,async()=>{throw Error('should hit cache');},cache,()=>{},options);
+  assert.equal(hit.headers.get('Cache-Control'),'no-store');
+});

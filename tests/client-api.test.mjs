@@ -51,3 +51,15 @@ void test('No-holdings errors preserve a machine-readable reason without ending 
     else globalThis.window = originalWindow;
   }
 });
+
+void test('market refresh bypasses old browser responses while leaving other API behavior unchanged',async()=>{
+  const original=globalThis.fetch;const calls=[];
+  globalThis.fetch=async(url,options)=>{calls.push({url,options});return Response.json({});};
+  try{
+    await api('backpack-market');await api('backpack-market?schema=1');await api('community/home');
+    assert.equal(calls[0].options.cache,'no-store');
+    assert.equal(calls[1].options.cache,'no-store');
+    assert.equal(calls[2].options.cache,undefined);
+    assert.equal(calls[0].options.method,'GET');
+  }finally{globalThis.fetch=original;}
+});

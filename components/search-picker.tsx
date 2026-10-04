@@ -1,5 +1,5 @@
 'use client';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import {
   Combobox,
   ComboboxInput,
@@ -29,12 +29,17 @@ export function SearchPicker({
   emptyMessage?: string;
 }) {
   const anchor = useRef<HTMLDivElement>(null);
+  const [query, setQuery] = useState<string | null>(null);
+  const selected = items.find((i) => i.value === value) || null;
   return (
     <div className="search-picker" ref={anchor}>
       <Combobox
         disabled={disabled}
         items={items}
-        value={items.find((i) => i.value === value) || null}
+        value={selected}
+        inputValue={query ?? selected?.label ?? ''}
+        onInputValueChange={setQuery}
+        onOpenChange={(open) => setQuery(open ? '' : null)}
         onValueChange={(item: Item | null) => {
           if (item) onChange(item.value);
         }}

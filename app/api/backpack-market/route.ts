@@ -1,7 +1,6 @@
 import { waitUntil } from 'cloudflare:workers';
 import { runtime, rateLimit } from '@/lib/server';
-import { backpackRegistry, registryTokens } from '@/lib/backpack-registry';
-import { readMarketOverview } from '@/lib/market-overview-server';
+import { readPublicMarketSnapshot } from '@/lib/public-market-snapshot';
 import { publicMarketResponse } from '@/lib/public-market-response';
 import { AppError } from '@/lib/validation';
 export const dynamic = 'force-dynamic';
@@ -17,10 +16,7 @@ export async function GET(req: Request) {
       await rateLimit('backpack-market:' + audience, 120);
     }
     const cache = await caches.open('float-public-markets-v1');
-    return await publicMarketResponse(req, async () => {
-      const registry = await backpackRegistry(env.DB, () => {}, env.SOLANA_RPC_URL, fetch, Date.now(), true);
-      return readMarketOverview(env, registryTokens(registry), registry, 'backpack');
-    }, cache, waitUntil);
+    return await publicMarketResponse(req,()=>readPublicMarketSnapshot(env.DB),cache,waitUntil,{rawJson:true});
   } catch (error) {
     if (!(error instanceof AppError)) console.error('Public Backpack overview failed');
     return Response.json({error: error instanceof AppError ? error.message : 'Market data is temporarily unavailable.'}, {

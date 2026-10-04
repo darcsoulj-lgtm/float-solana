@@ -4,6 +4,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import { compileFunction } from 'node:vm';
 import ts from 'typescript';
+import { TOKENS } from '../lib/tokens.ts';
 import { communitySignInInput, communitySignInMessage } from '../lib/community-sign-in.ts';
 
 function fixture({ holdings = () => [{symbol:'MU',verifiedAt:Date.now(),slot:1,rawAmount:'1',decimals:0,uiAmount:1}] } = {}) {
@@ -26,8 +27,9 @@ function fixture({ holdings = () => [{symbol:'MU',verifiedAt:Date.now(),slot:1,r
     '@/lib/server': { db: () => database, digest: async v => 'hash:' + v, rateLimit: async () => {}, runtime: () => ({}) },
     '@/lib/request-body': { readBoundedText: r => r.text() },
     '@/lib/validation': { AppError, textValue(v,min,max) { if (typeof v !== 'string' || v.length < min || v.length > max) throw new AppError('Invalid'); return v; } },
-    '@/lib/registry-server': { verifiedRegistry: async () => ({tokens: []}) },
-    '@/lib/solana': { validWallet: v => v, detectHoldings: async () => holdings(), verifySignature: async (_wallet,message,signature) => { if (signature !== message) throw new AppError('Invalid signature',401); } },
+    '@/lib/community-eligibility': { communityTokens: tokens => tokens.filter(t => t.issuer === 'backpack') },
+    '@/lib/registry-server': { verifiedRegistry: async () => ({tokens: TOKENS}) },
+    '@/lib/solana': { validWallet: v => v, detectHoldings: async (_wallet,_rpc,_fetch,_fresh,tokens) => holdings().filter(h => tokens.some(t => t.symbol === h.symbol)), verifySignature: async (_wallet,message,signature) => { if (signature !== message) throw new AppError('Invalid signature',401); } },
     '@/lib/community-read': {},
     '@/lib/community-server': { communityCleanup: async () => {}, MEMBERSHIP_MS:86400000, sessionCookie: s => 'hp_member=' + s },
     '@/lib/community-sign-in': { communitySignInInput, communitySignInMessage },
@@ -107,4 +109,34 @@ void test('holdings lost after challenge cannot complete verification or bind a 
     assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM community_sessions').get().n,0);
     assert.deepEqual(await(await f.post('handoff/claim',{id,secret})).json(),{ready:false});
   } finally {f.sqlite.close();}
+});
+
+void test('foreign issuer balances cannot enter community, but mixed wallets qualify through Backpack',async()=>{
+ const foreign=TOKENS.filter(t=>t.issuer!=='backpack').slice(0,2).map(t=>({symbol:t.symbol,verifiedAt:Date.now(),slot:1,rawAmount:'1',decimals:0,uiAmount:1}));
+ let balances=foreign;
+ const f=fixture({holdings:()=>balances});
+ try {
+ const input={wallet:'6zGGkXABVt52pEvsLSvMokwJW9xwkoFX4Nw5UoFHFKmH'};
+ assert.equal((await f.post('challenge',input)).status,403);
+ balances=[...foreign,{symbol:'MU',verifiedAt:Date.now(),slot:1,rawAmount:'1',decimals:0,uiAmount:1}];
+ const c=await (await f.post('challenge',input)).json();
+ balances=foreign;
+ assert.equal((await f.post('verify',{challengeId:c.id,signature:c.message})).status,403);
+ assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM community_sessions').get().n,0);
+ }finally{f.sqlite.close();}
+});
+
+void test('consumed transfer remains rejected while a fresh local sign-in succeeds',async()=>{
+ const f=fixture();try{
+ const wallet='6zGGkXABVt52pEvsLSvMokwJW9xwkoFX4Nw5UoFHFKmH';
+ const {id}=await(await f.post('handoff/start',{secret:'a'.repeat(64)})).json();
+ const c=await(await f.post('challenge',{wallet,handoffId:id})).json();
+ assert.equal((await f.post('verify',{challengeId:c.id,signature:c.message})).status,200);
+ assert.equal((await f.post('challenge',{wallet,handoffId:id})).status,400);
+ const next=await f.post('challenge',{wallet});assert.equal(next.status,200);
+ const fresh=await next.json();
+ assert.equal(f.sqlite.prepare('SELECT handoff_id FROM community_challenges WHERE id=?').get(fresh.id).handoff_id,null);
+ assert.equal((await f.post('verify',{challengeId:fresh.id,signature:fresh.message})).status,200);
+ assert.equal((await f.post('verify',{challengeId:c.id,signature:c.message})).status,401);
+ }finally{f.sqlite.close();}
 });

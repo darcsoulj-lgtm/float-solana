@@ -22,6 +22,7 @@ import {
 import { PUBLIC_BATCH_COUNT } from '@/lib/backpack-dashboard';
 import {
   mergeMarketPages,
+  poolLink,
   type MarketOverview,
   type SourceResult,
   type Pool,
@@ -103,7 +104,7 @@ export function TokenTradingPools({ pools }: { pools: Pool[] }) {
             <a
               className="bp-pool"
               key={p.address}
-              href={p.url}
+              href={poolLink(p)}
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -239,11 +240,11 @@ function TokenDetail({ row }: { row: Row }) {
           </strong>
         </div>
         <div>
-          <span>{row.valuation.label} · est.</span>
+          <span>Tokenized value</span>
           <strong>{dollars(row.value)}</strong>
           {row.token.issuer !== 'xstocks' && (
             <small className="bp-muted">
-              May include issuer inventory · not market cap
+              Includes issuer-held tokens
             </small>
           )}
         </div>
@@ -478,7 +479,7 @@ export function IssuerDashboardContent({
     ['dexVolume', 'Pool volume · 24h'],
     ['poolLiquidity', 'Liquidity'],
     ...(issuer === 'xstocks'
-      ? [['value', 'Circulating value'] as [Sort, string]]
+      ? [['value', 'Tokenized value'] as [Sort, string]]
       : []),
   ];
   return (
@@ -498,14 +499,14 @@ export function IssuerDashboardContent({
       <div className="bp-stats" aria-label={`${issuerName(issuer)} overview`}>
         <div>
           <span>
-            Onchain value · est.{' '}
-            <MetricInfo label="Onchain value source and coverage" learnMore="/data-methodology#value">
+            Tokenized value{' '}
+            <MetricInfo label="About tokenized value" learnMore="/data-methodology#value">
               {issuer === 'xstocks'
-                ? 'Circulating tokens × xStocks’ reference price. Excludes tokens held by the issuer.'
+                ? 'Estimated value of circulating tokens, excluding issuer inventory.'
                 : issuer === 'ondo'
-                  ? 'Saved Ondo price × tokens created on Solana. Includes issuer-held tokens; not market cap.'
-                  : 'Tokens created on Solana × token price. Includes issuer-held tokens; not market cap.'}{' '}
-              Missing values are left out, not counted as zero.
+                  ? 'Estimated value of issued tokens, including issuer holdings.'
+                  : 'Estimated value of issued tokens, including issuer holdings.'}{' '}
+              Missing values are excluded.
             </MetricInfo>
           </span>
           <strong>{dollars(dashboard.value)}</strong>
@@ -518,7 +519,7 @@ export function IssuerDashboardContent({
           <span>
             Tracked pool volume · 24h{' '}
             <MetricInfo label="Volume source and coverage" learnMore="/data-methodology#pools">
-              {`${POOL_SCOPE} Source: DEX Screener. Excludes exchange trades and direct quotes or trades with issuers.`}{' '}
+              {`${POOL_SCOPE} Excludes centralized exchange and direct issuer trades.`}{' '}
             </MetricInfo>
           </span>
           <strong>{dollars(dashboard.volume)}</strong>
@@ -748,7 +749,7 @@ export function IssuerDashboardContent({
             {dashboard.recentPools.map((p) => (
               <a
                 key={p.address}
-                href={p.url}
+                href={poolLink(p)}
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -787,7 +788,7 @@ export function IssuerDashboardContent({
           )}
           <p>
             <strong>
-              {dashboard.valueLabel} · est.: {dollars(dashboard.value)}
+              Tokenized value: {dollars(dashboard.value)}
             </strong>{' '}
             · {dashboard.valued} of {dashboard.rows.length} tokens valued
             {dashboard.delayed ? ' · delayed' : ''}
@@ -813,7 +814,7 @@ export function IssuerDashboardContent({
               : ''}{' '}
             {issuer === 'xstocks'
               ? 'xStocks value uses its reported Solana circulation and reference prices. Issuer inventory and other chains are left out. Older checked data is labelled delayed.'
-              : 'Minted value can include issuer-held tokens. It is not a circulating market cap or AUM.'}{' '}
+              : 'Tokenized value uses minted supply, including issuer-held tokens.'}{' '}
             Unknown values are shown as —.
           </p>
           <p>

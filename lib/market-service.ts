@@ -9,6 +9,7 @@ import {
   type StockToken,
 } from './tokens';
 import { fetchSupplies } from './token-supply';
+import { supplyObservationKey, overlaySupplyObservations } from './market-source-observations';
 import {
   fetchPrices,
   fetchHistoricalPrices,
@@ -70,7 +71,7 @@ export async function readMarketBatch(
   ];
   const saved = options.saved ?? await marketCacheRows(
     database,
-    [...prefixes.map((prefix) => prefix + key), ...(options.pools === false ? [] : active.map(poolObservationKey))],
+    [...prefixes.map((prefix) => prefix + key), ...active.map(supplyObservationKey), ...(options.pools === false ? [] : active.map(poolObservationKey))],
   );
   const read = <T>(prefix: string, ttl: number, loader: () => Promise<T>) =>
     options.defer || options.cacheOnly
@@ -117,7 +118,7 @@ export async function readMarketBatch(
         }),
   ]);
   const observations = overlayTokenPools(poolObservations(pools.data, pools.fetchedAt), active, saved, Date.now());
-  return { prices, supplies, history, pools: poolSource({...pools,
+  return { prices, supplies: overlaySupplyObservations(supplies, active, saved, Date.now()), history, pools: poolSource({...pools,
     data: Object.keys(observations.data).length ? observations : pools.data,
     // Per-token timestamps remain authoritative even when the legacy batch is stale.
     stale: Object.values(observations.asOf).some(time => Date.now() - time >= POOL_REFRESH_MS),

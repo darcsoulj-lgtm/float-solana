@@ -1,138 +1,114 @@
 'use client';
-
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import { api } from '@/lib/client';
-import type { MarketDailyPoint } from '@/lib/market-history';
+import type { MarketOverview } from '@/lib/market-data';
+import { tradingActivity, activityBreakdown, validTradingActivity, type TradingActivity } from '@/lib/trading-activity';
+import { activityWindow } from '@/lib/market-presentation';
+import Link from '@/components/site-link';
+import { MetricInfo } from './metric-info';
 
-const compact = (value: number | null) =>
-  value === null
-    ? 'Unavailable'
-    : new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
-        notation: 'compact',
-        maximumFractionDigits: 1,
-      }).format(value);
+const compact = (value: number | null) => value === null ? '—' : new Intl.NumberFormat('en-US', {
+  style:'currency', currency:'USD', notation:'compact', maximumFractionDigits:2,
+}).format(value);
+const dateLabel = (day: string) => new Date(day+'T00:00:00Z').toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'});
+const colors = ['#cc3049','#d86072','#de8693','#e7aab3','#eed0d5','#b4b8c0'];
 
-export function MarketActivityHistory({ ready, now }: { ready: boolean; now: number }) {
-  const [points, setPoints] = useState<MarketDailyPoint[]>([]);
-  const [metric, setMetric] = useState<'volume_24h' | 'liquidity'>('volume_24h');
-  const [days, setDays] = useState<7 | 30>(30);
-  const [unavailable, setUnavailable] = useState(false);
+export function MarketActivityHistory({data, now}: {data: MarketOverview | null; now: number}) {
+  const tooltipId = useId();
+  const [hovered,setHovered] = useState<{point: TradingActivity; x: number; symbol?: string}|null>(null);
+  const [points,setPoints] = useState<TradingActivity[]>([]);
+  const [days,setDays] = useState<7|30|90>(30);
+  const [selected,setSelected] = useState<string|null>(null);
+  const [status,setStatus] = useState<'loading'|'ready'|'error'>('loading');
+  const current = useMemo(() => {
+    const point = tradingActivity(data, now);
+    // A retained quote can still serve the summary, but a page visit cannot
+    // turn an unchanged older snapshot into a new observation for today.
+    return point && new Date(point.newestAt).toISOString().slice(0, 10) === new Date(now).toISOString().slice(0, 10) ? point : null;
+  },[data,now]);
   useEffect(() => {
-    if (!ready) return;
     let active = true;
     async function load() {
       try {
-        const response = await api<{ points: MarketDailyPoint[] }>(
-          'market-data?history=1',
-        );
-        if (active) {
-          setPoints(response.points);
-          setUnavailable(false);
-        }
-      } catch {
-        if (active) setUnavailable(true);
-      }
+        const response = await api<{points: unknown[]}>('trading-activity');
+        if (!Array.isArray(response.points)) throw Error('Invalid history');
+        if (active) { setPoints(response.points.filter(validTradingActivity)); setStatus('ready'); }
+      } catch { if (active) setStatus('error'); }
     }
     void load();
-    const timer = setInterval(() => {
-      if (!document.hidden) void load();
-    }, 300000);
-    return () => {
-      active = false;
-      clearInterval(timer);
-    };
-  }, [ready]);
+    const timer = setInterval(() => { if (!document.hidden) void load(); },3600000);
+    return () => { active=false; clearInterval(timer); };
+  },[]);
+  const today = new Date(now).toISOString().slice(0,10);
+  const basis = data?.tokenVolumes ? 'turnover' : 'pools';
+  const byDay = new Map(points.filter(p => p.basis === basis && p.day < today).map(p => [p.day,p]));
+  if (current) byDay.set(today,current);
+  const series = activityWindow(byDay.values(), today, days);
+  const chosen = series.find(row => row.day === selected)?.point ?? series.at(-1)?.point ?? null;
+  const breakdown = chosen ? activityBreakdown(chosen) : [];
+  const available = series.filter(s => s.point).length;
+  const availableHistory = activityWindow(byDay.values(), today, 90);
+  const hasPeriods = availableHistory.length >= 7;
+  const showHistory = available > 1;
+  const max = Math.max(1,...series.map(s => s.point?.total ?? 0));
+  const metric = '24h volume';
+  const choose = (day: string) => setSelected(day === today ? null : day);
+  const plot = {x:60,y:12,width:890,height:185};
+  const cell = plot.width / Math.max(1, series.length);
+  const barWidth = Math.min(80, cell * .66);
+  return <section className={`market-history-panel trading-activity${showHistory ? '' : ' activity-snapshot'}`} aria-labelledby="market-history-title">
+    <header>
+      <h3 id="market-history-title">Trading activity <MetricInfo label="About trading activity" learnMore="/data-methodology#activity">{metric}. Rolling 24-hour observations, not daily trade totals. Missing days stay blank. {basis==='turnover' ? 'Source: Birdeye. Trades between tracked tokens may count twice.' : 'Shared pools are split between tokens.'}{chosen && <><br />Source times: {new Date(chosen.oldestAt).toLocaleString()} – {new Date(chosen.newestAt).toLocaleString()}. {chosen.covered}/{chosen.known} {chosen.basis==='pools'?'pools':'tokens'} included; coverage may be incomplete.</>}</MetricInfo></h3>
+      {hasPeriods && <div className="market-history-controls"><fieldset aria-label="Activity period"><legend className="sr-only">Activity period</legend>
+        {([7,30,90] as const).map(n => <button key={n} type="button" disabled={n===90 && ![...byDay.keys()].some(day => Date.parse(day+'T00:00:00Z') < Date.parse(today+'T00:00:00Z')-30*86400000)} aria-pressed={days===n} onClick={() => {setDays(n);setSelected(null);setHovered(null);}}>{n}D</button>)}
+      </fieldset></div>}
+    </header>
+    <div className="activity-body">
+      <div className="activity-chart">
+        <div className="activity-selected" aria-live="polite"><span className="activity-value-label">24h volume</span><strong>{compact(chosen?.total ?? null)}</strong><span>{chosen ? `${dateLabel(chosen.day)} · UTC` : 'Volume unavailable'}</span></div>
+        {showHistory ? <>
+          <div className="activity-plot" onPointerLeave={() => setHovered(null)}>
+          <svg viewBox="0 0 1000 245" preserveAspectRatio="none" aria-label={`${metric}. ${available} observations over ${series.length} days. Missing dates are gaps.`}>
+            {[0,.5,1].map(f => <g key={f}><line x1={plot.x} x2={plot.x+plot.width} y1={plot.y+plot.height*(1-f)} y2={plot.y+plot.height*(1-f)} className="market-history-grid"/><text x={plot.x-10} y={plot.y+plot.height*(1-f)+4} textAnchor="end" className="market-history-axis">{compact(max*f)}</text></g>)}
+            {series.map(({day,point},i) => {
+              if (!point) return null;
+              let offset = 0;
+              const parts = [...breakdown.slice(0,5).map(r => ({symbol:r.symbol,value:point.tokens.find(t => t.symbol===r.symbol)?.value ?? 0})),{symbol:'Other',value:Math.max(0,point.total-breakdown.slice(0,5).reduce((n,r) => n+(point.tokens.find(t => t.symbol===r.symbol)?.value ?? 0),0))}];
+              return <g key={day} className="activity-day">
+                <rect x={plot.x+i*cell} y={plot.y} width={cell} height={plot.height} fill="transparent"/>
+                {parts.map((part,j) => { const height=part.value/max*plot.height; offset+=height; return <rect key={part.symbol} x={plot.x+i*cell+(cell-barWidth)/2} y={plot.y+plot.height-offset} width={barWidth} height={height} rx={0} fill={colors[j]} opacity={chosen?.day===day?1:.65}/>;})}
+                <foreignObject x={plot.x+i*cell} y={plot.y} width={cell} height={plot.height}><button type="button" className="activity-bar-target" aria-label={`${dateLabel(day)}: ${compact(point.total)}`} aria-pressed={chosen?.day===day} onKeyDown={e => {if(e.key==='Escape') setHovered(null);}} aria-describedby={hovered?.point.day===day ? tooltipId : undefined} onPointerEnter={() => setHovered({point,x:(plot.x+(i+.5)*cell)/10})} onFocus={() => setHovered({point,x:(plot.x+(i+.5)*cell)/10})} onBlur={() => setHovered(null)} onClick={() => {choose(day);setHovered({point,x:(plot.x+(i+.5)*cell)/10});}}><span className="sr-only">{dateLabel(day)}</span></button></foreignObject>
+              </g>;
+            })}
+            <text x={plot.x+cell/2} y={232} textAnchor="middle" className="market-history-axis">{dateLabel(series[0].day)}</text><text x={plot.x+plot.width-cell/2} y={232} textAnchor="middle" className="market-history-axis">{dateLabel(series.at(-1)!.day)}</text>
+          </svg>
+          {hovered && <ActivityTooltip id={tooltipId} point={hovered.point} x={hovered.x} composition />}
+          </div>
+          <div className="activity-mobile-axis" aria-hidden="true"><span style={{left:`${(plot.x+cell/2)/10}%`}}>{dateLabel(series[0].day)}</span><span style={{left:`${(plot.x+plot.width-cell/2)/10}%`}}>{dateLabel(series.at(-1)!.day)}</span></div>
+          <label className="activity-date">Date <select aria-label="Select activity observation" value={chosen?.day ?? today} onChange={e => choose(e.target.value)}>{series.filter(s => s.point).map(s => <option key={s.day} value={s.day}>{dateLabel(s.day)}{s.day===today?' · Latest':''}</option>)}</select></label>
+        </> : <div className="activity-building">{chosen && <div className="activity-plot activity-plot--mix" onPointerLeave={() => setHovered(null)}><div className="activity-current-mix" aria-label="Current volume composition">{breakdown.map((row,i) => {
+          const x = chosen.total ? (breakdown.slice(0,i).reduce((sum,r) => sum+r.value,0)+row.value/2)/chosen.total*100 : 50;
+          const show = () => setHovered({point:chosen,symbol:row.symbol,x});
+          return <button type="button" key={row.symbol} style={{width:`${chosen.total ? row.value/chosen.total*100 : 0}%`,background:colors[i]}} aria-label={`${row.symbol}: ${compact(row.value)}`} onKeyDown={e => {if(e.key==='Escape') setHovered(null);}} aria-describedby={hovered?.symbol===row.symbol ? tooltipId : undefined} onPointerEnter={show} onFocus={show} onBlur={() => setHovered(null)} onClick={show}><span className="sr-only">{row.symbol}</span></button>;
+        })}</div>{hovered && <ActivityTooltip id={tooltipId} point={hovered.point} x={hovered.x} symbol={hovered.symbol}/>}</div>}{status !== 'ready' && <output>{status==='loading' ? 'Loading history…' : 'History temporarily unavailable'}</output>}</div>}
+      </div>
+      <div className="activity-ranking"><div className="activity-ranking-heading"><h4>By token</h4></div>
+        {breakdown.length ? <ol>{breakdown.map((r,i) => <li key={r.symbol}><span className="activity-token"><i aria-hidden="true" style={{background:colors[i]}}/>{r.symbol==='Other' ? 'Other' : <Link href={'/markets/'+r.symbol.toLowerCase()+'?token='+encodeURIComponent(r.symbol)}>{r.symbol}</Link>}</span>{showHistory && <span className="activity-track" aria-hidden="true"><span style={{width:`${chosen!.total ? r.value/chosen!.total*100 : 0}%`,background:colors[i]}}/></span>}<span className="activity-token-value"><strong>{compact(r.value)}</strong><span className="activity-token-share">{chosen!.total ? (r.value/chosen!.total*100).toFixed(1) : '0'}%</span></span></li>)}</ol> : <p className="market-history-note">No reliable volume available.</p>}
+      </div>
+    </div>
+    <footer className="activity-footer"><Link href="/data-methodology#activity">Data &amp; methodology ↗</Link></footer>
+  </section>;
+}
 
-  const end = new Date(now);
-  end.setUTCHours(0, 0, 0, 0);
-  const byDay = new Map(points.map((point) => [point.day, point]));
-  const series = Array.from({ length: days }, (_, index) => {
-    const date = new Date(end.getTime() - (days - index - 1) * 86400000);
-    const day = date.toISOString().slice(0, 10);
-    return { day, point: byDay.get(day) };
-  });
-  const available = series.filter(
-    ({ point }) => point && point[metric] !== null,
-  ).length;
-  const hasTrend = !unavailable && available >= 7;
-  const max = Math.max(
-    1,
-    ...series.map(({ point }) => point?.[metric] ?? 0),
-  );
-  const label = metric === 'volume_24h' ? 'Eligible DEX volume · 24h' : 'Pool liquidity';
-  const plot = { x: 56, y: 18, width: 920, height: 210 };
-  const cell = plot.width / days;
-  return (
-    <section className="market-history-panel" aria-labelledby="market-history-title">
-      <header>
-        <div>
-          <h3 id="market-history-title">Market history</h3>
-        </div>
-        <div className="market-history-controls">
-          <label>
-            <span className="sr-only">Historical metric</span>
-            <select
-              aria-label="Historical metric"
-              value={metric}
-              onChange={(event) => setMetric(event.target.value as typeof metric)}
-            >
-              <option value="volume_24h">DEX volume · 24h</option>
-              <option value="liquidity">Pool liquidity</option>
-            </select>
-          </label>
-          <fieldset aria-label="Historical range">
-            <legend className="sr-only">Historical range</legend>
-            <button type="button" aria-pressed={days === 7} onClick={() => setDays(7)}>7D</button>
-            <button type="button" aria-pressed={days === 30} onClick={() => setDays(30)}>30D</button>
-          </fieldset>
-        </div>
-      </header>
-      {hasTrend ? <div className="market-history-value">
-        <strong>{label}</strong>
-        <span>{available}/{days} days observed</span>
-      </div> : <output className="market-history-empty">
-        <strong>{unavailable ? 'History unavailable' : 'History is building'}</strong>
-        <span>{unavailable ? 'Try again later.' : `${available}/${days} days observed · Trend appears after 7 days.`}</span>
-      </output>}
-      {hasTrend && <div className="market-history-plot">
-        <svg viewBox="0 0 1000 270" aria-label={`${label} over the past ${days} days. ${available} observed days; missing days are gaps.`}>
-          {[0, 0.5, 1].map((fraction) => {
-            const y = plot.y + plot.height * (1 - fraction);
-            return (
-              <g key={fraction}>
-                <line x1={plot.x} x2={plot.x + plot.width} y1={y} y2={y} className="market-history-grid" />
-                <text x={plot.x - 8} y={y + 4} textAnchor="end" className="market-history-axis">{compact(max * fraction)}</text>
-              </g>
-            );
-          })}
-          {series.map(({ day, point }, index) => {
-            const value = point?.[metric];
-            if (value == null) return null;
-            const height = Math.max(value > 0 ? 3 : 0, (value / max) * plot.height);
-            return (
-              <rect
-                key={day}
-                x={plot.x + index * cell + cell * 0.17}
-                y={plot.y + plot.height - height}
-                width={Math.max(2, cell * 0.66)}
-                height={height}
-                rx={Math.min(3, cell * 0.1)}
-                className="market-history-bar"
-              >
-                <title>{day}: {compact(value)} · observed {new Date(point!.observed_at).toLocaleString()}</title>
-              </rect>
-            );
-          })}
-          <text x={plot.x} y={256} className="market-history-axis">{series[0].day}</text>
-          <text x={plot.x + plot.width} y={256} textAnchor="end" className="market-history-axis">{series[series.length - 1].day}</text>
-        </svg>
-      </div>}
-      <details className="market-history-about">
-        <summary>About this chart</summary>
-        <p>Solana only. Each point is a complete daily observation of rolling 24-hour DEX volume or observed pool liquidity. Missing days are gaps, not estimates. Recording requires a fresh, verified pool snapshot.</p>
-      </details>
-    </section>
-  );
+
+export function ActivityTooltip({id, point, x, symbol, composition=false}: {id: string; point: TradingActivity; x: number; symbol?: string; composition?: boolean}) {
+  const rows = activityBreakdown(point);
+  const row = symbol ? rows.find(r => r.symbol===symbol) : null;
+  const full = (value: number) => new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:2}).format(value);
+  return <div id={id} role="tooltip" className="activity-tooltip" style={{left:`clamp(110px, ${x}%, calc(100% - 110px))`}}>
+    <span className="activity-tooltip-date">{dateLabel(point.day)} · UTC</span>
+    <div className="activity-tooltip-total"><span>{row?.symbol ?? '24h volume'}</span><strong>{full(row?.value ?? point.total)}</strong></div>
+    {row && <span className="activity-tooltip-date">{point.total ? (row.value/point.total*100).toFixed(1) : '0'}% of observed volume</span>}
+    {composition && <ul>{rows.map((r,i) => <li key={r.symbol}><span><i style={{background:colors[i]}}/>{r.symbol}</span><strong>{full(r.value)}<small>{point.total ? (r.value/point.total*100).toFixed(1) : '0'}%</small></strong></li>)}</ul>}
+  </div>;
 }

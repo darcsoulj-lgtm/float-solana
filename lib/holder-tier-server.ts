@@ -8,7 +8,6 @@ import { registryTokens, type RegistryStatus } from './token-registry';
 import { marketBatches, readMarketBatch, emptySource } from './market-service';
 import { cachedMarket } from './market-cache';
 import { mergeMarketPages, type MarketOverview } from './market-data';
-import { CMC_REFRESH_MS, fetchTokenMarkets } from './cmc-data';
 import {
   BACKPACK_TICKER_REFRESH_MS,
   fetchBackpackMarkets,
@@ -26,7 +25,7 @@ export async function updateHolderTier(
   database: D1Database,
   memberId: string,
   rpcUrl?: string,
-  cmcKey?: string,
+  _cmcKey?: string,
   registry?: RegistryStatus,
 ): Promise<HolderTierResult> {
   const unavailable: HolderTierResult = { tier: null, expiresAt: 0 };
@@ -51,11 +50,7 @@ export async function updateHolderTier(
       all,
       all.filter((t) => held.has(t.symbol)),
     );
-    const marketsRequest = batches.length
-      ? cachedMarket(database, 'cmc-tokens-v2', CMC_REFRESH_MS, () =>
-          fetchTokenMarkets(cmcKey),
-        )
-      : Promise.resolve(emptySource({}));
+    const marketsRequest = Promise.resolve(emptySource({}));
     const backpackTokens = all.filter((t) => t.issuer === 'backpack');
     const backpackRequest = backpackTokens.some((t) => held.has(t.symbol))
       ? cachedMarket(

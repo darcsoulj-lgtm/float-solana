@@ -1,5 +1,6 @@
 import {
   sqliteTable,
+  primaryKey,
   text,
   integer,
   real,
@@ -194,6 +195,12 @@ export const communityAttachmentDrafts = sqliteTable('community_attachment_draft
   payload: text('payload').notNull(),
   expiresAt: integer('expires_at').notNull(),
 }, t => [index('idx_attachment_drafts_expiry').on(t.expiresAt)]);
+export const communityLikes = sqliteTable('community_likes', {
+  threadId: text('thread_id').notNull().references(() => communityThreads.id, {onDelete:'cascade'}),
+  memberId: text('member_id').notNull().references(() => communityMembers.id, {onDelete:'cascade'}),
+  createdAt: integer('created_at').notNull(),
+}, t => [primaryKey({columns:[t.threadId,t.memberId]})]);
+
 export const communityReplies = sqliteTable(
   'community_replies',
   {

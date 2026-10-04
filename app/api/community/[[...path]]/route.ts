@@ -1,3 +1,4 @@
+import { setThreadLike } from '@/lib/community-likes';
 import { prepareDiscussionAttachment, attachmentForPost } from '@/lib/discussion-attachment-server';
 import {
   readCommunityThreads,
@@ -5,6 +6,7 @@ import {
 } from '@/lib/community-read';
 import { readRooms } from '@/lib/community-rooms';
 import { verifiedRegistry } from '@/lib/registry-server';
+import { communityTokens } from '@/lib/community-eligibility';
 import { readBoundedText } from '@/lib/request-body';
 import { communityHome } from '@/lib/community-home';
 import { updateHolderTier } from '@/lib/holder-tier-server';
@@ -100,7 +102,8 @@ async function handler(req: Request) {
         !/^[a-f0-9-]{36}$/.test(b.flowId) ||
         (b.clientVersion !== undefined &&
           b.clientVersion !== 12 &&
-          b.clientVersion !== 13) ||
+          b.clientVersion !== 13 &&
+          b.clientVersion !== 14) ||
         (b.method !== undefined &&
           (typeof b.method !== 'string' ||
             !['signIn', 'signMessage'].includes(b.method)))
@@ -232,13 +235,13 @@ async function handler(req: Request) {
         runtime().SOLANA_RPC_URL,
         fetch,
         false,
-        (await registry()).tokens,
+        communityTokens((await registry()).tokens),
       );
       if (!holdings.length)
         return json(
           {
             error:
-              'No supported tokenized stocks were found in this wallet. Try another Solana account, or view eligible stocks. No signature is needed.',
+              'No Backpack tokenized stocks were found in this wallet. Try another Solana account, or view eligible stocks. No signature is needed.',
             code: 'NO_SUPPORTED_HOLDINGS',
           },
           403,
@@ -252,7 +255,7 @@ async function handler(req: Request) {
           : undefined;
       const message = signInInput
         ? communitySignInMessage(signInInput)
-        : `Float community membership\nOrigin: ${url.origin}\nWallet: ${wallet}\nAccess: All community topics\nNonce: ${id}\nExpires: ${new Date(expires).toISOString()}\nSign to prove control of this wallet and verify supported tokenized-equity holdings for 24-hour community access. Your wallet address is kept for this session to refresh supported holdings; supported balances are stored privately to show your portfolio and verify access. No transaction or asset transfer is authorized.`;
+        : `Float community membership\nOrigin: ${url.origin}\nWallet: ${wallet}\nAccess: All community topics\nNonce: ${id}\nExpires: ${new Date(expires).toISOString()}\nSign to prove control of this wallet and verify Backpack tokenized-stock holdings for 24-hour community access. Your wallet address is kept for this session to refresh supported holdings; supported balances are stored privately to show your portfolio and verify access. No transaction or asset transfer is authorized.`;
       await db()
         .prepare(
           'INSERT INTO community_challenges (id,wallet,symbol,message,expires_at,consumed,handoff_id) VALUES (?,?,?,?,?,0,?)',
@@ -323,11 +326,11 @@ async function handler(req: Request) {
         runtime().SOLANA_RPC_URL,
         fetch,
         true,
-        (await registry()).tokens,
+        communityTokens((await registry()).tokens),
       );
       if (!holdings.length)
         throw new AppError(
-          'This wallet no longer holds a supported tokenized stock. Please reconnect after checking your holdings.',
+          'This wallet no longer holds a Backpack tokenized stock. Please reconnect after checking your holdings.',
           403,
         );
       const walletHash = await digest('holderpulse-community:' + c.wallet),
@@ -455,7 +458,7 @@ async function handler(req: Request) {
           sourceUrl.protocol !== 'https:' ||
           sourceUrl.username ||
           sourceUrl.password ||
-          !(await registry()).tokens.some((t) => t.symbol === b.symbol) ||
+          !communityTokens((await registry()).tokens).some((t) => t.symbol === b.symbol) ||
           typeof b.active !== 'boolean'
         )
           throw new AppError(
@@ -558,7 +561,7 @@ async function handler(req: Request) {
             db(),
             url,
             viewerId,
-            (await registry()).tokens,
+            communityTokens((await registry()).tokens),
           ),
         );
       if (path[0] === 'threads' && path[1] && path[2] === 'replies' && !path[3])
@@ -591,7 +594,9 @@ async function handler(req: Request) {
         });
       }
     }
-    const member = await communityMember(req);
+    // An authenticated session may recheck eligibility even when its holdings are stale.
+    // This exception only permits the server-owned refresh, never posting or replies.
+    const member = await communityMember(req, true, !(path[0] === 'holdings-refresh' && post));
     if (path[0] === 'holdings-refresh' && post) {
       await rateLimit('holdings-refresh:' + member!.id, 10);
       await communityCleanup();
@@ -602,7 +607,7 @@ async function handler(req: Request) {
           member!.id,
           runtime().SOLANA_RPC_URL,
           b.force === true,
-          (await registry()).tokens,
+          communityTokens((await registry()).tokens),
         ),
       );
     }
@@ -644,7 +649,7 @@ async function handler(req: Request) {
             typeof b.symbol === 'string' &&
             COMMUNITY_CHANNELS.some((channel) => channel.id === b.symbol)
           ) &&
-          !(await registry()).tokens.some((t) => t.symbol === b.symbol) &&
+          !communityTokens((await registry()).tokens).some((t) => t.symbol === b.symbol) &&
           !(
             typeof b.symbol === 'string' &&
             (await db()
@@ -850,6 +855,10 @@ async function handler(req: Request) {
         .first<{ id: string; member_id: string; hidden: number }>();
       if (!thread || thread.hidden)
         throw new AppError('Discussion unavailable.', 404);
+      if (path[2] === 'like' && !path[3] && post) {
+        await rateLimit('community-like:' + member.id, 30);
+        return json(await setThreadLike(db(), member.id, thread.id, b.liked));
+      }
       if (path[2] === 'edit' && post) {
         if (thread.member_id !== member.id)
           throw new AppError('You can only edit your own discussion.', 403);

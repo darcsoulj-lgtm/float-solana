@@ -42,16 +42,14 @@ export const COMMUNITY_CHANNELS = [
     description: 'Manufacturing, infrastructure, transport and aerospace.',
   },
   {
-    id: 'channel-onchain-stocks',
-    name: 'Onchain Stocks',
-    description: 'Issuers, token rights, custody, minting and redemption.',
-  },
-  {
     id: 'channel-off-topic',
     name: 'Off Topic',
     description: 'Everyday conversation, questions, humor and everything else.',
   },
 ] as const;
+export function normalizeCommunityTopic(topic: string) {
+  return topic === 'channel-onchain-stocks' ? 'channel-market-talk' : topic;
+}
 export const communityTopics = (tokens: readonly StockToken[] = TOKENS) => [
   { id: 'all', label: 'All discussions' },
   { id: 'general', label: 'General' },
@@ -110,6 +108,8 @@ export type CommunityThread = CommunityAuthor & {
   updated_at?: number;
   attachment?: import('./discussion-attachments').DiscussionAttachment | null;
   reply_count: number;
+  like_count?: number;
+  liked?: number;
   hidden: number;
   saved: number;
   poll?: CommunityPoll;

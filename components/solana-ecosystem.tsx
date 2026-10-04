@@ -5,13 +5,14 @@ import { HoldingWallets } from './holding-wallets';
 import { MetricInfo } from './metric-info';
 import { OndoPrimaryVolume } from './ondo-primary-volume';
 import { marketTokens } from '@/lib/market-data';
-import { ArrowUpRight, ChevronDown } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { ISSUERS, issuerName, type IssuerId } from '@/lib/tokens';
+import { birdeyeTurnover } from '@/lib/birdeye-volume';
 import { displayPoolActivity, trackedValuation } from '@/lib/token-observation';
 import type { MarketOverview } from '@/lib/market-data';
 import { useId, useState, useSyncExternalStore } from 'react';
 
-type ActivityMetric = 'volume' | 'liquidity' | 'value';
+type ActivityMetric = 'volume' | 'value';
 const metricKey = 'float-issuer-overview-metric';
 const metricEvent = 'float-issuer-overview-metric-change';
 let unsavedMetric: ActivityMetric | null = null;
@@ -20,7 +21,7 @@ function readMetric(): ActivityMetric {
   if (unsavedMetric !== null) return unsavedMetric ?? 'value';
   try {
     const saved = localStorage.getItem(metricKey);
-    return saved === 'volume' || saved === 'liquidity' || saved === 'value'
+    return saved === 'volume' || saved === 'value'
       ? saved : 'value';
   } catch {
     return unsavedMetric ?? 'value';
@@ -52,21 +53,17 @@ const usd = (n: number | null) =>
 function poolTiming(oldest: number | null, newest: number | null) {
   if (!oldest || !newest) return 'No observations available.';
   const format = (value: number) => new Date(value).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-  return `Observed ${format(oldest)}${newest !== oldest ? ` – ${format(newest)}` : ''}. Each volume covers the prior 24 hours. Update times differ; this is not a live total.`;
+  return `Observed ${format(oldest)}${newest !== oldest ? ` – ${format(newest)}` : ''}. Rolling 24h; update times vary.`;
 }
 export function SolanaEcosystem({
   data,
   now,
   onIssuer,
-  select,
-  hasSavedFigures = false,
   issuerScope,
 }: {
   data: MarketOverview | null;
   now: number;
   onIssuer: (id: IssuerId | 'all') => void;
-  select: (symbol: string) => void;
-  hasSavedFigures?: boolean;
   issuerScope?: IssuerId;
 }) {
   const [comparisonOpen, setComparisonOpen] = useState(false);
@@ -81,13 +78,13 @@ export function SolanaEcosystem({
     return {
       ...issuer,
       volume: dashboard.observedVolume24h,
-      liquidity: dashboard.liquidity,
       value:
         coverage.issuers.find((item) => item.id === issuer.id)?.total ?? null,
       pools: dashboard.pools,
-      basis: issuer.id === 'xstocks' ? 'Circulating value' : 'Minted value',
+      basis: issuer.id === 'xstocks' ? 'Circulating supply' : 'Total supply',
     };
   });
+  const turnover = data?.tokenVolumes && issuerScope === 'backpack' ? birdeyeTurnover(data, tokens, now) : null;
   const marketActivity = displayPoolActivity(data, tokens.map((token) => token.symbol), now);
   const activityRows = issuerActivity.sort(
     (a, b) => (b[activityMetric] ?? 0) - (a[activityMetric] ?? 0),
@@ -103,29 +100,22 @@ export function SolanaEcosystem({
         const current = groups[key] ?? {
           name: pool.dex,
           volume: 0,
-          liquidity: 0,
         };
         if (pool.volume24h != null) current.volume += pool.volume24h;
-        if (pool.liquidity != null) current.liquidity += pool.liquidity;
         groups[key] = current;
         return groups;
       },
-      {} as Record<string, { name: string; volume: number; liquidity: number }>,
+      {} as Record<string, { name: string; volume: number }>,
     ),
-  ).sort((a, b) =>
-    activityMetric === 'liquidity'
-      ? b.liquidity - a.liquidity
-      : b.volume - a.volume,
-  );
+  ).sort((a, b) => b.volume - a.volume);
   const dexMax = Math.max(
     1,
-    ...dexActivity.map((dex) =>
-      activityMetric === 'liquidity' ? dex.liquidity : dex.volume,
-    ),
+    ...dexActivity.map((dex) => dex.volume),
   );
-  const leaders = [...coverage.valued]
-    .sort((a, b) => b.value! - a.value!)
-    .slice(0, 5);
+  const valuationTimes = coverage.issuers
+    .filter(issuer => issuer.total !== null && issuer.observedAt != null && issuer.observedAt > 0)
+    .map(issuer => issuer.observedAt!);
+  const oldestValuation = valuationTimes.length ? Math.min(...valuationTimes) : null;
   return (
     <section
       className="ecosystem-overview"
@@ -137,46 +127,43 @@ export function SolanaEcosystem({
       <div className="ecosystem-stats">
         <div>
           <span className="metric-label">
-            <span>Tracked value</span>
-            <MetricInfo label="About tracked value" learnMore="/data-methodology#value">
-              {issuerScope ? 'Estimated price × minted Backpack tokens, including issuer holdings. Not the companies’ market cap.' : 'Estimated value of the Solana tokens we track. Supply rules vary by issuer. This is not the stock companies’ market cap.'}
+            <span>Tokenized value</span>
+            <MetricInfo label="About tokenized value" learnMore="/data-methodology#value">
+              {issuerScope ? 'Estimated value of issued tokens, including issuer holdings.' : 'Estimated tokenized value on Solana. Supply basis varies by issuer.'}
+              <br />{data ? `${coverage.valued.length} / ${coverage.rows.length} tokens included.` : 'Loading coverage.'}
+              {oldestValuation && <><br />Oldest update: {new Date(oldestValuation).toLocaleString()}.</>}
+              {coverage.delayed && <><br />Includes delayed data.</>}
+              {coverage.mixedBases && <><br />Supply basis varies by issuer.</>}
             </MetricInfo>
           </span>
           <strong>{usd(coverage.total)}</strong>
           <small>
-            {coverage.partial ? 'Partial coverage' : issuerScope ? 'Minted token value' : `${coverage.issuerCount}/${ISSUERS.length} issuers`}
+            {coverage.delayed ? (coverage.partial ? 'Partial · delayed update' : 'Delayed update') : coverage.partial ? 'Partial coverage' : issuerScope ? '' : `${coverage.issuerCount}/${ISSUERS.length} issuers`}
           </small>
         </div>
-        {issuerScope && <HoldingWallets issuer={issuerScope} compact />}
+        {issuerScope && <HoldingWallets issuer={issuerScope} compact expectedTokens={data ? tokens.length : undefined} />}
         <div>
           <span className="metric-label">
-            <span>Observed DEX volume · 24h</span>
+            <span>24h volume</span>
             <MetricInfo label="About market volume" learnMore="/data-methodology#pools">
-              Observed 24-hour volume from verified pools, counted once. Unresolved pools are excluded; this is not complete DEX coverage.
+              {turnover ? <>Birdeye DEX token volume. Trades between tracked tokens may count twice.<br />{turnover.covered} / {turnover.count} tokens included. Refreshed approximately every {data!.tokenVolumes!.intervalMs / 3600000} hours.<br />Oldest observation: {turnover.oldestAt ? new Date(turnover.oldestAt).toLocaleString() : 'Unavailable'}.</> : <>24-hour volume from verified DEX pools, counted once. Coverage may be incomplete.
+              <br />{poolTiming(marketActivity.oldestAt, marketActivity.newestAt)}
+              {data && <><br />{marketActivity.observedCount} / {marketActivity.knownCount} known pools included; {marketActivity.missingTokenCount} markets without observations.</>}
+              {marketActivity.saved && <><br />Includes saved observations.</>}</>}
             </MetricInfo>
           </span>
-          <strong>{usd(marketActivity.observedVolume24h)}</strong>
-          {data && marketActivity.partial && <small><Link href="/data-methodology#pools">Incomplete coverage</Link></small>}
+          <strong>{usd(turnover ? turnover.total : marketActivity.observedVolume24h)}</strong>
+          {turnover && <small>{turnover.covered < turnover.count ? `${turnover.covered} / ${turnover.count} tokens · ` : ''}{turnover.delayed ? 'Delayed update' : 'Periodic snapshot'}</small>}
+          {!turnover && data && marketActivity.partial && <small><Link href="/data-methodology#pools">Incomplete coverage</Link></small>}
         </div>
         <div>
           <span className="metric-label">
-            <span>Pool liquidity</span>
-            <MetricInfo label="About market liquidity" learnMore="/data-methodology#pools">
-              Value of tokens in tracked trading pools. Coverage is partial; this is not a guaranteed sell amount.
-            </MetricInfo>
+            <span>Tracked tokens</span>
+            <MetricInfo label="About tracked tokens" learnMore="/data-methodology#prices">Verified listings. New supported tokens are added automatically.</MetricInfo>
           </span>
-          <strong>{usd(marketActivity.liquidity)}</strong>
+          <strong>{data ? tokens.length.toLocaleString() : '—'}</strong>
+          {!issuerScope && <small>{new Set(tokens.map((t) => t.underlyingSymbol)).size.toLocaleString()} assets</small>}
         </div>
-        {!issuerScope && <div>
-          <span>Tracked tokens</span>
-          <strong>{tokens.length.toLocaleString()}</strong>
-          <small>
-            {new Set(
-              tokens.map((t) => t.underlyingSymbol),
-            ).size.toLocaleString()}{' '}
-            assets
-          </small>
-        </div>}
       </div>
 
 
@@ -200,13 +187,12 @@ export function SolanaEcosystem({
               value={activityMetric}
               onChange={(event) =>
                 setActivityMetric(
-                  event.target.value as 'volume' | 'liquidity' | 'value',
+                  event.target.value as ActivityMetric,
                 )
               }
             >
-              <option value="value">Tracked value</option>
+              <option value="value">Tokenized value</option>
               <option value="volume">Tracked pool volume · 24h</option>
-              <option value="liquidity">Pool liquidity</option>
             </select>
           </label>
         </header>
@@ -243,14 +229,14 @@ export function SolanaEcosystem({
             <>
               Mixed supply bases{' '}
               <MetricInfo label="About issuer values" learnMore="/data-methodology#value">
-                Supply rules vary by issuer, so these estimates are not directly comparable.
+                Supply basis varies by issuer.
               </MetricInfo>
             </>
           ) : (
             <>
               Observed DEX pool coverage · partial{' '}
               <MetricInfo label="About issuer activity" learnMore="/data-methodology#pools">
-                Tracked pools only. Shared pools can appear under two issuers—do not add these totals together.
+                Tracked pools only. Shared pools can appear in both issuer totals.
               </MetricInfo>
             </>
           )}
@@ -260,8 +246,7 @@ export function SolanaEcosystem({
             <summary>View DEX breakdown</summary>
             <h4>DEX activity</h4>
             {dexActivity.slice(0, 5).map((dex) => {
-              const value =
-                activityMetric === 'liquidity' ? dex.liquidity : dex.volume;
+              const value = dex.volume;
               return (
                 <div className="market-dex-row" key={dex.name}>
                   <span>{dex.name}</span>
@@ -281,73 +266,6 @@ export function SolanaEcosystem({
         )}
       </section>
       </>}
-      <details className="market-methodology coverage-diagnostics">
-        <summary>Current coverage</summary>
-        <p>{poolTiming(marketActivity.oldestAt, marketActivity.newestAt)}</p>
-        {(hasSavedFigures || marketActivity.saved || coverage.delayed) && <p>Some figures use saved data. <Link href="/data-methodology#updates">Update rules →</Link></p>}
-        <p>
-          <strong>Tracked value: {usd(coverage.total)}</strong> ·{' '}
-          {issuerScope ? `${coverage.valued.length} / ${tokens.length} tokens valued` : `${coverage.issuerCount} / ${visibleIssuers.length} issuers`}
-          {coverage.partial && ' · Partial coverage'}
-          {coverage.delayed && ' · Includes delayed data'}
-          {coverage.mixedBases && ' · Mixed supply bases'}
-        </p>
-        <div className="market-table-scroll">
-          <table className="market-table">
-            <caption className="sr-only">Valuation coverage by issuer</caption>
-            <thead>
-              <tr>
-                <th>Issuer</th>
-                <th>Value</th>
-                <th>Basis</th>
-                <th>Valued</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {coverage.issuers.map((c) => {
-                return (
-                  <tr key={c.id}>
-                    <th scope="row">{c.name}</th>
-                    <td>{usd(c.total)}</td>
-                    <td>{c.label}</td>
-                    <td>
-                      {c.valued.length} / {c.rows.length}
-                    </td>
-                    <td>
-                      {c.total === null
-                        ? 'Unavailable'
-                        : c.delayed
-                        ? `Checked ${new Date(c.observedAt!).toLocaleString()}`
-                          : c.valued.some((r) => r.priceDelayed)
-                          ? 'Includes older prices'
-                            : 'Recently checked'}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        <h3>Largest tracked values</h3>
-        {leaders.map((r) => (
-          <button
-            key={r.symbol}
-            type="button"
-            className="ecosystem-rank"
-            onClick={() => {
-              onIssuer('all');
-              select(r.symbol);
-            }}
-          >
-            <b>{r.symbol}</b>
-            <strong>{usd(r.value)}</strong>
-            <ArrowUpRight size={15} />
-          </button>
-        ))}
-        {!leaders.length && <p>Waiting for current prices and supply.</p>}
-        <Link href="/data-methodology#value">How tracked value is calculated →</Link>
-      </details>
     </section>
   );
 }

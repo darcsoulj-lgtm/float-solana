@@ -15,6 +15,7 @@ type SignFeature = {
 };
 type PublicKey = { toString(): string; toBytes(): Uint8Array };
 type PhantomProvider = {
+  signTransaction?: (transaction: import('@solana/web3.js').VersionedTransaction) => Promise<import('@solana/web3.js').VersionedTransaction>;
   isPhantom?: boolean;
   isBackpack?: boolean;
   publicKey?: PublicKey | null;
@@ -372,7 +373,7 @@ export function phantomWallet(providers: WalletProviders = browserProviders()) {
   const p = nativePhantom(providers);
   if (!p)
     throw new Error(
-      'Phantom’s dedicated Solana connection is unavailable or conflicts with another extension. No other wallet was opened. Reload this page with Phantom enabled.',
+      'Phantom is unavailable in this browser. On mobile, open Float in the Phantom app’s browser. On desktop, enable the Phantom extension and reload.',
     );
   // Do not call the registered wallet's signing wrapper or a shared provider.
   // Capture native transports; community authentication uses the separate SIWS method.
@@ -482,6 +483,20 @@ export function phantomWallet(providers: WalletProviders = browserProviders()) {
           'Phantom returned a signature for a different account or message. Verification was stopped.',
         );
       return signature;
+    },
+    async signTransaction(base64: string, expectedAddress: string) {
+      requireUnchanged();
+      if(address!==expectedAddress||typeof p.signTransaction!=='function')
+        throw new Error('Connect the same Phantom account to continue.');
+      const {VersionedTransaction}=await import('@solana/web3.js');
+      const transaction=VersionedTransaction.deserialize(Uint8Array.from(atob(base64),c=>c.charCodeAt(0)));
+      requireUnchanged();
+      const expectedMessage=new Uint8Array(transaction.message.serialize());
+      const signed=await p.signTransaction(transaction);
+      requireUnchanged();
+      if(!equalBytes(signed.message.serialize(),expectedMessage)||signed.signatures.length!==1||!ed25519.verify(signed.signatures[0],expectedMessage,publicKey!,{zip215:false}))
+        throw new Error('Phantom returned a different or invalid transaction. Nothing was submitted by Float.');
+      return btoa(String.fromCharCode(...signed.serialize()));
     },
     async signIn(input: CommunitySignInInput, message: Uint8Array) {
       requireSignIn();

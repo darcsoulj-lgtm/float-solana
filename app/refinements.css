@@ -1386,3 +1386,21 @@ fieldset.holding-filter-chips {
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
+.market-volume-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+.market-volume-value .holdings-info-trigger { flex-shrink: 0; }
+
+.market-reference-note { color: var(--muted-foreground, #6b7280); font-size: .8125rem; line-height: 1.5; margin: 0 0 .75rem; }
+.market-reference-note a { color: inherit; white-space: nowrap; }
+.market-pools > summary { cursor: pointer; font-weight: 500; }
+.market-pools > summary span { color: var(--muted-foreground); font-size: .8125rem; font-weight: 400; margin-left: .5rem; }
+.market-pools:not([open]) { padding-block: 16px; }
+.community-read-status { color: var(--muted-foreground); font-size: .875rem; line-height: 1.5; margin-bottom: 1rem; }
+@media (max-width: 700px) {
+  .activity-mobile-axis { display: block; position: relative; height: 18px; }
+  .activity-mobile-axis > span { position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; }
+}

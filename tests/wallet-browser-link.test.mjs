@@ -83,3 +83,18 @@ void test('mobile detection covers phones, Android and touch iPads', () => {
   assert.equal(isMobileBrowser('Mozilla/5.0', 'MacIntel', 5), true);
   assert.equal(isMobileBrowser('Mozilla/5.0', 'MacIntel', 0), false);
 });
+
+void test('completed transfers remain available for return navigation but cannot authenticate another wallet', async () => {
+  const { activeWalletReturnContext, clearWalletReturn, walletConnectionUrl } = await import('../lib/wallet-handoff.ts');
+  const id = '85e158b6-5f36-4732-983c-54dd80d9a4ef';
+  const url = `https://float.example/wallet/connect/${id}?float_wallet=backpack&float_handoff=${id}&join=1&view=home`;
+  const values = new Map([[WALLET_RETURN_KEY, JSON.stringify({id, completed:true, expiresAt:10000})]]);
+  const storage = { getItem:k=>values.get(k)||null, setItem:(k,v)=>values.set(k,v), removeItem:k=>values.delete(k) };
+  assert.equal(activeWalletReturnContext(storage,url,1000),null);
+  assert.equal(walletReturnContext(storage,url,1000).completed,true);
+  const clean = clearWalletReturn(storage,url);
+  assert.equal(clean,'/?float_wallet=backpack&view=home');
+  assert.equal(values.has(WALLET_RETURN_KEY),false);
+  assert.equal(activeWalletReturnContext(storage,'https://float.example'+clean,2000).id,null);
+  assert.equal(walletConnectionUrl('https://float.example/markets/MU?token=MU&float_handoff='+id+'&join=1#price'),'/markets/MU?token=MU#price');
+});

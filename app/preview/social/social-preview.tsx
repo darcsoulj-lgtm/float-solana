@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import Link from '@/components/site-link';
 import { ChartNoAxesCombined, ChartPie, MessageCircle, Bookmark, X } from 'lucide-react';
-import { BackpackChartCard } from './backpack-chart-card';
+import { BackpackChartCard } from '@/components/backpack-chart-card';
+import { DiscussionAttachment } from '@/components/discussion-attachment';
 import type { BackpackChart } from '@/lib/backpack-charts';
 
 
@@ -17,17 +18,11 @@ const allocation = [
 
 
 function PortfolioCard() {
-  return <section className="sp-attachment" aria-label="Example portfolio allocation">
-    <div className="sp-card-heading"><div><strong>Portfolio snapshot</strong><p>Selected Backpack holdings</p></div><span className="sp-tag">Example</span></div>
-    <div className="sp-allocation" aria-label="Example allocation: MU 50%, NOK 30%, SKHY 20%">{allocation.map(item => <span key={item.symbol} style={{ width: `${item.percent}%`, background: item.color }} />)}</div>
-    {allocation.map(item => <div className="sp-allocation-row" key={item.symbol}><span><i style={{ background: item.color }} /><strong>{item.symbol}</strong><span className="sp-company">{item.name}</span></span><strong>{item.percent}%</strong></div>)}
-    <p className="sp-footnote">Illustrative percentages · not your wallet</p>
-    <details><summary>What would be shared?</summary><p>Only selected tokens and their allocation percentages at posting time. No wallet address, token quantities, or dollar balance. Real sharing will require verified balances, compatible prices, and your approval.</p></details>
-  </section>;
+  return <><p className="sp-footnote">Example allocation · not your wallet</p><DiscussionAttachment attachment={{kind:'portfolio',version:1,checkedAt:1790748000000,pricesAt:1790747940000,rows:allocation}} /></>;
 }
 
 function AttachmentCard({ type, period, chart, error }: { type: Attachment; period: number; chart?: BackpackChart; error?: string }) {
-  return type === 'chart' ? <BackpackChartCard chart={chart} period={period} error={error} /> : <PortfolioCard />;
+  return type === 'chart' ? <div className="discussion-attachment"><BackpackChartCard chart={chart} period={period} error={error} /></div> : <PortfolioCard />;
 }
 
 export function SocialPreview() {
@@ -74,7 +69,7 @@ export function SocialPreview() {
     <div className="sp-preview-note"><span>LOCAL DESIGN PREVIEW</span><Link href="/markets">Back to markets ↗</Link></div>
     <h1>Ideas, with context.</h1>
     <p className="sp-intro">A chart for your thesis. A snapshot of your allocation.</p>
-    <p className="sp-disclosure">Charts from Backpack. Example portfolios. Nothing here is published or connected to your wallet.</p>
+    <p className="sp-disclosure">Example posts and portfolios stay in this preview. Trading, when enabled, uses real tokens and requires your wallet approval.</p>
     <div className="sp-layout"><section className="sp-feed" aria-label="Discussion preview">
       <div className="sp-composer">
         <label htmlFor="sp-text">Try a post</label>

@@ -8,12 +8,12 @@ export function publicationIssues(expected, text, headers, now=Date.now()) {
   if(/"(?:wallet(?:Address|Hash)|session[^"\\]*|private[^"\\]*)"\s*:/i.test(text))issues.push('Private field in public market');
   let market;try{market=JSON.parse(text);}catch{return [...issues,'Public market JSON is invalid'];}
   if(!market?.pools?.data)return [...issues,'Public pool observations unavailable'];
-  const references=Object.values(market.backpack?.data??{});
-  const validHistorical=row=>row.externalBasis==='hourly-history'&&Number.isFinite(row.externalPrice)&&row.externalPrice>0&&Number.isSafeInteger(row.externalObservedAt)&&row.externalObservedAt<=now&&now-row.externalObservedAt<=96*3600000;
-  if(market.backpack?.data&&!references.some(row=>Number.isFinite(row.externalPrice)&&row.externalPrice>0))issues.push('No usable Backpack reference prices');
+  const references = Object.values(market.backpack?.data??{});
+  const validHistorical = row => row.externalBasis==='hourly-history' && Number.isFinite(row.externalPrice) && row.externalPrice>0 && Number.isSafeInteger(row.externalObservedAt) && row.externalObservedAt<=now && now-row.externalObservedAt<=96*3600000;
+  if(market.backpack?.data && !references.some(row=>Number.isFinite(row.externalPrice)&&row.externalPrice>0))issues.push('No usable Backpack reference prices');
   for(const name of ['backpack','catalog']){
     const time=market[name]?.fetchedAt;
-    if((!Number.isSafeInteger(time)||time>now+60000||now-time>15*60000)&&!(name==='backpack'&&references.length&&references.every(validHistorical)))issues.push(name+' collection is not fresh');
+    if((!Number.isSafeInteger(time)||time>now+60000||now-time>15*60000) && !(name==='backpack'&&references.length&&references.every(validHistorical)))issues.push(name+' collection is not fresh');
   }
   // Verify percentage semantics independently of the provider adapter. A fresh
   // timestamp and a successful pool import cannot hide a 100x unit regression.

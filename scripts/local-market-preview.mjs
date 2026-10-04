@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 // Development-only, read-only bridge. Never forwards cookies or private endpoints.
 export function localMarketPreview() {
   const cache = new Map();
@@ -7,7 +8,21 @@ export function localMarketPreview() {
     configureServer(server) {
       server.middlewares.use(async (req, res, next) => {
         const url = new URL(req.url || '/', 'http://localhost');
-        if (req.method !== 'GET' || !['/api/market-data', '/api/backpack-market', '/api/issuer-holders'].includes(url.pathname)) return next();
+        if (req.method !== 'GET' || !['/api/market-data', '/api/backpack-market', '/api/issuer-holders', '/api/trading-activity'].includes(url.pathname)) return next();
+        if (url.pathname === '/api/trading-activity' && process.env.FLOAT_LOCAL_ACTIVITY_FILE) {
+          try {
+            const body = await readFile(process.env.FLOAT_LOCAL_ACTIVITY_FILE, 'utf8'); JSON.parse(body);
+            res.setHeader('Content-Type','application/json'); res.setHeader('Cache-Control','no-store'); return res.end(body);
+          } catch { res.statusCode=503; return res.end('{"error":"Local activity snapshot unavailable"}'); }
+        }
+        if (process.env.FLOAT_LOCAL_MARKET_FILE && ['/api/market-data', '/api/backpack-market'].includes(url.pathname)) {
+          try {
+            const body = await readFile(process.env.FLOAT_LOCAL_MARKET_FILE, 'utf8');
+            JSON.parse(body);
+            res.setHeader('Content-Type', 'application/json'); res.setHeader('Cache-Control', 'no-store');
+            return res.end(body);
+          } catch { res.statusCode = 503; return res.end('{"error":"Local market snapshot unavailable"}'); }
+        }
         const key = url.pathname + url.search;
         try {
           let saved = cache.get(key);

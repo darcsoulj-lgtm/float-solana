@@ -1,4 +1,8 @@
+import { backpackHistoryKey, overlayBackpackHistory, retainBackpackReferences } from './backpack-reference';
+import { birdeyeVolumeEnabled } from './birdeye-volume-server';
+import { birdeyeVolumeKey, readBirdeyeVolumes, birdeyeVolumeInterval } from './birdeye-volume';
 import { poolObservationKey } from './pool-inventory';
+import { supplyObservationKey } from './market-source-observations';
 import { marketCacheRows, marketSnapshot, cachedMarket, type CacheRow } from './market-cache';
 import { marketBatches, readMarketBatch, emptySource } from './market-service';
 import { tokenBatchKey } from './backpack-registry';
@@ -10,7 +14,7 @@ import {
   fetchCatalog, fetchBackpackMarkets, normalizeBackpackChanges, mergeMarketPages,
 } from './market-data';
 
-export type MarketEnvironment = { DB: D1Database; SOLANA_RPC_URL?: string; CMC_API_KEY?: string };
+export type MarketEnvironment = { DB: D1Database; SOLANA_RPC_URL?: string; CMC_API_KEY?: string; BIRDEYE_API_KEY?: string; BIRDEYE_VOLUME_ENABLED?: string; BIRDEYE_VOLUME_BUDGET_CU?: string; BIRDEYE_COMPARISON_ENABLED?: string };
 export const marketPartitions = (tokens: readonly StockToken[]) =>
   Array.from({ length: Math.ceil(tokens.length / MARKET_BATCH_SIZE) }, (_, index) =>
     tokens.slice(index * MARKET_BATCH_SIZE, (index + 1) * MARKET_BATCH_SIZE));
@@ -31,7 +35,7 @@ export async function readMarketGlobals(
   saved?: Map<string, CacheRow>,
 ) {
   const keys = await marketGlobalKeys(tokens);
-  const rows = saved ?? await marketCacheRows(env.DB, Object.values(keys));
+  const rows = saved ?? await marketCacheRows(env.DB, [...Object.values(keys), ...tokens.filter(t => t.issuer === 'backpack').map(t => backpackHistoryKey(t.mint))]);
   const read = <T>(key: string, ttl: number, loader: () => Promise<T>, maxAge = Math.max(ttl, MARKET_MAX_AGE_MS)) =>
     cacheOnly
       ? marketSnapshot(env.DB, key, ttl, loader, () => {}, Date.now(), maxAge, rows.get(key) ?? null, false)
@@ -39,8 +43,12 @@ export async function readMarketGlobals(
   const backpackTokens = tokens.filter((t) => t.issuer === 'backpack');
   // Sequential provider jobs avoid a burst of unrelated requests on every visit.
   const catalog = await read(keys.catalog, 300000, () => fetchCatalog(fetch, backpackTokens));
-  const savedBackpack = await read(keys.backpack, BACKPACK_TICKER_REFRESH_MS, () => fetchBackpackMarkets(fetch, backpackTokens));
-  const backpack = { ...savedBackpack, data: savedBackpack.data ? normalizeBackpackChanges(savedBackpack.data) : null };
+  const savedBackpack = await read(keys.backpack, BACKPACK_TICKER_REFRESH_MS, async () => {
+    const fresh = await fetchBackpackMarkets(fetch, backpackTokens);
+    const old = rows.get(keys.backpack);
+    return retainBackpackReferences(fresh, {data: old?.payload ? normalizeBackpackChanges(JSON.parse(old.payload)) : null, fetchedAt: old?.fetched_at ?? null, stale: true, error: null}, Date.now());
+  });
+  const backpack = overlayBackpackHistory({ ...savedBackpack, data: savedBackpack.data ? normalizeBackpackChanges(savedBackpack.data) : null }, backpackTokens, rows);
   return { catalog, markets: emptySource({}), backpack };
 }
 
@@ -59,7 +67,9 @@ export async function readMarketOverview(
     return ['llama-prices-v3:', 'solana-supplies-v4:', 'llama-history-v1:', `dex-pools-${POOL_POLICY_VERSION}:`]
       .map((prefix) => prefix + suffix);
   }))).flat();
-  keys.push(...Object.values(await marketGlobalKeys(tokens)), ...selected.filter(t => t.issuer === 'backpack').map(poolObservationKey));
+  keys.push(...Object.values(await marketGlobalKeys(tokens)), ...selected.filter(t => t.issuer === 'backpack').flatMap(t => [poolObservationKey(t), supplyObservationKey(t), backpackHistoryKey(t.mint)]));
+  const volumeEnabled = birdeyeVolumeEnabled(env);
+  if (volumeEnabled) keys.push(...selected.filter(t => t.issuer === 'backpack').map(t => birdeyeVolumeKey(t.mint)));
   const saved = await marketCacheRows(env.DB, keys);
   const [pages, globals] = await Promise.all([
     Promise.all(partitions.map(async (batch) => ({
@@ -68,7 +78,10 @@ export async function readMarketOverview(
     }))),
     readMarketGlobals(env, tokens, true, saved),
   ]);
-  const overview = { ...mergeMarketPages(pages, true), ...globals, registry, totalBatches: partitions.length };
+  const overview = { ...mergeMarketPages(pages, true), ...globals, registry, totalBatches: partitions.length,
+    ...(volumeEnabled && env.BIRDEYE_COMPARISON_ENABLED === '1' ? { issuerComparisonEnabled: true } : {}),
+    ...(volumeEnabled ? { tokenVolumes: readBirdeyeVolumes(selected, saved, birdeyeVolumeInterval(selected.filter(t => t.issuer === 'backpack').length, Number(env.BIRDEYE_VOLUME_BUDGET_CU)), Date.now()) } : {}),
+  };
   return scope ? backpackOverview(overview, selected) : overview;
 }
 
@@ -81,6 +94,8 @@ function backpackOverview(data: import('./market-data').MarketOverview, tokens: 
   }
   return {
     registry: data.registry, totalBatches: data.totalBatches,
+    ...(data.issuerComparisonEnabled ? { issuerComparisonEnabled: true } : {}),
+    ...(data.tokenVolumes ? { tokenVolumes: data.tokenVolumes } : {}),
     prices: source(data.prices), supplies: source(data.supplies), pools: source(data.pools), markets: source(data.markets),
     ...(data.history ? { history: source(data.history) } : {}),
     ...(data.backpack ? { backpack: source(data.backpack) } : {}),

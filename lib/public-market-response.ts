@@ -4,9 +4,10 @@ export async function publicMarketResponse(
   load: () => Promise<unknown>,
   cache: Pick<Cache, 'match' | 'put'>,
   defer: (work: Promise<unknown>) => void,
+  options: { path?: string; maxAgeSeconds?: number; rawJson?: boolean } = {},
 ) {
   // Ignore cookies, query strings and arbitrary headers in the cache identity.
-  const key = new Request(new URL('/api/backpack-market?schema=3', request.url).toString());
+  const key = new Request(new URL(options.path ?? '/api/backpack-market?schema=4', request.url).toString());
   let cached: Response | undefined;
   try { cached = await cache.match(key); } catch { /* Cache failure falls back to D1. */ }
   if (cached) {
@@ -18,11 +19,14 @@ export async function publicMarketResponse(
     return response;
   }
   const data = await load();
-  const response = Response.json(data, {headers: {
-    'Cache-Control': 'public, max-age=30',
+  if(options.rawJson && typeof data!=='string')throw Error('Expected a prepared public JSON snapshot');
+  const init={headers: {
+    'Cache-Control': `public, max-age=${options.maxAgeSeconds ?? 30}`,
     'X-Content-Type-Options': 'nosniff',
     'X-Float-Cache': 'MISS',
-  }});
+    'Content-Type':'application/json; charset=utf-8',
+  }};
+  const response=options.rawJson ? new Response(data as string,init) : Response.json(data,init);
   defer(cache.put(key, response.clone()).catch(() => {}));
   response.headers.set('Cache-Control', 'no-store');
   return response;

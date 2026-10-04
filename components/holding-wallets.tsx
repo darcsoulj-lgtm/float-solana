@@ -1,8 +1,7 @@
 'use client';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { ChevronDown } from 'lucide-react';
-import initial from '@/public/data/issuer-holders.json';
-import { parseHolderSnapshot, retainHolderSnapshot } from '@/lib/issuer-holders';
+import { retainHolderSnapshot, type HoldingWallets as HolderObservation } from '@/lib/issuer-holders';
 import { issuerName, type IssuerId } from '@/lib/tokens';
 import { parseHolderHistory, holderTrend, type HolderPoint } from '@/lib/holder-history';
 import { HolderTrend } from './holder-trend';
@@ -16,10 +15,10 @@ const subscribeClock = (notify: () => void) => {
 const readClock = () => Math.floor(Date.now() / 60000) * 60000;
 const serverClock = () => null;
 
-export function HoldingWallets({ issuer, compact = false }: { issuer?: IssuerId; compact?: boolean }) {
+export function HoldingWallets({ issuer, compact = false, expectedTokens }: { issuer?: IssuerId; compact?: boolean; expectedTokens?: number }) {
   const now = useSyncExternalStore(subscribeClock, readClock, serverClock);
   const [history, setHistory] = useState<HolderPoint[]>([]);
-  const [rows, setRows] = useState(() => parseHolderSnapshot(initial));
+  const [rows, setRows] = useState<HolderObservation[] | null>(null);
   useEffect(() => {
     const controller = new AbortController();
     async function load() {
@@ -49,14 +48,14 @@ export function HoldingWallets({ issuer, compact = false }: { issuer?: IssuerId;
     const row = visible[0];
     return <div className="holding-wallets-metric">
       <span className="metric-label"><span>Holding wallets</span><MetricInfo label="How holding wallets are counted" learnMore="/data-methodology#wallets">
-        Each wallet holding a tracked Backpack token counts once. Includes exchange, pool and issuer wallets. Wallets are not people.
+        Wallets holding tracked tokens, counted once. Includes pools and exchanges; wallets are not people.
       </MetricInfo></span>
       <strong>{row ? row.wallets.toLocaleString('en-US') : '—'}</strong>
       {row ? <details className="wallet-metric-details">
-        <summary>{now !== null && now - row.checkedAt > 48 * 3600000 ? 'Update overdue' : relative}<ChevronDown size={14} aria-hidden="true" /></summary>
+        <summary>{expectedTokens !== undefined && row.tokens !== expectedTokens ? 'Updating coverage' : now !== null && now - row.checkedAt >= 24 * 3600000 ? 'Update overdue' : relative}<ChevronDown size={14} aria-hidden="true" /></summary>
         <div className="wallet-metric-expanded">
           <p><time dateTime={new Date(row.checkedAt).toISOString()}>{exactTime(row.checkedAt)}</time></p>
-          <p>{row.tokens.toLocaleString('en-US')} tokens counted. Checked daily; the last successful count stays visible if a refresh fails.</p>
+          <p>{row.tokens.toLocaleString('en-US')} tokens counted. Updated daily and after new listings. The last successful count stays visible while updating.</p>
           {holderTrend(history, row) ? <HolderTrend history={history} row={row} /> : <p>A trend appears after seven comparable daily observations.</p>}
         </div>
       </details> : <small>No count available</small>}
@@ -64,7 +63,7 @@ export function HoldingWallets({ issuer, compact = false }: { issuer?: IssuerId;
   }
   return <section className="market-activity-panel holding-wallets-panel" aria-label="Holding wallets">
     <header><h3>Holding wallets</h3><MetricInfo label="How holding wallets are counted" learnMore="/data-methodology#wallets">
-      {issuer ? 'Each wallet holding a tracked Backpack token counts once. Wallets are not people; exchange and pool wallets are included.' : 'Wallets with tracked tokens, counted once per issuer. Includes exchange, pool and issuer wallets.'}
+      {issuer ? 'Wallets holding tracked tokens, counted once. Includes pools and exchanges; wallets are not people.' : 'Wallets with tracked tokens, counted once per issuer. Includes pools and exchanges.'}
     </MetricInfo></header>
     <div className="holding-wallets-grid">
       {visible.map(row => <div key={row.issuer}>
@@ -72,7 +71,7 @@ export function HoldingWallets({ issuer, compact = false }: { issuer?: IssuerId;
         <strong>{row.wallets.toLocaleString('en-US')}</strong>
         <small>{row.tokens.toLocaleString('en-US')} tracked tokens</small>
         <HolderTrend history={history} row={row} />
-        {now !== null && now - row.checkedAt > 48 * 3600000 && <small className="holding-wallets-stale">Update overdue</small>}
+        {now !== null && now - row.checkedAt >= 24 * 3600000 && <small className="holding-wallets-stale">Update overdue</small>}
       </div>)}
     </div>
     <details className="holding-wallets-updates">

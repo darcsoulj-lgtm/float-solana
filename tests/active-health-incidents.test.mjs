@@ -1,0 +1,28 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createRequire} from 'node:module';
+import {readFile} from 'node:fs/promises';
+import {DatabaseSync} from 'node:sqlite';
+import {root} from './helpers/bundle.mjs';
+const require=createRequire(import.meta.url),{build}=createRequire(require.resolve('wrangler/package.json'))('esbuild');
+const fixture=`export const healthFixture={issues:[]};export async function checkActiveMarketHealth(){return healthFixture;}`;
+const {outputFiles}=await build({stdin:{contents:`export {checkMarketWorkHealth} from './lib/market-work-health';export {healthFixture} from './lib/market-active-health';`,resolveDir:root,loader:'ts'},bundle:true,platform:'node',format:'esm',write:false,plugins:[{name:'cache-health-fixture',setup(b){b.onResolve({filter:/market-active-health$/},()=>({path:'active',namespace:'fixture'}));b.onLoad({filter:/.*/,namespace:'fixture'},()=>({contents:fixture,loader:'js'}));}}]});
+const api=await import('data:text/javascript;base64,'+Buffer.from(outputFiles[0].text).toString('base64'));
+void test('active production incidents open once, retain alert state while failing, recover and reopen with a new delivery identity',async()=>{
+ const raw=new DatabaseSync(':memory:');raw.exec(await readFile('drizzle/0021_market_work.sql','utf8'));
+ const db={prepare(sql){return{args:[],bind(...args){this.args=args;return this;},async first(){return raw.prepare(sql).get(...this.args)??null;},async all(){return{results:raw.prepare(sql).all(...this.args)};},async run(){return raw.prepare(sql).run(...this.args);},sql};},async batch(statements){return statements.map(s=>({results:raw.prepare(s.sql).all(...s.args)}));}};
+ const now=Date.now(),events=[];const env={DB:db,MARKET_COLLECTION_SOURCE:'github',MARKET_ALERT:{async notify(e){events.push(e);}}};
+ api.healthFixture.issues=[{source:'reference-history',code:'history_collection_overdue',affected:4}];
+ await api.checkMarketWorkHealth(env,now);await api.checkMarketWorkHealth(env,now+1000);assert.equal(events.length,1);assert.equal(events[0].state,'failure');
+ assert.equal(raw.prepare('SELECT COUNT(*) n FROM market_incidents WHERE recovered_at IS NULL').get().n,1);
+ api.healthFixture.issues=[];await api.checkMarketWorkHealth(env,now+2000);await api.checkMarketWorkHealth(env,now+3000);assert.equal(events.length,2);assert.equal(events[1].state,'recovery');
+ api.healthFixture.issues=[{source:'reference-history',code:'history_collection_overdue',affected:2}];await api.checkMarketWorkHealth(env,now+4000);assert.equal(events.length,3);assert.notEqual(events[0].id,events[2].id);
+ api.healthFixture.issues=[];raw.close();
+});
+void test('disabled queue-era work cannot create false active collector incidents',async()=>{
+ const raw=new DatabaseSync(':memory:');raw.exec(await readFile('drizzle/0021_market_work.sql','utf8'));
+ const now=Date.now();raw.prepare('INSERT INTO market_work(id,lane,payload,scope,interval_ms,due_at) VALUES (?,?,?,?,?,?)').run('legacy-reference','references','{}','old',60000,now-3600000);
+ raw.prepare('INSERT INTO market_incidents(id,code,opened_at,updated_at) VALUES (?,?,?,?)').run('legacy-reference','source_overdue',now-3600000,now-3600000);
+ const db={prepare(sql){return{args:[],bind(...args){this.args=args;return this;},async first(){return raw.prepare(sql).get(...this.args)??null;},async all(){return{results:raw.prepare(sql).all(...this.args)};},async run(){return raw.prepare(sql).run(...this.args);},sql};},async batch(statements){return statements.map(s=>({results:raw.prepare(s.sql).all(...s.args)}));}};
+ api.healthFixture.issues=[];const result=await api.checkMarketWorkHealth({DB:db,MARKET_COLLECTION_SOURCE:'github'},now);assert.equal(result.open,0);assert.equal(raw.prepare('SELECT recovered_at FROM market_incidents').get().recovered_at,now);raw.close();
+});

@@ -2,7 +2,6 @@ import type { BackpackChart } from './backpack-charts';
 import type { Holding } from './community-types';
 import type { MarketOverview } from './market-data';
 import { marketTokens } from './market-data';
-import { tokenObservation } from './token-observation';
 import { AppError } from './validation';
 
 export type PortfolioAttachment = {
@@ -23,19 +22,28 @@ export function portfolioAttachment(holdings: Holding[], data: MarketOverview, n
   let pricesAt = now;
   const values = selected.map(h => {
     const t = tokens.find(t => t.symbol === h.symbol)!;
-    const o = tokenObservation(data, h.symbol, now);
+    const supply = data.supplies.data?.[h.symbol];
     const supplyAt = data.supplies.asOf?.[h.symbol] ?? data.supplies.fetchedAt ?? 0;
-    // Non-unit multipliers require an independently established price-unit mapping.
-    // The general dashboard's Backpack exception is not enough for public allocation claims.
+    const reference = data.backpack?.data?.[h.symbol];
+    const priceAt = data.backpack?.asOf?.[h.symbol] ?? data.backpack?.fetchedAt ?? 0;
+    // External stock prices are per share/display unit. Pair them with the
+    // adjusted balance computed from the freshly verified mint, never raw units
+    // or a DEX quote whose price-unit basis may differ.
+    const ui = typeof h.ui_amount === 'string' && /^\d+(\.\d+)?$/.test(h.ui_amount) ? Number(h.ui_amount) : NaN;
+    const raw = Number(h.raw_amount) / 10 ** h.decimals!;
+    const adjusted = supply?.multiplier ? Math.floor(Number(h.raw_amount) * supply.multiplier) / 10 ** h.decimals! : NaN;
     if (!h.verified_at || now - h.verified_at > 180000 || h.verified_at > now + 1000 ||
       !/^\d{1,22}$/.test(h.raw_amount ?? '') || !Number.isInteger(h.decimals) || h.decimals! < 0 || h.decimals! > 18 ||
-      !o.price || o.priceDelayed || o.priceConflict || o.supply?.valuationSafe !== true ||
-      o.supply.multiplier !== 1 || o.supply.decimals !== h.decimals || now - supplyAt > 300000 ||
-      !o.priceTime || now - o.priceTime > 900000 || o.priceTime > now + 1000 ||
-      !['Backpack · external', 'DefiLlama', 'CoinMarketCap'].includes(o.priceSource))
-      throw new AppError(`Cannot reliably value ${h.symbol} yet. Refresh your holdings or try later; nothing has been shared.`, 422);
-    pricesAt = Math.min(pricesAt, o.priceTime);
-    const value = Number(h.raw_amount) / 10 ** h.decimals! * o.price;
+      !Number.isFinite(raw) || !Number.isFinite(ui) || ui <= 0 || !Number.isFinite(adjusted) ||
+      Math.abs(ui-adjusted) > 10 ** -h.decimals! * 1.01 ||
+      supply?.valuationSafe !== true || supply.decimals !== h.decimals ||
+      now - supplyAt > 300000 || supplyAt > now + 1000 ||
+      !reference || reference.market !== `${t.symbol}.US_USDC` || !Number.isFinite(reference.externalPrice) || reference.externalPrice! <= 0 ||
+      !priceAt || now - priceAt > 300000 || priceAt > now + 1000 ||
+      (data.backpack?.stale && !data.backpack.asOf?.[h.symbol]))
+      throw new AppError(`Cannot prepare ${h.symbol}'s allocation right now. Try again shortly; nothing has been shared.`, 422);
+    pricesAt = Math.min(pricesAt, priceAt);
+    const value = ui * reference.externalPrice!;
     if (!Number.isFinite(value) || value <= 0) throw new AppError('A holding could not be valued.', 422);
     return { symbol: t.symbol, name: t.shortName, value };
   }).sort((a,b) => b.value-a.value || a.symbol.localeCompare(b.symbol));

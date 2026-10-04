@@ -1,3 +1,5 @@
+import Link from '@/components/site-link';
+import { StockTrade } from './stock-trade';
 import type { BackpackChart } from '@/lib/backpack-charts';
 
 const date = (time: number) => new Date(time).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
@@ -15,8 +17,7 @@ export function BackpackChartCard({ chart, period, error }: { chart?: BackpackCh
   const path = points.map(([time, price], i) => `${i && time - points[i - 1][0] <= 3600000 ? 'L' : 'M'}${x(time)},${y(price)}`).join(' ');
   const last = points[points.length - 1];
   return <section className="sp-attachment stock-chart-card" aria-label={`${chart.symbol} Backpack stock reference chart`}>
-    <div className="stock-chart-heading"><div><strong>{chart.name}</strong><span className="stock-chart-symbol">{chart.symbol} · {period}D</span></div><strong className="stock-chart-price">{priceLabel(last[1])}</strong></div>
-    <p className="stock-chart-caption">Stock reference · saved snapshot</p>
+    <div className="stock-chart-heading"><div><strong>{chart.name}</strong><span className="stock-chart-symbol">{chart.symbol} · Stock price · {period}D</span></div><strong className="stock-chart-price">{priceLabel(last[1])}</strong></div>
     <div className="stock-chart-plot">
       <svg viewBox="0 0 600 200" preserveAspectRatio="none" aria-label={`${period}-day ${chart.symbol} hourly stock reference prices from Backpack. Range ${priceLabel(low)} to ${priceLabel(high)}. Gaps have no completed trading bars.`}>
         {[10, 100, 190].map(v => <line key={v} x1="0" x2="600" y1={v} y2={v} stroke="currentColor" opacity=".1" vectorEffect="non-scaling-stroke" />)}
@@ -26,6 +27,7 @@ export function BackpackChartCard({ chart, period, error }: { chart?: BackpackCh
       <div className="stock-chart-prices" aria-hidden="true">{[top, (top + bottom) / 2, bottom].map((value, i) => <span key={i}>{priceLabel(value)}</span>)}</div>
     </div>
     <div className="stock-chart-dates"><span>{date(start)}</span><span>{date(chart.windowEnd)} · UTC</span></div>
-    <details><summary>Source &amp; details</summary><p>Backpack hourly stock reference prices. Not a token trade price or sell quote. Missing hours are left blank.</p><p>Last close: {date(last[0])}, {new Date(last[0]).toISOString().slice(11, 16)} UTC. Retrieved {new Date(chart.fetchedAt).toISOString().replace('T', ' ').slice(0, 16)} UTC. Market: {chart.market}. Not independently cross-checked.</p></details>
+    <div className="attachment-meta"><time dateTime={new Date(chart.fetchedAt).toISOString()}>Saved {date(chart.fetchedAt)} · {new Date(chart.fetchedAt).toISOString().slice(11, 16)} UTC</time><Link href="/data-methodology#attachments" aria-label={`About chart data. Market ${chart.market}. Last close ${new Date(last[0]).toISOString()}.`}>About this data</Link></div>
+    <StockTrade symbol={chart.symbol} />
   </section>;
 }

@@ -33,9 +33,9 @@ export function OndoPrimaryVolume({
         UTC
       </time>{' '}
       <MetricInfo label="About Ondo mint and redeem volume" learnMore="/data-methodology#pools">
-        Daily token creation and redemption trades, including those through Jupiter.
-        At least 10 hours behind. Separate from pool volume; not added to it.
-        Does not cover all trading between holders or private market makers.{' '}
+        Token mint and redemption volume.
+        At least 10 hours delayed; separate from DEX pool volume.
+        Excludes secondary trading.{' '}
         <a
           href="https://github.com/DefiLlama/dimension-adapters/blob/master/dexs/ondo-global-markets/index.ts"
           target="_blank"

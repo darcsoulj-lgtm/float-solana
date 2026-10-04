@@ -483,13 +483,13 @@ void test('Issuer dashboards place valuation before volume and liquidity, keepin
       assert.ok(html.includes(label));
     assert.ok(
       html.includes(
-        issuer.id === 'xstocks' ? 'Circulating value' : 'Minted value',
+        'Tokenized value',
       ),
     );
     const summary = html.split('<details class="bp-method"')[0];
     assert.doesNotMatch(summary, /Minted value/);
     const volumeLabel = 'Tracked pool volume';
-    assert.ok(summary.indexOf('Onchain value') < summary.indexOf(volumeLabel));
+    assert.ok(summary.indexOf('Tokenized value') < summary.indexOf(volumeLabel));
     assert.ok(summary.indexOf(volumeLabel) < summary.indexOf('Pool liquidity'));
     assert.match(summary, /Stocks <span>/);
     assert.match(html.split('<details class="bp-method"')[1], /tokens valued/);

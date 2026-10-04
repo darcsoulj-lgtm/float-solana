@@ -39,6 +39,8 @@ export type BackpackMarket = {
   externalChange24h: number | null;
   // Cache rows written before this marker contain Backpack's fractional return.
   externalChangeUnit?: 'percent';
+  externalObservedAt?: number;
+  externalBasis?: 'hourly-history';
   externalVolume24h: number | null;
   externalQuoteVolume24h: number | null;
   externalTrades: number | null;
@@ -52,6 +54,7 @@ export type Pool = {
   source?: import('./pool-provider-adapters').PoolProvider;
   observedAt?: number;
   volumeDisputed?: true;
+  volumeIssue?: 'source_null' | 'metric_unqualified' | 'conflict' | 'unconfirmed_zero' | 'unindexed';
   createdAt?: number | null;
   address: string;
   dex: string;
@@ -61,12 +64,13 @@ export type Pool = {
   liquidity: number | null;
   volume24h: number | null;
   delayed?: boolean;
-  url: string;
+  url?: string;
   side?: 'base' | 'quote';
   baseMint?: string;
   quoteMint?: string;
   origin?: 'stonkfun';
 };
+export const poolLink = (pool: Pick<Pool, 'url' | 'address'>) => pool.url ?? 'https://dexscreener.com/solana/' + pool.address;
 export type TokenPrice = {
   price: number;
   timestamp: number;
@@ -74,6 +78,8 @@ export type TokenPrice = {
 };
 export type TokenVolume = { usd24h: number; mint: string };
 export type MarketOverview = {
+  tokenVolumes?: import('./birdeye-volume').BirdeyeVolumes;
+  issuerComparisonEnabled?: boolean;
   ondoVolume?: SourceResult<import('./ondo-volume').OndoDailyVolume>;
   valuations?: SourceResult<OndoValueSnapshot>;
   registry?: RegistryStatus;
@@ -251,6 +257,7 @@ export async function fetchBackpackMarkets(
   tokens: readonly StockToken[] = TOKENS.filter(
     (token) => token.issuer === 'backpack',
   ),
+  options: { requireExternal?: boolean } = {},
 ): Promise<Record<string, BackpackMarket>> {
   const load = (url: string) =>
     publicJson(url, fetcher).then((raw) => tickerMap(raw, tokens));
@@ -260,6 +267,7 @@ export async function fetchBackpackMarkets(
     ),
     load('https://api.backpack.exchange/api/v1/tickers?interval=1d'),
   ]);
+  if (options.requireExternal && external.status === 'rejected') throw external.reason;
   if (external.status === 'rejected' && venue.status === 'rejected') {
     throw external.reason instanceof Error
       ? external.reason
@@ -268,9 +276,9 @@ export async function fetchBackpackMarkets(
   const externalRows = external.status === 'fulfilled' ? external.value : {},
     venueRows = venue.status === 'fulfilled' ? venue.value : {},
     out: Record<string, BackpackMarket> = {};
-  // HTTP success with no usable stock references must preserve the last good cache.
-  // Venue-only rows cannot substitute for the external stock price source.
-  if (!Object.values(externalRows).some(row => row.price !== null && Number.isFinite(row.price) && row.price > 0)) {
+  // A successful HTTP response containing no usable stock references is not a
+  // successful price refresh. Venue rows cannot stand in for external prices.
+  if (options.requireExternal !== false && !Object.values(externalRows).some(row => row.price !== null && Number.isFinite(row.price) && row.price > 0)) {
     throw new Error('Backpack external references unavailable');
   }
   for (const token of tokens) {

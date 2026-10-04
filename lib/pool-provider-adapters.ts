@@ -172,6 +172,7 @@ export function parseProviderPools(
     for (const pool of pools) {
       pool.source = provider;
       pool.observedAt = now;
+      if (pool.volume24h === null) pool.volumeIssue = provider === 'raydium' ? 'metric_unqualified' : 'source_null';
     }
   return parsed;
 }
@@ -251,6 +252,9 @@ export function resolvePoolSources(
     if (conflicting || unconfirmedZero) {
       chosen.volume24h = null;
       chosen.volumeDisputed = true;
+      chosen.volumeIssue = conflicting ? 'conflict' : 'unconfirmed_zero';
+    } else if (chosen.volume24h !== null) {
+      delete chosen.volumeIssue;
     }
     // Direct venue volume APIs need not expose USD prices. Preserve a separate,
     // current indexer price for the same verified pool without changing volume.
@@ -273,6 +277,7 @@ export function resolvePoolSources(
         change24h: null,
         liquidity: null,
         volume24h: null,
+        volumeIssue: 'unindexed',
       });
   }
   return out.sort((a, b) => (b.liquidity ?? -1) - (a.liquidity ?? -1));

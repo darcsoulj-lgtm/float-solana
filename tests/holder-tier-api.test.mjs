@@ -45,6 +45,7 @@ async function fixture() {
     '@/lib/discussion-attachment-server': {},
     '@/lib/community-rooms': {},
     '@/lib/request-body': { readBoundedText: async (req) => req.text() },
+    '@/lib/community-eligibility': { communityTokens: tokens => tokens.filter(t => t.issuer === 'backpack') },
     '@/lib/registry-server': {
       verifiedRegistry: async () => ({
         registry: { additions: [] },
@@ -90,6 +91,7 @@ async function fixture() {
     },
     '@/lib/community-types': {},
     '@/lib/community-read': {},
+    '@/lib/community-likes': {},
     '@/lib/community-server': {
       communityMember: async () => {
         if (!signedIn) throw new AppError('Sign in', 401);
