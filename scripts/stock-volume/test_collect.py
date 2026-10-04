@@ -1,9 +1,16 @@
 import unittest
+from unittest.mock import patch
 from datetime import datetime, timezone
-from collect import window, token_volume, TradeAccumulator, select_tokens, stock_volume, check_public, iso
+from collect import window, token_volume, TradeAccumulator, select_tokens, stock_volume, check_public, iso, request_json
 
 MINT='MUxFhHbcHwygMiUEjAMrAQbiKGUCFTLP89DUs3gqGay1'
 class DailyComparisonTests(unittest.TestCase):
+    def test_collector_identification_and_safe_error(self):
+        import urllib.error
+        with patch('urllib.request.urlopen', side_effect=urllib.error.HTTPError('https://example.com?key=private',403,'blocked',{},None)) as call:
+            with self.assertRaisesRegex(RuntimeError, '^Source HTTP 403 at example.com$'):
+                request_json('https://example.com?key=private')
+            self.assertEqual(call.call_args[0][0].get_header('User-agent'),'Float-Stock-Collector/1.0')
     def test_calendar_dst(self):
         for day,hours in [('2026-03-09T12:00:00+00:00',23),('2026-11-02T12:00:00+00:00',25),('2026-10-04T12:00:00+00:00',24)]:
             a,b=window(datetime.fromisoformat(day));self.assertEqual((b.timestamp()-a.timestamp())/3600,hours)

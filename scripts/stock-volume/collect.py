@@ -16,7 +16,7 @@ EXCLUDED = {'M', 'Q', '9'}
 
 def request_json(url, headers=None, body=None, limit=12000000):
     req = urllib.request.Request(url, data=json.dumps(body).encode() if body is not None else None,
-        headers={'Accept': 'application/json', **({'Content-Type': 'application/json'} if body is not None else {}), **(headers or {})})
+        headers={'Accept': 'application/json', 'User-Agent': 'Float-Stock-Collector/1.0', **({'Content-Type': 'application/json'} if body is not None else {}), **(headers or {})})
     try:
         with urllib.request.urlopen(req, timeout=45) as response:
             if response.status == 204: return None
@@ -24,9 +24,9 @@ def request_json(url, headers=None, body=None, limit=12000000):
         if len(raw) > limit: raise ValueError('Oversized provider data')
         return json.loads(raw)
     except urllib.error.HTTPError as error:
-        raise RuntimeError('Source HTTP ' + str(error.code)) from None
+        raise RuntimeError('Source HTTP ' + str(error.code) + ' at ' + urllib.parse.urlsplit(url).hostname) from None
     except urllib.error.URLError:
-        raise RuntimeError('Source network error') from None
+        raise RuntimeError('Source network error at ' + urllib.parse.urlsplit(url).hostname) from None
 
 def identity():
     url = os.environ['ACTIONS_ID_TOKEN_REQUEST_URL'] + '&audience=' + urllib.parse.quote(AUDIENCE, safe='')
