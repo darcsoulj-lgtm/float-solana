@@ -57,3 +57,12 @@ void test('cache HIT still requires no-store; cookies, stale references, invalid
  assert.match(check({...market,pools:{data:{DRAM:[{...pool,observedAt:now+61000}]}}}).join(';'),/future/);
  assert.match(check({...market,pools:{data:{DRAM:[{...pool,volume24h:-1}]}}}).join(';'),/invalid/);
 });
+
+void test('fresh timestamps cannot hide blank references; explicitly dated history retains its own bounded age',()=>{
+ const blank={...market,backpack:{fetchedAt:now,data:{MU:{externalPrice:null,externalChange24h:null,externalChangeUnit:'percent'}}}};
+ assert.match(check(blank).join(';'),/No usable Backpack reference prices/);
+ const row={externalPrice:105,externalFirstPrice:100,externalChange24h:5,externalChangeUnit:'percent',externalBasis:'hourly-history',externalObservedAt:now-24*3600000};
+ const dated={...market,backpack:{fetchedAt:now-24*3600000,data:{MU:row}}};assert.deepEqual(check(dated),[]);
+ assert.match(check({...dated,backpack:{...dated.backpack,data:{MU:{...row,externalObservedAt:now-97*3600000}}}}).join(';'),/invalid dated reference/);
+ assert.match(check({...dated,backpack:{...dated.backpack,data:{MU:{...row,externalObservedAt:now+1}}}}).join(';'),/invalid dated reference/);
+});

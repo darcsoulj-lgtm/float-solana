@@ -2036,3 +2036,8 @@ void test('public market fetch identifies Float and keeps upstream bodies out of
     assert.ok(!JSON.stringify(logs).includes('private-untrusted-body'));
   } finally {console.warn=oldWarn;}
 });
+
+void test('an empty successful external ticker response cannot overwrite references with venue-only nulls',async()=>{
+ const token=TOKENS.find(t=>t.issuer==='backpack'&&t.symbol==='MU');
+ await assert.rejects(()=>fetchBackpackMarkets(async url=>Response.json(String(url).includes('External')?[]:[{symbol:'MU.US_USDC',firstPrice:'100',lastPrice:'105',priceChangePercent:'0.05'}]),[token]),/external references unavailable/);
+});

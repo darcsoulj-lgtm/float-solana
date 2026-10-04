@@ -268,6 +268,11 @@ export async function fetchBackpackMarkets(
   const externalRows = external.status === 'fulfilled' ? external.value : {},
     venueRows = venue.status === 'fulfilled' ? venue.value : {},
     out: Record<string, BackpackMarket> = {};
+  // HTTP success with no usable stock references must preserve the last good cache.
+  // Venue-only rows cannot substitute for the external stock price source.
+  if (!Object.values(externalRows).some(row => row.price !== null && Number.isFinite(row.price) && row.price > 0)) {
+    throw new Error('Backpack external references unavailable');
+  }
   for (const token of tokens) {
     const e = externalRows[token.symbol],
       v = venueRows[token.symbol];
