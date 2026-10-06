@@ -80,7 +80,7 @@ void test('retained prior-day volume cannot create a transient bar for today',()
  const all=nodes(tree);
  assert.ok(!all.some(n=>n.type==='svg'),'The saved prior date remains a snapshot, not a second invented day');
  const html=renderToStaticMarkup(tree);
- assert.match(html,/Oct 3 · UTC/);
+ assert.match(html,/Latest.*Oct 3.*12:00 UTC/);
  assert.ok(!html.includes('Oct 4'));
  assert.match(html,/\$100/);
 });
