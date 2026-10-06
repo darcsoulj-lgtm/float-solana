@@ -30,17 +30,17 @@ function environment(){
 }
 void test('GitHub cron invokes the private recovery binding while an absent credential leaves all existing lanes working',async()=>{
  const original=globalThis.fetch;let reads=0;
- globalThis.fetch=async()=>{reads++;return Response.json({version:1,generatedAt:now,commit,chunks:['b'.repeat(64)]});};
- try{const {env,calls}=environment();await worker.scheduled({scheduledTime:now-now%60000+60000},env);assert.deepEqual(calls.filter(c=>!['activity','health'].includes(c)).sort((a,b)=>a.localeCompare(b)),['fast','holder-trigger','holders','snapshot','trigger','volumes']);assert.equal(reads,1);}finally{globalThis.fetch=original;}
+ globalThis.fetch=async url=>{reads++;return Response.json((typeof url==='string'?url:url instanceof URL?url.href:url.url).startsWith('https://api.github.com/')?{object:{type:'commit',sha:commit}}:{version:1,generatedAt:now,commit,chunks:['b'.repeat(64)]});};
+ try{const {env,calls}=environment();await worker.scheduled({scheduledTime:now-now%60000+60000},env);assert.deepEqual(calls.filter(c=>!['activity','health'].includes(c)).sort((a,b)=>a.localeCompare(b)),['fast','holder-trigger','holders','snapshot','trigger','volumes']);assert.equal(reads,2);}finally{globalThis.fetch=original;}
 });
 void test('a recovery failure cannot skip price, holder or snapshot lanes and is still reported',async()=>{
  const original=globalThis.fetch;let reads=0;
- globalThis.fetch=async()=>{reads++;return Response.json({version:1,generatedAt:now,commit,chunks:['b'.repeat(64)]});};
- try{const {env,calls}=environment();env.MARKET_REFRESH.collectionTrigger=async()=>{calls.push('trigger');throw Error('fixture rejected');};await assert.rejects(worker.scheduled({scheduledTime:now},env),/scheduled market source failed/);assert.ok(['trigger','fast','holders','volumes'].every(c=>calls.includes(c)));assert.equal(reads,1);}finally{globalThis.fetch=original;}
+ globalThis.fetch=async url=>{reads++;return Response.json((typeof url==='string'?url:url instanceof URL?url.href:url.url).startsWith('https://api.github.com/')?{object:{type:'commit',sha:commit}}:{version:1,generatedAt:now,commit,chunks:['b'.repeat(64)]});};
+ try{const {env,calls}=environment();env.MARKET_REFRESH.collectionTrigger=async()=>{calls.push('trigger');throw Error('fixture rejected');};await assert.rejects(worker.scheduled({scheduledTime:now},env),/scheduled market source failed/);assert.ok(['trigger','fast','holders','volumes'].every(c=>calls.includes(c)));assert.equal(reads,2);}finally{globalThis.fetch=original;}
 });
 void test('an hourly source outage cannot prevent independent activity recording or hide the failure',async()=>{
  const original=globalThis.fetch;
- globalThis.fetch=async()=>Response.json({version:1,generatedAt:now,commit,chunks:['b'.repeat(64)]});
+ globalThis.fetch=async url=>Response.json((typeof url==='string'?url:url instanceof URL?url.href:url.url).startsWith('https://api.github.com/')?{object:{type:'commit',sha:commit}}:{version:1,generatedAt:now,commit,chunks:['b'.repeat(64)]});
  try{const {env,calls}=environment();env.MARKET_REFRESH.fastSchedule=async()=>{calls.push('fast');throw Error('provider outage');};await assert.rejects(worker.scheduled({scheduledTime:now-now%3600000},env),/scheduled market source failed/);assert.ok(calls.includes('activity'));assert.ok(calls.includes('volumes'));assert.ok(calls.includes('snapshot'));assert.ok(calls.includes('health'));}finally{globalThis.fetch=original;}
 });
 void test('custom-domain ingress removes spoofed legacy identity even if cache is unavailable, preserving wallet credentials and bodies',async()=>{

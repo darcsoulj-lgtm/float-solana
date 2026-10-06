@@ -21,13 +21,23 @@ export function parseMarketManifest(raw:unknown,now=Date.now()):MarketManifest {
  if(now-m.generatedAt>48*3600000)throw Error('Invalid market manifest');
  return m;
 }
-async function boundedText(url:string,limit:number,fetcher:typeof fetch) {
- const response=await fetcher(url,{redirect:'manual',signal:AbortSignal.timeout(10000)});
+async function boundedText(url:string,limit:number,fetcher:typeof fetch,headers?:HeadersInit) {
+ const response=await fetcher(url,{redirect:'manual',signal:AbortSignal.timeout(10000),...(headers?{headers}:{})});
  if(!response.ok)throw Error(`Market snapshot HTTP ${response.status}`);
  const reader=response.body?.getReader();if(!reader)throw Error('Missing snapshot');
  const decoder=new TextDecoder();let text='',size=0;
  try{while(true){const r=await reader.read();if(r.done)break;size+=r.value.byteLength;if(size>limit)throw Error('Oversized market snapshot');text+=decoder.decode(r.value,{stream:true});}return text+decoder.decode();}
  finally{await reader.cancel().catch(()=>{});reader.releaseLock();}
+}
+// A mutable raw branch has a five-minute CDN lifetime. Resolve the branch through
+// GitHub's API, then read only the pinned commit; query strings do not guarantee
+// branch freshness at every edge. Use the existing private trigger credential.
+export async function currentMarketManifest(fetcher:typeof fetch=fetch,token?:string,now=Date.now()):Promise<MarketManifest> {
+ const ref=JSON.parse(await boundedText('https://api.github.com/repos/darcsoulj-lgtm/float-solana/git/ref/heads/market-data',10000,fetcher,{
+   Accept:'application/vnd.github+json','User-Agent':'Float-market-publication',...(token?{Authorization:'Bearer '+token}:{}),
+ })) as {object?:{type?:string;sha?:string}};
+ if(ref.object?.type!=='commit'||!ref.object.sha||!/^[a-f0-9]{40}$/.test(ref.object.sha))throw Error('Invalid market snapshot head');
+ return parseMarketManifest(JSON.parse(await boundedText(ROOT+ref.object.sha+'/manifest.json',10000,fetcher)),now);
 }
 export function parseMarketRows(text:string,now=Date.now()) {
  const raw:unknown=JSON.parse(text);
@@ -50,9 +60,9 @@ export async function syncMarketChunk(env:MarketEnvironment,job:SnapshotChunkJob
 }
 // A free-plan invocation shares its external request budget with all private
 // bindings. Resume bounded imports instead of reloading every chunk each tick.
-export async function syncMarketSchedule(env:MarketEnvironment & {MARKET_REFRESH:{run(job:SnapshotChunkJob|{kind:'holders'}):Promise<void>}},fetcher:typeof fetch=fetch) {
+export async function syncMarketSchedule(env:MarketEnvironment & {MARKET_WORKFLOW_TOKEN?:string;MARKET_REFRESH:{run(job:SnapshotChunkJob|{kind:'holders'}):Promise<void>}},fetcher:typeof fetch=fetch) {
  const started=Date.now();
- const manifest=parseMarketManifest(JSON.parse(await boundedText(ROOT+'market-data/manifest.json?minute='+Math.floor(started/60000),10000,fetcher)),started);
+ const manifest=await currentMarketManifest(fetcher,env.MARKET_WORKFLOW_TOKEN,started);
  const prior=await env.DB.prepare('SELECT payload FROM market_cache WHERE key=?').bind(SYNC_KEY).first<{payload:string|null}>();
  if(prior?.payload===manifest.commit)return;
  const lease=await env.DB.prepare('INSERT INTO market_cache(key,payload,fetched_at,retry_after) VALUES (?,NULL,?,?) ON CONFLICT(key) DO UPDATE SET fetched_at=excluded.fetched_at,retry_after=excluded.retry_after WHERE market_cache.retry_after<=? RETURNING payload')
