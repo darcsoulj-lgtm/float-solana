@@ -79,3 +79,10 @@ class DailyComparisonTests(unittest.TestCase):
         check_public(p,now)
         for bad in [{**p,'status':'delayed'},{'status':'daily','comparisons':[]},{'status':'daily','comparisons':[{'endUtc':'old','rows':[{}]*5}]}]:
             with self.assertRaises(ValueError):check_public(bad,now)
+
+    def test_partial_publication_requires_explicit_missing_identity(self):
+        now=datetime(2026,10,5,12,tzinfo=timezone.utc);_,end=window(now)
+        comparison={'endUtc':iso(end),'rows':[{'symbol':s} for s in ['DJT','SPCX','IBM','PFE']], 'comparisonCoverage':{'selected':['DJT','SPCX','IBM','PFE','EWZ'],'unavailable':[{'symbol':'EWZ','reason':'token-history-unavailable'}]}}
+        check_public({'status':'daily','comparisons':[comparison]},now)
+        for scope in [None, {'selected':['DJT','SPCX','IBM','PFE','EWZ'],'unavailable':[]}, {'selected':['DJT','SPCX','IBM','PFE','EWZ'],'unavailable':[{'symbol':'IBM','reason':'token-history-unavailable'}]}]:
+            with self.assertRaises(ValueError):check_public({'status':'daily','comparisons':[{**comparison,'comparisonCoverage':scope}]},now)

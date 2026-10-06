@@ -1,0 +1,62 @@
+{
+  "period": 1,
+  "startUtc": "2026-10-02T04:00:00+00:00",
+  "endUtc": "2026-10-03T04:00:00+00:00",
+  "timeZone": "America/New_York",
+  "tokenSource": "birdeye",
+  "stockSource": "alpaca-sip",
+  "coverage": {
+    "available": 70,
+    "total": 71,
+    "unavailable": [
+      "NVDA"
+    ]
+  },
+  "rows": [
+    {
+      "symbol": "BLK",
+      "name": "BlackRock, Inc.",
+      "mint": "BLKKYfF41c6xRPrtX1rdYbxLE1xxEdZUnxQsB5hcZ8Nf",
+      "listingExchange": "NYSE",
+      "tokenUsd": 21798413.76807024,
+      "stockUsd": 607614317.1573,
+      "reconciled": true
+    },
+    {
+      "symbol": "PUSA",
+      "name": "Powerus Corporation",
+      "mint": "PUSAG1stksTcAoK9MjinEHUwAYRJsbovywYCk37m6hy",
+      "listingExchange": "NASDAQ",
+      "tokenUsd": 11701716.824526468,
+      "stockUsd": 8462095.8792,
+      "reconciled": true
+    },
+    {
+      "symbol": "SPCX",
+      "name": "SpaceX",
+      "mint": "SPCXxcqXj6e5dJDVNovHN8744zkbhM2bYudU45BimGb",
+      "listingExchange": "NASDAQ",
+      "tokenUsd": 8888274.897615733,
+      "stockUsd": 18836516148.8332,
+      "reconciled": true
+    },
+    {
+      "symbol": "DJT",
+      "name": "Trump Media & Technology Group Corp.",
+      "mint": "DJTu7vi8norVzdVAffgvb39VP7wjKeTsgaMBJrzfxvoF",
+      "listingExchange": "NASDAQ",
+      "tokenUsd": 7767093.08364859,
+      "stockUsd": 35799888.4031,
+      "reconciled": true
+    },
+    {
+      "symbol": "MU",
+      "name": "Micron Technology, Inc.",
+      "mint": "MUxEsUKSMACyw5fZf68wxf5FLnZVhtU9CwH8uNNGay1",
+      "listingExchange": "NASDAQ",
+      "tokenUsd": 5037719.389775464,
+      "stockUsd": 29726242721.4223,
+      "reconciled": true
+    }
+  ]
+}

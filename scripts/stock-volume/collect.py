@@ -13,6 +13,7 @@ KNOWN = {'A': set('B C E F H I K L M N O P Q R T U V X Z 4 5 6 7 9'.split()) | {
          'B': set('B C E F H I K L M N O P Q R T U V X Z 4 5 6 7 9'.split()) | {' '},
          'C': set('@ A B C D F G H I K L M N O P Q R T U V W X Y Z 4 5 6 7 9'.split())}
 EXCLUDED = {'M', 'Q', '9'}
+class TokenDayUnavailable(ValueError): pass
 
 def request_json(url, headers=None, body=None, limit=12000000):
     req = urllib.request.Request(url, data=json.dumps(body).encode() if body is not None else None,
@@ -92,7 +93,7 @@ def token_volume(payload, mint, start, end):
         if not value.is_finite() or value < 0: raise ValueError('Invalid token dollars')
         if int(start.timestamp()) <= stamp < int(end.timestamp()): values.append(value)
     # Sparse series can omit inactive hours; a wholly absent day is not proven zero.
-    if not values: raise ValueError('Token day unavailable')
+    if not values: raise TokenDayUnavailable('Token day unavailable')
     return sum(values, D(0))
 
 class TradeAccumulator:
@@ -163,19 +164,24 @@ def main():
     calendar = request_json('https://paper-api.alpaca.markets/v2/calendar?'+urllib.parse.urlencode({'start':date,'end':date}), headers)
     if not isinstance(calendar, list) or len(calendar)>1 or any(c.get('date')!=date for c in calendar): raise ValueError('Invalid US market calendar')
     closed = not calendar
-    rows = []
+    rows, unavailable = [], []
     for token in selected:
         symbol, mint = token['symbol'], token['mint']
         asset = request_json('https://paper-api.alpaca.markets/v2/assets/'+urllib.parse.quote(symbol), headers, limit=16000)
         if asset.get('symbol') != symbol or asset.get('class') != 'us_equity' or asset.get('status') != 'active' or asset.get('exchange') not in ('NASDAQ','NYSE','AMEX','ARCA','BATS','OTC'): raise ValueError('US stock identity unavailable')
         query = {'address':mint,'type':'1H','currency':'usd','mode':'range','time_from':int(start.timestamp()),'time_to':int(end.timestamp())-1,'ui_amount_mode':'scaled','padding':'false'}
         candles = request_json('https://public-api.birdeye.so/defi/v3/ohlcv?'+urllib.parse.urlencode(query), {'X-API-KEY':settings['birdeye'],'x-chain':'solana'}, limit=2000000)
-        token_usd = token_volume(candles, mint, start, end)
+        try: token_usd = token_volume(candles, mint, start, end)
+        except TokenDayUnavailable:
+            unavailable.append({'symbol':symbol,'reason':'token-history-unavailable'})
+            print(json.dumps({'symbol':symbol,'date':date,'unavailable':'token-history-unavailable'}),flush=True)
+            continue
         stock_usd = stock_volume(symbol, start, end, headers, closed)
         rows.append({'symbol':symbol,'mint':mint,'name':asset.get('name') or token['name'],'listingExchange':asset['exchange'],'tokenUsd':float(token_usd),'stockUsd':float(stock_usd),'reconciled':True,**({'stockMarketClosed':True} if closed else {})})
         print(json.dumps({'symbol':symbol,'date':date,'reconciled':True,'marketClosed':closed}),flush=True)
         time.sleep(1.1)
-    result = {'period':1,'startUtc':iso(start),'endUtc':iso(end),'timeZone':'America/New_York','tokenSource':'birdeye','stockSource':'alpaca-sip','coverage':coverage,'rows':rows,'selectionBasis':'latest-market-volume','selectedAt':int(now.timestamp()*1000),'generatedAt':int(datetime.now(timezone.utc).timestamp()*1000)}
+    if len(rows)<3: raise ValueError('Insufficient verified daily comparisons')
+    result = {'period':1,'startUtc':iso(start),'endUtc':iso(end),'timeZone':'America/New_York','tokenSource':'birdeye','stockSource':'alpaca-sip','coverage':coverage,'rows':rows,'selectionBasis':'latest-market-volume','selectedAt':int(now.timestamp()*1000),'generatedAt':int(datetime.now(timezone.utc).timestamp()*1000), 'comparisonCoverage':{'selected':[t['symbol'] for t in selected],'unavailable':unavailable}}
     job({'action':'publish','comparison':result})
     check = request_json(SITE+'/api/stock-volume')
     if check['comparisons'][0]['endUtc'] != result['endUtc'] or check['comparisons'][0].get('generatedAt') != result['generatedAt']: raise ValueError('Published comparison verification failed')
@@ -184,8 +190,16 @@ def main():
 def check_public(payload, now):
     _, end = window(now)
     comparisons = payload.get('comparisons', [])
-    if payload.get('status') != 'daily' or len(comparisons) != 1 or comparisons[0].get('endUtc') != iso(end) or len(comparisons[0].get('rows', [])) != 5:
+    if payload.get('status') != 'daily' or len(comparisons) != 1 or comparisons[0].get('endUtc') != iso(end):
         raise ValueError('Daily stock comparison missing or delayed')
+    comparison=comparisons[0]; rows=comparison.get('rows',[]); scope=comparison.get('comparisonCoverage')
+    if scope is None:
+        if len(rows)!=5: raise ValueError('Incomplete comparison coverage')
+    else:
+        selected=scope.get('selected',[]); missing=scope.get('unavailable',[])
+        symbols=[r.get('symbol') for r in rows]; absent=[r.get('symbol') for r in missing]
+        if len(selected)!=5 or len(set(selected))!=5 or not 3<=len(rows)<=5 or len(set(symbols+absent))!=5 or set(selected)!=set(symbols+absent) or any(r.get('reason')!='token-history-unavailable' for r in missing):
+            raise ValueError('Incomplete comparison coverage')
     print('Daily stock comparison publication is current', flush=True)
 
 if __name__ == '__main__':
