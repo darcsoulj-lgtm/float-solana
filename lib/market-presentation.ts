@@ -2,6 +2,18 @@ import type { TradingActivity } from './trading-activity';
 
 const dayMs = 86400000;
 
+// The latest market snapshot replaces an earlier saved observation for its
+// source day, including after midnight. Never stamp retained data as today.
+export function activitySnapshots(points: TradingActivity[], current: TradingActivity | null, basis: TradingActivity['basis']) {
+  const byDay = new Map(points.filter(point => point.basis === basis).map(point => [point.day, point]));
+  if (current) byDay.set(current.day, current);
+  return byDay;
+}
+
+export function volumeObservationTime(time: number) {
+  return new Date(time).toLocaleString('en-US', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit', hourCycle:'h23', timeZone:'UTC' }) + ' UTC';
+}
+
 // Trim only uncollected edges. Days missing between real observations remain
 // explicit gaps, so reducing the display range never invents a daily history.
 export function activityWindow(points: Iterable<TradingActivity>, today: string, days: number) {

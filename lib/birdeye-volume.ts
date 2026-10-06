@@ -52,5 +52,7 @@ export function birdeyeTurnover(market: MarketOverview | null, tokens: readonly 
   return { total: known.length ? known.reduce((n, v) => n + v.usd24h, 0) : null,
     covered: known.length, count: rows.length,
     oldestAt: known.length ? Math.min(...known.map(v => v.observedAt)) : null,
+    newestAt: known.length ? Math.max(...known.map(v => v.observedAt)) : null,
     delayed: known.some(v => now - v.observedAt > (market?.tokenVolumes?.intervalMs ?? 0) + 1800000) };
 }
+

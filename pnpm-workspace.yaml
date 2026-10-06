@@ -1,6 +1,9 @@
 packages:
   - .
 overrides:
+  'source-map-js@<1.2.2': '1.2.2'
+  'proxy-addr@<2.0.8': '2.0.8'
+  'tinypool@<2.1.2': '2.1.2'
   'node-fetch@<2.6.7': '2.7.0'
   jayson: '5.0.0'
   toml: '4.2.0'

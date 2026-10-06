@@ -29,8 +29,9 @@ export function tradingActivity(data: MarketOverview | null, now: number): Tradi
       return value ? [{ symbol: t.symbol, value: value.usd24h, at: value.observedAt }] : [];
     });
     if (summary.total === null || !summary.oldestAt) return null;
-    return { day: new Date(now).toISOString().slice(0, 10), capturedAt: now,
-      oldestAt: summary.oldestAt, newestAt: Math.max(...rows.map(r => r.at)),
+    const newestAt = Math.max(...rows.map(r => r.at));
+    return { day: new Date(newestAt).toISOString().slice(0, 10), capturedAt: now,
+      oldestAt: summary.oldestAt, newestAt,
       basis: 'turnover', total: summary.total, partial: summary.covered < summary.count,
       covered: summary.covered, known: summary.count,
       tokens: rows.map(({symbol,value}) => ({symbol,value})).sort((a,b) => b.value-a.value || a.symbol.localeCompare(b.symbol)) };
@@ -53,7 +54,7 @@ export function tradingActivity(data: MarketOverview | null, now: number): Tradi
     for (const symbol of symbols) amounts.set(symbol, (amounts.get(symbol) ?? 0) + pool.volume24h! / symbols.size);
   }
   if (!times.length) return null;
-  return { day: new Date(now).toISOString().slice(0, 10), capturedAt: now,
+  return { day: new Date(Math.max(...times)).toISOString().slice(0, 10), capturedAt: now,
     oldestAt: Math.min(...times), newestAt: Math.max(...times), basis: 'pools',
     total: summary.observedVolume24h, partial: summary.partial,
     covered: summary.observedCount, known: summary.knownCount,
@@ -69,9 +70,9 @@ export function activityBreakdown(point: TradingActivity) {
 export function validTradingActivity(value: unknown): value is TradingActivity {
   const p = value as TradingActivity | null;
   if (!p || !/^\d{4}-\d{2}-\d{2}$/.test(p.day) ||
-      !Number.isSafeInteger(p.capturedAt) || p.capturedAt <= 0 || p.capturedAt > 8640000000000000 || new Date(p.capturedAt).toISOString().slice(0,10) !== p.day ||
+      !Number.isSafeInteger(p.capturedAt) || p.capturedAt <= 0 || p.capturedAt > 8640000000000000 ||
       !Number.isSafeInteger(p.oldestAt) || p.oldestAt <= 0 || !Number.isSafeInteger(p.newestAt) ||
-      p.oldestAt > p.newestAt || p.newestAt > p.capturedAt + 60000 ||
+      p.oldestAt > p.newestAt || p.newestAt > 8640000000000000 || p.newestAt > p.capturedAt + 60000 || new Date(p.newestAt).toISOString().slice(0,10) !== p.day ||
       !['pools','turnover'].includes(p.basis) || !Number.isFinite(p.total) || p.total < 0 ||
       typeof p.partial !== 'boolean' || !Number.isSafeInteger(p.covered) || p.covered < 1 ||
       !Number.isSafeInteger(p.known) || p.known < p.covered || !Array.isArray(p.tokens) || !p.tokens.length || p.tokens.length > 2000 ||

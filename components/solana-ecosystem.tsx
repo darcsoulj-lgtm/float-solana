@@ -8,6 +8,7 @@ import { marketTokens } from '@/lib/market-data';
 import { ChevronDown } from 'lucide-react';
 import { ISSUERS, issuerName, type IssuerId } from '@/lib/tokens';
 import { birdeyeTurnover } from '@/lib/birdeye-volume';
+import { volumeObservationTime } from '@/lib/market-presentation';
 import { displayPoolActivity, trackedValuation } from '@/lib/token-observation';
 import type { MarketOverview } from '@/lib/market-data';
 import { useId, useState, useSyncExternalStore } from 'react';
@@ -158,7 +159,7 @@ export function SolanaEcosystem({
             </MetricInfo>
           </span>
           <strong>{usd(turnover ? turnover.total : marketActivity.observedVolume24h)}</strong>
-          {turnover && <small>{turnover.covered < turnover.count ? `${turnover.covered} / ${turnover.count} tokens · ` : ''}{turnover.delayed ? 'Delayed update' : 'Periodic snapshot'}</small>}
+          {turnover && <small>{turnover.covered < turnover.count ? `${turnover.covered} / ${turnover.count} tokens · ` : ''}{turnover.delayed ? 'Delayed update · ' : ''}{turnover.newestAt ? volumeObservationTime(turnover.newestAt) : 'Snapshot unavailable'}</small>}
           {!turnover && data && marketActivity.partial && <small><Link href="/data-methodology#pools">Incomplete coverage</Link></small>}
         </div>
         <div>
@@ -274,3 +275,4 @@ export function SolanaEcosystem({
     </section>
   );
 }
+

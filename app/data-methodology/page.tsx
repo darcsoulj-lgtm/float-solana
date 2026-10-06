@@ -68,7 +68,7 @@ export default function Page() {
       <p>Holding a token does not prove shareholder rights or backing. Voting, dividends, redemption and eligibility depend on the issuer. <Link href="/methodology">Membership rules →</Link></p>
     </section>
     <section className="panel" id="activity"><h2>Trading activity</h2>
-      <p>Markets shows the same observed volume basis as the summary above it. History records the first successful unexpired observation each UTC day, with its original source times and coverage. At least one included source observation must be from that UTC day; a wholly unchanged older snapshot cannot create a new day. Each bar is a rolling 24-hour observation, not trading volume for a calendar day. Do not add adjacent bars to calculate weekly or monthly volume. The chart fits the dates with available observations; missing dates between them remain gaps. History starts when recording begins.</p>
+      <p>The latest chart snapshot uses the same observations as the volume summary and token list. Dates follow the latest included source observation in UTC, with its time and coverage shown. Crossing midnight does not turn retained data into a new day. An hourly job saves the newest eligible snapshot for each source day; older observations cannot overwrite newer ones. Earlier records may retain the first snapshot saved before this policy changed. Each bar shows rolling 24-hour volume, not a calendar-day trade total. Do not add adjacent bars to calculate weekly or monthly volume. Different observation times or token coverage can change totals, so snapshot changes are not automatically daily growth. Missing dates remain gaps.</p>
       <p>For pool-based composition, each verified pool is counted once. A pool between two tracked Backpack tokens is split equally between those tokens so the contributions add up to the displayed market total. These contributions can differ from an individual token’s volume. Unresolved pools are excluded. For Birdeye, composition uses token turnover; the same trade can appear on both token sides. Different volume bases are never combined into one history.</p>
     </section>
     <section className="panel" id="sources"><h2>Sources</h2>
@@ -78,3 +78,4 @@ export default function Page() {
     </section>
   </main>;
 }
+

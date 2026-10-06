@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { bundle } from './helpers/bundle.mjs';
-const { activityWindow, referenceDateRange, displayedMarketReference } = await bundle("export * from './lib/market-presentation';");
+const { activityWindow, activitySnapshots, volumeObservationTime, referenceDateRange, displayedMarketReference } = await bundle("export * from './lib/market-presentation';");
 
 void test('activity range trims uncollected edges, preserves real gaps and respects the requested period', () => {
   const observations = [{day:'2026-10-03'}, {day:'2026-10-01'}, {day:'2026-09-01'}, {day:'2026-10-05'}];
@@ -46,4 +46,16 @@ void test('a valid current pair retains its current price and return without his
   assert.equal(display.priceTime,now);
   assert.equal(display.saved,false);
   assert.equal(display.historical,false);
+});
+
+void test('Latest snapshot replaces the earlier chart total for its actual source day without mutating history',()=>{
+ const early={day:'2026-10-05',basis:'turnover',total:26.93,covered:70,newestAt:Date.UTC(2026,9,5,5)};
+ const latest={day:'2026-10-05',basis:'turnover',total:51.33,covered:72,newestAt:Date.UTC(2026,9,5,20)};
+ const pool={...early,basis:'pools',total:99};
+ const snapshots=activitySnapshots([early,pool],latest,'turnover');
+ assert.equal(snapshots.size,1);assert.equal(snapshots.get('2026-10-05'),latest);
+ assert.equal(early.total,26.93);assert.equal(activityWindow(snapshots.values(),'2026-10-06',7)[0].point.total,51.33);
+ assert.ok(!snapshots.has('2026-10-06'));
+ assert.match(volumeObservationTime(latest.newestAt),/Oct 5.*20:00 UTC/);
+ assert.equal(activitySnapshots([early],null,'turnover').get('2026-10-05'),early);
 });
