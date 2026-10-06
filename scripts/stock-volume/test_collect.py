@@ -56,6 +56,23 @@ class DailyComparisonTests(unittest.TestCase):
         def loop(url,headers):return {'bars':{}} if '/bars?' in url else {'trades':{},'next_page_token':'same'}
         with self.assertRaises(ValueError):stock_volume('MU',a,b,{},True,loop,lambda _:None)
 
+    def test_inclusive_provider_end_does_not_include_next_day_bar(self):
+        from urllib.parse import urlsplit, parse_qs
+        a,b=window(datetime(2026,10,5,12,tzinfo=timezone.utc))
+        calls=[]
+        def provider(url,headers):
+            q=parse_qs(urlsplit(url).query);calls.append(q)
+            if '/bars?' in url:
+                # Reproduce the real Sunday response: an inclusive Monday
+                # midnight endpoint returns Monday's bar, even on a closed day.
+                return {'bars':{'DJT':[{'t':iso(b),'v':4580016,'n':27830}]}} if q['end']==[iso(b)] else {'bars':{}}
+            return {'trades':{}}
+        self.assertEqual(stock_volume('DJT',a,b,{},True,provider,lambda _:None),0)
+        self.assertEqual(len(calls),2)
+        for q in calls:
+            self.assertEqual(q['start'],['2026-10-04T04:00:00Z'])
+            self.assertEqual(q['end'],['2026-10-05T03:59:59.999999999Z'])
+
     def test_publication_failure_monitor(self):
         now=datetime(2026,10,4,12,tzinfo=timezone.utc);_,end=window(now)
         p={'status':'daily','comparisons':[{'endUtc':iso(end),'rows':[{}]*5}]}

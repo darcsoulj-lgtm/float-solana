@@ -1,5 +1,7 @@
+import { runMarketMaintenance } from './lib/market-scheduled-maintenance';
 import { recordTradingActivity } from './lib/trading-activity-server';
 import { refreshBirdeyeVolumes } from './lib/birdeye-volume-server';
+import { stockVolumeJob, readStockVolume } from './lib/stock-volume-job';
 import { syncMarketSchedule } from './lib/market-snapshot-sync';
 import { triggerOverdueCollection } from './lib/market-collection-trigger';
 import { triggerHolderCollection } from './lib/holder-collection-trigger';
@@ -15,7 +17,7 @@ import { runDurableMarketSchedule, runDurableMarketWork, planMarketWork, planMar
 import { checkMarketWorkHealth, type MarketAlertBinding } from './lib/market-work-health';
 import { runFastMarketSchedule, refreshFastMarketSource, type FastMarketBinding, type FastMarketJob } from './lib/market-fast-refresh';
 
-type FloatEnvironment = MarketEnvironment & { ASSETS?: {fetch(request:Request):Promise<Response>}; MARKET_REFRESH: MarketJobBinding & DurableMarketBinding & FastMarketBinding & {tokenVolumes():Promise<void>; activity():Promise<void>; publicSnapshot():Promise<void>; health():Promise<void>; collectionTrigger():Promise<void>; holderCollectionTrigger():Promise<void>}; MARKET_WORKFLOW_TOKEN?:string; MARKET_FAST_SOURCE?:string; MARKET_ALERT?:MarketAlertBinding; PUBLIC_RENDER_VERSION?: string; MARKET_COLLECTION_SOURCE?: string };
+type FloatEnvironment = MarketEnvironment & { STOCK_VOLUME_ENABLED?:string; APCA_API_KEY_ID?:string; APCA_API_SECRET_KEY?:string; ASSETS?: {fetch(request:Request):Promise<Response>}; MARKET_REFRESH: MarketJobBinding & DurableMarketBinding & FastMarketBinding & {tokenVolumes():Promise<void>; activity():Promise<void>; publicSnapshot():Promise<void>; health():Promise<void>; collectionTrigger():Promise<void>; holderCollectionTrigger():Promise<void>}; MARKET_WORKFLOW_TOKEN?:string; MARKET_FAST_SOURCE?:string; MARKET_ALERT?:MarketAlertBinding; PUBLIC_RENDER_VERSION?: string; MARKET_COLLECTION_SOURCE?: string };
 // Reachable through the private service binding only; no HTTP refresh route.
 export class MarketRefresh extends WorkerEntrypoint<FloatEnvironment> {
   async run(job: MarketJob) { await runMarketJob(this.env, job); }
@@ -44,6 +46,9 @@ const worker = {
     const identityHeaders = Array.from(headers.keys()).filter(name => name.toLowerCase().startsWith('oai-authenticated-user-'));
     for (const name of identityHeaders) headers.delete(name);
     request = new Request(request, {headers});
+    const path = new URL(request.url).pathname;
+    if (path === '/api/stock-volume-job') return stockVolumeJob(request, env);
+    if (path === '/api/stock-volume' && request.method === 'GET') return Response.json(await readStockVolume(env.DB), {headers:{'Cache-Control':'public, max-age=60','X-Content-Type-Options':'nosniff'}});
     const built = await publicBuiltShell(request, env.ASSETS);
     if (built) return built;
     let cache: Cache;
@@ -53,7 +58,8 @@ const worker = {
       work => context.waitUntil(work), env.PUBLIC_RENDER_VERSION);
   },
   async scheduled(event: ScheduledController, env: FloatEnvironment) {
-    let sourceFailed = false;
+    // Publish and check health before collectors spend the shared request budget.
+    let sourceFailed = await runMarketMaintenance(env.MARKET_REFRESH,event.scheduledTime);
     try {
     if (env.MARKET_COLLECTION_SOURCE === 'durable') {
       await Promise.all([runDurableMarketSchedule(env,event.scheduledTime), env.MARKET_REFRESH.tokenVolumes()]);
@@ -67,22 +73,9 @@ const worker = {
         env.MARKET_REFRESH.run({kind:'holders'}),
         ...(env.MARKET_FAST_SOURCE==='1'?[env.MARKET_REFRESH.fastSchedule(event.scheduledTime)]:[]),
       ]);
-      sourceFailed = results.some(r=>r.status==='rejected');
+      sourceFailed = sourceFailed || results.some(r=>r.status==='rejected');
     } else await runMarketSchedule(env, event.scheduledTime);
     } catch { sourceFailed = true; }
-    // Retry an unrecorded day hourly in an isolated private invocation.
-    if (Math.floor(event.scheduledTime / 60000) % 60 === 0) {
-      try { await env.MARKET_REFRESH.activity(); }
-      catch { console.error('Trading activity recording failed; retry next hour'); }
-    }
-    // Publishing and health are independent of provider success. Preserve the
-    // last valid observations and report a stalled source even if collection fails.
-    try { await env.MARKET_REFRESH.publicSnapshot(); }
-    catch { sourceFailed = true; console.error('Public market snapshot publication failed'); }
-    if (Math.floor(event.scheduledTime / 60000) % 5 === 0) {
-      try { await env.MARKET_REFRESH.health(); }
-      catch { sourceFailed = true; console.error('Market health or maintenance failed'); }
-    }
     if (sourceFailed) throw Error('A scheduled market source failed; independent sources completed');
   },
 };

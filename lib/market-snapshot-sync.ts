@@ -3,6 +3,8 @@ import type { MarketEnvironment } from './market-overview-server';
 // Only bounded public market cache rows cross this private service boundary.
 const ROOT='https://raw.githubusercontent.com/darcsoulj-lgtm/float-solana/';
 const SYNC_KEY='market-snapshot-sync:v1';
+export const SNAPSHOT_IMPORT_BATCH_SIZE=10;
+export const SNAPSHOT_IMPORT_PROGRESS_KEY='market-snapshot-import:v1';
 export type SnapshotChunkJob={kind:'snapshot';commit:string;hash:string};
 export type MarketManifest={version:1;generatedAt:number;commit:string;chunks:string[]};
 const hashPattern=/^[a-f0-9]{64}$/;
@@ -46,14 +48,33 @@ export async function syncMarketChunk(env:MarketEnvironment,job:SnapshotChunkJob
  await env.DB.batch(rows.map(row=>env.DB.prepare('INSERT INTO market_cache (key,payload,fetched_at,retry_after) VALUES (?,?,?,0) ON CONFLICT(key) DO UPDATE SET payload=excluded.payload,fetched_at=excluded.fetched_at,retry_after=0 WHERE market_cache.fetched_at<excluded.fetched_at')
  .bind(row.key,row.payload,row.fetched_at)));
 }
+// A free-plan invocation shares its external request budget with all private
+// bindings. Resume bounded imports instead of reloading every chunk each tick.
 export async function syncMarketSchedule(env:MarketEnvironment & {MARKET_REFRESH:{run(job:SnapshotChunkJob|{kind:'holders'}):Promise<void>}},fetcher:typeof fetch=fetch) {
- const manifest=parseMarketManifest(JSON.parse(await boundedText(ROOT+'market-data/manifest.json?minute='+Math.floor(Date.now()/60000),10000,fetcher)));
+ const started=Date.now();
+ const manifest=parseMarketManifest(JSON.parse(await boundedText(ROOT+'market-data/manifest.json?minute='+Math.floor(started/60000),10000,fetcher)),started);
  const prior=await env.DB.prepare('SELECT payload FROM market_cache WHERE key=?').bind(SYNC_KEY).first<{payload:string|null}>();
  if(prior?.payload===manifest.commit)return;
+ const lease=await env.DB.prepare('INSERT INTO market_cache(key,payload,fetched_at,retry_after) VALUES (?,NULL,?,?) ON CONFLICT(key) DO UPDATE SET fetched_at=excluded.fetched_at,retry_after=excluded.retry_after WHERE market_cache.retry_after<=? RETURNING payload')
+   .bind(SNAPSHOT_IMPORT_PROGRESS_KEY,started,started+45000,started).first<{payload:string|null}>();
+ if(!lease)return;
+ let completed:string[]=[];
+ try {
+   const saved=lease.payload?JSON.parse(lease.payload):null;
+   if(saved?.generatedAt>manifest.generatedAt){await env.DB.prepare('UPDATE market_cache SET retry_after=0 WHERE key=? AND fetched_at=?').bind(SNAPSHOT_IMPORT_PROGRESS_KEY,started).run();return;}
+   if(saved?.commit===manifest.commit&&saved.generatedAt===manifest.generatedAt&&Array.isArray(saved.completed)&&saved.completed.length<=100&&saved.completed.every((h:unknown)=>typeof h==='string'&&manifest.chunks.includes(h)))completed=[...new Set(saved.completed as string[])];
+ }catch{/* Malformed progress restarts validated chunks, never changes observations. */}
+ const due=manifest.chunks.filter(h=>!completed.includes(h)).slice(0,SNAPSHOT_IMPORT_BATCH_SIZE);
  let failures=0;
- for(const hash of manifest.chunks)try{await env.MARKET_REFRESH.run({kind:'snapshot',commit:manifest.commit,hash});}catch(error){failures++;console.error('Market snapshot chunk failed',hash,error instanceof Error?error.message:'unknown');}
+ for(const hash of due){if(Date.now()-started>=25000)break;try{await env.MARKET_REFRESH.run({kind:'snapshot',commit:manifest.commit,hash});completed.push(hash);}catch(error){failures++;console.error('Market snapshot chunk failed',hash,error instanceof Error?error.message:'unknown');}}
+ const finished=Date.now(),done=completed.length===manifest.chunks.length;
+ const fence='EXISTS(SELECT 1 FROM market_cache WHERE key=? AND fetched_at=? AND retry_after>?)';
+ const writes=[];
+ if(done)writes.push(env.DB.prepare(`INSERT INTO market_cache(key,payload,fetched_at,retry_after) SELECT ?,?,?,0 WHERE ${fence} ON CONFLICT(key) DO UPDATE SET payload=excluded.payload,fetched_at=excluded.fetched_at`)
+   .bind(SYNC_KEY,manifest.commit,finished,SNAPSHOT_IMPORT_PROGRESS_KEY,started,finished));
+ writes.push(env.DB.prepare('UPDATE market_cache SET payload=?,retry_after=0 WHERE key=? AND fetched_at=? AND retry_after>?')
+   .bind(JSON.stringify({commit:manifest.commit,generatedAt:manifest.generatedAt,completed}),SNAPSHOT_IMPORT_PROGRESS_KEY,started,finished));
+ await env.DB.batch(writes);
  if(failures)throw Error(`${failures} market snapshot chunks failed`);
- await env.DB.prepare('INSERT INTO market_cache (key,payload,fetched_at,retry_after) VALUES (?,?,?,0) ON CONFLICT(key) DO UPDATE SET payload=excluded.payload,fetched_at=excluded.fetched_at')
- .bind(SYNC_KEY,manifest.commit,Date.now()).run();
- console.log('Market snapshot synchronized',{generatedAt:manifest.generatedAt,chunks:manifest.chunks.length});
+ console.log(done?'Market snapshot synchronized':'Market snapshot import progressing',{generatedAt:manifest.generatedAt,chunks:manifest.chunks.length,completed:completed.length});
 }

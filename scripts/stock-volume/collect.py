@@ -124,7 +124,10 @@ class TradeAccumulator:
         return self.usd
 
 def stock_volume(symbol, start, end, headers, closed, fetch=request_json, pause=time.sleep):
-    query = {'symbols':symbol, 'start':iso(start), 'end':iso(end), 'feed':'sip', 'currency':'USD', 'asof':start.date().isoformat()}
+    # Alpaca's end is inclusive. Stop one nanosecond before our exclusive day
+    # boundary, otherwise Sunday's request includes Monday's entire daily bar.
+    inclusive_end = iso(end - timedelta(seconds=1)).replace('Z', '.999999999Z')
+    query = {'symbols':symbol, 'start':iso(start), 'end':inclusive_end, 'feed':'sip', 'currency':'USD', 'asof':start.date().isoformat()}
     daily = fetch('https://data.alpaca.markets/v2/stocks/bars?' + urllib.parse.urlencode({**query, 'timeframe':'1Day', 'limit':100, 'adjustment':'raw'}), headers)
     if daily.get('next_page_token') or set(daily.get('bars', {})) - {symbol}: raise ValueError('Invalid daily stock response')
     bars = daily.get('bars', {}).get(symbol, [])
