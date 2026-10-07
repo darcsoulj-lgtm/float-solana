@@ -1,6 +1,6 @@
 import { backpackHistoryKey, overlayBackpackHistory, retainBackpackReferences } from './backpack-reference';
 import { birdeyeVolumeEnabled } from './birdeye-volume-server';
-import { birdeyeVolumeKey, readBirdeyeVolumes, birdeyeVolumeInterval } from './birdeye-volume';
+import { BIRDEYE_VOLUME_SNAPSHOT_KEY, birdeyeVolumeKey, readBirdeyeVolumes, readBirdeyeVolumeSnapshot, birdeyeVolumeInterval } from './birdeye-volume';
 import { poolObservationKey } from './pool-inventory';
 import { supplyObservationKey } from './market-source-observations';
 import { marketCacheRows, marketSnapshot, cachedMarket, type CacheRow } from './market-cache';
@@ -69,7 +69,7 @@ export async function readMarketOverview(
   }))).flat();
   keys.push(...Object.values(await marketGlobalKeys(tokens)), ...selected.filter(t => t.issuer === 'backpack').flatMap(t => [poolObservationKey(t), supplyObservationKey(t), backpackHistoryKey(t.mint)]));
   const volumeEnabled = birdeyeVolumeEnabled(env);
-  if (volumeEnabled) keys.push(...selected.filter(t => t.issuer === 'backpack').map(t => birdeyeVolumeKey(t.mint)));
+  if (volumeEnabled) keys.push(BIRDEYE_VOLUME_SNAPSHOT_KEY, ...selected.filter(t => t.issuer === 'backpack').map(t => birdeyeVolumeKey(t.mint)));
   const saved = await marketCacheRows(env.DB, keys);
   const [pages, globals] = await Promise.all([
     Promise.all(partitions.map(async (batch) => ({
@@ -80,7 +80,7 @@ export async function readMarketOverview(
   ]);
   const overview = { ...mergeMarketPages(pages, true), ...globals, registry, totalBatches: partitions.length,
     ...(volumeEnabled && env.BIRDEYE_COMPARISON_ENABLED === '1' ? { issuerComparisonEnabled: true } : {}),
-    ...(volumeEnabled ? { tokenVolumes: readBirdeyeVolumes(selected, saved, birdeyeVolumeInterval(selected.filter(t => t.issuer === 'backpack').length, Number(env.BIRDEYE_VOLUME_BUDGET_CU)), Date.now()) } : {}),
+    ...(volumeEnabled ? { tokenVolumes: saved.has(BIRDEYE_VOLUME_SNAPSHOT_KEY) ? readBirdeyeVolumeSnapshot(selected, saved.get(BIRDEYE_VOLUME_SNAPSHOT_KEY), birdeyeVolumeInterval(selected.filter(t => t.issuer === 'backpack').length, Number(env.BIRDEYE_VOLUME_BUDGET_CU)), Date.now()) : readBirdeyeVolumes(selected, saved, birdeyeVolumeInterval(selected.filter(t => t.issuer === 'backpack').length, Number(env.BIRDEYE_VOLUME_BUDGET_CU)), Date.now()) } : {}),
   };
   return scope ? backpackOverview(overview, selected) : overview;
 }
