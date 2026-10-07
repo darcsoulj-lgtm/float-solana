@@ -1,9 +1,10 @@
+import limits from './market-snapshot-limits.json';
 import type { MarketEnvironment } from './market-overview-server';
 // Heavy provider parsing runs on our public repository's free standard runner.
 // Only bounded public market cache rows cross this private service boundary.
 const ROOT='https://raw.githubusercontent.com/darcsoulj-lgtm/float-solana/';
 const SYNC_KEY='market-snapshot-sync:v1';
-export const SNAPSHOT_IMPORT_BATCH_SIZE=10;
+export const SNAPSHOT_IMPORT_BATCH_SIZE=limits.batchSize;
 export const SNAPSHOT_IMPORT_PROGRESS_KEY='market-snapshot-import:v1';
 export type SnapshotChunkJob={kind:'snapshot';commit:string;hash:string};
 export type MarketManifest={version:1;generatedAt:number;commit:string;chunks:string[]};
@@ -13,7 +14,7 @@ const allowedKey=/^(backpack-verified-listings-v1|pool-token-stonkfun-v2:[1-9A-H
 // must be eligible for recollection even when it is too old to import.
 export function parseMarketGeneration(raw:unknown,now=Date.now()):MarketManifest {
  const m=raw as Partial<MarketManifest>;
- if(!m||m.version!==1||!Number.isSafeInteger(m.generatedAt)||m.generatedAt!<=0||m.generatedAt!>now+60000||typeof m.commit!=='string'||!/^[a-f0-9]{40}$/.test(m.commit)||!Array.isArray(m.chunks)||!m.chunks.length||m.chunks.length>100||new Set(m.chunks).size!==m.chunks.length||!m.chunks.every(h=>typeof h==='string'&&hashPattern.test(h)))throw Error('Invalid market manifest');
+ if(!m||m.version!==1||!Number.isSafeInteger(m.generatedAt)||m.generatedAt!<=0||m.generatedAt!>now+60000||typeof m.commit!=='string'||!/^[a-f0-9]{40}$/.test(m.commit)||!Array.isArray(m.chunks)||!m.chunks.length||m.chunks.length>limits.maxChunks||new Set(m.chunks).size!==m.chunks.length||!m.chunks.every(h=>typeof h==='string'&&hashPattern.test(h)))throw Error('Invalid market manifest');
  return m as MarketManifest;
 }
 export function parseMarketManifest(raw:unknown,now=Date.now()):MarketManifest {

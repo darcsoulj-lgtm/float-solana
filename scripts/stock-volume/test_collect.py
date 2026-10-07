@@ -86,3 +86,26 @@ class DailyComparisonTests(unittest.TestCase):
         check_public({'status':'daily','comparisons':[comparison]},now)
         for scope in [None, {'selected':['DJT','SPCX','IBM','PFE','EWZ'],'unavailable':[]}, {'selected':['DJT','SPCX','IBM','PFE','EWZ'],'unavailable':[{'symbol':'IBM','reason':'token-history-unavailable'}]}]:
             with self.assertRaises(ValueError):check_public({'status':'daily','comparisons':[{**comparison,'comparisonCoverage':scope}]},now)
+
+class JobRecoveryTests(unittest.TestCase):
+    def test_lost_response_reuses_signed_run_and_budget_denials_are_not_retried(self):
+        import collect
+        from unittest.mock import patch
+        from urllib.parse import urlsplit
+        with patch.object(collect,'identity',return_value='fixture'), patch.object(collect.time,'sleep') as pause:
+            with patch.object(collect,'request_json',side_effect=[collect.SourceNetworkError('unavailable'), {'skipped':True}]) as request:
+                self.assertEqual(collect.job({'action':'begin'}), {'skipped':True})
+                self.assertEqual(request.call_count,2)
+                self.assertEqual(request.call_args_list[0],request.call_args_list[1])
+                pause.assert_called_once_with(2)
+            for code in [403,409,429]:
+                with patch.object(collect,'request_json',side_effect=collect.SourceHTTPError(code,urlsplit(collect.SITE+'/api/stock-volume-job'))) as request:
+                    with self.assertRaises(collect.SourceHTTPError):collect.job({'action':'begin'})
+                    self.assertEqual(request.call_count,1)
+    def test_complete_day_exits_without_provider_reads(self):
+        import collect
+        from unittest.mock import patch
+        with patch.object(collect,'job',return_value={'skipped':True}), patch.object(collect,'check_public'), patch.object(collect,'request_json',return_value={}) as request:
+            collect.main()
+            self.assertEqual(request.call_count,1)
+            self.assertEqual(request.call_args.args[0],collect.SITE+'/api/stock-volume')

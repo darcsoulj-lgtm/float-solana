@@ -4,11 +4,11 @@ import { DatabaseSync } from 'node:sqlite';
 import { spawnSync } from 'node:child_process';
 import { bundle } from './helpers/bundle.mjs';
 const a=await bundle("export * from './lib/stock-volume-job';export * from './lib/stock-volume-published';");
-function database(){const raw=new DatabaseSync(':memory:');raw.exec('CREATE TABLE market_cache(key TEXT PRIMARY KEY,payload TEXT,fetched_at INTEGER,retry_after INTEGER)');const db={prepare(sql){return {args:[],bind(...args){this.args=args;return this;},async first(){return raw.prepare(sql).get(...this.args)??null;},async all(){return {results:raw.prepare(sql).all(...this.args)};},async run(){return raw.prepare(sql).run(...this.args);}};}};return {raw,db};}
+function database(){const raw=new DatabaseSync(':memory:');raw.exec('CREATE TABLE market_cache(key TEXT PRIMARY KEY,payload TEXT,fetched_at INTEGER,retry_after INTEGER)');const db={prepare(sql){return {sql,args:[],bind(...args){this.args=args;return this;},async first(){return raw.prepare(sql).get(...this.args)??null;},async all(){return {results:raw.prepare(sql).all(...this.args)};},async run(){return raw.prepare(sql).run(...this.args);}};}};db.batch=async statements=>{raw.exec('BEGIN');try{const results=statements.map(s=>raw.prepare(s.sql).run(...s.args));raw.exec('COMMIT');return results;}catch(error){raw.exec('ROLLBACK');throw error;}};return {raw,db};}
 const now=Date.parse('2026-10-04T12:00:00Z');
 const keys=await crypto.subtle.generateKey({name:'RSASSA-PKCS1-v1_5',modulusLength:2048,publicExponent:new Uint8Array([1,0,1]),hash:'SHA-256'},true,['sign','verify']);
 const jwk={...await crypto.subtle.exportKey('jwk',keys.publicKey),kid:'fixture-key',alg:'RS256'};
-const claims=()=>({iss:'https://token.actions.githubusercontent.com',aud:a.STOCK_VOLUME_AUDIENCE,sub:'repo:darcsoulj-lgtm/float-solana:ref:refs/heads/main',repository:'darcsoulj-lgtm/float-solana',repository_id:'1369155506',repository_owner_id:'273481610',ref:'refs/heads/main',workflow_ref:'darcsoulj-lgtm/float-solana/.github/workflows/stock-volume.yml@refs/heads/main',event_name:'schedule',iat:now/1000,nbf:now/1000,exp:now/1000+300,jti:'fixture'});
+const claims=()=>({iss:'https://token.actions.githubusercontent.com',aud:a.STOCK_VOLUME_AUDIENCE,sub:'repo:darcsoulj-lgtm/float-solana:ref:refs/heads/main',repository:'darcsoulj-lgtm/float-solana',repository_id:'1369155506',repository_owner_id:'273481610',ref:'refs/heads/main',workflow_ref:'darcsoulj-lgtm/float-solana/.github/workflows/stock-volume.yml@refs/heads/main',event_name:'schedule',run_id:'123',run_attempt:'1',iat:now/1000,nbf:now/1000,exp:now/1000+300,jti:'fixture'});
 async function jwt(changes={}){const encode=x=>Buffer.from(JSON.stringify(x)).toString('base64url');const input=encode({alg:'RS256',kid:'fixture-key'})+'.'+encode({...claims(),...changes});return input+'.'+Buffer.from(await crypto.subtle.sign('RSASSA-PKCS1-v1_5',keys.privateKey,Buffer.from(input))).toString('base64url');}
 const fetcher=async url=>{assert.equal(url,'https://token.actions.githubusercontent.com/.well-known/jwks');return Response.json({keys:[jwk]});};
 const request=async body=>new Request('https://joinfloat.xyz/api/stock-volume-job',{method:'POST',headers:{Authorization:'Bearer '+await jwt()},body:JSON.stringify(body)});
@@ -32,15 +32,16 @@ void test('publish validates complete data, keeps prior results on failure and r
  const {raw,db}=database(),env={DB:db,STOCK_VOLUME_ENABLED:'1',BIRDEYE_API_KEY:'fixture-bird',APCA_API_KEY_ID:'fixture-id',APCA_API_SECRET_KEY:'fixture-secret'};
  const c={...a.publishedStockVolumeComparisons()[0],startUtc:'2026-10-03T04:00:00Z',endUtc:'2026-10-04T04:00:00Z',selectionBasis:'latest-market-volume',selectedAt:now-10000,generatedAt:now-1000};
  assert.equal((await a.stockVolumeJob(await request(null),env,fetcher,now)).status,400);
- const started=await a.stockVolumeJob(await request({action:'begin'}),env,fetcher,now);assert.equal(started.headers.get('cache-control'),'no-store');assert.equal((await started.json()).alpacaId,'fixture-id');
+ const started=await a.stockVolumeJob(await request({action:'begin',endUtc:'2026-10-04T04:00:00Z'}),env,fetcher,now);assert.equal(started.headers.get('cache-control'),'no-store');assert.equal((await started.json()).alpacaId,'fixture-id');
  const prior={...c,startUtc:'2026-10-02T04:00:00Z',endUtc:'2026-10-03T04:00:00Z'};
- assert.equal((await a.stockVolumeJob(await request({action:'publish',comparison:prior}),env,fetcher,now)).status,204);
+ raw.prepare('INSERT INTO market_cache VALUES (?,?,?,0)').run(a.STOCK_VOLUME_KEY,JSON.stringify(prior),now);
+ raw.prepare('INSERT INTO market_cache VALUES (?,?,?,0)').run(a.STOCK_VOLUME_HISTORY_PREFIX+prior.endUtc,JSON.stringify(prior),Date.parse(prior.endUtc));
  assert.equal((await a.stockVolumeJob(await request({action:'publish',comparison:c}),env,fetcher,now)).status,204);
  const history=(await a.readStockVolume(db,now)).history;assert.equal(history.length,1);assert.equal(Date.parse(history[0].endUtc),Date.parse(prior.endUtc));assert.ok(history[0].rows.every(r=>r.stockUsd>0));
  assert.equal((await a.readStockVolume(db,now)).status,'daily');assert.equal((await a.readStockVolume(db,now)).comparisons[0].endUtc,c.endUtc);
  assert.equal((await a.stockVolumeJob(await request({action:'publish',comparison:{...c,rows:c.rows.slice(0,4)}}),env,fetcher,now)).status,422);
  const old={...c,startUtc:'2026-10-02T04:00:00Z',endUtc:'2026-10-03T04:00:00Z'};assert.equal((await a.stockVolumeJob(await request({action:'publish',comparison:old}),env,fetcher,now)).status,409);
- await a.stockVolumeJob(await request({action:'failed'}),env,fetcher,now);const result=await a.readStockVolume(db,now);assert.equal(result.status,'delayed');assert.equal(result.comparisons[0].endUtc,c.endUtc);assert.ok(!JSON.stringify(result).includes('fixture-secret'));raw.close();
+ await a.stockVolumeJob(await request({action:'failed'}),env,fetcher,now);const result=await a.readStockVolume(db,now);assert.equal(result.status,'daily');assert.equal(result.comparisons[0].endUtc,c.endUtc);assert.ok(!JSON.stringify(result).includes('fixture-secret'));raw.close();
 });
 void test('missing or corrupt cache retains dated fallback and becomes delayed when overdue',async()=>{
  const {raw,db}=database();assert.equal((await a.readStockVolume(db,now)).status,'delayed');raw.prepare('INSERT INTO market_cache VALUES (?,?,?,0)').run(a.STOCK_VOLUME_KEY,'{"period":1}',now);assert.equal((await a.readStockVolume(db,now)).comparisons[0].coverage.available,70);raw.close();
@@ -48,4 +49,29 @@ void test('missing or corrupt cache retains dated fallback and becomes delayed w
 void test('collector exercises DST, sparse histories, newly listed identities, missing data, corrections, reconciliation and pagination',()=>{
  const result=spawnSync(process.env.FLOAT_PYTHON??'python3',['-m','unittest','discover','-s','scripts/stock-volume','-p','test_*.py'],{encoding:'utf8',env:{...process.env,PYTHONDONTWRITEBYTECODE:'1'}});
  assert.equal(result.status,0,result.stderr);
+});
+
+void test('idempotent begins, concurrent runs and publication retries preserve the free budget',async()=>{
+ const {raw,db}=database(),env={DB:db,STOCK_VOLUME_ENABLED:'1',BIRDEYE_API_KEY:'fixture-bird',APCA_API_KEY_ID:'fixture-id',APCA_API_SECRET_KEY:'fixture-secret'};
+ const body={action:'begin',endUtc:a.stockComparisonWindowEnd(now)};
+ const response=await a.stockVolumeJob(await request(body),env,fetcher,now);assert.equal(response.status,200);
+ assert.equal((await a.stockVolumeJob(await request(body),env,fetcher,now)).status,200);
+ const competing=new Request('https://joinfloat.xyz/api/stock-volume-job',{method:'POST',headers:{Authorization:'Bearer '+await jwt({run_id:'124'})},body:JSON.stringify(body)});
+ assert.equal((await a.stockVolumeJob(competing,env,fetcher,now)).status,409);
+ assert.equal(raw.prepare("SELECT payload FROM market_cache WHERE key LIKE 'stock-volume-usage:v1:%'").get().payload,'200');
+ const c={...a.publishedStockVolumeComparisons()[0],startUtc:'2026-10-03T04:00:00Z',endUtc:body.endUtc,selectionBasis:'latest-market-volume',selectedAt:now-10000,generatedAt:now-1000};
+ for(let i=0;i<2;i++)assert.equal((await a.stockVolumeJob(await request({action:'publish',comparison:c}),env,fetcher,now)).status,204);
+ const skipped=await a.stockVolumeJob(await request(body),env,fetcher,now);assert.deepEqual(await skipped.json(),{skipped:true});
+ await a.stockVolumeJob(await request({action:'failed'}),env,fetcher,now);assert.equal((await a.readStockVolume(db,now)).status,'daily');
+ assert.equal(raw.prepare("SELECT payload FROM market_cache WHERE key LIKE 'stock-volume-usage:v1:%'").get().payload,'200');raw.close();
+});
+void test('failed collection releases its lease for one bounded recovery; exhausted budgets expose no credentials',async()=>{
+ const {raw,db}=database(),env={DB:db,STOCK_VOLUME_ENABLED:'1',BIRDEYE_API_KEY:'fixture-bird',APCA_API_KEY_ID:'fixture-id',APCA_API_SECRET_KEY:'fixture-secret'};
+ const body={action:'begin',endUtc:a.stockComparisonWindowEnd(now)};
+ for(let i=0;i<2;i++){assert.equal((await a.stockVolumeJob(await request(body),env,fetcher,now)).status,200);await a.stockVolumeJob(await request({action:'failed'}),env,fetcher,now);}
+ const denied=await a.stockVolumeJob(await request(body),env,fetcher,now);assert.equal(denied.status,429);assert.equal(await denied.text(),'');
+ assert.equal((await a.readStockVolume(db,now)).status,'delayed');raw.close();
+});
+void test('NY completed-day boundary handles both DST transitions and delayed schedule invocation',()=>{
+ for(const [at,end] of [['2026-03-08T12:00:00Z','2026-03-08T05:00:00Z'],['2026-03-09T12:00:00Z','2026-03-09T04:00:00Z'],['2026-11-01T12:00:00Z','2026-11-01T04:00:00Z'],['2026-11-02T12:00:00Z','2026-11-02T05:00:00Z'],['2026-10-07T00:00:00Z','2026-10-06T04:00:00Z']])assert.equal(a.stockComparisonWindowEnd(Date.parse(at)),end);
 });

@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {publicationAttempts} from '../scripts/market/publication-policy.mjs';
 import {publicationIssues} from '../scripts/market/publication-check.mjs';
 const now=200000000,observedAt=now-120000;
 const pool={address:'pool',volume24h:500000,observedAt};
@@ -66,4 +67,10 @@ void test('fresh collection timestamps cannot conceal blank prices; dated histor
  assert.deepEqual(check(dated),[]);
  assert.match(check({...dated,backpack:{...dated.backpack,data:{MU:{...row,externalObservedAt:now-97*3600000}}}}).join(';'),/invalid dated reference/);
  assert.match(check({...dated,backpack:{...dated.backpack,data:{MU:{...row,externalObservedAt:now+1}}}}).join(';'),/invalid dated reference/);
+});
+
+void test('publication allowance scales with import batches without weakening observation checks',()=>{
+ assert.equal(publicationAttempts(10),7);assert.equal(publicationAttempts(71),11);assert.equal(publicationAttempts(100),13);
+ for(const count of [0,101,NaN,7.5,undefined])assert.throws(()=>publicationAttempts(count));
+ const stale={...market,catalog:{fetchedAt:now-16*60000}};assert.match(check(stale).join(';'),/not fresh/);
 });

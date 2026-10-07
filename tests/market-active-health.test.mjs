@@ -28,7 +28,26 @@ void test('never-indexed partial Birdeye coverage is distinct from previously co
  input.controls.set(api.birdeyeVolumeKey(other.mint),{payload:'{"old":true}',fetched_at:now-80*HOUR,retry_after:0});
  assert.ok(api.activeHealthIssues(input).some(i=>i.source==='volume'&&i.affected===1));
  input.market.tokenVolumes.data.MU.observedAt=now-17*HOUR;
+ input.market.tokenVolumes.data.MU.collectedAt=now-17*HOUR;
  assert.ok(api.activeHealthIssues(input).some(i=>i.source==='volume'&&i.affected===2));
+});
+void test('fresh collection with older provider data is disclosed separately; missed collection and expired data still fail',()=>{
+ const input=fixture();input.market.tokenVolumes.data.MU.observedAt=now-17*HOUR;
+ assert.deepEqual(api.activeHealthIssues(input),[]);
+ assert.deepEqual(api.activeHealthWarnings(input),[{source:'volume',code:'volume_source_delayed',affected:1}]);
+ input.market.tokenVolumes.data.MU.collectedAt=now-17*HOUR;
+ assert.deepEqual(api.activeHealthIssues(input),[{source:'volume',code:'volume_coverage_overdue',affected:1}]);
+ assert.deepEqual(api.activeHealthWarnings(input),[]);
+ input.market.tokenVolumes.data.MU.collectedAt=now;input.market.tokenVolumes.data.MU.observedAt=now-73*HOUR;
+ input.controls.set(api.birdeyeVolumeKey(token.mint),{payload:'{"old":true}',fetched_at:now,retry_after:0});
+ assert.ok(api.activeHealthIssues(input).some(i=>i.code==='volume_coverage_overdue'));
+});
+void test('provider warnings remain visible in a healthy public response and malformed warnings cannot pass',async()=>{
+ let payload=JSON.stringify({version:1,status:'ok',checkedAt:now,issues:[],warnings:[{source:'volume',code:'volume_source_delayed',affected:1,private:'secret'}]});
+ const db={prepare(){return{bind(){return this;},async first(){return{payload};}};}};
+ assert.deepEqual((await api.readActiveMarketHealth(db,now)).warnings,[{source:'volume',code:'volume_source_delayed',affected:1}]);
+ payload=JSON.stringify({version:1,status:'ok',checkedAt:now,issues:[],warnings:[{source:'collector',code:'ignored_failure',affected:1}]});
+ assert.equal((await api.readActiveMarketHealth(db,now)).status,'unavailable');
 });
 void test('dead volume collector, stale supply, holder scope changes, and missed activity are independently actionable',()=>{
  const input=fixture();input.controls.get('birdeye-schedule:v1').payload=JSON.stringify({status:'source_unavailable',checkedAt:now});input.market.supplies.asOf.MU=now-HOUR;input.holder.registryHash='old';input.activityAt=now-41*HOUR;
@@ -92,4 +111,10 @@ void test('expiry index migration is idempotent and selects expired rows through
 void test('daily activity grace accounts for the 14-hour source cadence crossing a UTC boundary',()=>{
  const input=fixture();input.activityAt=now-38*HOUR;assert.deepEqual(api.activeHealthIssues(input),[]);
  input.activityAt=now-41*HOUR;assert.ok(api.activeHealthIssues(input).some(i=>i.source==='activity'));
+});
+
+void test('comparison publication failures cannot hide behind a healthy main market',async()=>{
+ const input=fixture();input.stockComparison={status:'daily'};assert.deepEqual(api.activeHealthIssues(input),[]);
+ for(const status of ['delayed','pending']){input.stockComparison={status};const issues=api.activeHealthIssues(input);assert.deepEqual(issues,[{source:'stock-comparison',code:'stock_comparison_overdue',affected:1}]);
+ const payload=JSON.stringify({version:1,status:'degraded',checkedAt:now,issues});const db={prepare(){return{bind(){return this;},async first(){return{payload};}};}};assert.equal((await api.readActiveMarketHealth(db,now)).status,'degraded');}
 });

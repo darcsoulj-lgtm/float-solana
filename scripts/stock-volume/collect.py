@@ -14,6 +14,11 @@ KNOWN = {'A': set('B C E F H I K L M N O P Q R T U V X Z 4 5 6 7 9'.split()) | {
          'C': set('@ A B C D F G H I K L M N O P Q R T U V W X Y Z 4 5 6 7 9'.split())}
 EXCLUDED = {'M', 'Q', '9'}
 class TokenDayUnavailable(ValueError): pass
+class SourceHTTPError(RuntimeError):
+    def __init__(self, status, source):
+        self.status = status
+        super().__init__('Source HTTP '+str(status)+' at '+source.hostname+source.path)
+class SourceNetworkError(RuntimeError): pass
 
 def request_json(url, headers=None, body=None, limit=12000000):
     req = urllib.request.Request(url, data=json.dumps(body).encode() if body is not None else None,
@@ -26,9 +31,9 @@ def request_json(url, headers=None, body=None, limit=12000000):
         return json.loads(raw)
     except urllib.error.HTTPError as error:
         source = urllib.parse.urlsplit(url)
-        raise RuntimeError('Source HTTP ' + str(error.code) + ' at ' + source.hostname + source.path) from None
+        raise SourceHTTPError(error.code, source) from None
     except urllib.error.URLError:
-        raise RuntimeError('Source network error at ' + urllib.parse.urlsplit(url).hostname) from None
+        raise SourceNetworkError('Source network error at ' + urllib.parse.urlsplit(url).hostname) from None
 
 def identity():
     url = os.environ['ACTIONS_ID_TOKEN_REQUEST_URL'] + '&audience=' + urllib.parse.quote(AUDIENCE, safe='')
@@ -42,7 +47,15 @@ def identity():
     return value
 
 def job(body):
-    return request_json(SITE + '/api/stock-volume-job', {'Authorization': 'Bearer ' + identity()}, body, limit=16000)
+    headers = {'Authorization': 'Bearer ' + identity()}
+    for attempt in range(3):
+        try: return request_json(SITE + '/api/stock-volume-job', headers, body, limit=16000)
+        except (SourceNetworkError, SourceHTTPError) as error:
+            # Begin/publish are idempotent for this signed run. Never replay
+            # provider requests or turn a quota denial into a retry storm.
+            if isinstance(error, SourceHTTPError) and error.status not in (500, 502, 503, 504): raise
+            if attempt == 2: raise
+            time.sleep((2, 5)[attempt])
 
 def window(now):
     end = now.astimezone(ET).replace(hour=0, minute=0, second=0, microsecond=0)
@@ -148,6 +161,12 @@ def stock_volume(symbol, start, end, headers, closed, fetch=request_json, pause=
 
 def main():
     now = datetime.now(timezone.utc); start, end = window(now)
+    settings = job({'action':'begin','endUtc':iso(end)})
+    if settings.get('skipped'):
+        check_public(request_json(SITE+'/api/stock-volume'), now)
+        print('Already published; no provider quota used',flush=True)
+        return
+    for value in settings.values(): print('::add-mask::'+value, flush=True)
     market = request_json(SITE+'/api/backpack-market', limit=4000000)
     assets = request_json('https://api.backpack.exchange/api/v1/assets', limit=8000000)
     import hashlib
@@ -157,8 +176,6 @@ def main():
     mints=scoped[0].get('mints',[])
     if not mints or len(mints)!=len(set(mints)) or scoped[0].get('registryHash')!=hashlib.sha256('\n'.join(sorted(mints)).encode()).hexdigest(): raise ValueError('Invalid verified Backpack scope')
     selected, coverage = select_tokens(market, assets, now, set(mints))
-    settings = job({'action':'begin'})
-    for value in settings.values(): print('::add-mask::'+value, flush=True)
     headers = {'APCA-API-KEY-ID':settings['alpacaId'], 'APCA-API-SECRET-KEY':settings['alpacaSecret']}
     date = start.date().isoformat()
     calendar = request_json('https://paper-api.alpaca.markets/v2/calendar?'+urllib.parse.urlencode({'start':date,'end':date}), headers)
