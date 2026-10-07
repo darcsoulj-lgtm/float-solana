@@ -59,12 +59,12 @@ void test('idempotent begins, concurrent runs and publication retries preserve t
  assert.equal((await a.stockVolumeJob(await request(body),env,fetcher,now)).status,200);
  const competing=new Request('https://joinfloat.xyz/api/stock-volume-job',{method:'POST',headers:{Authorization:'Bearer '+await jwt({run_id:'124'})},body:JSON.stringify(body)});
  assert.equal((await a.stockVolumeJob(competing,env,fetcher,now)).status,409);
- assert.equal(raw.prepare("SELECT payload FROM market_cache WHERE key LIKE 'stock-volume-usage:v1:%'").get().payload,'200');
+ assert.equal(raw.prepare("SELECT payload FROM market_cache WHERE key LIKE 'stock-volume-window-usage:v2:%'").get().payload,'200');
  const c={...a.publishedStockVolumeComparisons()[0],startUtc:'2026-10-03T04:00:00Z',endUtc:body.endUtc,selectionBasis:'latest-market-volume',selectedAt:now-10000,generatedAt:now-1000};
  for(let i=0;i<2;i++)assert.equal((await a.stockVolumeJob(await request({action:'publish',comparison:c}),env,fetcher,now)).status,204);
  const skipped=await a.stockVolumeJob(await request(body),env,fetcher,now);assert.deepEqual(await skipped.json(),{skipped:true});
  await a.stockVolumeJob(await request({action:'failed'}),env,fetcher,now);assert.equal((await a.readStockVolume(db,now)).status,'daily');
- assert.equal(raw.prepare("SELECT payload FROM market_cache WHERE key LIKE 'stock-volume-usage:v1:%'").get().payload,'200');raw.close();
+ assert.equal(raw.prepare("SELECT payload FROM market_cache WHERE key LIKE 'stock-volume-window-usage:v2:%'").get().payload,'200');raw.close();
 });
 void test('failed collection releases its lease for one bounded recovery; exhausted budgets expose no credentials',async()=>{
  const {raw,db}=database(),env={DB:db,STOCK_VOLUME_ENABLED:'1',BIRDEYE_API_KEY:'fixture-bird',APCA_API_KEY_ID:'fixture-id',APCA_API_SECRET_KEY:'fixture-secret'};
@@ -82,11 +82,22 @@ void test('provider retry quota is idempotent, fenced to the active owner and in
  const begin={action:'begin',endUtc:a.stockComparisonWindowEnd(now)};
  assert.equal((await a.stockVolumeJob(await request(begin),env,fetcher,now)).status,200);
  for(let i=0;i<2;i++)assert.equal((await a.stockVolumeJob(await request({action:'retry',retryId:'MU:1'}),env,fetcher,now)).status,204);
- assert.equal(raw.prepare("SELECT payload FROM market_cache WHERE key LIKE 'stock-volume-usage:v1:%'").get().payload,'240');
+ assert.equal(raw.prepare("SELECT payload FROM market_cache WHERE key LIKE 'stock-volume-window-usage:v2:%'").get().payload,'240');
  for(let i=0;i<4;i++)assert.equal((await a.stockVolumeJob(await request({action:'retry',retryId:'token:'+i}),env,fetcher,now)).status,204);
  assert.equal((await a.stockVolumeJob(await request({action:'retry',retryId:'extra'}),env,fetcher,now)).status,429);
- assert.equal(raw.prepare("SELECT payload FROM market_cache WHERE key LIKE 'stock-volume-usage:v1:%'").get().payload,'400');
+ assert.equal(raw.prepare("SELECT payload FROM market_cache WHERE key LIKE 'stock-volume-window-usage:v2:%'").get().payload,'400');
  await a.stockVolumeJob(await request({action:'failed'}),env,fetcher,now);
- assert.equal((await a.stockVolumeJob(await request({action:'retry',retryId:'late'}),env,fetcher,now)).status,429);
+ assert.equal((await a.stockVolumeJob(await request({action:'retry',retryId:'late'}),env,fetcher,now)).status,409);
  assert.equal((await a.stockVolumeJob(await request(begin),env,fetcher,now)).status,429);raw.close();
+});
+
+void test('legacy dispatch-day reservations do not block a different NY window but still count toward the rolling free budget',async()=>{
+ const {raw,db}=database(),env={DB:db,STOCK_VOLUME_ENABLED:'1',BIRDEYE_API_KEY:'fixture-bird',APCA_API_KEY_ID:'fixture-id',APCA_API_SECRET_KEY:'fixture-secret'};
+ const day=Math.floor(now/86400000)*86400000;
+ raw.prepare('INSERT INTO market_cache VALUES (?,?,?,0)').run('stock-volume-usage:v1:'+day,'400',day);
+ assert.equal((await a.stockVolumeJob(await request({action:'begin',endUtc:a.stockComparisonWindowEnd(now)}),env,fetcher,now)).status,200);
+ assert.equal(raw.prepare("SELECT SUM(CAST(payload AS INTEGER)) n FROM market_cache WHERE key LIKE 'stock-volume-%usage:v%'").get().n,600);
+ await a.stockVolumeJob(await request({action:'failed'}),env,fetcher,now);
+ raw.prepare("UPDATE market_cache SET payload='7800' WHERE key LIKE 'stock-volume-usage:v1:%'").run();
+ assert.equal((await a.stockVolumeJob(await request({action:'begin',endUtc:a.stockComparisonWindowEnd(now)}),env,fetcher,now)).status,429);raw.close();
 });

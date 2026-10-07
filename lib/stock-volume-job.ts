@@ -52,7 +52,7 @@ export async function reserveStockComparison(db: D1Database, now: number) {
   const day = Math.floor(now / DAY) * DAY, key = 'stock-volume-usage:v1:' + day;
   await db.prepare("INSERT OR IGNORE INTO market_cache(key,payload,fetched_at,retry_after) VALUES (?,'0',?,0)").bind(key, day).run();
   return !!await db.prepare(`UPDATE market_cache SET payload=CAST(CAST(payload AS INTEGER)+200 AS TEXT)
-    WHERE key=? AND CAST(payload AS INTEGER)+200<=400 AND (SELECT COALESCE(SUM(CAST(payload AS INTEGER)),0) FROM market_cache WHERE key LIKE 'stock-volume-usage:v1:%' AND fetched_at>=?) + 200 <= 8000 RETURNING key`).bind(key, day - 31 * DAY).first();
+    WHERE key=? AND CAST(payload AS INTEGER)+200<=400 AND (SELECT COALESCE(SUM(CAST(payload AS INTEGER)),0) FROM market_cache WHERE (key LIKE 'stock-volume-usage:v1:%' OR key LIKE 'stock-volume-window-usage:v2:%') AND fetched_at>=?) + 200 <= 8000 RETURNING key`).bind(key, day - 31 * DAY).first();
 }
 export function stockComparisonWindowEnd(now:number) {
   const parts = Object.fromEntries(new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(now).map(p=>[p.type,p.value]));
@@ -81,15 +81,18 @@ export async function stockVolumeJob(request: Request, env: JobEnvironment, fetc
     if (data.endUtc !== end) return new Response(null, { status: 422, headers: privateHeaders });
     const saved = await env.DB.prepare('SELECT payload FROM market_cache WHERE key=?').bind(STOCK_VOLUME_KEY).first<{payload:string}>();
     try { const value:unknown=JSON.parse(saved?.payload ?? 'null'); if (validStockVolumeComparison(value) && Date.parse(value.endUtc)<=now && (value.generatedAt??0)<=now+60000 && Date.parse(value.endUtc) >= Date.parse(end)) return Response.json({ skipped: true }, { headers: privateHeaders }); } catch { /* Invalid data must be recollected. */ }
-    const day = Math.floor(now / DAY) * DAY, budgetKey = 'stock-volume-usage:v1:' + day;
+    const day = Math.floor(now / DAY) * DAY, budgetKey = 'stock-volume-window-usage:v2:' + end;
     await env.DB.prepare("INSERT OR IGNORE INTO market_cache(key,payload,fetched_at,retry_after) VALUES (?,'0',?,0)").bind(budgetKey, day).run();
+    // Budget each completed New York window, not the UTC dispatch date.
+    // Recovery of yesterday cannot consume tomorrow's scheduled allowance.
+    // Legacy UTC reservations still count toward the rolling free budget.
     // D1 executes the batch transactionally. A lost begin response can be
     // retried by the same signed run without reserving another 200 CU.
     await env.DB.batch([
       env.DB.prepare(`INSERT INTO market_cache(key,payload,fetched_at,retry_after) VALUES (?,?,?,?)
         ON CONFLICT(key) DO UPDATE SET payload=excluded.payload,fetched_at=excluded.fetched_at,retry_after=excluded.retry_after WHERE market_cache.retry_after<=?`).bind(STOCK_VOLUME_JOB_KEY,JSON.stringify({status:'collecting',checkedAt:now,owner,endUtc:end,reserved:false}),now,now+40*60000,now),
       env.DB.prepare(`UPDATE market_cache SET payload=CAST(CAST(payload AS INTEGER)+200 AS TEXT)
-        WHERE key=? AND CAST(payload AS INTEGER)+200<=400 AND (SELECT COALESCE(SUM(CAST(payload AS INTEGER)),0) FROM market_cache WHERE key LIKE 'stock-volume-usage:v1:%' AND fetched_at>=?)+200<=8000
+        WHERE key=? AND CAST(payload AS INTEGER)+200<=400 AND (SELECT COALESCE(SUM(CAST(payload AS INTEGER)),0) FROM market_cache WHERE (key LIKE 'stock-volume-usage:v1:%' OR key LIKE 'stock-volume-window-usage:v2:%') AND fetched_at>=?)+200<=8000
         AND EXISTS(SELECT 1 FROM market_cache WHERE key=? AND json_extract(payload,'$.owner')=? AND json_extract(payload,'$.reserved')=0)`).bind(budgetKey,day-31*DAY,STOCK_VOLUME_JOB_KEY,owner),
       env.DB.prepare("UPDATE market_cache SET payload=json_set(payload,'$.reserved',json('true')) WHERE key=? AND json_extract(payload,'$.owner')=? AND changes()>0").bind(STOCK_VOLUME_JOB_KEY,owner),
     ]);
@@ -102,11 +105,14 @@ export async function stockVolumeJob(request: Request, env: JobEnvironment, fetc
   if (data.action === 'failed') { await writeState('failed'); return new Response(null, { status: 204, headers: privateHeaders }); }
   if(data.action==='retry'){
     if(typeof data.retryId!=='string'||!/^[a-zA-Z0-9:-]{1,80}$/.test(data.retryId))return new Response(null,{status:422,headers:privateHeaders});
-    const day=Math.floor(now/DAY)*DAY,key='stock-volume-usage:v1:'+day;
+    const active=await env.DB.prepare('SELECT payload,retry_after FROM market_cache WHERE key=?').bind(STOCK_VOLUME_JOB_KEY).first<{payload:string;retry_after:number}>();
+    const attempt=JSON.parse(active?.payload??'null') as {owner?:string;status?:string;endUtc?:string}|null;
+    if(attempt?.owner!==owner||attempt.status!=='collecting'||!attempt.endUtc||!active||active.retry_after<=now)return new Response(null,{status:409,headers:privateHeaders});
+    const day=Math.floor(now/DAY)*DAY,key='stock-volume-window-usage:v2:'+attempt.endUtc;
     await env.DB.prepare("INSERT OR IGNORE INTO market_cache(key,payload,fetched_at,retry_after) VALUES (?,'0',?,0)").bind(key,day).run();
     await env.DB.batch([
       env.DB.prepare(`UPDATE market_cache SET payload=CAST(CAST(payload AS INTEGER)+40 AS TEXT) WHERE key=? AND CAST(payload AS INTEGER)+40<=400
-        AND (SELECT COALESCE(SUM(CAST(payload AS INTEGER)),0) FROM market_cache WHERE key LIKE 'stock-volume-usage:v1:%' AND fetched_at>=?)+40<=8000
+        AND (SELECT COALESCE(SUM(CAST(payload AS INTEGER)),0) FROM market_cache WHERE (key LIKE 'stock-volume-usage:v1:%' OR key LIKE 'stock-volume-window-usage:v2:%') AND fetched_at>=?)+40<=8000
         AND EXISTS(SELECT 1 FROM market_cache WHERE key=? AND retry_after>? AND json_extract(payload,'$.owner')=? AND json_extract(payload,'$.status')='collecting' AND json_extract(payload,'$.reserved')=1
           AND NOT EXISTS(SELECT 1 FROM json_each(COALESCE(json_extract(payload,'$.retries'),'[]')) WHERE value=?))`).bind(key,day-31*DAY,STOCK_VOLUME_JOB_KEY,now,owner,data.retryId),
       env.DB.prepare("UPDATE market_cache SET payload=json_set(payload,'$.retries',json_insert(COALESCE(json_extract(payload,'$.retries'),'[]'),'$[#]',?)) WHERE key=? AND json_extract(payload,'$.owner')=? AND changes()>0").bind(data.retryId,STOCK_VOLUME_JOB_KEY,owner),
