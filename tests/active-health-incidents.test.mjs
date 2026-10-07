@@ -17,7 +17,9 @@ void test('active production incidents open once, retain alert state while faili
  assert.equal(raw.prepare('SELECT COUNT(*) n FROM market_incidents WHERE recovered_at IS NULL').get().n,1);
  api.healthFixture.issues=[];await api.checkMarketWorkHealth(env,now+2000);await api.checkMarketWorkHealth(env,now+3000);assert.equal(events.length,2);assert.equal(events[1].state,'recovery');
  api.healthFixture.issues=[{source:'reference-history',code:'history_collection_overdue',affected:2}];await api.checkMarketWorkHealth(env,now+4000);assert.equal(events.length,3);assert.notEqual(events[0].id,events[2].id);
- api.healthFixture.issues=[];raw.close();
+ api.healthFixture.issues=[{source:'stock-comparison',code:'stock_comparison_overdue',affected:1}];await api.checkMarketWorkHealth(env,now+5000);assert.ok(events.some(e=>e.source==='active:stock-comparison'&&e.state==='failure'));
+ api.healthFixture.issues=[];await api.checkMarketWorkHealth(env,now+6000);assert.ok(events.some(e=>e.source==='active:stock-comparison'&&e.state==='recovery'));
+ raw.close();
 });
 void test('disabled queue-era work cannot create false active collector incidents',async()=>{
  const raw=new DatabaseSync(':memory:');raw.exec(await readFile('drizzle/0021_market_work.sql','utf8'));

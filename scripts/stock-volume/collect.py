@@ -57,6 +57,21 @@ def job(body):
             if attempt == 2: raise
             time.sleep((2, 5)[attempt])
 
+def birdeye_candles(query, headers, fetch=None, pause=None, reserve=None):
+    fetch = fetch or request_json; pause = pause or time.sleep; reserve = reserve or job
+    url = 'https://public-api.birdeye.so/defi/v3/ohlcv?'+urllib.parse.urlencode(query)
+    # Pace every path, including empty history, before the next request. The
+    # same API key is shared with the regular market collector.
+    pause(2)
+    try: return fetch(url, headers, limit=2000000)
+    except (SourceHTTPError, SourceNetworkError) as error:
+        if isinstance(error, SourceHTTPError) and error.status not in (429, 500, 502, 503, 504): raise
+        # Count even a rejected request conservatively. One retry only, and
+        # reserve its additional 40 CU before making it; never exceed budget.
+        reserve({'action':'retry','retryId':query['address']+':1'})
+        pause(5)
+        return fetch(url, headers, limit=2000000)
+
 def window(now):
     end = now.astimezone(ET).replace(hour=0, minute=0, second=0, microsecond=0)
     return end - timedelta(days=1), end
@@ -187,7 +202,7 @@ def main():
         asset = request_json('https://paper-api.alpaca.markets/v2/assets/'+urllib.parse.quote(symbol), headers, limit=16000)
         if asset.get('symbol') != symbol or asset.get('class') != 'us_equity' or asset.get('status') != 'active' or asset.get('exchange') not in ('NASDAQ','NYSE','AMEX','ARCA','BATS','OTC'): raise ValueError('US stock identity unavailable')
         query = {'address':mint,'type':'1H','currency':'usd','mode':'range','time_from':int(start.timestamp()),'time_to':int(end.timestamp())-1,'ui_amount_mode':'scaled','padding':'false'}
-        candles = request_json('https://public-api.birdeye.so/defi/v3/ohlcv?'+urllib.parse.urlencode(query), {'X-API-KEY':settings['birdeye'],'x-chain':'solana'}, limit=2000000)
+        candles = birdeye_candles(query, {'X-API-KEY':settings['birdeye'],'x-chain':'solana'})
         try: token_usd = token_volume(candles, mint, start, end)
         except TokenDayUnavailable:
             unavailable.append({'symbol':symbol,'reason':'token-history-unavailable'})
@@ -196,7 +211,6 @@ def main():
         stock_usd = stock_volume(symbol, start, end, headers, closed)
         rows.append({'symbol':symbol,'mint':mint,'name':asset.get('name') or token['name'],'listingExchange':asset['exchange'],'tokenUsd':float(token_usd),'stockUsd':float(stock_usd),'reconciled':True,**({'stockMarketClosed':True} if closed else {})})
         print(json.dumps({'symbol':symbol,'date':date,'reconciled':True,'marketClosed':closed}),flush=True)
-        time.sleep(1.1)
     if len(rows)<3: raise ValueError('Insufficient verified daily comparisons')
     result = {'period':1,'startUtc':iso(start),'endUtc':iso(end),'timeZone':'America/New_York','tokenSource':'birdeye','stockSource':'alpaca-sip','coverage':coverage,'rows':rows,'selectionBasis':'latest-market-volume','selectedAt':int(now.timestamp()*1000),'generatedAt':int(datetime.now(timezone.utc).timestamp()*1000), 'comparisonCoverage':{'selected':[t['symbol'] for t in selected],'unavailable':unavailable}}
     job({'action':'publish','comparison':result})

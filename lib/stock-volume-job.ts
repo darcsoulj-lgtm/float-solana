@@ -52,7 +52,7 @@ export async function reserveStockComparison(db: D1Database, now: number) {
   const day = Math.floor(now / DAY) * DAY, key = 'stock-volume-usage:v1:' + day;
   await db.prepare("INSERT OR IGNORE INTO market_cache(key,payload,fetched_at,retry_after) VALUES (?,'0',?,0)").bind(key, day).run();
   return !!await db.prepare(`UPDATE market_cache SET payload=CAST(CAST(payload AS INTEGER)+200 AS TEXT)
-    WHERE key=? AND CAST(payload AS INTEGER)<400 AND (SELECT COALESCE(SUM(CAST(payload AS INTEGER)),0) FROM market_cache WHERE key LIKE 'stock-volume-usage:v1:%' AND fetched_at>=?) + 200 <= 8000 RETURNING key`).bind(key, day - 31 * DAY).first();
+    WHERE key=? AND CAST(payload AS INTEGER)+200<=400 AND (SELECT COALESCE(SUM(CAST(payload AS INTEGER)),0) FROM market_cache WHERE key LIKE 'stock-volume-usage:v1:%' AND fetched_at>=?) + 200 <= 8000 RETURNING key`).bind(key, day - 31 * DAY).first();
 }
 export function stockComparisonWindowEnd(now:number) {
   const parts = Object.fromEntries(new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(now).map(p=>[p.type,p.value]));
@@ -67,7 +67,7 @@ export async function stockVolumeJob(request: Request, env: JobEnvironment, fetc
   let identity: Claims;
   try { identity = await verifyStockJobIdentity((request.headers.get('Authorization') ?? '').replace(/^Bearer /, ''), fetcher, now); }
   catch { return new Response(null, { status: 403, headers: privateHeaders }); }
-  let data: { action?: string; comparison?: unknown; endUtc?: string };
+  let data: { action?: string; comparison?: unknown; endUtc?: string; retryId?: string };
   try { data = await boundedStockJson(new Response(request.body), 16000) as typeof data; }
   catch { return new Response(null, { status: 400, headers: privateHeaders }); }
   if (!data || typeof data !== 'object') return new Response(null, { status: 400, headers: privateHeaders });
@@ -89,7 +89,7 @@ export async function stockVolumeJob(request: Request, env: JobEnvironment, fetc
       env.DB.prepare(`INSERT INTO market_cache(key,payload,fetched_at,retry_after) VALUES (?,?,?,?)
         ON CONFLICT(key) DO UPDATE SET payload=excluded.payload,fetched_at=excluded.fetched_at,retry_after=excluded.retry_after WHERE market_cache.retry_after<=?`).bind(STOCK_VOLUME_JOB_KEY,JSON.stringify({status:'collecting',checkedAt:now,owner,endUtc:end,reserved:false}),now,now+40*60000,now),
       env.DB.prepare(`UPDATE market_cache SET payload=CAST(CAST(payload AS INTEGER)+200 AS TEXT)
-        WHERE key=? AND CAST(payload AS INTEGER)<400 AND (SELECT COALESCE(SUM(CAST(payload AS INTEGER)),0) FROM market_cache WHERE key LIKE 'stock-volume-usage:v1:%' AND fetched_at>=?)+200<=8000
+        WHERE key=? AND CAST(payload AS INTEGER)+200<=400 AND (SELECT COALESCE(SUM(CAST(payload AS INTEGER)),0) FROM market_cache WHERE key LIKE 'stock-volume-usage:v1:%' AND fetched_at>=?)+200<=8000
         AND EXISTS(SELECT 1 FROM market_cache WHERE key=? AND json_extract(payload,'$.owner')=? AND json_extract(payload,'$.reserved')=0)`).bind(budgetKey,day-31*DAY,STOCK_VOLUME_JOB_KEY,owner),
       env.DB.prepare("UPDATE market_cache SET payload=json_set(payload,'$.reserved',json('true')) WHERE key=? AND json_extract(payload,'$.owner')=? AND changes()>0").bind(STOCK_VOLUME_JOB_KEY,owner),
     ]);
@@ -100,6 +100,22 @@ export async function stockVolumeJob(request: Request, env: JobEnvironment, fetc
     return Response.json({ birdeye: env.BIRDEYE_API_KEY, alpacaId: env.APCA_API_KEY_ID, alpacaSecret: env.APCA_API_SECRET_KEY }, { headers: privateHeaders });
   }
   if (data.action === 'failed') { await writeState('failed'); return new Response(null, { status: 204, headers: privateHeaders }); }
+  if(data.action==='retry'){
+    if(typeof data.retryId!=='string'||!/^[a-zA-Z0-9:-]{1,80}$/.test(data.retryId))return new Response(null,{status:422,headers:privateHeaders});
+    const day=Math.floor(now/DAY)*DAY,key='stock-volume-usage:v1:'+day;
+    await env.DB.prepare("INSERT OR IGNORE INTO market_cache(key,payload,fetched_at,retry_after) VALUES (?,'0',?,0)").bind(key,day).run();
+    await env.DB.batch([
+      env.DB.prepare(`UPDATE market_cache SET payload=CAST(CAST(payload AS INTEGER)+40 AS TEXT) WHERE key=? AND CAST(payload AS INTEGER)+40<=400
+        AND (SELECT COALESCE(SUM(CAST(payload AS INTEGER)),0) FROM market_cache WHERE key LIKE 'stock-volume-usage:v1:%' AND fetched_at>=?)+40<=8000
+        AND EXISTS(SELECT 1 FROM market_cache WHERE key=? AND retry_after>? AND json_extract(payload,'$.owner')=? AND json_extract(payload,'$.status')='collecting' AND json_extract(payload,'$.reserved')=1
+          AND NOT EXISTS(SELECT 1 FROM json_each(COALESCE(json_extract(payload,'$.retries'),'[]')) WHERE value=?))`).bind(key,day-31*DAY,STOCK_VOLUME_JOB_KEY,now,owner,data.retryId),
+      env.DB.prepare("UPDATE market_cache SET payload=json_set(payload,'$.retries',json_insert(COALESCE(json_extract(payload,'$.retries'),'[]'),'$[#]',?)) WHERE key=? AND json_extract(payload,'$.owner')=? AND changes()>0").bind(data.retryId,STOCK_VOLUME_JOB_KEY,owner),
+    ]);
+    const row=await env.DB.prepare('SELECT payload,retry_after FROM market_cache WHERE key=?').bind(STOCK_VOLUME_JOB_KEY).first<{payload:string;retry_after:number}>();
+    const state=JSON.parse(row?.payload??'null') as {owner?:string;status?:string;retries?:string[]}|null;
+    const granted=state?.owner===owner&&state.status==='collecting'&&row!.retry_after>now&&state.retries?.includes(data.retryId);
+    return new Response(null,{status:granted?204:429,headers:privateHeaders});
+  }
   const comparison = data.comparison;
   if (data.action !== 'publish' || !validStockVolumeComparison(comparison) || comparison.selectionBasis !== 'latest-market-volume' || comparison.period !== 1 || comparison.generatedAt! > now + 60000 || now - comparison.generatedAt! > 3600000 || Date.parse(comparison.endUtc) > now || now - Date.parse(comparison.endUtc) > 48 * 3600000) return new Response(null, { status: 422, headers: privateHeaders });
   const published=await env.DB.prepare('SELECT payload FROM market_cache WHERE key=?').bind(STOCK_VOLUME_KEY).first<{payload:string}>();
@@ -120,7 +136,7 @@ export async function stockVolumeJob(request: Request, env: JobEnvironment, fetc
 export async function readStockVolume(db: D1Database, now = Date.now()) {
   const result = await db.prepare('SELECT key,payload FROM market_cache WHERE key IN (?,?)').bind(STOCK_VOLUME_KEY, STOCK_VOLUME_JOB_KEY).all<{ key: string; payload: string | null }>();
   let comparison: StockVolumeComparison = snapshot as StockVolumeComparison, lastAttempt: { status: string; checkedAt: number } | null = null;
-  for (const row of result.results) { try { const value: unknown = JSON.parse(row.payload ?? 'null'); if (row.key === STOCK_VOLUME_KEY && validStockVolumeComparison(value) && Date.parse(value.endUtc) <= now && (value.generatedAt ?? 0) <= now + 60000) comparison = value; if (row.key === STOCK_VOLUME_JOB_KEY) { const state = value as { status: string; checkedAt: number }; if (['ok', 'failed', 'collecting'].includes(state.status) && Number.isSafeInteger(state.checkedAt) && state.checkedAt <= now + 60000) lastAttempt = state; } } catch { /* Preserve the validated, explicitly dated fallback. */ } }
+  for (const row of result.results) { try { const value: unknown = JSON.parse(row.payload ?? 'null'); if (row.key === STOCK_VOLUME_KEY && validStockVolumeComparison(value) && Date.parse(value.endUtc) <= now && (value.generatedAt ?? 0) <= now + 60000) comparison = value; if (row.key === STOCK_VOLUME_JOB_KEY) { const state = value as { status: string; checkedAt: number }; if (['ok', 'failed', 'collecting'].includes(state.status) && Number.isSafeInteger(state.checkedAt) && state.checkedAt <= now + 60000) lastAttempt = {status:state.status,checkedAt:state.checkedAt}; } } catch { /* Preserve the validated, explicitly dated fallback. */ } }
   // Give the daily 06:30 UTC collection until 08:00 UTC. Do not label stale
   // observations current; readers never trigger providers or perform recovery.
   const cutoff = new Date(now); cutoff.setUTCHours(8, 0, 0, 0);

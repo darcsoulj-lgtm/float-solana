@@ -20,7 +20,7 @@ export async function checkMarketWorkHealth(env: MarketEnvironment & {MARKET_ALE
   if(env.MARKET_COLLECTION_SOURCE){
     const active=await checkActiveMarketHealth(env,now);
     const failing=new Map(active.issues.map(issue=>[issue.source,issue]));
-    const sources=['references','reference-history','supplies','volume','volume-collector','holders','activity','snapshot'];
+    const sources=['references','reference-history','supplies','volume','volume-collector','holders','activity','snapshot','snapshot-capacity','stock-comparison'];
     await env.DB.batch(sources.map(source=>{
       const issue=failing.get(source),id='active:'+source;
       return issue ? env.DB.prepare('INSERT INTO market_incidents(id,code,opened_at,updated_at) VALUES(?,?,?,?) ON CONFLICT(id) DO UPDATE SET code=excluded.code,updated_at=excluded.updated_at,recovered_at=NULL,opened_at=CASE WHEN market_incidents.recovered_at IS NOT NULL THEN excluded.opened_at ELSE market_incidents.opened_at END,notified_at=CASE WHEN market_incidents.recovered_at IS NOT NULL THEN NULL ELSE market_incidents.notified_at END').bind(id,issue.code,now,now)

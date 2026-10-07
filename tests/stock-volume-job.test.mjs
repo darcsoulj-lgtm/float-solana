@@ -55,6 +55,7 @@ void test('idempotent begins, concurrent runs and publication retries preserve t
  const {raw,db}=database(),env={DB:db,STOCK_VOLUME_ENABLED:'1',BIRDEYE_API_KEY:'fixture-bird',APCA_API_KEY_ID:'fixture-id',APCA_API_SECRET_KEY:'fixture-secret'};
  const body={action:'begin',endUtc:a.stockComparisonWindowEnd(now)};
  const response=await a.stockVolumeJob(await request(body),env,fetcher,now);assert.equal(response.status,200);
+ assert.deepEqual(Object.keys((await a.readStockVolume(db,now)).lastAttempt).sort(),['checkedAt','status']);
  assert.equal((await a.stockVolumeJob(await request(body),env,fetcher,now)).status,200);
  const competing=new Request('https://joinfloat.xyz/api/stock-volume-job',{method:'POST',headers:{Authorization:'Bearer '+await jwt({run_id:'124'})},body:JSON.stringify(body)});
  assert.equal((await a.stockVolumeJob(competing,env,fetcher,now)).status,409);
@@ -74,4 +75,18 @@ void test('failed collection releases its lease for one bounded recovery; exhaus
 });
 void test('NY completed-day boundary handles both DST transitions and delayed schedule invocation',()=>{
  for(const [at,end] of [['2026-03-08T12:00:00Z','2026-03-08T05:00:00Z'],['2026-03-09T12:00:00Z','2026-03-09T04:00:00Z'],['2026-11-01T12:00:00Z','2026-11-01T04:00:00Z'],['2026-11-02T12:00:00Z','2026-11-02T05:00:00Z'],['2026-10-07T00:00:00Z','2026-10-06T04:00:00Z']])assert.equal(a.stockComparisonWindowEnd(Date.parse(at)),end);
+});
+
+void test('provider retry quota is idempotent, fenced to the active owner and included in hard daily limits',async()=>{
+ const {raw,db}=database(),env={DB:db,STOCK_VOLUME_ENABLED:'1',BIRDEYE_API_KEY:'fixture-bird',APCA_API_KEY_ID:'fixture-id',APCA_API_SECRET_KEY:'fixture-secret'};
+ const begin={action:'begin',endUtc:a.stockComparisonWindowEnd(now)};
+ assert.equal((await a.stockVolumeJob(await request(begin),env,fetcher,now)).status,200);
+ for(let i=0;i<2;i++)assert.equal((await a.stockVolumeJob(await request({action:'retry',retryId:'MU:1'}),env,fetcher,now)).status,204);
+ assert.equal(raw.prepare("SELECT payload FROM market_cache WHERE key LIKE 'stock-volume-usage:v1:%'").get().payload,'240');
+ for(let i=0;i<4;i++)assert.equal((await a.stockVolumeJob(await request({action:'retry',retryId:'token:'+i}),env,fetcher,now)).status,204);
+ assert.equal((await a.stockVolumeJob(await request({action:'retry',retryId:'extra'}),env,fetcher,now)).status,429);
+ assert.equal(raw.prepare("SELECT payload FROM market_cache WHERE key LIKE 'stock-volume-usage:v1:%'").get().payload,'400');
+ await a.stockVolumeJob(await request({action:'failed'}),env,fetcher,now);
+ assert.equal((await a.stockVolumeJob(await request({action:'retry',retryId:'late'}),env,fetcher,now)).status,429);
+ assert.equal((await a.stockVolumeJob(await request(begin),env,fetcher,now)).status,429);raw.close();
 });

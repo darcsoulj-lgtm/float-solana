@@ -109,3 +109,22 @@ class JobRecoveryTests(unittest.TestCase):
             collect.main()
             self.assertEqual(request.call_count,1)
             self.assertEqual(request.call_args.args[0],collect.SITE+'/api/stock-volume')
+
+class ProviderPacingTests(unittest.TestCase):
+    def test_empty_history_is_still_paced_and_a_throttle_retry_needs_budget(self):
+        import collect
+        from unittest.mock import Mock
+        from urllib.parse import urlsplit
+        query={'address':MINT}
+        pause=Mock();fetch=Mock(return_value={'data':{'items':[]}});reserve=Mock()
+        collect.birdeye_candles(query,{},fetch,pause,reserve)
+        collect.birdeye_candles(query,{},fetch,pause,reserve)
+        self.assertEqual(pause.call_args_list,[unittest.mock.call(2),unittest.mock.call(2)])
+        reserve.assert_not_called()
+        fetch=Mock(side_effect=[collect.SourceHTTPError(429,urlsplit(collect.SITE)),{'data':{'items':[]}}]);pause=Mock()
+        collect.birdeye_candles(query,{},fetch,pause,reserve)
+        reserve.assert_called_once_with({'action':'retry','retryId':MINT+':1'})
+        self.assertEqual(pause.call_args_list,[unittest.mock.call(2),unittest.mock.call(5)])
+        fetch=Mock(side_effect=collect.SourceHTTPError(429,urlsplit(collect.SITE)));reserve=Mock(side_effect=RuntimeError('Budget exhausted'))
+        with self.assertRaises(RuntimeError):collect.birdeye_candles(query,{},fetch,Mock(),reserve)
+        self.assertEqual(fetch.call_count,1)
