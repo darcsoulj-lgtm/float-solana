@@ -23,15 +23,15 @@ const {default:worker,MarketRefresh}=await import('data:text/javascript;base64,'
 const now=Date.now(),commit='a'.repeat(40);
 function environment(){
  const calls=[];
- const env={MARKET_COLLECTION_SOURCE:'github',MARKET_FAST_SOURCE:'1',DB:{prepare(){return{bind(){return{first:async()=>({payload:commit})};}};}}};
+ const env={MARKET_COLLECTION_SOURCE:'github',MARKET_FAST_SOURCE:'1',STOCK_VOLUME_ENABLED:'1',DB:{prepare(){return{bind(){return{first:async()=>({payload:commit})};}};}}};
  const privateWorker=new MarketRefresh({},env);
- env.MARKET_REFRESH={collectionTrigger:async()=>{calls.push('trigger');await privateWorker.collectionTrigger();},holderCollectionTrigger:async()=>{calls.push('holder-trigger');await privateWorker.holderCollectionTrigger();},tokenVolumes:async()=>{calls.push('volumes');},run:async()=>{calls.push('holders');},fastSchedule:async()=>{calls.push('fast');},activity:async()=>{calls.push('activity');},publicSnapshot:async()=>{calls.push('snapshot');},health:async()=>{calls.push('health');}};
+ env.MARKET_REFRESH={collectionTrigger:async()=>{calls.push('trigger');await privateWorker.collectionTrigger();},holderCollectionTrigger:async()=>{calls.push('holder-trigger');await privateWorker.holderCollectionTrigger();},stockCollectionTrigger:async()=>{calls.push('stock-trigger');await privateWorker.stockCollectionTrigger();},tokenVolumes:async()=>{calls.push('volumes');},run:async()=>{calls.push('holders');},fastSchedule:async()=>{calls.push('fast');},activity:async()=>{calls.push('activity');},publicSnapshot:async()=>{calls.push('snapshot');},health:async()=>{calls.push('health');}};
  return {env,calls};
 }
 void test('GitHub cron invokes the private recovery binding while an absent credential leaves all existing lanes working',async()=>{
  const original=globalThis.fetch;let reads=0;
  globalThis.fetch=async url=>{reads++;return Response.json((typeof url==='string'?url:url instanceof URL?url.href:url.url).startsWith('https://api.github.com/')?{object:{type:'commit',sha:commit}}:{version:1,generatedAt:now,commit,chunks:['b'.repeat(64)]});};
- try{const {env,calls}=environment();await worker.scheduled({scheduledTime:now-now%60000+60000},env);assert.deepEqual(calls.filter(c=>!['activity','health'].includes(c)).sort((a,b)=>a.localeCompare(b)),['fast','holder-trigger','holders','snapshot','trigger','volumes']);assert.equal(reads,2);}finally{globalThis.fetch=original;}
+ try{const {env,calls}=environment();await worker.scheduled({scheduledTime:now-now%60000+60000},env);assert.deepEqual(calls.filter(c=>!['activity','health'].includes(c)).sort((a,b)=>a.localeCompare(b)),['fast','holder-trigger','holders','snapshot','stock-trigger','trigger','volumes']);assert.equal(reads,2);}finally{globalThis.fetch=original;}
 });
 void test('a recovery failure cannot skip price, holder or snapshot lanes and is still reported',async()=>{
  const original=globalThis.fetch;let reads=0;
@@ -56,4 +56,10 @@ void test('custom-domain identity stripping also applies through the ordinary ca
  const original=globalThis.caches;
  globalThis.caches={open:async()=>({match:async()=>undefined,put:async()=>{}})};
  try{const r=await worker.fetch(new Request('https://float.test/api/me',{headers:{'oai-authenticated-user-id':'attacker','oai-authenticated-user-email':'attacker@example.invalid'}}),{PUBLIC_RENDER_VERSION:'audit'},{waitUntil(){}});assert.equal((await r.json()).identity,null);}finally{globalThis.caches=original;}
+});
+
+void test('a stock comparison dispatch outage cannot skip current market collection or public publication',async()=>{
+ const original=globalThis.fetch;
+ globalThis.fetch=async url=>Response.json((typeof url==='string'?url:url instanceof URL?url.href:url.url).startsWith('https://api.github.com/')?{object:{type:'commit',sha:commit}}:{version:1,generatedAt:now,commit,chunks:['b'.repeat(64)]});
+ try{const {env,calls}=environment();env.MARKET_REFRESH.stockCollectionTrigger=async()=>{calls.push('stock-trigger');throw Error('fixture dispatch failed');};await assert.rejects(worker.scheduled({scheduledTime:now},env),/scheduled market source failed/);assert.ok(['stock-trigger','trigger','snapshot','fast','holders','volumes'].every(c=>calls.includes(c)));}finally{globalThis.fetch=original;}
 });

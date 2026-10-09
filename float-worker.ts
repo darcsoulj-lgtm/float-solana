@@ -5,6 +5,7 @@ import { stockVolumeJob, readStockVolume } from './lib/stock-volume-job';
 import { syncMarketSchedule } from './lib/market-snapshot-sync';
 import { triggerOverdueCollection } from './lib/market-collection-trigger';
 import { triggerHolderCollection } from './lib/holder-collection-trigger';
+import { triggerStockCollection } from './lib/stock-collection-trigger';
 import handler from 'vinext/server/fetch-handler';
 import { WorkerEntrypoint } from 'cloudflare:workers';
 import { publicPageResponse } from './lib/public-page-response';
@@ -17,7 +18,7 @@ import { runDurableMarketSchedule, runDurableMarketWork, planMarketWork, planMar
 import { checkMarketWorkHealth, type MarketAlertBinding } from './lib/market-work-health';
 import { runFastMarketSchedule, refreshFastMarketSource, type FastMarketBinding, type FastMarketJob } from './lib/market-fast-refresh';
 
-type FloatEnvironment = MarketEnvironment & { STOCK_VOLUME_ENABLED?:string; APCA_API_KEY_ID?:string; APCA_API_SECRET_KEY?:string; ASSETS?: {fetch(request:Request):Promise<Response>}; MARKET_REFRESH: MarketJobBinding & DurableMarketBinding & FastMarketBinding & {tokenVolumes():Promise<void>; activity():Promise<void>; publicSnapshot():Promise<void>; health():Promise<void>; collectionTrigger():Promise<void>; holderCollectionTrigger():Promise<void>}; MARKET_WORKFLOW_TOKEN?:string; MARKET_FAST_SOURCE?:string; MARKET_ALERT?:MarketAlertBinding; PUBLIC_RENDER_VERSION?: string; MARKET_COLLECTION_SOURCE?: string };
+type FloatEnvironment = MarketEnvironment & { STOCK_VOLUME_ENABLED?:string; APCA_API_KEY_ID?:string; APCA_API_SECRET_KEY?:string; ASSETS?: {fetch(request:Request):Promise<Response>}; MARKET_REFRESH: MarketJobBinding & DurableMarketBinding & FastMarketBinding & {tokenVolumes():Promise<void>; activity():Promise<void>; publicSnapshot():Promise<void>; health():Promise<void>; collectionTrigger():Promise<void>; holderCollectionTrigger():Promise<void>; stockCollectionTrigger():Promise<void>}; MARKET_WORKFLOW_TOKEN?:string; MARKET_FAST_SOURCE?:string; MARKET_ALERT?:MarketAlertBinding; PUBLIC_RENDER_VERSION?: string; MARKET_COLLECTION_SOURCE?: string };
 // Reachable through the private service binding only; no HTTP refresh route.
 export class MarketRefresh extends WorkerEntrypoint<FloatEnvironment> {
   async run(job: MarketJob) { await runMarketJob(this.env, job); }
@@ -35,6 +36,7 @@ export class MarketRefresh extends WorkerEntrypoint<FloatEnvironment> {
   async tokenVolumes() { await refreshBirdeyeVolumes(this.env); }
   async collectionTrigger() { await triggerOverdueCollection(this.env); }
   async holderCollectionTrigger() { await triggerHolderCollection(this.env); }
+  async stockCollectionTrigger() { await triggerStockCollection(this.env); }
   async fast(job:FastMarketJob) { await refreshFastMarketSource(this.env,job); }
   async fastSchedule(time:number) { await runFastMarketSchedule(this.env,time); }
 }
@@ -69,6 +71,7 @@ const worker = {
         syncMarketSchedule(env),
         env.MARKET_REFRESH.collectionTrigger(),
         env.MARKET_REFRESH.holderCollectionTrigger(),
+        ...(env.STOCK_VOLUME_ENABLED==='1'?[env.MARKET_REFRESH.stockCollectionTrigger()]:[]),
         env.MARKET_REFRESH.tokenVolumes(),
         env.MARKET_REFRESH.run({kind:'holders'}),
         ...(env.MARKET_FAST_SOURCE==='1'?[env.MARKET_REFRESH.fastSchedule(event.scheduledTime)]:[]),

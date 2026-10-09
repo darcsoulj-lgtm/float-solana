@@ -2,7 +2,7 @@ import type { MarketEnvironment } from './market-overview-server';
 
 const REPOSITORY = 'darcsoulj-lgtm/float-solana';
 export type TriggerEnvironment = Pick<MarketEnvironment, 'DB'> & { MARKET_WORKFLOW_TOKEN?: string };
-export type TriggerStatus = 'not_configured' | 'cooldown' | 'fresh' | 'running' | 'dispatched' | 'error';
+export type TriggerStatus = 'not_configured' | 'cooldown' | 'fresh' | 'running' | 'dispatched' | 'exhausted' | 'error';
 
 export async function boundedCollectionJson(response: Response, limit: number): Promise<unknown> {
   const reader = response.body?.getReader();
@@ -21,9 +21,9 @@ export async function boundedCollectionJson(response: Response, limit: number): 
   } finally { await reader.cancel().catch(() => {}); reader.releaseLock(); }
 }
 
-// One private dispatch boundary for the fixed market and holder workflows.
+// One private dispatch boundary for the fixed market, holder and stock workflows.
 // Accepted execution is never treated as a successful data observation.
-type CollectionPolicy = { workflow: 'market-data.yml' | 'issuer-holders.yml'; key: string; checkMs: number; waitMs: number; needsCollection(request: (url: string) => Promise<Response>): Promise<boolean> };
+type CollectionPolicy = { workflow: 'market-data.yml' | 'issuer-holders.yml' | 'stock-volume.yml'; key: string; checkMs: number; waitMs: number; needsCollection(request: (url: string) => Promise<Response>): Promise<boolean>; reserveDispatch?: () => Promise<boolean> };
 export async function triggerWorkflowCollection(env: TriggerEnvironment, policy: CollectionPolicy, fetcher: typeof fetch = fetch, now = Date.now()): Promise<TriggerStatus> {
   const {key: KEY, checkMs: CHECK_MS, waitMs: DISPATCH_WAIT_MS, workflow: WORKFLOW} = policy;
   if (!env.MARKET_WORKFLOW_TOKEN) return 'not_configured';
@@ -57,6 +57,7 @@ export async function triggerWorkflowCollection(env: TriggerEnvironment, policy:
       if (!Array.isArray(payload.workflow_runs) || !Number.isSafeInteger(payload.total_count) || payload.total_count! < 0 || payload.workflow_runs.some(r => !r || r.status !== status) || (!!payload.total_count !== !!payload.workflow_runs.length)) throw Error('Invalid workflow runs');
       if (payload.workflow_runs.length) return await record('running');
     }
+    if (policy.reserveDispatch && !await policy.reserveDispatch()) return await record('exhausted');
     const dispatched = await request(endpoint + '/dispatches', {
       method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ ref: 'main' }),
     });
