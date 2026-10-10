@@ -128,3 +128,45 @@ class ProviderPacingTests(unittest.TestCase):
         fetch=Mock(side_effect=collect.SourceHTTPError(429,urlsplit(collect.SITE)));reserve=Mock(side_effect=RuntimeError('Budget exhausted'))
         with self.assertRaises(RuntimeError):collect.birdeye_candles(query,{},fetch,Mock(),reserve)
         self.assertEqual(fetch.call_count,1)
+
+class StockSourceConvergenceTests(unittest.TestCase):
+    def test_daily_bar_is_read_after_the_final_trade_page(self):
+        import collect
+        a,b=window(datetime(2026,10,10,12,tzinfo=timezone.utc));order=[]
+        trade={'t':iso(a),'x':'V','i':1,'p':10,'s':2,'c':['@'],'z':'C'}
+        def provider(url,headers):
+            if '/bars?' in url:
+                order.append('bar');return {'bars':{'SPCX':[{'t':iso(a),'v':2,'n':1}]}}
+            order.append('trade');return {'trades':{'SPCX':[trade]}}
+        self.assertEqual(collect.stock_volume('SPCX',a,b,{},False,provider,lambda _:None),20)
+        self.assertEqual(order,['trade','bar'])
+
+    def test_transient_mismatch_retries_stock_only_and_persistent_mismatch_fails(self):
+        import collect
+        from unittest.mock import Mock
+        a,b=window(datetime(2026,10,10,12,tzinfo=timezone.utc));trade={'t':iso(a),'x':'V','i':1,'p':10,'s':2,'c':['@'],'z':'C'}
+        for settles in [True,False]:
+            count=0;pause=Mock()
+            def provider(url,headers):
+                nonlocal count
+                self.assertTrue(url.startswith('https://data.alpaca.markets/'))
+                if '/bars?' in url:
+                    count+=1;return {'bars':{'SPCX':[{'t':iso(a),'v':2 if settles and count==2 else 1,'n':1}]}}
+                return {'trades':{'SPCX':[trade]}}
+            if settles:self.assertEqual(collect.stock_volume('SPCX',a,b,{},False,provider,pause),20)
+            else:
+                with self.assertRaisesRegex(collect.StockTapeMismatch,'shares=2/1 trades=1/1'):collect.stock_volume('SPCX',a,b,{},False,provider,pause)
+            self.assertEqual(count,2);self.assertEqual(pause.call_args_list.count(unittest.mock.call(30)),1)
+
+    def test_failed_stock_preflight_does_not_call_birdeye(self):
+        import collect,hashlib
+        tokens=[{'symbol':s,'mint':MINT,'name':s} for s in ['SPCX','MU','IBM','RACE','QUBT']]
+        registry={'version':1,'issuers':[{'issuer':'backpack','mints':[MINT],'registryHash':hashlib.sha256(MINT.encode()).hexdigest()}]}
+        def request(url,*args,**kwargs):
+            if '/registry' in url:return registry
+            if '/calendar?' in url:return []
+            if '/assets/' in url:return {'symbol':url.rsplit('/',1)[-1],'class':'us_equity','status':'active','exchange':'NASDAQ'}
+            return {}
+        with patch.object(collect,'job',return_value={'alpacaId':'fixture-id','alpacaSecret':'fixture-secret','birdeye':'fixture-bird'}),patch.object(collect,'request_json',side_effect=request),patch.object(collect,'select_tokens',return_value=(tokens,{})),patch.object(collect,'stock_volume',side_effect=[20,collect.StockTapeMismatch('fixture mismatch')]),patch.object(collect,'birdeye_candles') as bird:
+            with self.assertRaises(collect.StockTapeMismatch):collect.main()
+            bird.assert_not_called()

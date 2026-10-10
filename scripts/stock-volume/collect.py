@@ -14,6 +14,7 @@ KNOWN = {'A': set('B C E F H I K L M N O P Q R T U V X Z 4 5 6 7 9'.split()) | {
          'C': set('@ A B C D F G H I K L M N O P Q R T U V W X Y Z 4 5 6 7 9'.split())}
 EXCLUDED = {'M', 'Q', '9'}
 class TokenDayUnavailable(ValueError): pass
+class StockTapeMismatch(ValueError): pass
 class SourceHTTPError(RuntimeError):
     def __init__(self, status, source):
         self.status = status
@@ -148,19 +149,25 @@ class TradeAccumulator:
         if closed:
             if bar is not None or self.count or self.shares: raise ValueError('Unexpected closed-market trades')
             return D(0)
-        if not bar or self.shares != D(str(bar['v'])) or self.count != bar.get('n'): raise ValueError('Stock tape does not reconcile')
+        if not bar or self.shares != D(str(bar['v'])) or self.count != bar.get('n'):
+            raise StockTapeMismatch('Stock tape does not reconcile: shares='+str(self.shares)+'/'+str(bar.get('v') if bar else None)+' trades='+str(self.count)+'/'+str(bar.get('n') if bar else None))
         if parse_time(bar['t']).astimezone(ET) != self.start: raise ValueError('Wrong stock daily boundary')
         return self.usd
 
 def stock_volume(symbol, start, end, headers, closed, fetch=request_json, pause=time.sleep):
+    for attempt in range(2):
+        try: return stock_volume_once(symbol, start, end, headers, closed, fetch, pause)
+        except StockTapeMismatch as error:
+            print(json.dumps({'symbol':symbol,'date':start.date().isoformat(),'stockTapeMismatch':str(error),'attempt':attempt+1}),flush=True)
+            if attempt: raise
+            # Stock-only retry: do not repeat or spend any Birdeye request.
+            pause(30)
+
+def stock_volume_once(symbol, start, end, headers, closed, fetch, pause):
     # Alpaca's end is inclusive. Stop one nanosecond before our exclusive day
     # boundary, otherwise Sunday's request includes Monday's entire daily bar.
     inclusive_end = iso(end - timedelta(seconds=1)).replace('Z', '.999999999Z')
     query = {'symbols':symbol, 'start':iso(start), 'end':inclusive_end, 'feed':'sip', 'currency':'USD', 'asof':start.date().isoformat()}
-    daily = fetch('https://data.alpaca.markets/v2/stocks/bars?' + urllib.parse.urlencode({**query, 'timeframe':'1Day', 'limit':100, 'adjustment':'raw'}), headers)
-    if daily.get('next_page_token') or set(daily.get('bars', {})) - {symbol}: raise ValueError('Invalid daily stock response')
-    bars = daily.get('bars', {}).get(symbol, [])
-    if len(bars) > 1: raise ValueError('Unexpected daily bar count')
     acc = TradeAccumulator(start, end); cursor = None; cursors = set()
     for _ in range(400):
         pause(0.35)
@@ -169,7 +176,12 @@ def stock_volume(symbol, start, end, headers, closed, fetch=request_json, pause=
         trades = payload.get('trades')
         if not isinstance(trades, dict) or set(trades)-{symbol} or not isinstance(trades.get(symbol, []), list): raise ValueError('Wrong stock identity')
         acc.add(trades.get(symbol, [])); cursor = payload.get('next_page_token')
-        if not cursor: return acc.reconcile(bars[0] if bars else None, closed)
+        if not cursor:
+            daily = fetch('https://data.alpaca.markets/v2/stocks/bars?' + urllib.parse.urlencode({**query, 'timeframe':'1Day', 'limit':100, 'adjustment':'raw'}), headers)
+            if daily.get('next_page_token') or set(daily.get('bars', {})) - {symbol}: raise ValueError('Invalid daily stock response')
+            bars = daily.get('bars', {}).get(symbol, [])
+            if len(bars) > 1: raise ValueError('Unexpected daily bar count')
+            return acc.reconcile(bars[0] if bars else None, closed)
         if cursor in cursors: raise ValueError('Stock pagination loop')
         cursors.add(cursor)
     raise ValueError('Stock pagination incomplete')
@@ -196,11 +208,17 @@ def main():
     calendar = request_json('https://paper-api.alpaca.markets/v2/calendar?'+urllib.parse.urlencode({'start':date,'end':date}), headers)
     if not isinstance(calendar, list) or len(calendar)>1 or any(c.get('date')!=date for c in calendar): raise ValueError('Invalid US market calendar')
     closed = not calendar
-    rows, unavailable = [], []
+    rows, unavailable, verified = [], [], []
+    # Reconcile every selected stock first, before any historical token call.
     for token in selected:
         symbol, mint = token['symbol'], token['mint']
         asset = request_json('https://paper-api.alpaca.markets/v2/assets/'+urllib.parse.quote(symbol), headers, limit=16000)
         if asset.get('symbol') != symbol or asset.get('class') != 'us_equity' or asset.get('status') != 'active' or asset.get('exchange') not in ('NASDAQ','NYSE','AMEX','ARCA','BATS','OTC'): raise ValueError('US stock identity unavailable')
+        print(json.dumps({'symbol':symbol,'date':date,'phase':'stock-reconciliation'}),flush=True)
+        stock_usd = stock_volume(symbol, start, end, headers, closed)
+        verified.append((token,asset,stock_usd))
+    for token,asset,stock_usd in verified:
+        symbol,mint = token['symbol'],token['mint']
         query = {'address':mint,'type':'1H','currency':'usd','mode':'range','time_from':int(start.timestamp()),'time_to':int(end.timestamp())-1,'ui_amount_mode':'scaled','padding':'false'}
         candles = birdeye_candles(query, {'X-API-KEY':settings['birdeye'],'x-chain':'solana'})
         try: token_usd = token_volume(candles, mint, start, end)
@@ -208,7 +226,6 @@ def main():
             unavailable.append({'symbol':symbol,'reason':'token-history-unavailable'})
             print(json.dumps({'symbol':symbol,'date':date,'unavailable':'token-history-unavailable'}),flush=True)
             continue
-        stock_usd = stock_volume(symbol, start, end, headers, closed)
         rows.append({'symbol':symbol,'mint':mint,'name':asset.get('name') or token['name'],'listingExchange':asset['exchange'],'tokenUsd':float(token_usd),'stockUsd':float(stock_usd),'reconciled':True,**({'stockMarketClosed':True} if closed else {})})
         print(json.dumps({'symbol':symbol,'date':date,'reconciled':True,'marketClosed':closed}),flush=True)
     if len(rows)<3: raise ValueError('Insufficient verified daily comparisons')

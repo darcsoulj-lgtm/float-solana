@@ -19,7 +19,7 @@ export function stockCollectionNeeded(payload: string | null | undefined, now: n
 export async function triggerStockCollection(env: TriggerEnvironment & { STOCK_VOLUME_ENABLED?: string }, fetcher: typeof fetch = fetch, now = Date.now()) {
   if (env.STOCK_VOLUME_ENABLED !== '1') return 'not_configured';
   return triggerWorkflowCollection(env, {
-    workflow: 'stock-volume.yml', key: 'stock-collection-trigger:v1', checkMs: 5 * 60000, waitMs: 15 * 60000,
+    workflow: 'stock-volume.yml', key: 'stock-collection-trigger:v1', checkMs: 5 * 60000, waitMs: 3 * 3600000,
     async needsCollection() {
       const row = await env.DB.prepare('SELECT payload FROM market_cache WHERE key=?').bind(STOCK_VOLUME_KEY).first<{payload:string|null}>();
       return stockCollectionNeeded(row?.payload, now);

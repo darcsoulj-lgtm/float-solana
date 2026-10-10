@@ -26,13 +26,13 @@ void test('concurrent cron ticks dispatch once and active jobs do not spend reco
 });
 void test('ambiguous dispatches consume a bounded attempt and cannot create an endless failure loop',async()=>{
  const {env,raw}=setup(),p=provider(false,true);
- await assert.rejects(triggerStockCollection(env,p.fetcher,now),/Collection trigger failed/);assert.equal(await triggerStockCollection(env,p.fetcher,now+1),'cooldown');
- await assert.rejects(triggerStockCollection(env,p.fetcher,now+15*60000),/Collection trigger failed/);assert.equal(await triggerStockCollection(env,p.fetcher,now+30*60000),'exhausted');assert.equal(p.calls.filter(c=>c.options.method==='POST').length,2);
+ await assert.rejects(triggerStockCollection(env,p.fetcher,now),/Collection trigger failed/);assert.equal(await triggerStockCollection(env,p.fetcher,now+1),'cooldown');assert.equal(await triggerStockCollection(env,p.fetcher,now+2*3600000),'cooldown');
+ await assert.rejects(triggerStockCollection(env,p.fetcher,now+3*3600000),/Collection trigger failed/);assert.equal(await triggerStockCollection(env,p.fetcher,now+6*3600000),'exhausted');assert.equal(p.calls.filter(c=>c.options.method==='POST').length,2);
  assert.doesNotMatch(raw.prepare('SELECT payload FROM market_cache WHERE key=?').get('stock-collection-trigger:v1').payload,/fixture-secret|private fixture/);
  const next=provider();assert.equal(await triggerStockCollection(env,next.fetcher,now+86400000),'dispatched');raw.close();
 });
 void test('completion after the first dispatch cancels recovery without changing observed timestamps',async()=>{
- const {env,raw}=setup(),p=provider();await triggerStockCollection(env,p.fetcher,now);const current=comparison(now+60000);raw.prepare('UPDATE market_cache SET payload=? WHERE key=?').run(JSON.stringify(current),'stock-volume:published:v1');const count=p.calls.length;assert.equal(await triggerStockCollection(env,p.fetcher,now+15*60000),'fresh');assert.equal(p.calls.length,count);assert.equal(JSON.parse(raw.prepare('SELECT payload FROM market_cache WHERE key=?').get('stock-volume:published:v1').payload).generatedAt,current.generatedAt);raw.close();
+ const {env,raw}=setup(),p=provider();await triggerStockCollection(env,p.fetcher,now);const current=comparison(now+60000);raw.prepare('UPDATE market_cache SET payload=? WHERE key=?').run(JSON.stringify(current),'stock-volume:published:v1');const count=p.calls.length;assert.equal(await triggerStockCollection(env,p.fetcher,now+3*3600000),'fresh');assert.equal(p.calls.length,count);assert.equal(JSON.parse(raw.prepare('SELECT payload FROM market_cache WHERE key=?').get('stock-volume:published:v1').payload).generatedAt,current.generatedAt);raw.close();
 });
 void test('winter and summer use completed NY day boundaries; future observations fail closed',()=>{
  for(const at of ['2026-03-09T06:30:00Z','2026-11-02T06:30:00Z']){const c=comparison(Date.parse(at));assert.equal(stockCollectionNeeded(JSON.stringify(c),Date.parse(at)),false);assert.equal(stockCollectionNeeded(null,Date.parse(at)),true);}

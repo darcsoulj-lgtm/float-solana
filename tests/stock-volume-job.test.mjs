@@ -24,9 +24,11 @@ void test('unauthenticated and disabled callers cannot receive credentials or mu
  const disabled=await a.stockVolumeJob(await request({action:'begin'}),{...env,STOCK_VOLUME_ENABLED:'0'},fetcher,now);assert.equal(disabled.status,404);raw.close();
 });
 void test('comparison reservation bounds concurrent daily attempts and rolling budget across month change',async()=>{
- const {raw,db}=database();assert.equal((await Promise.all(Array.from({length:6},()=>a.reserveStockComparison(db,now)))).filter(Boolean).length,2);
- for(let day=1;day<20;day++){assert.equal(await a.reserveStockComparison(db,now+day*86400000),true);assert.equal(await a.reserveStockComparison(db,now+day*86400000),true);}
- assert.equal(await a.reserveStockComparison(db,now+20*86400000),false);assert.equal(await a.reserveStockComparison(db,now+32*86400000),true);raw.close();
+ const {raw,db}=database();assert.equal((await Promise.all(Array.from({length:6},()=>a.reserveStockComparison(db,now)))).filter(Boolean).length,3);
+ for(let day=1;day<13;day++)for(let attempt=0;attempt<3;attempt++)assert.equal(await a.reserveStockComparison(db,now+day*86400000),true);
+ assert.equal(await a.reserveStockComparison(db,now+13*86400000),true);
+ assert.equal(await a.reserveStockComparison(db,now+13*86400000),false);
+ assert.equal(await a.reserveStockComparison(db,now+32*86400000),true);raw.close();
 });
 void test('publish validates complete data, keeps prior results on failure and rejects older windows',async()=>{
  const {raw,db}=database(),env={DB:db,STOCK_VOLUME_ENABLED:'1',BIRDEYE_API_KEY:'fixture-bird',APCA_API_KEY_ID:'fixture-id',APCA_API_SECRET_KEY:'fixture-secret'};
@@ -66,10 +68,10 @@ void test('idempotent begins, concurrent runs and publication retries preserve t
  await a.stockVolumeJob(await request({action:'failed'}),env,fetcher,now);assert.equal((await a.readStockVolume(db,now)).status,'daily');
  assert.equal(raw.prepare("SELECT payload FROM market_cache WHERE key LIKE 'stock-volume-window-usage:v2:%'").get().payload,'200');raw.close();
 });
-void test('failed collection releases its lease for one bounded recovery; exhausted budgets expose no credentials',async()=>{
+void test('failed collection releases its lease for bounded recovery; exhausted budgets expose no credentials',async()=>{
  const {raw,db}=database(),env={DB:db,STOCK_VOLUME_ENABLED:'1',BIRDEYE_API_KEY:'fixture-bird',APCA_API_KEY_ID:'fixture-id',APCA_API_SECRET_KEY:'fixture-secret'};
  const body={action:'begin',endUtc:a.stockComparisonWindowEnd(now)};
- for(let i=0;i<2;i++){assert.equal((await a.stockVolumeJob(await request(body),env,fetcher,now)).status,200);await a.stockVolumeJob(await request({action:'failed'}),env,fetcher,now);}
+ for(let i=0;i<3;i++){assert.equal((await a.stockVolumeJob(await request(body),env,fetcher,now)).status,200);await a.stockVolumeJob(await request({action:'failed'}),env,fetcher,now);}
  const denied=await a.stockVolumeJob(await request(body),env,fetcher,now);assert.equal(denied.status,429);assert.equal(await denied.text(),'');
  assert.equal((await a.readStockVolume(db,now)).status,'delayed');raw.close();
 });
@@ -83,9 +85,9 @@ void test('provider retry quota is idempotent, fenced to the active owner and in
  assert.equal((await a.stockVolumeJob(await request(begin),env,fetcher,now)).status,200);
  for(let i=0;i<2;i++)assert.equal((await a.stockVolumeJob(await request({action:'retry',retryId:'MU:1'}),env,fetcher,now)).status,204);
  assert.equal(raw.prepare("SELECT payload FROM market_cache WHERE key LIKE 'stock-volume-window-usage:v2:%'").get().payload,'240');
- for(let i=0;i<4;i++)assert.equal((await a.stockVolumeJob(await request({action:'retry',retryId:'token:'+i}),env,fetcher,now)).status,204);
+ for(let i=0;i<9;i++)assert.equal((await a.stockVolumeJob(await request({action:'retry',retryId:'token:'+i}),env,fetcher,now)).status,204);
  assert.equal((await a.stockVolumeJob(await request({action:'retry',retryId:'extra'}),env,fetcher,now)).status,429);
- assert.equal(raw.prepare("SELECT payload FROM market_cache WHERE key LIKE 'stock-volume-window-usage:v2:%'").get().payload,'400');
+ assert.equal(raw.prepare("SELECT payload FROM market_cache WHERE key LIKE 'stock-volume-window-usage:v2:%'").get().payload,'600');
  await a.stockVolumeJob(await request({action:'failed'}),env,fetcher,now);
  assert.equal((await a.stockVolumeJob(await request({action:'retry',retryId:'late'}),env,fetcher,now)).status,409);
  assert.equal((await a.stockVolumeJob(await request(begin),env,fetcher,now)).status,429);raw.close();

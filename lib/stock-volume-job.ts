@@ -46,13 +46,15 @@ export async function verifyStockJobIdentity(token: string, fetcher: typeof fetc
   if (claims.iss !== 'https://token.actions.githubusercontent.com' || claims.aud !== STOCK_VOLUME_AUDIENCE || claims.repository !== REPOSITORY || claims.repository_id !== REPOSITORY_ID || claims.repository_owner_id !== OWNER_ID || claims.ref !== 'refs/heads/main' || claims.workflow_ref !== WORKFLOW || !subjects.includes(claims.sub ?? '') || !['schedule', 'push', 'workflow_dispatch'].includes(claims.event_name ?? '') || !Number.isSafeInteger(claims.exp) || claims.exp! <= seconds || !Number.isSafeInteger(claims.nbf) || claims.nbf! > seconds + 30 || !Number.isSafeInteger(claims.iat) || claims.iat! > seconds + 30 || claims.iat! < seconds - 600 || claims.exp! - claims.iat! > 600 || typeof claims.jti !== 'string' || claims.jti.length > 160) throw Error('Identity scope or time invalid');
   return claims;
 }
-// At most two 200-CU passes/day, 8K CU/rolling 32 days; regular market
+// At most three 200-CU passes/day, 8K CU/rolling 32 days; regular market
 // collection remains separately capped at 20K. Failed calls consume reservations.
+// Two automatic recovery dispatches remain bounded separately; the third pass
+// leaves capacity for a later scheduled or owner-requested repair after a mismatch.
 export async function reserveStockComparison(db: D1Database, now: number) {
   const day = Math.floor(now / DAY) * DAY, key = 'stock-volume-usage:v1:' + day;
   await db.prepare("INSERT OR IGNORE INTO market_cache(key,payload,fetched_at,retry_after) VALUES (?,'0',?,0)").bind(key, day).run();
   return !!await db.prepare(`UPDATE market_cache SET payload=CAST(CAST(payload AS INTEGER)+200 AS TEXT)
-    WHERE key=? AND CAST(payload AS INTEGER)+200<=400 AND (SELECT COALESCE(SUM(CAST(payload AS INTEGER)),0) FROM market_cache WHERE (key LIKE 'stock-volume-usage:v1:%' OR key LIKE 'stock-volume-window-usage:v2:%') AND fetched_at>=?) + 200 <= 8000 RETURNING key`).bind(key, day - 31 * DAY).first();
+    WHERE key=? AND CAST(payload AS INTEGER)+200<=600 AND (SELECT COALESCE(SUM(CAST(payload AS INTEGER)),0) FROM market_cache WHERE (key LIKE 'stock-volume-usage:v1:%' OR key LIKE 'stock-volume-window-usage:v2:%') AND fetched_at>=?) + 200 <= 8000 RETURNING key`).bind(key, day - 31 * DAY).first();
 }
 export function stockComparisonWindowEnd(now:number) {
   const parts = Object.fromEntries(new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(now).map(p=>[p.type,p.value]));
@@ -92,7 +94,7 @@ export async function stockVolumeJob(request: Request, env: JobEnvironment, fetc
       env.DB.prepare(`INSERT INTO market_cache(key,payload,fetched_at,retry_after) VALUES (?,?,?,?)
         ON CONFLICT(key) DO UPDATE SET payload=excluded.payload,fetched_at=excluded.fetched_at,retry_after=excluded.retry_after WHERE market_cache.retry_after<=?`).bind(STOCK_VOLUME_JOB_KEY,JSON.stringify({status:'collecting',checkedAt:now,owner,endUtc:end,reserved:false}),now,now+40*60000,now),
       env.DB.prepare(`UPDATE market_cache SET payload=CAST(CAST(payload AS INTEGER)+200 AS TEXT)
-        WHERE key=? AND CAST(payload AS INTEGER)+200<=400 AND (SELECT COALESCE(SUM(CAST(payload AS INTEGER)),0) FROM market_cache WHERE (key LIKE 'stock-volume-usage:v1:%' OR key LIKE 'stock-volume-window-usage:v2:%') AND fetched_at>=?)+200<=8000
+        WHERE key=? AND CAST(payload AS INTEGER)+200<=600 AND (SELECT COALESCE(SUM(CAST(payload AS INTEGER)),0) FROM market_cache WHERE (key LIKE 'stock-volume-usage:v1:%' OR key LIKE 'stock-volume-window-usage:v2:%') AND fetched_at>=?)+200<=8000
         AND EXISTS(SELECT 1 FROM market_cache WHERE key=? AND json_extract(payload,'$.owner')=? AND json_extract(payload,'$.reserved')=0)`).bind(budgetKey,day-31*DAY,STOCK_VOLUME_JOB_KEY,owner),
       env.DB.prepare("UPDATE market_cache SET payload=json_set(payload,'$.reserved',json('true')) WHERE key=? AND json_extract(payload,'$.owner')=? AND changes()>0").bind(STOCK_VOLUME_JOB_KEY,owner),
     ]);
@@ -111,7 +113,7 @@ export async function stockVolumeJob(request: Request, env: JobEnvironment, fetc
     const day=Math.floor(now/DAY)*DAY,key='stock-volume-window-usage:v2:'+attempt.endUtc;
     await env.DB.prepare("INSERT OR IGNORE INTO market_cache(key,payload,fetched_at,retry_after) VALUES (?,'0',?,0)").bind(key,day).run();
     await env.DB.batch([
-      env.DB.prepare(`UPDATE market_cache SET payload=CAST(CAST(payload AS INTEGER)+40 AS TEXT) WHERE key=? AND CAST(payload AS INTEGER)+40<=400
+      env.DB.prepare(`UPDATE market_cache SET payload=CAST(CAST(payload AS INTEGER)+40 AS TEXT) WHERE key=? AND CAST(payload AS INTEGER)+40<=600
         AND (SELECT COALESCE(SUM(CAST(payload AS INTEGER)),0) FROM market_cache WHERE (key LIKE 'stock-volume-usage:v1:%' OR key LIKE 'stock-volume-window-usage:v2:%') AND fetched_at>=?)+40<=8000
         AND EXISTS(SELECT 1 FROM market_cache WHERE key=? AND retry_after>? AND json_extract(payload,'$.owner')=? AND json_extract(payload,'$.status')='collecting' AND json_extract(payload,'$.reserved')=1
           AND NOT EXISTS(SELECT 1 FROM json_each(COALESCE(json_extract(payload,'$.retries'),'[]')) WHERE value=?))`).bind(key,day-31*DAY,STOCK_VOLUME_JOB_KEY,now,owner,data.retryId),
