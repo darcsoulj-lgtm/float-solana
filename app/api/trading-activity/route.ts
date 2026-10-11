@@ -10,7 +10,7 @@ export async function GET(request: Request) {
       return Response.json({error:'Please try again shortly.'},{status:429,headers:{'Cache-Control':'no-store','Retry-After':'60'}});
     return await publicMarketResponse(request, async () => ({points: await readTradingActivity(env.DB)}),
       await caches.open('float-public-activity-v1'), waitUntil,
-      {path:'/api/trading-activity?schema=1',maxAgeSeconds:300});
+      {path:'/api/trading-activity?schema=2',maxAgeSeconds:300});
   } catch {
     console.error('Trading activity history unavailable');
     return Response.json({error: 'History is temporarily unavailable.'}, {status:503,headers:{'Cache-Control':'no-store'}});
