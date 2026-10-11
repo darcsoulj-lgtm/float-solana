@@ -2,11 +2,12 @@ import { fetchBackpackChart, type BackpackChart } from './backpack-charts';
 import type { BackpackMarket, HistoricalExternalReference, SourceResult } from './market-data';
 import type { CacheRow } from './market-cache';
 import type { StockToken } from './tokens';
-import { BACKPACK_REFERENCE_RETAIN_MS, validatedHistoricalReferencePair } from './market-freshness';
+import { BACKPACK_REFERENCE_RETAIN_MS, CURRENT_PRICE_MAX_AGE_MS, validatedHistoricalReferencePair } from './market-freshness';
 export { BACKPACK_REFERENCE_RETAIN_MS, validatedHistoricalReferencePair } from './market-freshness';
 
 export const BACKPACK_HISTORY_REFRESH_MS = 60 * 60000;
 export const backpackHistoryKey = (mint: string) => 'backpack-reference-history-v1:' + mint;
+export class BackpackReferenceRegression extends Error {}
 const validPrice = (row: BackpackMarket | undefined) => row?.externalPrice != null && Number.isFinite(row.externalPrice) && row.externalPrice > 0;
 
 export function historicalReferencePair(row:BackpackMarket | undefined,now:number):HistoricalExternalReference | null {
@@ -28,8 +29,21 @@ export function referenceFromChart(chart: BackpackChart): BackpackMarket {
     venueVolume24h: null, venueQuoteVolume24h: null, venueTrades: null,
   };
 }
-export async function fetchBackpackReference(token: StockToken, fetcher: typeof fetch = fetch, now = Date.now()) {
-  return referenceFromChart(await fetchBackpackChart(token, fetcher, now));
+export function reconcileBackpackReference(chart: BackpackChart, previous: BackpackMarket | null): BackpackMarket {
+  const value = referenceFromChart(chart);
+  if (previous?.externalObservedAt && value.externalObservedAt! < previous.externalObservedAt) {
+    // A truncated/out-of-order response cannot roll a reference backwards.
+    // An explicit completed zero-volume, zero-trade hour is a provider revision.
+    if (previous.market !== chart.market || previous.externalBasis !== 'hourly-history' ||
+        !chart.completedEmptyHours?.includes(previous.externalObservedAt)) throw new BackpackReferenceRegression('Invalid reference regression');
+    value.externalRevisedFromAt = previous.externalObservedAt;
+  } else if (previous?.externalRevisedFromAt && value.externalObservedAt! < previous.externalRevisedFromAt) {
+    value.externalRevisedFromAt = previous.externalRevisedFromAt;
+  }
+  return value;
+}
+export async function fetchBackpackReference(token: StockToken, fetcher: typeof fetch = fetch, now = Date.now(), previous: BackpackMarket | null = null) {
+  return reconcileBackpackReference(await fetchBackpackChart(token, fetcher, now), previous);
 }
 
 // Partial ticker responses preserve each omitted symbol's original timestamp.
@@ -58,7 +72,11 @@ export function overlayBackpackHistory(source: SourceResult<Record<string, Backp
     try { history = JSON.parse(cached.payload) as BackpackMarket; } catch { continue; }
     const observedAt = history.externalObservedAt;
     if (!validPrice(history) || history.market !== token.symbol + '.US_USDC' || history.externalBasis !== 'hourly-history' || !observedAt || observedAt > now || now - observedAt > BACKPACK_REFERENCE_RETAIN_MS) continue;
-    if (validPrice(current) && currentTime && currentTime >= observedAt) {
+    const revisedRetainedHour = history.externalRevisedFromAt === currentTime;
+    // A newer ticker ceases to be a live quote after the shared freshness
+    // window. Prefer the actual traded hourly close during a feed outage.
+    const currentIsFresh = currentTime && currentTime <= now && now - currentTime <= CURRENT_PRICE_MAX_AGE_MS;
+    if (validPrice(current) && currentTime && currentTime >= observedAt && currentIsFresh && !revisedRetainedHour) {
       const pair=historicalReferencePair(history,now);
       const {historicalExternalReference:_previousPair,...quote}=current!;
       data[token.symbol]=typeof current!.externalChange24h!=='number' || !Number.isFinite(current!.externalChange24h)

@@ -81,8 +81,8 @@ void test('a whole registry pass remains private until complete; every public va
  await a.refreshBirdeyeVolumes(env,now+ticks*61000,fetcher,pause);assert.equal(calls,tokens.length);
  raw.close();
 });
-void test('unsupported, invalid and failed tokens never publish a partly refreshed total or a zero',async()=>{
- for(const invalid of [()=>new Response('',{status:404}),()=>Response.json({success:true,data:{volumeUSD:null}}),()=>new Response('',{status:429})]){
+void test('malformed responses and source failures never publish a partly refreshed total or a zero',async()=>{
+ for(const invalid of [()=>new Response('',{status:400}),()=>Response.json({success:true,data:{volumeUSD:null}}),()=>new Response('',{status:429})]){
   const {raw,db}=database(),env=envFor(db),previous=oldRound(raw);let calls=0;
   const fetcher=async()=>++calls===1?invalid():Response.json(reply(200));
   for(let tick=0;tick<Math.ceil(tokens.length/12);tick++)await a.refreshBirdeyeVolumes(env,now+tick*61000,fetcher,pause);
@@ -91,6 +91,36 @@ void test('unsupported, invalid and failed tokens never publish a partly refresh
   const status=JSON.parse(raw.prepare("SELECT payload FROM market_cache WHERE key='birdeye-schedule:v1'").get().payload);
   assert.ok(['round_incomplete','source_unavailable'].includes(status.status));raw.close();
  }
+});
+void test('an explicit missing metric commits the whole checked catalog together without old values or zeros',async()=>{
+ for(const absent of [()=>Response.json(reply(null)),()=>new Response('',{status:404})]){
+  const {raw,db}=database(),previous=oldRound(raw),mints=a.birdeyeVolumeMints(tokens),missing=mints[0];let calls=0;
+  const fetcher=async url=>{calls++;return new URL(url).searchParams.get('address')===missing?absent():Response.json(reply(200));};
+  const ticks=Math.ceil(tokens.length/12);
+  for(let tick=0;tick<ticks;tick++){
+   await a.refreshBirdeyeVolumes(envFor(db),now+tick*61000,fetcher,pause);
+   if(tick<ticks-1)assert.equal(JSON.parse(savedSnapshot(raw).payload).id,previous.id);
+  }
+  const view=a.readBirdeyeVolumeSnapshot(tokens,savedSnapshot(raw),21*3600000,now+ticks*61000),symbol=tokens.find(t=>t.mint===missing).symbol;
+  assert.equal(calls,tokens.length);assert.ok(view.round);assert.equal(Object.keys(view.data).length,tokens.length-1);
+  assert.equal(view.data[symbol],undefined);assert.equal(view.unavailable[symbol].mint,missing);
+  assert.equal(a.birdeyeTokenVolume({tokenVolumes:view},tokens.find(t=>t.mint===missing),now+ticks*61000),null);
+  assert.equal(a.birdeyeTurnover({tokenVolumes:view},tokens,now+ticks*61000).total,(tokens.length-1)*200);
+  const cache=JSON.parse(raw.prepare('SELECT payload FROM market_cache WHERE key=?').get(a.birdeyeVolumeKey(missing)).payload);
+  assert.equal(cache.usd24h,undefined);assert.ok(cache.reason);assert.equal(JSON.parse(raw.prepare("SELECT payload FROM market_cache WHERE key='birdeye-schedule:v1'").get().payload).status,'ok');
+  raw.close();
+ }
+});
+void test('missing outcomes require exact identity and round time; all-missing replies cannot replace a usable round',()=>{
+ const {raw}=database(),snapshot=oldRound(raw),missing=token.mint,value=snapshot.data[missing];delete snapshot.data[missing];
+ snapshot.unavailable={[missing]:{mint:missing,collectedAt:snapshot.completedAt,reason:'not_reported'}};
+ const row=savedSnapshot(raw),read=x=>a.readBirdeyeVolumeSnapshot(tokens,{...row,payload:JSON.stringify(x)},21*3600000,now);
+ assert.ok(read(snapshot).round);
+ for(const change of [x=>x.unavailable[missing].mint='wrong',x=>x.unavailable[missing].collectedAt=x.startedAt-1,x=>x.unavailable[missing].reason='timeout',x=>x.data[missing]=value]){
+  const x=structuredClone(snapshot);change(x);assert.equal(read(x).round,undefined);
+ }
+ const all={...snapshot,data:{},unavailable:Object.fromEntries(tokens.map(t=>[t.mint,{mint:t.mint,collectedAt:snapshot.completedAt,reason:'not_reported'}]))};
+ assert.equal(read(all).round,undefined);raw.close();
 });
 void test('a new listing, damaged round, stale source or mixed collection window invalidates the entire snapshot',()=>{
  const {raw}=database();const snapshot=oldRound(raw),row=savedSnapshot(raw),interval=20*3600000;

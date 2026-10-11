@@ -49,9 +49,9 @@ void test('historical companions require an actual consistent baseline, mint mar
   const data=fixture();data.backpack=overlay(current,{...quote(),...patch});const row=a.tokenObservation(data,'MU',now);assert.equal(row.historicalDisplayReference,null);assert.equal(row.change24h,null);
  }
 });
-void test('an aged ticker cannot erase a usable official historical estimate kept as its companion',()=>{
+void test('an aged ticker yields to the usable official historical price and matching return',()=>{
  const current={...quote(),externalPrice:110,externalChange24h:null,externalBasis:undefined,externalObservedAt:now-30*60000},data=fixture();data.backpack=overlay(current);
- const row=a.tokenObservation(data,'MU',now);assert.equal(row.price,null);assert.equal(row.issuedValue,null);assert.equal(row.lastIssuedValue,1050);assert.equal(row.lastIssuedValueHistoricalReference,true);assert.equal(row.lastIssuedValuePriceTime,now-30*HOUR);assert.equal(row.historicalDisplayReference.price,105);
+ const row=a.tokenObservation(data,'MU',now);assert.equal(row.price,null);assert.equal(row.issuedValue,null);assert.equal(row.lastIssuedValue,1050);assert.equal(row.lastIssuedValueHistoricalReference,true);assert.equal(row.lastIssuedValuePriceTime,now-30*HOUR);assert.equal(row.lastPrice,105);assert.equal(row.change24h,5);assert.equal(row.changeTime,now-30*HOUR);assert.equal(row.historicalDisplayReference,null);
 });
 void test('a known unit adjustment invalidates both historical price/return display paths without suppressing a fresh quote',()=>{
  const historical=fixture();historical.supplies.data.MU.adjustmentAt=now-29*HOUR;

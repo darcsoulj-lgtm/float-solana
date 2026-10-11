@@ -30,6 +30,36 @@ void test('history compares actual completed hours and cannot fill an absent 24-
  assert.ok(Math.abs(quote.externalChange24h-5)<1e-9);assert.equal(quote.externalObservedAt,now-24*3600000);
  assert.equal(a.referenceFromChart({...chart,points:[[now-48*3600000-1,100],[now-24*3600000,105]]}).externalChange24h,null);
 });
+void test('an explicitly revised empty hour corrects retained history without renewing the price time or replacing a current ticker',()=>{
+ const old={...quote,externalObservedAt:now-23*3600000};
+ assert.throws(()=>a.reconcileBackpackReference(chart,old),/regression/);
+ const corrected=a.reconcileBackpackReference({...chart,completedEmptyHours:[old.externalObservedAt]},old);
+ assert.equal(corrected.externalObservedAt,quote.externalObservedAt);
+ assert.equal(corrected.externalRevisedFromAt,old.externalObservedAt);
+ const again=a.reconcileBackpackReference(chart,corrected);
+ assert.equal(again.externalRevisedFromAt,old.externalObservedAt);
+ const saved=new Map([[a.backpackHistoryKey(token.mint),{payload:JSON.stringify(corrected),fetched_at:now,retry_after:0}]]);
+ const revised=a.overlayBackpackHistory(source({MU:old}),[token],saved,now);
+ assert.equal(revised.data.MU.externalObservedAt,quote.externalObservedAt);
+ const fresh=a.overlayBackpackHistory(source({MU:{...old,externalObservedAt:now,externalPrice:110,externalBasis:undefined}}),[token],saved,now);
+ assert.equal(fresh.data.MU.externalPrice,110);
+ assert.throws(()=>a.reconcileBackpackReference({...chart,completedEmptyHours:[old.externalObservedAt]},{...old,market:'OTHER.US_USDC'}),/regression/);
+});
+void test('the real fast history executor recovers a provider-revised empty hour and records a successful check',async()=>{
+ const {raw,db}=database(),hour=3600000,end=Math.floor(Date.now()/hour)*hour;
+ const candle=(at,traded=true)=>({start:new Date(at-hour).toISOString().slice(0,19).replace('T',' '),end:new Date(at).toISOString().slice(0,19).replace('T',' '),open:'102',high:'102',low:'102',close:'102',volume:traded?'1':'0',trades:traded?'1':'0'});
+ const old={...quote,externalPrice:105,externalObservedAt:end-3*hour};
+ raw.prepare('INSERT INTO market_cache VALUES (?,?,?,0)').run(a.backpackHistoryKey(token.mint),JSON.stringify(old),end-2*hour);
+ const response=[candle(end-5*hour),candle(end-4*hour),candle(end-3*hour,false)];
+ await a.refreshFastMarketSource({DB:db},{kind:'reference-history',mint:token.mint},async url=>{assert.match(String(url),/api.backpack.exchange\/api\/v1\/klines/);return Response.json(response);});
+ const row=raw.prepare('SELECT * FROM market_cache WHERE key=?').get(a.backpackHistoryKey(token.mint)),value=JSON.parse(row.payload);
+ assert.equal(value.externalPrice,102);assert.equal(value.externalObservedAt,end-4*hour);assert.equal(value.externalRevisedFromAt,old.externalObservedAt);assert.ok(row.fetched_at>=now);
+ assert.equal(JSON.parse(raw.prepare('SELECT payload FROM market_cache WHERE key=?').get('market-fast:v1:reference-history:'+token.mint).payload).status,'ok');
+ const retained=row.payload;
+ raw.prepare('UPDATE market_cache SET retry_after=0 WHERE key=?').run('market-fast:v1:reference-history:'+token.mint);
+ await assert.rejects(()=>a.refreshFastMarketSource({DB:db},{kind:'reference-history',mint:token.mint},async()=>Response.json([])));
+ assert.equal(raw.prepare('SELECT payload FROM market_cache WHERE key=?').get(a.backpackHistoryKey(token.mint)).payload,retained);raw.close();
+});
 void test('dated recovery survives a fresh null snapshot and remains display-only with original age and paired percentage',()=>{
  const saved=new Map([[a.backpackHistoryKey(token.mint),{payload:JSON.stringify(quote),fetched_at:now,retry_after:0}]]);
  const backpack=a.overlayBackpackHistory(source({MU:{...quote,externalPrice:null,externalChange24h:null,externalObservedAt:undefined,externalBasis:undefined}}),[token],saved,now);
@@ -45,6 +75,17 @@ void test('partial ticker refresh never renews or erases an omitted symbol',()=>
  const previous=source({MU:quote,SKHY:{...quote,externalObservedAt:undefined}},now-360000);
  const rows=a.retainBackpackReferences({MU:{...quote,externalPrice:111},SKHY:{...quote,externalPrice:null}},previous,now);
  assert.equal(rows.MU.externalObservedAt,now);assert.equal(rows.SKHY.externalObservedAt,now-360000);assert.equal(rows.SKHY.externalPrice,105);
+});
+void test('an expired newer ticker cannot hide the dated hourly price, return and display-only valuation',()=>{
+ const saved=new Map([[a.backpackHistoryKey(token.mint),{payload:JSON.stringify(quote),fetched_at:now,retry_after:0}]]);
+ const ticker={...quote,externalPrice:105.01,externalFirstPrice:105.01,externalChange24h:0,externalBasis:undefined,externalObservedAt:now-6*60000};
+ const backpack=a.overlayBackpackHistory(source({MU:ticker},now-6*60000),[token],saved,now);
+ assert.equal(backpack.data.MU.externalBasis,'hourly-history');assert.equal(backpack.asOf.MU,quote.externalObservedAt);
+ const data={tokens:[token],scope:'backpack',markets:source({}),prices:source({}),pools:source({}),catalog:source([]),supplies:source({MU:{supply:10,valuationSafe:true}}),backpack};
+ const row=a.tokenObservation(data,'MU',now);assert.equal(row.lastPrice,105);assert.ok(Math.abs(row.change24h-5)<1e-9);assert.equal(row.changeTime,quote.externalObservedAt);
+ assert.equal(row.price,null);assert.equal(row.issuedValue,null);assert.equal(row.lastIssuedValue,1050);assert.equal(row.lastIssuedValueHistoricalReference,true);
+ const live=a.overlayBackpackHistory(source({MU:{...ticker,externalObservedAt:now}}),[token],saved,now);
+ assert.equal(live.data.MU.externalPrice,105.01);assert.equal(live.data.MU.externalBasis,undefined);
 });
 void test('history recovery is bounded, includes newly registered tokens, and runs when RPC jobs fail',async()=>{
  const {raw,db}=database(),jobs=[];

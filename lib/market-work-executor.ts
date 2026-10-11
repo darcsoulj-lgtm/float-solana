@@ -1,4 +1,4 @@
-import { backpackHistoryKey, fetchBackpackReference, retainBackpackReferences } from './backpack-reference';
+import { backpackHistoryKey, BackpackReferenceRegression, fetchBackpackReference, retainBackpackReferences } from './backpack-reference';
 import { SUPPLY_WORK_BATCH_SIZE } from './market-freshness';
 import { backpackRegistry, discoverBackpackListings, REGISTRY_KEY, registryTokens } from './backpack-registry';
 import { marketGlobalKeys, type MarketEnvironment } from './market-overview-server';
@@ -99,9 +99,13 @@ export async function executeMarketWork(env: MarketEnvironment, job: DurableMark
   const token = byMint.get(job.mint);
   if (!token) throw new MarketWorkError('invalid_response');
   if (job.kind === 'reference-history') {
-    const value = await fetchBackpackReference(token, bounded);
     const previous = await json<import('./market-data').BackpackMarket | null>(env.DB, backpackHistoryKey(token.mint), null);
-    if (previous?.externalObservedAt && value.externalObservedAt! < previous.externalObservedAt) throw new MarketWorkError('invalid_response', 60 * 60000);
+    let value;
+    try { value = await fetchBackpackReference(token, bounded, Date.now(), previous); }
+    catch (error) {
+      if (error instanceof BackpackReferenceRegression) throw new MarketWorkError('invalid_response', 60 * 60000);
+      throw error;
+    }
     return {writes:[write(backpackHistoryKey(token.mint), value, Date.now())]};
   }
   const known = await readPoolInventory(env.DB, [token]);

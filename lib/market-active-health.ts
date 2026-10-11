@@ -4,7 +4,7 @@ import { backpackHistoryKey, BACKPACK_REFERENCE_RETAIN_MS } from './backpack-ref
 import { birdeyeTokenVolume, birdeyeVolumeKey } from './birdeye-volume';
 import { marketCacheRows, type CacheRow } from './market-cache';
 import { readMarketOverview, type MarketEnvironment } from './market-overview-server';
-import { SUPPLY_MAX_AGE_MS } from './market-freshness';
+import { CURRENT_PRICE_MAX_AGE_MS, SUPPLY_MAX_AGE_MS, validatedHistoricalReferencePair } from './market-freshness';
 import { holderRegistry } from './issuer-holder-registry';
 import { readHoldingWallets } from './issuer-holders-server';
 import { readTradingActivity } from './trading-activity-server';
@@ -18,7 +18,7 @@ const BASELINE_KEY = 'market-health-listings:v1';
 const HOUR = 3600000;
 const NEW_LISTING_GRACE = HOUR;
 export type ActiveHealthIssue = {source:string;code:string;affected:number};
-export type ActiveHealthCoverage = {references:number;supplies:number;volume:number;tracked:number};
+export type ActiveHealthCoverage = {references:number;changes?:number;supplies:number;volume:number;tracked:number};
 export type ActiveHealthSummary = {version:1;checkedAt:number;status:'ok'|'degraded';issues:ActiveHealthIssue[];warnings?:ActiveHealthIssue[];coverage?:ActiveHealthCoverage};
 const recent = (at: number | null | undefined, age: number, now: number) => Number.isSafeInteger(at) && at! > 0 && at! <= now + 60000 && now - at! <= age;
 
@@ -38,7 +38,7 @@ export function activeHealthIssues(input: {
     const observed=quote?.externalObservedAt??market.backpack?.asOf?.[token.symbol]??market.backpack?.fetchedAt;
     const priceValid=quote?.externalPrice!=null && Number.isFinite(quote.externalPrice) && quote.externalPrice>0;
     const historical=quote?.externalBasis==='hourly-history';
-    if(!priceValid || !recent(observed,historical?BACKPACK_REFERENCE_RETAIN_MS:24*HOUR,now))references++;
+    if(!priceValid || !recent(observed,historical?BACKPACK_REFERENCE_RETAIN_MS:CURRENT_PRICE_MAX_AGE_MS,now))references++;
     else if(!recent(observed,15*60000,now) && !recent(controls.get(backpackHistoryKey(token.mint))?.fetched_at,2*HOUR,now))historyChecks++;
     const supply=market.supplies.data?.[token.symbol];
     const supplyTime=market.supplies.asOf?.[token.symbol]??market.supplies.fetchedAt;
@@ -47,7 +47,9 @@ export function activeHealthIssues(input: {
     // Never-indexed tokens (currently NVDA) are disclosed coverage, not a
     // provider outage. A previously collected value aging out is actionable.
     const prior=controls.get(birdeyeVolumeKey(token.mint));
-    if(volumeEnabled && ((volume && !recent(volume.collectedAt,(market.tokenVolumes?.intervalMs??14*HOUR)+2*HOUR,now)) || (!volume && !!prior?.payload && prior.fetched_at>0)))volumes++;
+    const absent=market.tokenVolumes?.unavailable?.[token.symbol];
+    const checkedMissing=absent?.mint===token.mint && recent(absent.collectedAt,(market.tokenVolumes?.intervalMs??14*HOUR)+2*HOUR,now);
+    if(volumeEnabled && ((volume && !recent(volume.collectedAt,(market.tokenVolumes?.intervalMs??14*HOUR)+2*HOUR,now)) || (!volume && !checkedMissing && !!prior?.payload && prior.fetched_at>0)))volumes++;
   }
   if(references)issues.push({source:'references',code:'reference_coverage_missing',affected:references});
   if(historyChecks)issues.push({source:'reference-history',code:'history_collection_overdue',affected:historyChecks});
@@ -76,14 +78,28 @@ export function activeHealthIssues(input: {
 // A successful scheduled fetch can return an older provider observation.
 // Keep that visible as delayed data, without claiming our collector stopped.
 export function activeHealthWarnings(input: Parameters<typeof activeHealthIssues>[0]): ActiveHealthIssue[] {
-  if (!input.volumeEnabled) return [];
+  const warnings: ActiveHealthIssue[]=[];
+  const eligible=input.tokens.filter(t=>t.issuer==='backpack' && input.now-(input.firstSeen[t.mint]??input.now)>=NEW_LISTING_GRACE);
+  const missingChanges=eligible.filter(t=>{
+    const q=input.market.backpack?.data?.[t.symbol], at=q?.externalObservedAt??input.market.backpack?.asOf?.[t.symbol]??input.market.backpack?.fetchedAt;
+    if(q?.externalBasis==='hourly-history')return !validatedHistoricalReferencePair({price:q.externalPrice!,change24h:q.externalChange24h!,observedAt:at!,firstPrice:q.externalFirstPrice??null},input.now);
+    return !recent(at,CURRENT_PRICE_MAX_AGE_MS,input.now) || typeof q?.externalChange24h!=='number' || !Number.isFinite(q.externalChange24h);
+  }).length;
+  if(missingChanges)warnings.push({source:'references',code:'reference_return_unavailable',affected:missingChanges});
+  if (!input.volumeEnabled) return warnings;
   const age = (input.market.tokenVolumes?.intervalMs ?? 14*HOUR) + 2*HOUR;
   const affected = input.tokens.filter(token => {
     if (token.issuer !== 'backpack' || input.now-(input.firstSeen[token.mint]??input.now)<NEW_LISTING_GRACE) return false;
     const volume = birdeyeTokenVolume(input.market, token, input.now);
     return volume && recent(volume.collectedAt, age, input.now) && !recent(volume.observedAt, age, input.now);
   }).length;
-  return affected ? [{source:'volume',code:'volume_source_delayed',affected}] : [];
+  if(affected)warnings.push({source:'volume',code:'volume_source_delayed',affected});
+  const missing=eligible.filter(t=>{
+    const absent=input.market.tokenVolumes?.unavailable?.[t.symbol];
+    return absent?.mint===t.mint && recent(absent.collectedAt,age,input.now);
+  }).length;
+  if(missing)warnings.push({source:'volume',code:'volume_source_unavailable',affected:missing});
+  return warnings;
 }
 
 export async function checkActiveMarketHealth(env:MarketEnvironment & {STOCK_VOLUME_ENABLED?:string},now=Date.now()):Promise<ActiveHealthSummary>{
@@ -98,7 +114,12 @@ export async function checkActiveMarketHealth(env:MarketEnvironment & {STOCK_VOL
   const input={market,tokens,controls,firstSeen,holder:holders.issuers.find(row=>row.issuer==='backpack'),holderScope:scopes.find(row=>row.issuer==='backpack')!,activityAt:activity.at(-1)?.capturedAt??null,volumeEnabled:env.BIRDEYE_VOLUME_ENABLED==='1',stockComparison,now};
   const issues=activeHealthIssues(input),warnings=activeHealthWarnings(input);
   const unique=[...new Map(issues.map(i=>[i.source,i])).values()];
-  const coverage={references:backpack.filter(t=>{const row=market.backpack?.data?.[t.symbol];return row?.externalPrice!=null && Number.isFinite(row.externalPrice) && row.externalPrice>0;}).length,supplies:backpack.filter(t=>!!market.supplies.data?.[t.symbol]).length,volume:backpack.filter(t=>!!birdeyeTokenVolume(market,t,now)).length,tracked:backpack.length};
+  const referenceUsable=(t:StockToken)=>{const row=market.backpack?.data?.[t.symbol];return row?.externalPrice!=null && Number.isFinite(row.externalPrice) && row.externalPrice>0 && recent(row.externalObservedAt??market.backpack?.asOf?.[t.symbol]??market.backpack?.fetchedAt,row.externalBasis==='hourly-history'?BACKPACK_REFERENCE_RETAIN_MS:CURRENT_PRICE_MAX_AGE_MS,now);};
+  const coverage={references:backpack.filter(referenceUsable).length,changes:backpack.filter(t=>{
+    const q=market.backpack?.data?.[t.symbol];
+    return referenceUsable(t) && typeof q?.externalChange24h==='number' && Number.isFinite(q.externalChange24h) &&
+      (q.externalBasis!=='hourly-history' || !!validatedHistoricalReferencePair({price:q.externalPrice!,change24h:q.externalChange24h,observedAt:q.externalObservedAt!,firstPrice:q.externalFirstPrice??null},now));
+  }).length,supplies:backpack.filter(t=>!!market.supplies.data?.[t.symbol]).length,volume:backpack.filter(t=>!!birdeyeTokenVolume(market,t,now)).length,tracked:backpack.length};
   const summary:ActiveHealthSummary={version:1,checkedAt:now,status:unique.length?'degraded':'ok',issues:unique,...(warnings.length?{warnings}:{}),coverage};
   await env.DB.prepare('INSERT INTO market_cache(key,payload,fetched_at,retry_after) VALUES(?,?,?,0) ON CONFLICT(key) DO UPDATE SET payload=excluded.payload,fetched_at=excluded.fetched_at').bind(ACTIVE_HEALTH_KEY,JSON.stringify(summary),now).run();
   return summary;
@@ -113,8 +134,8 @@ export async function readActiveMarketHealth(database:D1Database,now=Date.now())
     const sources=['references','reference-history','supplies','volume','volume-collector','holders','activity','snapshot','snapshot-capacity','stock-comparison'];
     const codes=['reference_coverage_missing','history_collection_overdue','supply_collection_overdue','volume_coverage_overdue','volume_budget_exhausted','volume_collector_unhealthy','holder_collection_overdue','holder_registry_mismatch','activity_recording_overdue','snapshot_publication_overdue','snapshot_payload_large','stock_comparison_overdue'];
     if(value?.version===1 && ['ok','degraded'].includes(value.status) && value.status===(value.issues?.length?'degraded':'ok') && recent(value.checkedAt,15*60000,now) && Array.isArray(value.issues) && value.issues.length<=11 && value.issues.every(i=>sources.includes(i.source)&&codes.includes(i.code)&&Number.isSafeInteger(i.affected)&&i.affected>0) &&
-        (value.warnings===undefined || (Array.isArray(value.warnings) && value.warnings.length<=1 && value.warnings.every(i=>i.source==='volume'&&i.code==='volume_source_delayed'&&Number.isSafeInteger(i.affected)&&i.affected>0)))){
-      const c=value.coverage,coverage=c && Number.isSafeInteger(c.tracked)&&c.tracked>0&&[c.references,c.supplies,c.volume].every(n=>Number.isSafeInteger(n)&&n>=0&&n<=c.tracked)?{references:c.references,supplies:c.supplies,volume:c.volume,tracked:c.tracked}:undefined;
+        (value.warnings===undefined || (Array.isArray(value.warnings) && value.warnings.length<=3 && value.warnings.every(i=>((i.source==='volume'&&['volume_source_delayed','volume_source_unavailable'].includes(i.code))||(i.source==='references'&&i.code==='reference_return_unavailable'))&&Number.isSafeInteger(i.affected)&&i.affected>0)))){
+      const c=value.coverage,coverage=c && Number.isSafeInteger(c.tracked)&&c.tracked>0&&[c.references,c.supplies,c.volume].every(n=>Number.isSafeInteger(n)&&n>=0&&n<=c.tracked)&& (c.changes===undefined || (Number.isSafeInteger(c.changes)&&c.changes>=0&&c.changes<=c.tracked))?{references:c.references,...(c.changes!==undefined?{changes:c.changes}:{}),supplies:c.supplies,volume:c.volume,tracked:c.tracked}:undefined;
       return{status:value.issues.length?'degraded':'ok',checkedAt:value.checkedAt,issues:value.issues.map(({source,code,affected})=>({source,code,affected})),...(value.warnings?.length?{warnings:value.warnings.map(({source,code,affected})=>({source,code,affected}))}:{}),...(coverage?{coverage}:{})};
     }
   }catch{/* No private state or raw error text is exposed. */}

@@ -6,7 +6,7 @@ const api=await bundle(`export * from './lib/market-active-health';export * from
 const HOUR=3600000,now=Date.now(),token={issuer:'backpack',mint:'1'.repeat(32),symbol:'MU',name:'Micron',shortName:'Micron',underlyingSymbol:'MU',source:'fixture'};
 const other={...token,mint:'2'.repeat(32),symbol:'NVDA'};
 function fixture(tokens=[token]){
- const market={backpack:{data:{MU:{externalPrice:100,externalChange24h:2,externalBasis:'hourly-history',externalObservedAt:now-36*HOUR}},fetchedAt:now-36*HOUR},supplies:{data:{MU:{supply:20}},asOf:{MU:now},fetchedAt:now},tokenVolumes:{intervalMs:14*HOUR,data:{MU:{mint:token.mint,usd24h:50,observedAt:now,collectedAt:now}}}};
+ const market={backpack:{data:{MU:{externalPrice:100,externalFirstPrice:100/1.02,externalChange24h:2,externalBasis:'hourly-history',externalObservedAt:now-36*HOUR}},fetchedAt:now-36*HOUR},supplies:{data:{MU:{supply:20}},asOf:{MU:now},fetchedAt:now},tokenVolumes:{intervalMs:14*HOUR,data:{MU:{mint:token.mint,usd24h:50,observedAt:now,collectedAt:now}}}};
  const controls=new Map([['public-backpack-snapshot:v1',{payload:'{}',fetched_at:now,retry_after:0}],[api.backpackHistoryKey(token.mint),{payload:'{}',fetched_at:now,retry_after:0}],['birdeye-schedule:v1',{payload:JSON.stringify({status:'ok',checkedAt:now}),fetched_at:now,retry_after:now+60000}]]);
  return{market,tokens,controls,firstSeen:Object.fromEntries(tokens.map(t=>[t.mint,now-2*HOUR])),holder:{issuer:'backpack',registryHash:'scope',tokens:tokens.length,checkedAt:now},holderScope:{registryHash:'scope',mints:tokens.map(t=>t.mint)},activityAt:now,volumeEnabled:true,now};
 }
@@ -14,6 +14,25 @@ void test('a closed stock market with unchanged dated candles is healthy while h
  const input=fixture();assert.deepEqual(api.activeHealthIssues(input),[]);
  input.controls.get(api.backpackHistoryKey(token.mint)).fetched_at=now-3*HOUR;
  assert.deepEqual(api.activeHealthIssues(input),[{source:'reference-history',code:'history_collection_overdue',affected:1}]);
+});
+void test('monitor matches the display freshness gate and exposes unavailable historical returns',()=>{
+ const input=fixture();input.market.backpack.data.MU.externalBasis=undefined;input.market.backpack.data.MU.externalObservedAt=now-6*60000;
+ assert.ok(api.activeHealthIssues(input).some(i=>i.source==='references'));
+ assert.ok(api.activeHealthWarnings(input).some(i=>i.code==='reference_return_unavailable'));
+ input.market.backpack.data.MU.externalBasis='hourly-history';input.market.backpack.data.MU.externalObservedAt=now-36*HOUR;
+ assert.deepEqual(api.activeHealthIssues(input),[]);assert.deepEqual(api.activeHealthWarnings(input),[]);
+ input.market.backpack.data.MU.externalFirstPrice=null;input.market.backpack.data.MU.externalChange24h=null;
+ assert.deepEqual(api.activeHealthWarnings(input),[{source:'references',code:'reference_return_unavailable',affected:1}]);
+});
+void test('a current explicitly unavailable outcome discloses coverage without pretending the collector failed',()=>{
+ const input=fixture([token,other]);input.market.backpack.data.NVDA={...input.market.backpack.data.MU};input.market.supplies.data.NVDA={supply:3};input.market.supplies.asOf.NVDA=now;
+ input.controls.set(api.backpackHistoryKey(other.mint),{payload:'{}',fetched_at:now,retry_after:0});
+ input.controls.set(api.birdeyeVolumeKey(other.mint),{payload:'old',fetched_at:now-80*HOUR,retry_after:0});
+ input.market.tokenVolumes.unavailable={NVDA:{mint:other.mint,collectedAt:now,reason:'not_reported'}};
+ assert.deepEqual(api.activeHealthIssues(input),[]);
+ assert.deepEqual(api.activeHealthWarnings(input),[{source:'volume',code:'volume_source_unavailable',affected:1}]);
+ input.market.tokenVolumes.unavailable.NVDA.collectedAt=now-17*HOUR;
+ assert.ok(api.activeHealthIssues(input).some(i=>i.source==='volume'));
 });
 void test('new verified listings receive bounded grace then missing references and supplies are reported',()=>{
  const input=fixture([token,other]);input.firstSeen[other.mint]=now;

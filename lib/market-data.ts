@@ -47,6 +47,8 @@ export type BackpackMarket = {
   externalChangeUnit?: 'percent';
   externalObservedAt?: number;
   externalBasis?: 'hourly-history';
+  // Official history explicitly revised this formerly retained hour to no trades.
+  externalRevisedFromAt?: number;
   historicalExternalReference?: HistoricalExternalReference;
   externalVolume24h: number | null;
   externalQuoteVolume24h: number | null;

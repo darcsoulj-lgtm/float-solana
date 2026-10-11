@@ -12,12 +12,14 @@ export const BIRDEYE_VOLUME_ROUND_MAX_MS = 20 * 60000;
 export type BirdeyeVolume = {
   mint: string; usd24h: number; observedAt: number; collectedAt: number;
 };
-export type BirdeyeVolumes = { source: 'birdeye'; intervalMs: number; round?: { id: string; startedAt: number; completedAt: number }; data: Record<string, BirdeyeVolume> };
-export type BirdeyeVolumeSnapshot = { version: 1; id: string; mints: string[]; startedAt: number; completedAt: number; data: Record<string, BirdeyeVolume> };
+export type BirdeyeVolumeUnavailable = { mint: string; collectedAt: number; reason: 'not_reported' | 'not_indexed' };
+export type BirdeyeVolumes = { source: 'birdeye'; intervalMs: number; round?: { id: string; startedAt: number; completedAt: number }; data: Record<string, BirdeyeVolume>; unavailable?: Record<string, BirdeyeVolumeUnavailable> };
+export type BirdeyeVolumeSnapshot = { version: 1; id: string; mints: string[]; startedAt: number; completedAt: number; data: Record<string, BirdeyeVolume>; unavailable?: Record<string, BirdeyeVolumeUnavailable> };
 export const birdeyeVolumeMints = (tokens: readonly StockToken[]) => [...new Set(tokens.filter(t => t.issuer === 'backpack').map(t => t.mint))].sort();
 
 // Public readers accept one complete collection round for the current registry.
-// A missing/new listing or damaged observation invalidates the entire round.
+// Each mint needs a validated value OR an explicit provider-unavailable outcome.
+// A missing/new listing, transport failure or damaged observation still fails.
 export function readBirdeyeVolumeSnapshot(tokens: readonly StockToken[], row: CacheRow | undefined, intervalMs: number, now: number): BirdeyeVolumes {
   const empty: BirdeyeVolumes = { source: 'birdeye', intervalMs, data: {} };
   try {
@@ -29,10 +31,18 @@ export function readBirdeyeVolumeSnapshot(tokens: readonly StockToken[], row: Ca
         !Number.isSafeInteger(snapshot.completedAt) || snapshot.completedAt < snapshot.startedAt ||
         snapshot.completedAt > now + 60000 || row?.fetched_at !== snapshot.completedAt ||
         snapshot.completedAt - snapshot.startedAt > BIRDEYE_VOLUME_ROUND_MAX_MS ||
-        !snapshot.data || Object.keys(snapshot.data).length !== mints.length) return empty;
+        !snapshot.data || Object.keys(snapshot.data).length + Object.keys(snapshot.unavailable ?? {}).length !== mints.length) return empty;
     const data: Record<string, BirdeyeVolume> = {};
+    const unavailable: Record<string, BirdeyeVolumeUnavailable> = {};
     for (const token of tokens.filter(t => t.issuer === 'backpack')) {
       const value = snapshot.data[token.mint];
+      const absent = snapshot.unavailable?.[token.mint];
+      if (absent) {
+        if (value || absent.mint !== token.mint || !['not_reported','not_indexed'].includes(absent.reason) ||
+            !Number.isSafeInteger(absent.collectedAt) || absent.collectedAt < snapshot.startedAt || absent.collectedAt > snapshot.completedAt) return empty;
+        unavailable[token.symbol] = absent;
+        continue;
+      }
       if (!value || value.mint !== token.mint || !Number.isFinite(value.usd24h) || value.usd24h < 0 ||
           !Number.isSafeInteger(value.collectedAt) || value.collectedAt < snapshot.startedAt || value.collectedAt > snapshot.completedAt ||
           !Number.isSafeInteger(value.observedAt) || value.observedAt <= 0 ||
@@ -41,7 +51,9 @@ export function readBirdeyeVolumeSnapshot(tokens: readonly StockToken[], row: Ca
       data[token.symbol] = value;
     }
     if (!Number.isFinite(Object.values(data).reduce((sum, value) => sum + value.usd24h, 0))) return empty;
-    return { source: 'birdeye', intervalMs, round: { id: snapshot.id, startedAt: snapshot.startedAt, completedAt: snapshot.completedAt }, data };
+    if (!Object.keys(data).length) return empty;
+    return { source: 'birdeye', intervalMs, round: { id: snapshot.id, startedAt: snapshot.startedAt, completedAt: snapshot.completedAt }, data,
+      ...(Object.keys(unavailable).length ? {unavailable} : {}) };
   } catch { return empty; }
 }
 // Reserve 20% of the free allowance. Increase the interval as listings grow.

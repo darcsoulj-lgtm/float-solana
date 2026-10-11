@@ -11,6 +11,7 @@ export type BackpackChart = {
   windowEnd: number;
   points: [number, number][];
   omittedHours: number;
+  completedEmptyHours?: number[];
 };
 
 function timestamp(value: unknown): number {
@@ -23,6 +24,7 @@ function timestamp(value: unknown): number {
 export function parseBackpackChart(raw: unknown, token: StockToken, now: number): BackpackChart {
   if (token.issuer !== 'backpack' || !Array.isArray(raw) || raw.length > 200) throw Error('Invalid chart response');
   const points: [number, number][] = [];
+  const completedEmptyHours: number[] = [];
   let previous = -Infinity, omittedHours = 0;
   for (const row of raw) {
     if (!row || typeof row !== 'object') throw Error('Invalid candle');
@@ -36,11 +38,12 @@ export function parseBackpackChart(raw: unknown, token: StockToken, now: number)
       typeof row.volume !== 'string' || !row.volume.trim() || typeof row.trades !== 'string' || !row.trades.trim() || !Number.isFinite(volume) || volume < 0 || !Number.isSafeInteger(trades) || trades < 0) throw Error('Invalid candle');
     previous = start;
     // No interpolated zero-trade candles or unfinished hours presented as trades.
+    if (end <= now && volume === 0 && trades === 0) completedEmptyHours.push(end);
     if (end > now || volume === 0 || trades === 0) { omittedHours++; continue; }
     points.push([end, close]);
   }
   if (points.length < 2) throw Error('Not enough completed trading hours');
-  return { symbol: token.symbol, name: token.shortName, market: `${token.symbol}.US_USDC`, source: 'Backpack External', basis: 'stock-reference', fetchedAt: now, windowEnd: now, points, omittedHours };
+  return { symbol: token.symbol, name: token.shortName, market: `${token.symbol}.US_USDC`, source: 'Backpack External', basis: 'stock-reference', fetchedAt: now, windowEnd: now, points, omittedHours, completedEmptyHours };
 }
 
 export async function fetchBackpackChart(token: StockToken, fetcher: typeof fetch = fetch, now = Date.now()): Promise<BackpackChart> {
