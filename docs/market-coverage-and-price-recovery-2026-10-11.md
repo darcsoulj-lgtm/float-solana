@@ -32,3 +32,9 @@ The completed recovery pass preceded deployment of its history hook. The repaire
 The next natural five-minute health execution at 02:25:17 UTC returned HTTP 200, `status:ok`, no incidents, and actual coverage `{references:74,changes:73,supplies:74,volume:73,tracked:74}`. The two provider gaps remain explicit warnings. Monitoring state was not manually changed. Independent public publication check run `38104636167` also passed after the reference repair. Browser hydration confirms the same volume/coverage, prices with original dates, visible percentage changes, daily comparison and holding-wallet count. Screenshot: `/tmp/float-oct11-recovered-desktop.png`.
 
 A repaired scheduled round proves this recovery; the next approximately 21-hour catalog pass and future daily comparison runs are separate operation evidence and have not yet occurred.
+
+## Historical gap recovery
+
+A follow-up check found the preserved public 9 October whole-catalog snapshot. All 74 verified mint identities, values, original provider times and collection boundaries passed the production snapshot validator. The original `$44,917,210.47870769` total was inserted only into the absent 9 October turnover history row, with original `collectedAt` and source dates preserved. Current market data was unchanged. The Worker history endpoint confirmed 74/74 coverage and the exact total; the main-domain history cache can retain its preceding response for up to five minutes.
+
+The 9 October gap came from history rejecting the entire checked catalog because its oldest individual provider timestamp exceeded the recording age gate. The 10 October staged pass contains 73 values and no completed 74-mint publication: NVDA absence blocked the former collector. No 10 October history point was invented from that incomplete pass. The already-deployed publication and persistence fixes address both failure boundaries.
