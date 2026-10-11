@@ -70,7 +70,8 @@ export function MarketActivityHistory({data, now}: {data: MarketOverview | null;
               const parts = [...breakdown.slice(0,5).map(r => ({symbol:r.symbol,value:point.tokens.find(t => t.symbol===r.symbol)?.value ?? 0})),{symbol:'Other',value:Math.max(0,point.total-breakdown.slice(0,5).reduce((n,r) => n+(point.tokens.find(t => t.symbol===r.symbol)?.value ?? 0),0))}];
               return <g key={day} className="activity-day">
                 <rect x={plot.x+i*cell} y={plot.y} width={cell} height={plot.height} fill="transparent"/>
-                {parts.map((part,j) => { const height=part.value/max*plot.height; offset+=height; return <rect key={part.symbol} x={plot.x+i*cell+(cell-barWidth)/2} y={plot.y+plot.height-offset} width={barWidth} height={height} rx={0} fill={colors[j]} opacity={chosen?.day===day?1:.65}/>;})}
+                {parts.map((part,j) => { const height=part.value/max*plot.height; offset+=height; return <rect key={part.symbol} x={plot.x+i*cell+(cell-barWidth)/2} y={plot.y+plot.height-offset} width={barWidth} height={height} rx={0} fill={colors[j]} opacity={.65}/>;})}
+                {chosen?.day===day && <circle cx={plot.x+(i+.5)*cell} cy={plot.y+plot.height+10} r={3} fill="currentColor" aria-hidden="true"/>}
                 <foreignObject x={plot.x+i*cell} y={plot.y} width={cell} height={plot.height}><button type="button" className="activity-bar-target" aria-label={`${dateLabel(day)}: ${compact(point.total)}`} aria-pressed={chosen?.day===day} onKeyDown={e => {if(e.key==='Escape') setHovered(null);}} aria-describedby={hovered?.point.day===day ? tooltipId : undefined} onPointerEnter={() => setHovered({point,x:(plot.x+(i+.5)*cell)/10})} onFocus={() => setHovered({point,x:(plot.x+(i+.5)*cell)/10})} onBlur={() => setHovered(null)} onClick={() => {choose(day);setHovered({point,x:(plot.x+(i+.5)*cell)/10});}}><span className="sr-only">{dateLabel(day)}</span></button></foreignObject>
               </g>;
             })}
