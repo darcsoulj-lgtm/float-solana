@@ -141,3 +141,10 @@ void test('Fresh whole-catalog checks record delayed provider times without inve
  assert.equal(DB.writes,2,'An expired catalog check cannot manufacture another snapshot');
  DB.raw.close();
 });
+
+void test('Recovered partial turnover retains the sum and explicitly excludes missing tokens',()=>{
+ const point={day:'2026-10-10',capturedAt:Date.UTC(2026,9,11),oldestAt:Date.UTC(2026,9,10,13),newestAt:Date.UTC(2026,9,10,14),basis:'turnover',total:123,partial:true,covered:2,known:3,tokens:[{symbol:'MU',value:100},{symbol:'SPCX',value:23}],excludedSymbols:['NVDA']};
+ assert.equal(validTradingActivity(point),true);
+ assert.equal(activityBreakdown(point).reduce((sum,row)=>sum+row.value,0),123);
+ for(const change of [{excludedSymbols:['MU']},{excludedSymbols:['NVDA','NVDA']},{excludedSymbols:['NVDA','PTN']},{excludedSymbols:'NVDA'},{partial:false},{basis:'pools'}]) assert.equal(validTradingActivity({...point,...change}),false);
+});

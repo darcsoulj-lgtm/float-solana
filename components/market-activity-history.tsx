@@ -91,7 +91,7 @@ export function MarketActivityHistory({data, now}: {data: MarketOverview | null;
         {breakdown.length ? <ol>{breakdown.map((r,i) => <li key={r.symbol}><span className="activity-token"><i aria-hidden="true" style={{background:colors[i]}}/>{r.symbol==='Other' ? 'Other' : <Link href={'/markets/'+r.symbol.toLowerCase()+'?token='+encodeURIComponent(r.symbol)}>{r.symbol}</Link>}</span>{showHistory && <span className="activity-track" aria-hidden="true"><span style={{width:`${chosen!.total ? r.value/chosen!.total*100 : 0}%`,background:colors[i]}}/></span>}<span className="activity-token-value"><strong>{compact(r.value)}</strong><span className="activity-token-share">{chosen!.total ? (r.value/chosen!.total*100).toFixed(1) : '0'}%</span></span></li>)}</ol> : <p className="market-history-note">No reliable volume available.</p>}
       </div>
     </div>
-    <footer className="activity-footer">{chosen && <span>{chosen.covered}/{chosen.known} {chosen.basis === 'turnover' ? 'tokens' : 'pools'}</span>}<Link href="/data-methodology#activity">Data &amp; methodology ↗</Link></footer>
+    <footer className="activity-footer">{chosen && <span>{chosen.covered}/{chosen.known} {chosen.basis === 'turnover' ? 'tokens' : 'pools'}{chosen.excludedSymbols?.length ? ` · ${chosen.excludedSymbols.join(', ')} excluded` : ''}</span>}<Link href="/data-methodology#activity">Data &amp; methodology ↗</Link></footer>
   </section>;
 }
 
@@ -104,6 +104,7 @@ export function ActivityTooltip({id, point, x, symbol, composition=false}: {id: 
     <span className="activity-tooltip-date">{dateLabel(point.day)} · UTC</span>
     <div className="activity-tooltip-total"><span>{row?.symbol ?? '24h volume'}</span><strong>{full(row?.value ?? point.total)}</strong></div>
     {row && <span className="activity-tooltip-date">{point.total ? (row.value/point.total*100).toFixed(1) : '0'}% of observed volume</span>}
+    {point.excludedSymbols?.length ? <span className="activity-tooltip-date">{point.covered}/{point.known} tokens · {point.excludedSymbols.join(', ')} excluded</span> : null}
     {composition && <ul>{rows.map((r,i) => <li key={r.symbol}><span><i style={{background:colors[i]}}/>{r.symbol}</span><strong>{full(r.value)}<small>{point.total ? (r.value/point.total*100).toFixed(1) : '0'}%</small></strong></li>)}</ul>}
   </div>;
 }

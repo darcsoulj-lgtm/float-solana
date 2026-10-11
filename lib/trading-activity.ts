@@ -9,6 +9,7 @@ export type TradingActivity = {
   oldestAt: number;
   newestAt: number;
   collectedAt?: number;
+  excludedSymbols?: string[];
   basis: 'pools' | 'turnover';
   total: number;
   partial: boolean;
@@ -81,5 +82,8 @@ export function validTradingActivity(value: unknown): value is TradingActivity {
       !Number.isSafeInteger(p.known) || p.known < p.covered || !Array.isArray(p.tokens) || !p.tokens.length || p.tokens.length > 2000 ||
       p.tokens.some(r => !r || typeof r.symbol !== 'string' || !/^[A-Za-z0-9._-]{1,24}$/.test(r.symbol) || !Number.isFinite(r.value) || r.value < 0) ||
       new Set(p.tokens.map(r => r.symbol)).size !== p.tokens.length) return false;
+  if (p.excludedSymbols !== undefined && (!Array.isArray(p.excludedSymbols) || p.basis !== 'turnover' || !p.partial ||
+      p.excludedSymbols.length !== p.known-p.covered || new Set(p.excludedSymbols).size !== p.excludedSymbols.length ||
+      p.excludedSymbols.some(symbol => typeof symbol !== 'string' || !/^[A-Za-z0-9._-]{1,24}$/.test(symbol) || p.tokens.some(row => row.symbol === symbol)))) return false;
   return Math.abs(p.tokens.reduce((n,r) => n+r.value,0)-p.total) <= Math.max(.01,p.total*1e-10);
 }
