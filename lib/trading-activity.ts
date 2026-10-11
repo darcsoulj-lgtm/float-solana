@@ -8,6 +8,7 @@ export type TradingActivity = {
   capturedAt: number;
   oldestAt: number;
   newestAt: number;
+  collectedAt?: number;
   basis: 'pools' | 'turnover';
   total: number;
   partial: boolean;
@@ -32,6 +33,7 @@ export function tradingActivity(data: MarketOverview | null, now: number): Tradi
     const newestAt = Math.max(...rows.map(r => r.at));
     return { day: new Date(newestAt).toISOString().slice(0, 10), capturedAt: now,
       oldestAt: summary.oldestAt, newestAt,
+      ...(data.tokenVolumes.round ? {collectedAt:data.tokenVolumes.round.completedAt} : {}),
       basis: 'turnover', total: summary.total, partial: summary.covered < summary.count,
       covered: summary.covered, known: summary.count,
       tokens: rows.map(({symbol,value}) => ({symbol,value})).sort((a,b) => b.value-a.value || a.symbol.localeCompare(b.symbol)) };
@@ -73,6 +75,7 @@ export function validTradingActivity(value: unknown): value is TradingActivity {
       !Number.isSafeInteger(p.capturedAt) || p.capturedAt <= 0 || p.capturedAt > 8640000000000000 ||
       !Number.isSafeInteger(p.oldestAt) || p.oldestAt <= 0 || !Number.isSafeInteger(p.newestAt) ||
       p.oldestAt > p.newestAt || p.newestAt > 8640000000000000 || p.newestAt > p.capturedAt + 60000 || new Date(p.newestAt).toISOString().slice(0,10) !== p.day ||
+      (p.collectedAt!==undefined && (!Number.isSafeInteger(p.collectedAt) || p.collectedAt<=0 || p.collectedAt>p.capturedAt+60000 || p.newestAt>p.collectedAt+60000)) ||
       !['pools','turnover'].includes(p.basis) || !Number.isFinite(p.total) || p.total < 0 ||
       typeof p.partial !== 'boolean' || !Number.isSafeInteger(p.covered) || p.covered < 1 ||
       !Number.isSafeInteger(p.known) || p.known < p.covered || !Array.isArray(p.tokens) || !p.tokens.length || p.tokens.length > 2000 ||

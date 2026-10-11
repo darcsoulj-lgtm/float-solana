@@ -33,7 +33,9 @@ export class MarketRefresh extends WorkerEntrypoint<FloatEnvironment> {
   }
   async publicSnapshot() { await publishPublicMarketSnapshot(this.env); }
   async activity() { await recordTradingActivity(this.env); }
-  async tokenVolumes() { await refreshBirdeyeVolumes(this.env); }
+  async tokenVolumes() {
+    if (await refreshBirdeyeVolumes(this.env)) await recordTradingActivity(this.env);
+  }
   async collectionTrigger() { await triggerOverdueCollection(this.env); }
   async holderCollectionTrigger() { await triggerHolderCollection(this.env); }
   async stockCollectionTrigger() { await triggerStockCollection(this.env); }

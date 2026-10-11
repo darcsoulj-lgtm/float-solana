@@ -50,6 +50,8 @@ try{
  assert.equal(partial.tokenVolumes.round.id,'synthetic-missing-round',JSON.stringify({calls,states:(await db.prepare("SELECT key,payload FROM market_cache WHERE key IN ('birdeye-schedule:v1','birdeye-volume-round:v1')").all()).results}));assert.equal(Object.keys(partial.tokenVolumes.data).length,tokens.length-1);
  assert.equal(partial.tokenVolumes.data.NEWSTOCK,undefined);assert.equal(partial.tokenVolumes.unavailable.NEWSTOCK.reason,'not_reported');
  assert.ok(!partialText.includes('synthetic-private-key'));assert.equal(calls,2);
+ const history=(await db.prepare("SELECT payload FROM market_cache WHERE key LIKE 'trading-activity:%'").all()).results.map(r=>JSON.parse(r.payload));
+ assert.equal(history.length,1);assert.equal(history[0].covered,tokens.length-1);assert.equal(history[0].total,(tokens.length-1)*100);
  const report={environment:'isolated Worker and D1; synthetic provider',privateScheduledCollection:true,publicReadsCallNoProviders:true,publicSecretsAbsent:true,cacheNoStoreOnBothReads:true,explicitMissingOutcome:true,tokenCount:tokens.length,liveBirdeyeVerified:false};
  await mkdir('outputs',{recursive:true});await writeFile('outputs/birdeye-runtime.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report));
 }finally{await worker.dispose();}

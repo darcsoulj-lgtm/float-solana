@@ -21,20 +21,24 @@ export async function recordTradingActivity(env: MarketEnvironment, now = Date.n
   const registry = await backpackRegistry(env.DB, () => {}, env.SOLANA_RPC_URL, fetch, now, true);
   const data = await readMarketOverview(env, registryTokens(registry), registry, 'backpack');
   const point: TradingActivity | null = tradingActivity(data, now);
-  // A last-good display is useful now, but must not become a new historical day.
+  // A retained display must not become a new historical day. For an atomic
+  // turnover pass, collection time proves the catalog was actually checked;
+  // individual provider times still determine the day and remain disclosed.
   const maxAge = point?.basis === 'turnover' ? data.tokenVolumes!.intervalMs + 1800000 : 24 * 3600000;
-  if (!point || now - point.oldestAt > maxAge || !validTradingActivity(point)) return;
+  const checkedAt = point?.basis === 'turnover' && data.tokenVolumes?.round
+    ? data.tokenVolumes.round.startedAt : point?.oldestAt;
+  if (!point || !checkedAt || checkedAt > now || now - checkedAt > maxAge || !validTradingActivity(point)) return;
   const marker = prefix + point.day + (birdeyeVolumeEnabled(env) ? ':turnover' : '');
   const saved = await env.DB.prepare('SELECT payload FROM market_cache WHERE key=?').bind(marker).first<{payload:string|null}>();
   try {
     const previous: unknown = JSON.parse(saved?.payload ?? 'null');
-    if (validTradingActivity(previous) && previous.newestAt >= point.newestAt) return;
+    if (validTradingActivity(previous) && (previous.collectedAt??previous.newestAt) >= (point.collectedAt??point.newestAt)) return;
   } catch { /* A valid observation may repair a corrupt historical row. */ }
   // Fence concurrent hourly runs: an older source cannot overwrite newer data.
   await env.DB.prepare(`INSERT INTO market_cache(key,payload,fetched_at,retry_after) VALUES (?,?,?,0)
     ON CONFLICT(key) DO UPDATE SET payload=excluded.payload,fetched_at=excluded.fetched_at
-    WHERE json_extract(excluded.payload,'$.newestAt') >
-      CASE WHEN json_valid(market_cache.payload) THEN COALESCE(json_extract(market_cache.payload,'$.newestAt'),0) ELSE 0 END`)
+    WHERE COALESCE(json_extract(excluded.payload,'$.collectedAt'),json_extract(excluded.payload,'$.newestAt')) >
+      CASE WHEN json_valid(market_cache.payload) THEN COALESCE(json_extract(market_cache.payload,'$.collectedAt'),json_extract(market_cache.payload,'$.newestAt'),0) ELSE 0 END`)
     .bind(marker, JSON.stringify(point), now).run();
   await env.DB.prepare('DELETE FROM market_cache WHERE key>=? AND key<?')
     .bind(prefix, prefix + new Date(now-90*86400000).toISOString().slice(0,10)).run();

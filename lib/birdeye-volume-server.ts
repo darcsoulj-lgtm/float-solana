@@ -126,6 +126,7 @@ export async function refreshBirdeyeVolumes(env: MarketEnvironment, now = Date.n
           .bind(birdeyeVolumeKey(mint), JSON.stringify(round!.unavailable![mint]), round!.unavailable![mint].collectedAt, completedAt + interval, LOCK, owner)),
         env.DB.prepare(`DELETE FROM market_cache WHERE key=? AND ${fence}`).bind(BIRDEYE_VOLUME_ROUND_KEY, LOCK, owner)];
       await env.DB.batch(statements);
+      return true;
     }
   } catch {
     status = 'internal_error';

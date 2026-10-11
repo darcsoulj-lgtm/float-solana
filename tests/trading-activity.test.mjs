@@ -118,3 +118,26 @@ void test('Concurrent capture fences an older observation arriving after a newer
  const points=await newer.readTradingActivity(DB,now);
  assert.equal(points.length,1);assert.equal(points[0].total,200);assert.equal(DB.writes,1);DB.raw.close();
 });
+
+void test('Fresh whole-catalog checks record delayed provider times without inventing a day',async()=>{
+ const old=now-30*3600000,fresh=now-60000;
+ const sample={...market({}),tokenVolumes:{source:'birdeye',intervalMs:21*3600000,
+  round:{id:'verified-pass',startedAt:now-120000,completedAt:now-30000},
+  data:{[tokens[0].symbol]:{mint:tokens[0].mint,usd24h:17,observedAt:old,collectedAt:fresh},
+        [tokens[1].symbol]:{mint:tokens[1].mint,usd24h:23,observedAt:fresh,collectedAt:fresh}}}};
+ const DB=isolatedDB(),env={DB,BIRDEYE_VOLUME_ENABLED:'1'};
+ await server(sample).recordTradingActivity(env,now);
+ const points=await server(sample).readTradingActivity(DB,now);
+ assert.equal(points.length,1);assert.equal(points[0].total,40);
+ assert.equal(points[0].oldestAt,old);assert.equal(points[0].newestAt,fresh);
+ assert.equal(points[0].day,new Date(fresh).toISOString().slice(0,10));
+ assert.equal(points[0].collectedAt,now-30000);
+ const changed={...sample,tokenVolumes:{...sample.tokenVolumes,round:{...sample.tokenVolumes.round,completedAt:now-10000},data:{[tokens[1].symbol]:sample.tokenVolumes.data[tokens[1].symbol]}}};
+ await server(changed).recordTradingActivity(env,now);
+ const revised=await server(changed).readTradingActivity(DB,now);
+ assert.equal(revised[0].total,23,'A newer checked pass replaces coverage even if provider time is unchanged');
+ assert.equal(revised[0].newestAt,fresh);assert.equal(revised[0].day,points[0].day);
+ await server({...sample,tokenVolumes:{...sample.tokenVolumes,round:{...sample.tokenVolumes.round,startedAt:old,completedAt:old+60000}}}).recordTradingActivity(env,now);
+ assert.equal(DB.writes,2,'An expired catalog check cannot manufacture another snapshot');
+ DB.raw.close();
+});
