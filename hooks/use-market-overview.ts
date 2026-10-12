@@ -72,12 +72,14 @@ export function useMarketOverview(
     document.addEventListener('visibilitychange', wake);
     window.addEventListener('focus', wake);
     window.addEventListener('online', wake);
+    window.addEventListener('pageshow', wake);
     return () => {
       active = false;
       clearInterval(interval);
       document.removeEventListener('visibilitychange', wake);
       window.removeEventListener('focus', wake);
       window.removeEventListener('online', wake);
+      window.removeEventListener('pageshow', wake);
     };
   }, [refresh, store]);
   return { data, busy, error };
