@@ -13,28 +13,31 @@ export type BirdeyeVolume = {
   mint: string; usd24h: number; observedAt: number; collectedAt: number;
 };
 export type BirdeyeVolumeUnavailable = { mint: string; collectedAt: number; reason: 'not_reported' | 'not_indexed' };
-export type BirdeyeVolumes = { source: 'birdeye'; intervalMs: number; round?: { id: string; startedAt: number; completedAt: number }; data: Record<string, BirdeyeVolume>; unavailable?: Record<string, BirdeyeVolumeUnavailable> };
+export type BirdeyeVolumes = { source: 'birdeye'; intervalMs: number; round?: { id: string; startedAt: number; completedAt: number }; data: Record<string, BirdeyeVolume>; unavailable?: Record<string, BirdeyeVolumeUnavailable>; pending?: string[] };
 export type BirdeyeVolumeSnapshot = { version: 1; id: string; mints: string[]; startedAt: number; completedAt: number; data: Record<string, BirdeyeVolume>; unavailable?: Record<string, BirdeyeVolumeUnavailable> };
 export const birdeyeVolumeMints = (tokens: readonly StockToken[]) => [...new Set(tokens.filter(t => t.issuer === 'backpack').map(t => t.mint))].sort();
 
-// Public readers accept one complete collection round for the current registry.
-// Each mint needs a validated value OR an explicit provider-unavailable outcome.
-// A missing/new listing, transport failure or damaged observation still fails.
+// Validate every outcome from one completed catalog pass. Newly added mints
+// can be pending without invalidating that previously completed pass. Missing
+// outcomes within the published catalog or changed identities still fail closed.
 export function readBirdeyeVolumeSnapshot(tokens: readonly StockToken[], row: CacheRow | undefined, intervalMs: number, now: number): BirdeyeVolumes {
   const empty: BirdeyeVolumes = { source: 'birdeye', intervalMs, data: {} };
   try {
     const snapshot = JSON.parse(row?.payload ?? 'null') as BirdeyeVolumeSnapshot | null;
     const mints = birdeyeVolumeMints(tokens);
     if (!snapshot || snapshot.version !== 1 || typeof snapshot.id !== 'string' || !snapshot.id ||
-        JSON.stringify(snapshot.mints) !== JSON.stringify(mints) || !mints.length ||
+        !Array.isArray(snapshot.mints) || !snapshot.mints.length ||
+        JSON.stringify(snapshot.mints) !== JSON.stringify(mints.filter(mint => snapshot.mints.includes(mint))) || !mints.length ||
         !Number.isSafeInteger(snapshot.startedAt) || snapshot.startedAt <= 0 ||
         !Number.isSafeInteger(snapshot.completedAt) || snapshot.completedAt < snapshot.startedAt ||
         snapshot.completedAt > now + 60000 || row?.fetched_at !== snapshot.completedAt ||
         snapshot.completedAt - snapshot.startedAt > BIRDEYE_VOLUME_ROUND_MAX_MS ||
-        !snapshot.data || Object.keys(snapshot.data).length + Object.keys(snapshot.unavailable ?? {}).length !== mints.length) return empty;
+        !snapshot.data || Object.keys(snapshot.data).length + Object.keys(snapshot.unavailable ?? {}).length !== snapshot.mints.length) return empty;
     const data: Record<string, BirdeyeVolume> = {};
     const unavailable: Record<string, BirdeyeVolumeUnavailable> = {};
+    const pending: string[] = [];
     for (const token of tokens.filter(t => t.issuer === 'backpack')) {
+      if (!snapshot.mints.includes(token.mint)) { pending.push(token.symbol); continue; }
       const value = snapshot.data[token.mint];
       const absent = snapshot.unavailable?.[token.mint];
       if (absent) {
@@ -53,7 +56,7 @@ export function readBirdeyeVolumeSnapshot(tokens: readonly StockToken[], row: Ca
     if (!Number.isFinite(Object.values(data).reduce((sum, value) => sum + value.usd24h, 0))) return empty;
     if (!Object.keys(data).length) return empty;
     return { source: 'birdeye', intervalMs, round: { id: snapshot.id, startedAt: snapshot.startedAt, completedAt: snapshot.completedAt }, data,
-      ...(Object.keys(unavailable).length ? {unavailable} : {}) };
+      ...(Object.keys(unavailable).length ? {unavailable} : {}), ...(pending.length ? {pending} : {}) };
   } catch { return empty; }
 }
 // Reserve 20% of the free allowance. Increase the interval as listings grow.

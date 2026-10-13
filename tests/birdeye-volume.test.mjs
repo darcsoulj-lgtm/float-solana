@@ -2,13 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
 import {bundle} from './helpers/bundle.mjs';
-const a=await bundle(`export * from './lib/birdeye-volume';export * from './lib/birdeye-volume-server';export {readMarketOverview} from './lib/market-overview-server';export {tokenObservation} from './lib/token-observation';export {TOKENS} from './lib/tokens';`);
+const a=await bundle(`export * from './lib/birdeye-volume';export * from './lib/birdeye-volume-server';export {readMarketOverview} from './lib/market-overview-server';export {tokenObservation} from './lib/token-observation';export {TOKENS} from './lib/tokens';export {REGISTRY_KEY} from './lib/backpack-registry';`);
 const now=Date.now(), tokens=a.TOKENS.filter(t=>t.issuer==='backpack'), token=tokens.find(t=>t.symbol==='MU');
 const source=data=>({data,fetchedAt:now,stale:false,error:null});
 const market=()=>({prices:source({}),supplies:source({}),markets:source({}),catalog:source([]),pools:source({MU:[{address:'one',volume24h:10,price:null,liquidity:1,observedAt:now}]})});
 function database(){
  const raw=new DatabaseSync(':memory:');raw.exec('CREATE TABLE market_cache(key TEXT PRIMARY KEY,payload TEXT,fetched_at INTEGER,retry_after INTEGER);');
- const db={prepare(sql){return {args:[],bind(...args){this.args=args;return this;},async first(){return raw.prepare(sql).get(...this.args)??null;},async all(){return {results:raw.prepare(sql).all(...this.args)};},async run(){return raw.prepare(sql).run(...this.args);},sql};},async batch(statements){raw.exec('BEGIN');try{const results=await Promise.all(statements.map(s=>s.run()));raw.exec('COMMIT');return results;}catch(e){raw.exec('ROLLBACK');throw e;}}};return {raw,db};
+ const db={prepare(sql){return {args:[],bind(...args){this.args=args;return this;},async first(){return raw.prepare(sql).get(...this.args)??null;},async all(){return {results:raw.prepare(sql).all(...this.args)};},async run(){return raw.prepare(sql).run(...this.args);},sql};},async batch(statements){raw.exec('BEGIN');try{const results=await Promise.all(statements.map(async s=>({meta:{changes:(await s.run()).changes}})));raw.exec('COMMIT');return results;}catch(e){raw.exec('ROLLBACK');throw e;}}};return {raw,db};
 }
 const reply=(volume=100,time=now)=>({success:true,data:{volumeUSD:volume,updateUnixTime:Math.floor(time/1000)}});
 void test('official response: accept explicit zero, reject missing, wrong mint and stale/future observations',()=>{
@@ -68,9 +68,9 @@ void test('a whole registry pass remains private until complete; every public va
  const {raw,db}=database(),env=envFor(db),previous=oldRound(raw);let calls=0;
  const fetcher=async(url,init)=>{calls++;assert.equal(new URL(url).searchParams.get('type'),'24h');assert.equal(init.headers['x-chain'],'solana');return Response.json(reply(200,now));};
  await Promise.all([a.refreshBirdeyeVolumes(env,now,fetcher,pause),a.refreshBirdeyeVolumes(env,now,fetcher,pause)]);
- assert.equal(calls,12);assert.equal(JSON.parse(savedSnapshot(raw).payload).id,previous.id);
+ assert.equal(calls,6);assert.equal(JSON.parse(savedSnapshot(raw).payload).id,previous.id);
  assert.ok(raw.prepare("SELECT payload FROM market_cache WHERE key LIKE 'birdeye-volume:v1:%'").all().every(r=>JSON.parse(r.payload).usd24h===100));
- const ticks=Math.ceil(tokens.length/12);
+ const ticks=Math.ceil(tokens.length/6);
  for(let tick=1;tick<ticks;tick++)await a.refreshBirdeyeVolumes(env,now+tick*61000,fetcher,pause);
  assert.equal(calls,tokens.length);
  const row=savedSnapshot(raw),view=a.readBirdeyeVolumeSnapshot(tokens,row,20*3600000,now+ticks*61000);
@@ -81,22 +81,23 @@ void test('a whole registry pass remains private until complete; every public va
  await a.refreshBirdeyeVolumes(env,now+ticks*61000,fetcher,pause);assert.equal(calls,tokens.length);
  raw.close();
 });
-void test('malformed responses and source failures never publish a partly refreshed total or a zero',async()=>{
+void test('persistent malformed responses and source failures never publish a partly refreshed total or a zero',async()=>{
  for(const invalid of [()=>new Response('',{status:400}),()=>Response.json({success:true,data:{volumeUSD:null}}),()=>new Response('',{status:429})]){
   const {raw,db}=database(),env=envFor(db),previous=oldRound(raw);let calls=0;
-  const fetcher=async()=>++calls===1?invalid():Response.json(reply(200));
-  for(let tick=0;tick<Math.ceil(tokens.length/12);tick++)await a.refreshBirdeyeVolumes(env,now+tick*61000,fetcher,pause);
+  const missing=a.birdeyeVolumeMints(tokens)[0];
+  const fetcher=async url=>{calls++;return new URL(url).searchParams.get('address')===missing?invalid():Response.json(reply(200));};
+  for(let tick=0;tick<Math.ceil(tokens.length/6);tick++)await a.refreshBirdeyeVolumes(env,now+tick*61000,fetcher,pause);
   assert.equal(JSON.parse(savedSnapshot(raw).payload).id,previous.id);
   assert.ok(raw.prepare("SELECT payload FROM market_cache WHERE key LIKE 'birdeye-volume:v1:%'").all().every(r=>JSON.parse(r.payload).usd24h===100));
   const status=JSON.parse(raw.prepare("SELECT payload FROM market_cache WHERE key='birdeye-schedule:v1'").get().payload);
-  assert.ok(['round_incomplete','source_unavailable'].includes(status.status));raw.close();
+  assert.ok(['round_incomplete','source_unavailable'].includes(status.status));assert.equal(calls,3);raw.close();
  }
 });
 void test('an explicit missing metric commits the whole checked catalog together without old values or zeros',async()=>{
  for(const absent of [()=>Response.json(reply(null)),()=>new Response('',{status:404})]){
   const {raw,db}=database(),previous=oldRound(raw),mints=a.birdeyeVolumeMints(tokens),missing=mints[0];let calls=0;
   const fetcher=async url=>{calls++;return new URL(url).searchParams.get('address')===missing?absent():Response.json(reply(200));};
-  const ticks=Math.ceil(tokens.length/12);
+  const ticks=Math.ceil(tokens.length/6);
   for(let tick=0;tick<ticks;tick++){
    await a.refreshBirdeyeVolumes(envFor(db),now+tick*61000,fetcher,pause);
    if(tick<ticks-1)assert.equal(JSON.parse(savedSnapshot(raw).payload).id,previous.id);
@@ -122,11 +123,15 @@ void test('missing outcomes require exact identity and round time; all-missing r
  const all={...snapshot,data:{},unavailable:Object.fromEntries(tokens.map(t=>[t.mint,{mint:t.mint,collectedAt:snapshot.completedAt,reason:'not_reported'}]))};
  assert.equal(read(all).round,undefined);raw.close();
 });
-void test('a new listing, damaged round, stale source or mixed collection window invalidates the entire snapshot',()=>{
+void test('new listings preserve a disclosed prior pass; damaged or mismatched published catalogs fail closed',()=>{
  const {raw}=database();const snapshot=oldRound(raw),row=savedSnapshot(raw),interval=20*3600000;
  assert.equal(Object.keys(a.readBirdeyeVolumeSnapshot(tokens,row,interval,now).data).length,tokens.length);
  const added={...token,symbol:'NEW',mint:'11111111111111111111111111111111'};
- assert.equal(Object.keys(a.readBirdeyeVolumeSnapshot([...tokens,added],row,interval,now).data).length,0);
+ const prior=a.readBirdeyeVolumeSnapshot([...tokens,added],row,interval,now);
+ assert.equal(Object.keys(prior.data).length,tokens.length);assert.deepEqual(prior.pending,['NEW']);assert.equal(prior.round.id,snapshot.id);
+ assert.equal(a.birdeyeTokenVolume({tokenVolumes:prior},added,now),null);
+ assert.equal(a.birdeyeTurnover({tokenVolumes:prior},[...tokens,added],now).count,tokens.length+1);
+ assert.equal(Object.keys(a.readBirdeyeVolumeSnapshot(tokens.filter(t=>t.mint!==token.mint),row,interval,now).data).length,0);
  for(const change of [x=>delete x.data[token.mint],x=>x.data[token.mint].usd24h=null,x=>x.data[token.mint].observedAt-=73*3600000,x=>x.startedAt-=3600000]){
   const x=structuredClone(snapshot);change(x);
   assert.equal(Object.keys(a.readBirdeyeVolumeSnapshot(tokens,{...row,payload:JSON.stringify(x)},interval,now).data).length,0);
@@ -146,7 +151,7 @@ void test('an expired or registry-changed partial pass restarts with every mint,
  raw.prepare('INSERT INTO market_cache VALUES (?,?,?,0)').run(a.BIRDEYE_VOLUME_ROUND_KEY,JSON.stringify({version:1,id:'expired',mints:a.birdeyeVolumeMints(tokens),startedAt:now-21*60000,next:tokens.length-1,data:{[token.mint]:a.parseBirdeyeVolume(reply(999),token.mint,now)}}),now);
  await a.refreshBirdeyeVolumes(envFor(db),now,async()=>Response.json(reply(200)),pause);
  const round=JSON.parse(raw.prepare('SELECT payload FROM market_cache WHERE key=?').get(a.BIRDEYE_VOLUME_ROUND_KEY).payload);
- assert.notEqual(round.id,'expired');assert.equal(round.next,12);assert.ok(Object.values(round.data).every(v=>v.usd24h===200));raw.close();
+ assert.notEqual(round.id,'expired');assert.equal(round.next,6);assert.ok(Object.values(round.data).every(v=>v.usd24h===200));raw.close();
 });
 void test('74 listings with 20000 CU use a twenty-one-hour cadence at the official seven-CU single-token cost',()=>{
  assert.equal(a.birdeyeVolumeInterval(74,20000),21*3600000);
@@ -172,4 +177,48 @@ void test('a newly collected whole round preserves older provider snapshot times
  const view=a.readBirdeyeVolumeSnapshot(tokens,{...row,payload:JSON.stringify(snapshot)},20*3600000,now);
  assert.equal(Object.keys(view.data).length,tokens.length);assert.equal(view.data[token.symbol].observedAt,now-25*3600000);
  assert.equal(a.birdeyeTurnover({tokenVolumes:view},tokens,now).delayed,true);raw.close();
+});
+
+void test('a transient failed request is retried with a new CU reservation before the complete pass publishes',async()=>{
+ const {raw,db}=database();const previous=oldRound(raw);let calls=0;
+ const fetcher=async()=>{calls++;return calls===1?new Response('',{status:429}):Response.json(reply(222));};
+ for(let tick=0;tick<Math.ceil(tokens.length/6)+2;tick++)await a.refreshBirdeyeVolumes(envFor(db),now+tick*61000,fetcher,pause);
+ const view=a.readBirdeyeVolumeSnapshot(tokens,savedSnapshot(raw),21*3600000,now+20*60000);
+ assert.notEqual(view.round.id,previous.id);assert.equal(calls,tokens.length+1);assert.equal(Object.keys(view.data).length,tokens.length);
+ assert.ok(Object.values(view.data).every(v=>v.usd24h===222));
+ assert.equal(Number(raw.prepare("SELECT payload FROM market_cache WHERE key LIKE 'birdeye-usage:v2:%'").get().payload),(tokens.length+1)*7);raw.close();
+});
+void test('a crash after cursor advancement repairs only the four holes with explicitly reserved retry units',async()=>{
+ const {raw,db}=database();const previous=oldRound(raw),mints=a.birdeyeVolumeMints(tokens),missing=mints.slice(0,4);
+ const values=Object.fromEntries(tokens.filter(t=>!missing.includes(t.mint)).map(t=>[t.mint,a.parseBirdeyeVolume(reply(200),t.mint,now)]));
+ raw.prepare('INSERT INTO market_cache VALUES (?,?,?,0)').run(a.BIRDEYE_VOLUME_ROUND_KEY,JSON.stringify({version:1,id:'crashed-pass',mints,startedAt:now,next:mints.length,data:values}),now);
+ const day=Math.floor(now/86400000)*86400000;raw.prepare('INSERT INTO market_cache VALUES (?,?,?,0)').run('birdeye-usage:v2:'+day,String(tokens.length*7),day);let calls=0;
+ await a.refreshBirdeyeVolumes(envFor(db),now,async url=>{calls++;assert.ok(missing.includes(new URL(url).searchParams.get('address')));assert.equal(Number(raw.prepare("SELECT payload FROM market_cache WHERE key LIKE 'birdeye-usage:v2:%'").get().payload),(tokens.length+calls)*7);assert.equal(JSON.parse(savedSnapshot(raw).payload).id,previous.id);return Response.json(reply(900));},pause);
+ const view=a.readBirdeyeVolumeSnapshot(tokens,savedSnapshot(raw),21*3600000,now);assert.equal(view.round.id,'crashed-pass');assert.equal(calls,4);assert.equal(a.birdeyeTurnover({tokenVolumes:view},tokens,now).total,(tokens.length-4)*200+4*900);raw.close();
+});
+void test('persistent failure retries at most twice and never publishes an incomplete pass',async()=>{
+ const {raw,db}=database();const previous=oldRound(raw);let calls=0;
+ for(let tick=0;tick<10;tick++)await a.refreshBirdeyeVolumes(envFor(db),now+tick*61000,async()=>{calls++;return new Response('',{status:429});},pause);
+ assert.equal(calls,3);assert.equal(JSON.parse(savedSnapshot(raw).payload).id,previous.id);
+ assert.equal(Number(raw.prepare("SELECT payload FROM market_cache WHERE key LIKE 'birdeye-usage:v2:%'").get().payload),(tokens.length+2)*7);raw.close();
+});
+void test('exhausted retry budget prevents any unreserved provider request',async()=>{
+ const {raw,db}=database();const previous=oldRound(raw),day=Math.floor(now/86400000)*86400000;
+ raw.prepare('INSERT INTO market_cache VALUES (?,?,?,0)').run(a.BIRDEYE_VOLUME_ROUND_KEY,JSON.stringify({version:1,id:'gap',mints:a.birdeyeVolumeMints(tokens),startedAt:now,next:1,data:{}}),now);
+ raw.prepare('INSERT INTO market_cache VALUES (?,?,?,0)').run('birdeye-usage:v2:'+day,'20000',day);let calls=0;
+ await a.refreshBirdeyeVolumes(envFor(db),now,async()=>{calls++;return Response.json(reply(1));},pause);
+ assert.equal(calls,0);assert.equal(JSON.parse(savedSnapshot(raw).payload).id,previous.id);assert.equal(JSON.parse(raw.prepare("SELECT payload FROM market_cache WHERE key='birdeye-schedule:v1'").get().payload).status,'budget_exhausted');raw.close();
+});
+void test('a newly verified listing starts a coherent replacement even when the earlier catalog is not due',async()=>{
+ const {raw,db}=database();oldRound(raw);raw.prepare('UPDATE market_cache SET retry_after=? WHERE key=?').run(now+20*3600000,a.BIRDEYE_VOLUME_SNAPSHOT_KEY);
+ const added={...token,symbol:'NEW',underlyingSymbol:'NEW',mint:'11111111111111111111111111111111',source:'https://api.backpack.exchange/api/v1/assets'};
+ raw.prepare('INSERT INTO market_cache VALUES (?,?,?,0)').run(a.REGISTRY_KEY,JSON.stringify([added]),now);let calls=0;
+ await a.refreshBirdeyeVolumes(envFor(db),now,async()=>{calls++;return Response.json(reply(200));},pause);assert.equal(calls,6);
+ const round=JSON.parse(raw.prepare('SELECT payload FROM market_cache WHERE key=?').get(a.BIRDEYE_VOLUME_ROUND_KEY).payload);assert.equal(round.mints.length,tokens.length+1);raw.close();
+});
+
+void test('expiry without a new owner still fences progress, publication and status writes',async()=>{
+ const {raw,db}=database();const previous=oldRound(raw);let calls=0,owner;
+ await a.refreshBirdeyeVolumes(envFor(db),now,async()=>{calls++;owner=raw.prepare("SELECT payload FROM market_cache WHERE key='birdeye-schedule:v1'").get().payload;raw.prepare("UPDATE market_cache SET retry_after=? WHERE key='birdeye-schedule:v1'").run(now-1);return Response.json(reply(999));},pause);
+ assert.equal(calls,1);assert.equal(JSON.parse(savedSnapshot(raw).payload).id,previous.id);assert.equal(raw.prepare("SELECT payload FROM market_cache WHERE key='birdeye-schedule:v1'").get().payload,owner);raw.close();
 });

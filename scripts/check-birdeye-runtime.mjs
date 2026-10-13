@@ -9,7 +9,7 @@ const a=await bundle(`export * from './lib/birdeye-volume';export {registryToken
 const compiled=await build({stdin:{resolveDir:root,loader:'ts',contents:"export {default,MarketRefresh} from './float-worker';"},bundle:true,platform:'browser',format:'esm',write:false,external:['cloudflare:workers'],plugins:[{name:'test-only-http',setup(b){
  b.onResolve({filter:/^vinext\/server\/fetch-handler$/},()=>({path:'http',namespace:'fixture'}));
  b.onResolve({filter:/^@\/app\/chatgpt-auth$/},()=>({path:'auth',namespace:'fixture'}));
- b.onLoad({filter:/.*/,namespace:'fixture'},({path})=>({loader:'ts',resolveDir:root,contents:path==='auth'?'export const getChatGPTUser=async()=>null;':`import {GET} from './app/api/backpack-market/route';export default{async fetch(request,env){if(new URL(request.url).pathname==='/test-volume'){await env.MARKET_REFRESH.tokenVolumes();await env.MARKET_REFRESH.publicSnapshot();return Response.json({ok:true});}return GET(request);}};`}));
+ b.onLoad({filter:/.*/,namespace:'fixture'},({path})=>({loader:'ts',resolveDir:root,contents:path==='auth'?'export const getChatGPTUser=async()=>null;':`import {GET} from './app/api/backpack-market/route';export default{async fetch(request,env){if(new URL(request.url).pathname==='/test-snapshot'){await env.MARKET_REFRESH.publicSnapshot();return Response.json({ok:true});}if(new URL(request.url).pathname==='/test-volume'){await env.MARKET_REFRESH.tokenVolumes();await env.MARKET_REFRESH.publicSnapshot();return Response.json({ok:true});}return GET(request);}};`}));
 }}]});
 let calls=0,missing=false;
 const now=Date.now();
@@ -27,7 +27,16 @@ try{
  const stage={version:1,id:'synthetic-round',mints,startedAt:now,next:mints.length-1,data:Object.fromEntries(tokens.filter(t=>t.mint!==mu.mint).map(t=>[t.mint,{mint:t.mint,usd24h:100,observedAt:now,collectedAt:now}]))};
  await db.prepare('INSERT INTO market_cache VALUES (?,?,?,0)').bind(a.BIRDEYE_VOLUME_ROUND_KEY,JSON.stringify(stage),now).run();
  await db.prepare('INSERT INTO market_cache VALUES (?,?,?,0)').bind('birdeye-usage:v2:'+Math.floor(now/86400000)*86400000,String(tokens.length*7),Math.floor(now/86400000)*86400000).run();
+ // A new listing cannot erase a completed earlier catalog while it is staged.
+ const prior={version:1,id:'prior-catalog',mints:mints.filter(mint=>mint!==mu.mint),startedAt:now,completedAt:now,data:stage.data};
+ await db.prepare('INSERT INTO market_cache VALUES (?,?,?,0)').bind(a.BIRDEYE_VOLUME_SNAPSHOT_KEY,JSON.stringify(prior),now).run();
+ await worker.dispatchFetch('http://localhost/test-snapshot');
+ const pendingReply=await worker.dispatchFetch('http://localhost/api/backpack-market'),pending=await pendingReply.json();
+ assert.equal(pending.tokenVolumes.round.id,'prior-catalog');assert.deepEqual(pending.tokenVolumes.pending,['NEWSTOCK']);
+ assert.equal(Object.keys(pending.tokenVolumes.data).length,tokens.length-1);assert.equal(calls,0);
+ const edgeCaches=await worker.getCaches(),edgeMarketCache=await edgeCaches.open('float-public-markets-v1');
  const run=await worker.dispatchFetch('http://localhost/test-volume');assert.equal(run.status,200);assert.equal(calls,1, JSON.stringify((await db.prepare("SELECT key,payload FROM market_cache WHERE key LIKE 'birdeye-schedule:%' OR key LIKE 'birdeye-usage:%'").all()).results));
+ await edgeMarketCache.delete('http://localhost/api/backpack-market?schema=4');
  for(let i=0;i<2;i++){
   const response=await worker.dispatchFetch('http://localhost/api/backpack-market');assert.equal(response.status,200);assert.match(response.headers.get('cache-control'),/no-store/);
   const text=await response.text(),data=JSON.parse(text);assert.equal(data.tokenVolumes.data.NEWSTOCK.usd24h,1234567);assert.equal(data.tokenVolumes.intervalMs,a.birdeyeVolumeInterval(tokens.length));assert.equal(Object.keys(data.tokenVolumes.data).length,tokens.length);assert.equal(data.tokenVolumes.round.id,'synthetic-round');assert.ok(!text.includes('synthetic-private-key'));assert.ok(!text.includes('birdeye-volume-round:'));assert.ok(!text.includes('birdeye-usage'));assert.ok(!response.headers.has('set-cookie'));assert.ok(Buffer.byteLength(text)<400000);
@@ -52,6 +61,6 @@ try{
  assert.ok(!partialText.includes('synthetic-private-key'));assert.equal(calls,2);
  const history=(await db.prepare("SELECT payload FROM market_cache WHERE key LIKE 'trading-activity:%'").all()).results.map(r=>JSON.parse(r.payload));
  assert.equal(history.length,1);assert.equal(history[0].covered,tokens.length-1);assert.equal(history[0].total,(tokens.length-1)*100);
- const report={environment:'isolated Worker and D1; synthetic provider',privateScheduledCollection:true,publicReadsCallNoProviders:true,publicSecretsAbsent:true,cacheNoStoreOnBothReads:true,explicitMissingOutcome:true,tokenCount:tokens.length,liveBirdeyeVerified:false};
+ const report={environment:'isolated Worker and D1; synthetic provider',privateScheduledCollection:true,publicReadsCallNoProviders:true,publicSecretsAbsent:true,cacheNoStoreOnBothReads:true,explicitMissingOutcome:true,newListingPriorPassPreserved:true,tokenCount:tokens.length,liveBirdeyeVerified:false};
  await mkdir('outputs',{recursive:true});await writeFile('outputs/birdeye-runtime.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report));
 }finally{await worker.dispose();}

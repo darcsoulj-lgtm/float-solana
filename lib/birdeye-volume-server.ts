@@ -52,8 +52,9 @@ export async function fetchBirdeyeVolume(key: string, mint: string, fetcher: typ
   }
   return parseBirdeyeVolume(raw, mint, now);
 }
-type VolumeRound = Omit<BirdeyeVolumeSnapshot, 'completedAt'> & { next: number };
-const CHUNK = 12;
+type VolumeRound = Omit<BirdeyeVolumeSnapshot, 'completedAt'> & { next: number; retries?: Record<string,number> };
+const CHUNK = 6;
+const MAX_RETRIES = 2;
 // Private scheduled service only. Progress is durable and invisible to readers.
 // Reserve the whole pass before starting; a crash/failure cannot exceed its
 // reservation because the cursor is fenced and advanced BEFORE each request.
@@ -64,12 +65,12 @@ export async function refreshBirdeyeVolumes(env: MarketEnvironment, now = Date.n
     ON CONFLICT(key) DO UPDATE SET payload=excluded.payload,fetched_at=excluded.fetched_at,retry_after=excluded.retry_after
     WHERE market_cache.retry_after<=? RETURNING key`).bind(LOCK, owner, now, now + 120000, now).first();
   if (!lock) return;
-  let status = 'ok', unavailable = 0, collected = 0, total = 0;
+  let status = 'ok', unavailable = 0, collected = 0, total = 0, retryAfter = 12 * 3600000;
   const started = Date.now(), clock = () => now + Date.now() - started;
   const save = async (round: VolumeRound) => !!await env.DB.prepare(`INSERT INTO market_cache(key,payload,fetched_at,retry_after)
-    SELECT ?,?,?,0 WHERE EXISTS(SELECT 1 FROM market_cache WHERE key=? AND payload=?)
+    SELECT ?,?,?,0 WHERE EXISTS(SELECT 1 FROM market_cache WHERE key=? AND payload=? AND retry_after>?)
     ON CONFLICT(key) DO UPDATE SET payload=excluded.payload,fetched_at=excluded.fetched_at RETURNING key`)
-    .bind(BIRDEYE_VOLUME_ROUND_KEY, JSON.stringify(round), clock(), LOCK, owner).first();
+    .bind(BIRDEYE_VOLUME_ROUND_KEY, JSON.stringify(round), clock(), LOCK, owner, clock()).first();
   try {
     const registry = await backpackRegistry(env.DB, () => {}, env.SOLANA_RPC_URL, fetcher, now, true);
     const tokens = [...new Map(registryTokens(registry).filter(t => t.issuer === 'backpack').map(t => [t.mint, t])).values()];
@@ -82,17 +83,29 @@ export async function refreshBirdeyeVolumes(env: MarketEnvironment, now = Date.n
     if (!round || round.version !== 1 || typeof round.id !== 'string' || !round.data ||
         JSON.stringify(round.mints) !== JSON.stringify(mints) || !Number.isSafeInteger(round.startedAt) ||
         round.startedAt > now || now - round.startedAt > BIRDEYE_VOLUME_ROUND_MAX_MS ||
-        !Number.isSafeInteger(round.next) || round.next < 0 || round.next > mints.length) {
+        !Number.isSafeInteger(round.next) || round.next < 0 || round.next > mints.length ||
+        (round.retries !== undefined && (typeof round.retries !== 'object' || round.retries === null || Object.entries(round.retries).some(([mint,count]) => !mints.includes(mint) || !Number.isSafeInteger(count) || count < 1 || count > MAX_RETRIES)))) {
       const last = readBirdeyeVolumeSnapshot(tokens, published, interval, now);
-      if (last.round && (published?.retry_after ?? 0) > now) return;
+      if (last.round && !last.pending?.length && (published?.retry_after ?? 0) > now) return;
       if (!await reserveBirdeyeUnits(env.DB, now, budget, mints.length * BIRDEYE_VOLUME_CU)) { status = 'budget_exhausted'; return; }
       round = { version: 1, id: crypto.randomUUID(), mints, startedAt: now, next: 0, data: {}, unavailable: {} };
       if (!await save(round)) return;
     }
-    for (let i = 0; i < CHUNK && round.next < mints.length; i++) {
+    for (let i = 0; i < CHUNK; i++) {
       if (i) await pause(1100);
       if (Date.now() - started > 60000) break;
-      const mint = mints[round.next++];
+      // A cursor is advanced before the first request to prevent unreserved
+      // retries after a crash. Repair holes explicitly, reserving each attempt.
+      const missing = mints.slice(0,round.next).find(mint => !round!.data[mint] && !round!.unavailable?.[mint]);
+      let mint: string;
+      if (missing) {
+        const retries = round.retries?.[missing] ?? 0;
+        if (retries >= MAX_RETRIES) { status = 'round_incomplete'; break; }
+        if (!await reserveBirdeyeUnits(env.DB,clock(),budget)) { status = 'budget_exhausted'; break; }
+        (round.retries ??= {})[missing] = retries + 1;
+        mint = missing;
+      } else if (round.next < mints.length) mint = mints[round.next++];
+      else break;
       if (!await save(round)) return;
       try {
         const value = await fetchBirdeyeVolume(env.BIRDEYE_API_KEY!, mint, fetcher, clock());
@@ -101,37 +114,46 @@ export async function refreshBirdeyeVolumes(env: MarketEnvironment, now = Date.n
         unavailable++;
         if (error instanceof TokenVolumeUnavailable) {
           (round.unavailable ??= {})[mint] = {mint, collectedAt: clock(), reason: error.reason};
-        } else status = 'source_unavailable';
+        } else {
+          status = 'source_unavailable';
+          // Authentication failures retain their long cooldown. Transient
+          // failures get at most two budgeted retries within this same pass.
+          if (!(error instanceof Error && /^Birdeye status (401|403)$/.test(error.message)) &&
+              (round.retries?.[mint] ?? 0) < MAX_RETRIES) retryAfter = 60000;
+          console.error('Birdeye volume attempt failed',{mint,retries:round.retries?.[mint] ?? 0,
+            code:error instanceof Error && /^Birdeye status \d+$/.test(error.message) ? error.message : 'invalid_or_failed_observation'});
+        }
       }
       if (!await save(round)) return;
       if (status !== 'ok') break;
     }
     collected = Object.keys(round.data).length;
-    if (round.next === mints.length) {
+    if (status === 'ok' && round.next === mints.length) {
       const completedAt = clock();
       const snapshot: BirdeyeVolumeSnapshot = { version: 1, id: round.id, mints, startedAt: round.startedAt, completedAt, data: round.data, unavailable: round.unavailable };
       const validated = readBirdeyeVolumeSnapshot(tokens, { payload: JSON.stringify(snapshot), fetched_at: completedAt, retry_after: 0 }, interval, completedAt);
       if (!validated.round) { status = 'round_incomplete'; return; }
       // One transaction replaces both the aggregate source and compatibility
       // rows. All consumers switch together, never one token at a time.
-      const fence = 'EXISTS(SELECT 1 FROM market_cache WHERE key=? AND payload=?)';
+      const fence = 'EXISTS(SELECT 1 FROM market_cache WHERE key=? AND payload=? AND retry_after>?)';
       const statements = [env.DB.prepare(`INSERT INTO market_cache(key,payload,fetched_at,retry_after)
         SELECT ?,?,?,? WHERE ${fence} ON CONFLICT(key) DO UPDATE SET payload=excluded.payload,fetched_at=excluded.fetched_at,retry_after=excluded.retry_after`)
-        .bind(BIRDEYE_VOLUME_SNAPSHOT_KEY, JSON.stringify(snapshot), completedAt, completedAt + interval, LOCK, owner),
+        .bind(BIRDEYE_VOLUME_SNAPSHOT_KEY, JSON.stringify(snapshot), completedAt, completedAt + interval, LOCK, owner, completedAt),
         ...mints.filter(mint => round!.data[mint]).map(mint => env.DB.prepare(`INSERT INTO market_cache(key,payload,fetched_at,retry_after)
           SELECT ?,?,?,? WHERE ${fence} ON CONFLICT(key) DO UPDATE SET payload=excluded.payload,fetched_at=excluded.fetched_at,retry_after=excluded.retry_after`)
-          .bind(birdeyeVolumeKey(mint), JSON.stringify(round!.data[mint]), round!.data[mint].collectedAt, completedAt + interval, LOCK, owner)),
+          .bind(birdeyeVolumeKey(mint), JSON.stringify(round!.data[mint]), round!.data[mint].collectedAt, completedAt + interval, LOCK, owner, completedAt)),
         ...mints.filter(mint => round!.unavailable?.[mint]).map(mint => env.DB.prepare(`INSERT INTO market_cache(key,payload,fetched_at,retry_after)
           SELECT ?,?,?,? WHERE ${fence} ON CONFLICT(key) DO UPDATE SET payload=excluded.payload,fetched_at=excluded.fetched_at,retry_after=excluded.retry_after`)
-          .bind(birdeyeVolumeKey(mint), JSON.stringify(round!.unavailable![mint]), round!.unavailable![mint].collectedAt, completedAt + interval, LOCK, owner)),
-        env.DB.prepare(`DELETE FROM market_cache WHERE key=? AND ${fence}`).bind(BIRDEYE_VOLUME_ROUND_KEY, LOCK, owner)];
-      await env.DB.batch(statements);
+          .bind(birdeyeVolumeKey(mint), JSON.stringify(round!.unavailable![mint]), round!.unavailable![mint].collectedAt, completedAt + interval, LOCK, owner, completedAt)),
+        env.DB.prepare(`DELETE FROM market_cache WHERE key=? AND ${fence}`).bind(BIRDEYE_VOLUME_ROUND_KEY, LOCK, owner, completedAt)];
+      const results = await env.DB.batch(statements);
+      if (results[0]?.meta?.changes !== 1) return;
       return true;
     }
   } catch {
     status = 'internal_error';
   } finally {
-    await env.DB.prepare('UPDATE market_cache SET payload=?,retry_after=? WHERE key=? AND payload=?')
-      .bind(JSON.stringify({ status, unavailable, collected, total, checkedAt: clock() }), status === 'ok' ? Math.floor(now / 60000) * 60000 + 60000 : clock() + 12 * 3600000, LOCK, owner).run();
+    await env.DB.prepare('UPDATE market_cache SET payload=?,retry_after=? WHERE key=? AND payload=? AND retry_after>?')
+      .bind(JSON.stringify({ status, unavailable, collected, total, checkedAt: clock() }), status === 'ok' ? Math.floor(now / 60000) * 60000 + 60000 : clock() + retryAfter, LOCK, owner, clock()).run();
   }
 }

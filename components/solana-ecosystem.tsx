@@ -152,7 +152,7 @@ export function SolanaEcosystem({
           <span className="metric-label">
             <span>24h volume</span>
             <MetricInfo label="About market volume" learnMore="/data-methodology#pools">
-              {turnover ? <>Birdeye DEX token volume. Trades between tracked tokens may count twice.<br />{turnover.covered} / {turnover.count} tokens included. Refreshed approximately every {data!.tokenVolumes!.intervalMs / 3600000} hours.<br />Oldest observation: {turnover.oldestAt ? new Date(turnover.oldestAt).toLocaleString() : 'Unavailable'}.</> : <>24-hour volume from verified DEX pools, counted once. Coverage may be incomplete.
+              {turnover ? <>Birdeye DEX token volume. Trades between tracked tokens may count twice.<br />{turnover.covered} / {turnover.count} tokens included. Refreshed approximately every {data!.tokenVolumes!.intervalMs / 3600000} hours.{data!.tokenVolumes!.pending?.length ? <><br />{data!.tokenVolumes!.pending!.join(', ')} awaiting first collection.</> : null}<br />Oldest observation: {turnover.oldestAt ? new Date(turnover.oldestAt).toLocaleString() : 'Unavailable'}.</> : <>24-hour volume from verified DEX pools, counted once. Coverage may be incomplete.
               <br />{poolTiming(marketActivity.oldestAt, marketActivity.newestAt)}
               {data && <><br />{marketActivity.observedCount} / {marketActivity.knownCount} known pools included; {marketActivity.missingTokenCount} markets without observations.</>}
               {marketActivity.saved && <><br />Includes saved observations.</>}</>}
