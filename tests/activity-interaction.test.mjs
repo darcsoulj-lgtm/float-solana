@@ -13,6 +13,11 @@ const presentation=await bundle("export * from './lib/market-presentation';");
 const source=await readFile(new URL('../components/market-activity-history.tsx',import.meta.url),'utf8');
 const compiled=ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText;
 const point={day:'2026-10-03',capturedAt:Date.UTC(2026,9,3,12),oldestAt:Date.UTC(2026,9,3,11),newestAt:Date.UTC(2026,9,3,12),basis:'pools',total:100,partial:true,covered:1,known:2,tokens:[{symbol:'MU',value:60},{symbol:'SPCX',value:40}]};
+void test('a recovered day is visibly distinguished in the inspection tooltip',()=>{
+ const {ActivityTooltip}=load();const recovered={...point,backfill:{source:'birdeye-ohlcv',startAt:Date.UTC(2026,9,3),endAt:Date.UTC(2026,9,4),registryHash:'a'.repeat(64)}};
+ const html=renderToStaticMarkup(React.createElement(ActivityTooltip,{id:'recovered',point:recovered,x:50,composition:true}));
+ assert.match(html,/Recovered UTC day/);assert.match(html,/\$100\.00/);
+});
 function load(history=[]){
  let hook=0;const changes=[];const compiledModule={exports:{}};
  compileFunction(compiled,['require','module','exports'])(id=>id==='react'?{...React,useId:()=> 'activity-help',useEffect:()=>{},useMemo:fn=>fn(),useState:initial=>{const index=hook++;return [index===1?history:index===4?'ready':initial,value=>changes.push({index,value})];}}:id==='@/lib/client'?{api:()=>{throw Error('Unexpected API in render');}}:id==='@/lib/trading-activity'?{...activity,tradingActivity:()=>point}:id==='@/lib/market-presentation'?presentation:id==='@/components/site-link'?{default:'a'}:id==='./metric-info'?{MetricInfo:()=>null}:require(id),compiledModule,compiledModule.exports);

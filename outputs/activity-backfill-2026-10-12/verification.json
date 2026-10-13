@@ -1,0 +1,38 @@
+{
+  "validatedAt": "2026-10-13T13:54:20.011Z",
+  "day": "2026-10-12",
+  "total": 51152661.82747275,
+  "covered": 75,
+  "known": 75,
+  "registryHash": "b68d4c681bde7ebb4a7beeae11fd046ec98dd7d95230e62d0a8b9e37ea28ff8b",
+  "window": {
+    "source": "birdeye-ohlcv",
+    "startAt": 1791763200000,
+    "endAt": 1791849600000,
+    "registryHash": "b68d4c681bde7ebb4a7beeae11fd046ec98dd7d95230e62d0a8b9e37ea28ff8b"
+  },
+  "rawResponses": 75,
+  "tokenSum": 51152661.827472776,
+  "top": [
+    {
+      "symbol": "SPCX",
+      "value": 21030265.943928663
+    },
+    {
+      "symbol": "MU",
+      "value": 4822741.659459629
+    },
+    {
+      "symbol": "SKHY",
+      "value": 3729917.4496123684
+    },
+    {
+      "symbol": "DJT",
+      "value": 2945787.7776681017
+    },
+    {
+      "symbol": "TTWO",
+      "value": 2140956.7652884005
+    }
+  ]
+}

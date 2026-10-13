@@ -52,14 +52,14 @@ export function MarketActivityHistory({data, now}: {data: MarketOverview | null;
   const barWidth = Math.min(80, cell * .66);
   return <section className={`market-history-panel trading-activity${showHistory ? '' : ' activity-snapshot'}`} aria-labelledby="market-history-title">
     <header>
-      <h3 id="market-history-title">Trading activity <MetricInfo label="About trading activity" learnMore="/data-methodology#activity">{metric}. Rolling 24-hour observations, not daily trade totals. Missing days stay blank. {basis==='turnover' ? 'Source: Birdeye. Trades between tracked tokens may count twice.' : 'Shared pools are split between tokens.'}{chosen && <><br />Source times: {new Date(chosen.oldestAt).toLocaleString()} – {new Date(chosen.newestAt).toLocaleString()}. {chosen.covered}/{chosen.known} {chosen.basis==='pools'?'pools':'tokens'} included; coverage may be incomplete.</>}</MetricInfo></h3>
+      <h3 id="market-history-title">Trading activity <MetricInfo label="About trading activity" learnMore="/data-methodology#activity">{metric}. Rolling observations; recovered UTC-day totals are marked separately. Missing days stay blank. {basis==='turnover' ? 'Source: Birdeye. Trades between tracked tokens may count twice.' : 'Shared pools are split between tokens.'}{chosen && <><br />Source times: {new Date(chosen.oldestAt).toLocaleString()} – {new Date(chosen.newestAt).toLocaleString()}. {chosen.covered}/{chosen.known} {chosen.basis==='pools'?'pools':'tokens'} included; coverage may be incomplete.</>}</MetricInfo></h3>
       {hasPeriods && <div className="market-history-controls"><fieldset aria-label="Activity period"><legend className="sr-only">Activity period</legend>
         {([7,30,90] as const).map(n => <button key={n} type="button" disabled={n===90 && ![...byDay.keys()].some(day => Date.parse(day+'T00:00:00Z') < Date.parse(today+'T00:00:00Z')-30*86400000)} aria-pressed={days===n} onClick={() => {setDays(n);setSelected(null);setHovered(null);}}>{n}D</button>)}
       </fieldset></div>}
     </header>
     <div className="activity-body">
       <div className="activity-chart">
-        <div className="activity-selected" aria-live="polite"><span className="activity-value-label">24h volume</span><strong>{compact(chosen?.total ?? null)}</strong><span>{chosen ? `${chosen === current ? 'Latest' : 'Snapshot'} · ${volumeObservationTime(chosen.newestAt)}` : 'Volume unavailable'}</span></div>
+        <div className="activity-selected" aria-live="polite"><span className="activity-value-label">24h volume</span><strong>{compact(chosen?.total ?? null)}</strong><span>{chosen ? chosen.backfill ? `Recovered UTC day · ${dateLabel(chosen.day)}` : `${chosen === current ? 'Latest' : 'Snapshot'} · ${volumeObservationTime(chosen.newestAt)}` : 'Volume unavailable'}</span></div>
         {showHistory ? <>
           <div className="activity-plot" onPointerLeave={() => setHovered(null)}>
           <svg viewBox="0 0 1000 245" preserveAspectRatio="none" aria-label={`${metric}. ${available} observations over ${series.length} days. Missing dates are gaps.`}>
@@ -101,7 +101,7 @@ export function ActivityTooltip({id, point, x, symbol, composition=false}: {id: 
   const row = symbol ? rows.find(r => r.symbol===symbol) : null;
   const full = (value: number) => new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:2}).format(value);
   return <div id={id} role="tooltip" className="activity-tooltip" style={{left:`clamp(110px, ${x}%, calc(100% - 110px))`}}>
-    <span className="activity-tooltip-date">{dateLabel(point.day)} · UTC</span>
+    <span className="activity-tooltip-date">{dateLabel(point.day)} · {point.backfill ? 'Recovered UTC day' : 'UTC'}</span>
     <div className="activity-tooltip-total"><span>{row?.symbol ?? '24h volume'}</span><strong>{full(row?.value ?? point.total)}</strong></div>
     {row && <span className="activity-tooltip-date">{point.total ? (row.value/point.total*100).toFixed(1) : '0'}% of observed volume</span>}
     {point.excludedSymbols?.length ? <span className="activity-tooltip-date">{point.covered}/{point.known} tokens · {point.excludedSymbols.join(', ')} excluded</span> : null}

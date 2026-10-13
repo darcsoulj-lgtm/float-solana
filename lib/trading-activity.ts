@@ -10,6 +10,7 @@ export type TradingActivity = {
   newestAt: number;
   collectedAt?: number;
   excludedSymbols?: string[];
+  backfill?: {source: 'birdeye-ohlcv'; startAt: number; endAt: number; registryHash: string};
   basis: 'pools' | 'turnover';
   total: number;
   partial: boolean;
@@ -85,5 +86,15 @@ export function validTradingActivity(value: unknown): value is TradingActivity {
   if (p.excludedSymbols !== undefined && (!Array.isArray(p.excludedSymbols) || p.basis !== 'turnover' || !p.partial ||
       p.excludedSymbols.length !== p.known-p.covered || new Set(p.excludedSymbols).size !== p.excludedSymbols.length ||
       p.excludedSymbols.some(symbol => typeof symbol !== 'string' || !/^[A-Za-z0-9._-]{1,24}$/.test(symbol) || p.tokens.some(row => row.symbol === symbol)))) return false;
+  if (p.backfill !== undefined) {
+    const b = p.backfill, start = Date.parse(p.day + 'T00:00:00Z');
+    if (!b || b.source !== 'birdeye-ohlcv' || p.basis !== 'turnover' ||
+        !Number.isSafeInteger(b.startAt) || b.startAt !== start || b.endAt !== start + 86400000 ||
+        b.endAt > p.capturedAt || !p.collectedAt || p.collectedAt < b.endAt ||
+        p.oldestAt < b.startAt || p.newestAt >= b.endAt ||
+        p.covered !== p.tokens.length || p.partial !== (p.covered < p.known) ||
+        (p.partial && !p.excludedSymbols?.length) ||
+        typeof b.registryHash !== 'string' || !/^[a-f0-9]{64}$/.test(b.registryHash)) return false;
+  }
   return Math.abs(p.tokens.reduce((n,r) => n+r.value,0)-p.total) <= Math.max(.01,p.total*1e-10);
 }

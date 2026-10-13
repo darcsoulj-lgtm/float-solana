@@ -1,0 +1,320 @@
+{
+  "day": "2026-10-12",
+  "capturedAt": 1791899581998,
+  "collectedAt": 1791899581998,
+  "oldestAt": 1791763200000,
+  "newestAt": 1791846000000,
+  "basis": "turnover",
+  "total": 51152661.82747275,
+  "partial": false,
+  "covered": 75,
+  "known": 75,
+  "tokens": [
+    {
+      "symbol": "SPCX",
+      "value": 21030265.943928663
+    },
+    {
+      "symbol": "MU",
+      "value": 4822741.659459629
+    },
+    {
+      "symbol": "SKHY",
+      "value": 3729917.4496123684
+    },
+    {
+      "symbol": "DJT",
+      "value": 2945787.7776681017
+    },
+    {
+      "symbol": "TTWO",
+      "value": 2140956.7652884005
+    },
+    {
+      "symbol": "RIOT",
+      "value": 2099487.283129347
+    },
+    {
+      "symbol": "SNDK",
+      "value": 1378358.1819881138
+    },
+    {
+      "symbol": "DKNG",
+      "value": 1211839.7787089634
+    },
+    {
+      "symbol": "EWY",
+      "value": 1108482.8726093648
+    },
+    {
+      "symbol": "AMD",
+      "value": 1036122.9040710826
+    },
+    {
+      "symbol": "MGM",
+      "value": 844354.4427829472
+    },
+    {
+      "symbol": "RDDT",
+      "value": 819155.7490984489
+    },
+    {
+      "symbol": "LLY",
+      "value": 761860.1203980373
+    },
+    {
+      "symbol": "RACE",
+      "value": 732809.5314706614
+    },
+    {
+      "symbol": "MSTR",
+      "value": 522230.0502213982
+    },
+    {
+      "symbol": "DRAM",
+      "value": 474165.8628357196
+    },
+    {
+      "symbol": "HIMS",
+      "value": 458242.5229512
+    },
+    {
+      "symbol": "NFLX",
+      "value": 445567.2577853915
+    },
+    {
+      "symbol": "DELL",
+      "value": 416623.7956243649
+    },
+    {
+      "symbol": "INTC",
+      "value": 382018.04018395854
+    },
+    {
+      "symbol": "BOT",
+      "value": 360144.88612096664
+    },
+    {
+      "symbol": "BB",
+      "value": 331617.765010484
+    },
+    {
+      "symbol": "BABA",
+      "value": 302036.433306141
+    },
+    {
+      "symbol": "CYPH",
+      "value": 278535.4018577981
+    },
+    {
+      "symbol": "GRND",
+      "value": 253443.38161781145
+    },
+    {
+      "symbol": "SCHH",
+      "value": 249358.54892222717
+    },
+    {
+      "symbol": "AMC",
+      "value": 219709.78883240971
+    },
+    {
+      "symbol": "QUBT",
+      "value": 197156.6768000751
+    },
+    {
+      "symbol": "MRNA",
+      "value": 147691.75635696726
+    },
+    {
+      "symbol": "IBM",
+      "value": 109675.75617912134
+    },
+    {
+      "symbol": "HOOD",
+      "value": 108374.97626463522
+    },
+    {
+      "symbol": "MRVL",
+      "value": 105276.66921151867
+    },
+    {
+      "symbol": "NKE",
+      "value": 93883.27260496918
+    },
+    {
+      "symbol": "JNJ",
+      "value": 74834.788264603
+    },
+    {
+      "symbol": "IONQ",
+      "value": 66464.8585359332
+    },
+    {
+      "symbol": "USO",
+      "value": 62537.80542528566
+    },
+    {
+      "symbol": "NBIS",
+      "value": 61749.1409001324
+    },
+    {
+      "symbol": "NOK",
+      "value": 59900.152681356616
+    },
+    {
+      "symbol": "SNAP",
+      "value": 57740.83031347422
+    },
+    {
+      "symbol": "PFE",
+      "value": 55816.8193656464
+    },
+    {
+      "symbol": "RBLX",
+      "value": 47502.50439035797
+    },
+    {
+      "symbol": "IREN",
+      "value": 46042.9446961376
+    },
+    {
+      "symbol": "SQQQ",
+      "value": 43383.9639599784
+    },
+    {
+      "symbol": "GPRO",
+      "value": 42130.70124482431
+    },
+    {
+      "symbol": "SHOP",
+      "value": 41938.89526794361
+    },
+    {
+      "symbol": "CBRS",
+      "value": 37639.337148223996
+    },
+    {
+      "symbol": "URA",
+      "value": 33010.99402742861
+    },
+    {
+      "symbol": "BE",
+      "value": 30679.252395345655
+    },
+    {
+      "symbol": "PUSA",
+      "value": 25770.799288754155
+    },
+    {
+      "symbol": "COPX",
+      "value": 23106.98785208265
+    },
+    {
+      "symbol": "BLK",
+      "value": 21574.823709510518
+    },
+    {
+      "symbol": "CRWV",
+      "value": 21544.322229377543
+    },
+    {
+      "symbol": "BULL",
+      "value": 20610.358795270753
+    },
+    {
+      "symbol": "DNUT",
+      "value": 18129.710909537742
+    },
+    {
+      "symbol": "FWDI",
+      "value": 17871.14352128822
+    },
+    {
+      "symbol": "PTN",
+      "value": 14778.722319729355
+    },
+    {
+      "symbol": "LULU",
+      "value": 13573.157599685715
+    },
+    {
+      "symbol": "HTZ",
+      "value": 12623.351973229202
+    },
+    {
+      "symbol": "WEN",
+      "value": 9525.265995811958
+    },
+    {
+      "symbol": "LMT",
+      "value": 9347.915447976966
+    },
+    {
+      "symbol": "RKLB",
+      "value": 9087.183233181342
+    },
+    {
+      "symbol": "FLWS",
+      "value": 8428.608973683089
+    },
+    {
+      "symbol": "RIVN",
+      "value": 7406.1769064945365
+    },
+    {
+      "symbol": "WULF",
+      "value": 6793.748576960277
+    },
+    {
+      "symbol": "BROS",
+      "value": 5557.716068775624
+    },
+    {
+      "symbol": "COST",
+      "value": 5291.302443670336
+    },
+    {
+      "symbol": "BA",
+      "value": 5138.164911471957
+    },
+    {
+      "symbol": "EWZ",
+      "value": 4180.466970805025
+    },
+    {
+      "symbol": "UPS",
+      "value": 2864.7888529153015
+    },
+    {
+      "symbol": "ARM",
+      "value": 2670.8662945744286
+    },
+    {
+      "symbol": "RUM",
+      "value": 2080.6191159312834
+    },
+    {
+      "symbol": "FLY",
+      "value": 2009.8538136199911
+    },
+    {
+      "symbol": "LUV",
+      "value": 1773.5831139829372
+    },
+    {
+      "symbol": "SPHR",
+      "value": 1610.0748774148744
+    },
+    {
+      "symbol": "NVDA",
+      "value": 45.822159051236305
+    }
+  ],
+  "backfill": {
+    "source": "birdeye-ohlcv",
+    "startAt": 1791763200000,
+    "endAt": 1791849600000,
+    "registryHash": "b68d4c681bde7ebb4a7beeae11fd046ec98dd7d95230e62d0a8b9e37ea28ff8b"
+  }
+}

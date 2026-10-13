@@ -1,0 +1,10 @@
+{
+  "key": "trading-activity:v1:stonkfun-v2:2026-10-12:turnover",
+  "inserted": true,
+  "storedMatchesValidatedPoint": true,
+  "sha256": "cf1e042958c96e061ec1dce991d82a9ff403022fbf7fbdbd99bb1cb2e4e0c6b5",
+  "total": 51152661.82747275,
+  "known": 75,
+  "covered": 75,
+  "workerVersion": "3622ab70-2f92-4c42-a227-6cda69a6c9ab"
+}
