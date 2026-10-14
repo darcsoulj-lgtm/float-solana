@@ -15,8 +15,9 @@ export async function GET(req: Request) {
       // Local/legacy deployments retain protection if the binding is absent.
       await rateLimit('backpack-market:' + audience, 120);
     }
+    const compact = new URL(req.url).searchParams.get('schema') === '5';
     const cache = await caches.open('float-public-markets-v1');
-    return await publicMarketResponse(req,()=>readPublicMarketSnapshot(env.DB),cache,waitUntil,{rawJson:true});
+    return await publicMarketResponse(req,()=>readPublicMarketSnapshot(env.DB,Date.now(),compact),cache,waitUntil,{rawJson:true,path:compact?'/api/backpack-market?schema=5':'/api/backpack-market?schema=4'});
   } catch (error) {
     if (!(error instanceof AppError)) console.error('Public Backpack overview failed');
     return Response.json({error: error instanceof AppError ? error.message : 'Market data is temporarily unavailable.'}, {

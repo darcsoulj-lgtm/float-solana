@@ -1,3 +1,4 @@
+import {decodePublicMarketWire} from '../../lib/public-market-wire.mjs';
 // Independent of the collector/resolver: compare immutable observations with
 // what ordinary visitors receive. No provider requests or wallet operations.
 export function publicationIssues(expected, text, headers, now=Date.now()) {
@@ -6,7 +7,7 @@ export function publicationIssues(expected, text, headers, now=Date.now()) {
   if(!/(?:^|,)\s*no-store(?:\s|,|$)/i.test(headers.get('cache-control')??''))issues.push('Public market Cache-Control lacks no-store');
   if(headers.has('set-cookie'))issues.push('Public market sets a cookie');
   if(/"(?:wallet(?:Address|Hash)|session[^"\\]*|private[^"\\]*)"\s*:/i.test(text))issues.push('Private field in public market');
-  let market;try{market=JSON.parse(text);}catch{return [...issues,'Public market JSON is invalid'];}
+  let market;try{market=decodePublicMarketWire(JSON.parse(text));}catch{return [...issues,'Public market JSON is invalid'];}
   if(!market?.pools?.data)return [...issues,'Public pool observations unavailable'];
   const references = Object.values(market.backpack?.data??{});
   const validHistorical = row => row.externalBasis==='hourly-history' && Number.isFinite(row.externalPrice) && row.externalPrice>0 && Number.isSafeInteger(row.externalObservedAt) && row.externalObservedAt<=now && now-row.externalObservedAt<=96*3600000;

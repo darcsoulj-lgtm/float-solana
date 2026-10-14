@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {compileFunction} from 'node:vm';
 import ts from 'typescript';
+import {decodePublicMarketWire} from '../lib/public-market-wire.mjs';
 const source=await readFile(new URL('../hooks/use-market-overview.ts',import.meta.url),'utf8');
 
 void test('restoring a suspended market page fetches new data and removes its resume listener on unmount',async()=>{
@@ -13,6 +14,7 @@ void test('restoring a suspended market page fetches new data and removes its re
  globalThis.setInterval=fn=>{timers.add(fn);return fn;};globalThis.clearInterval=fn=>timers.delete(fn);
  const exports={},dependencies={
   react:{useEffect:fn=>effects.push(fn),useState:()=>[false,()=>{}],useSyncExternalStore:(subscribe,get)=>{subscribe(()=>{});return get();}},
+  '@/lib/public-market-wire.mjs':{decodePublicMarketWire},
   '@/lib/client':{api:async()=>({generation:++calls})},
   '@/lib/market-browser-cache':{savedMarketPages:()=>[],saveMarketPage:()=>{}},
   '@/lib/market-refresh':{retainRefreshingSources:()=>{}},

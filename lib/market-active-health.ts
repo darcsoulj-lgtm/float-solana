@@ -11,7 +11,7 @@ import { readTradingActivity } from './trading-activity-server';
 import type { HoldingWallets } from './issuer-holders';
 import type { MarketOverview } from './market-data';
 import type { StockToken } from './tokens';
-import { PUBLIC_MARKET_SNAPSHOT_KEY, PUBLIC_MARKET_SNAPSHOT_MAX_AGE_MS, PUBLIC_MARKET_SNAPSHOT_WARNING_BYTES } from './public-market-snapshot';
+import { PUBLIC_MARKET_COMPACT_SNAPSHOT_KEY, PUBLIC_MARKET_SNAPSHOT_KEY, PUBLIC_MARKET_SNAPSHOT_MAX_AGE_MS, PUBLIC_MARKET_SNAPSHOT_WARNING_BYTES } from './public-market-snapshot';
 
 export const ACTIVE_HEALTH_KEY = 'market-active-health:v1';
 const BASELINE_KEY = 'market-health-listings:v1';
@@ -66,7 +66,7 @@ export function activeHealthIssues(input: {
   const allListingsSettled=tokens.filter(t=>t.issuer==='backpack').every(t=>now-(firstSeen[t.mint]??now)>=NEW_LISTING_GRACE);
   if(settled && (!holder || !recent(holder.checkedAt,30*HOUR,now)))issues.push({source:'holders',code:'holder_collection_overdue',affected:1});
   else if(settled && allListingsSettled && (holder?.registryHash!==holderScope.registryHash || holder.tokens!==holderScope.mints.length))issues.push({source:'holders',code:'holder_registry_mismatch',affected:1});
-  const publicSnapshot=controls.get(PUBLIC_MARKET_SNAPSHOT_KEY);
+  const publicSnapshot=controls.get(PUBLIC_MARKET_COMPACT_SNAPSHOT_KEY)??controls.get(PUBLIC_MARKET_SNAPSHOT_KEY);
   if(!publicSnapshot?.payload || publicSnapshot.fetched_at>now || !recent(publicSnapshot.fetched_at,PUBLIC_MARKET_SNAPSHOT_MAX_AGE_MS,now))issues.push({source:'snapshot',code:'snapshot_publication_overdue',affected:1});
   const prepared=publicSnapshot?.payload;
   if(prepared && new TextEncoder().encode(prepared).byteLength>=PUBLIC_MARKET_SNAPSHOT_WARNING_BYTES)issues.push({source:'snapshot-capacity',code:'snapshot_payload_large',affected:1});
@@ -105,7 +105,7 @@ export function activeHealthWarnings(input: Parameters<typeof activeHealthIssues
 export async function checkActiveMarketHealth(env:MarketEnvironment & {STOCK_VOLUME_ENABLED?:string},now=Date.now()):Promise<ActiveHealthSummary>{
   const registry=await backpackRegistry(env.DB,()=>{},env.SOLANA_RPC_URL,fetch,now,true);
   const tokens=registryTokens(registry),backpack=tokens.filter(t=>t.issuer==='backpack');
-  const controls=await marketCacheRows(env.DB,[BASELINE_KEY,'birdeye-schedule:v1','public-backpack-snapshot:v1',...backpack.flatMap(t=>[backpackHistoryKey(t.mint),birdeyeVolumeKey(t.mint)])]);
+  const controls=await marketCacheRows(env.DB,[BASELINE_KEY,'birdeye-schedule:v1',PUBLIC_MARKET_SNAPSHOT_KEY,PUBLIC_MARKET_COMPACT_SNAPSHOT_KEY,...backpack.flatMap(t=>[backpackHistoryKey(t.mint),birdeyeVolumeKey(t.mint)])]);
   let previous:Record<string,number>={};
   try{previous=JSON.parse(controls.get(BASELINE_KEY)?.payload??'{}');}catch{/* Rebuild a corrupt baseline without fabricating old coverage. */}
   const firstSeen=Object.fromEntries(backpack.map(t=>[t.mint,recent(previous?.[t.mint],365*24*HOUR,now)?previous[t.mint]:now]));

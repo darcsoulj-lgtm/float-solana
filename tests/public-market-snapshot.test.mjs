@@ -57,3 +57,14 @@ void test('successful scheduled assembly uses canonical cached sources without p
   assert.equal(calls,0);assert.equal(row.fetched_at,now);assert.equal(data.backpack.fetchedAt,at);assert.equal(data.backpack.data.MU.externalObservedAt,at);assert.equal(data.backpack.data.MU.externalPrice,100);assert.equal(data.prices.data,null);assert.equal(data.supplies.data,null);
  }finally{globalThis.fetch=original;raw.close();}
 });
+
+void test('compact snapshot is selected independently while legacy reads remain unchanged',async()=>{
+ const {raw,db}=database(),legacy=api.serializePublicMarketSnapshot(market()),compact=api.serializePublicMarketSnapshot(market(),true);
+ raw.prepare('INSERT INTO market_cache VALUES (?,?,?,0)').run(api.PUBLIC_MARKET_SNAPSHOT_KEY,legacy,now);
+ assert.equal(await api.readPublicMarketSnapshot(db,now,true),legacy,'migration fallback preserves public access');
+ raw.prepare('INSERT INTO market_cache VALUES (?,?,?,0)').run(api.PUBLIC_MARKET_COMPACT_SNAPSHOT_KEY,compact,now);
+ assert.equal(await api.readPublicMarketSnapshot(db,now,true),compact);
+ assert.equal(await api.readPublicMarketSnapshot(db,now),legacy);
+ raw.prepare('UPDATE market_cache SET fetched_at=? WHERE key=?').run(now-300001,api.PUBLIC_MARKET_COMPACT_SNAPSHOT_KEY);
+ await assert.rejects(api.readPublicMarketSnapshot(db,now,true),e=>e.status===503);raw.close();
+});

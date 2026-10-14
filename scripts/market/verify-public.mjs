@@ -21,7 +21,7 @@ let issues=[];
 for(let attempt=0;attempt<attempts;attempt++){
  issues=[];const cache=[];
  for(let read=0;read<2;read++)try{
-  const r=await get('https://joinfloat.xyz/api/backpack-market',{headers:{'User-Agent':'Mozilla/5.0 (compatible; FloatPublicationCheck/1.0; +https://joinfloat.xyz)'}});
+  const r=await get('https://joinfloat.xyz/api/backpack-market?schema=5',{headers:{'User-Agent':'Mozilla/5.0 (compatible; FloatPublicationCheck/1.0; +https://joinfloat.xyz)'}});
   issues.push(...publicationIssues(expected,await r.text(),r.headers));cache.push({status:r.headers.get('cf-cache-status'),control:r.headers.get('cache-control')});
  }catch(error){issues.push(error.message);}
  issues=[...new Set(issues)];

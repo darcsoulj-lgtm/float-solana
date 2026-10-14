@@ -1,4 +1,5 @@
 'use client';
+import { decodePublicMarketWire } from '@/lib/public-market-wire.mjs';
 import { savedMarketPages, saveMarketPage } from '@/lib/market-browser-cache';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { api } from '@/lib/client';
@@ -28,7 +29,8 @@ function createStore(backpack: boolean) {
       return () => { listeners.delete(notify); };
     },
     read: () => {
-      if (!inflight) inflight = api<MarketOverview>(backpack ? 'backpack-market' : 'market-data?overview=1')
+      if (!inflight) inflight = api<MarketOverview>(backpack ? 'backpack-market?schema=5' : 'market-data?overview=1')
+        .then(decodePublicMarketWire)
         .finally(() => { inflight = undefined; });
       return inflight;
     },

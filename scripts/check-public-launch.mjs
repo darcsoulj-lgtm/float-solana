@@ -4,7 +4,7 @@ const origin=process.env.FLOAT_SMOKE_ORIGIN || 'https://joinfloat.xyz';
 assert.match(origin,/^https?:\/\//);
 const headers={'User-Agent':'Mozilla/5.0 (compatible; FloatHolderCensus/1.0; +https://joinfloat.xyz)'};
 const started=Date.now();
-const r=await fetch(new URL('/api/backpack-market',origin),{headers,signal:AbortSignal.timeout(25000)});
+const r=await fetch(new URL('/api/backpack-market?schema=5',origin),{headers,signal:AbortSignal.timeout(25000)});
 assert.equal(r.status,200,'Public Backpack data unavailable');
 const body=await r.text(),data=JSON.parse(body);
 assert.ok(Buffer.byteLength(body)<400000,'Backpack response unexpectedly large');
