@@ -188,7 +188,7 @@ def stock_volume_once(symbol, start, end, headers, closed, fetch, pause):
 
 def main():
     now = datetime.now(timezone.utc); start, end = window(now)
-    settings = job({'action':'begin','endUtc':iso(end)})
+    settings = job({'action':'preflight','endUtc':iso(end)})
     if settings.get('skipped'):
         check_public(request_json(SITE+'/api/stock-volume'), now)
         print('Already published; no provider quota used',flush=True)
@@ -217,6 +217,12 @@ def main():
         print(json.dumps({'symbol':symbol,'date':date,'phase':'stock-reconciliation'}),flush=True)
         stock_usd = stock_volume(symbol, start, end, headers, closed)
         verified.append((token,asset,stock_usd))
+    # Only now reserve the metered token-history pass. Stock mismatch costs no CU.
+    settings = job({'action':'begin','endUtc':iso(end)})
+    if settings.get('skipped'):
+        check_public(request_json(SITE+'/api/stock-volume'), now)
+        return
+    for value in settings.values(): print('::add-mask::'+value, flush=True)
     for token,asset,stock_usd in verified:
         symbol,mint = token['symbol'],token['mint']
         query = {'address':mint,'type':'1H','currency':'usd','mode':'range','time_from':int(start.timestamp()),'time_to':int(end.timestamp())-1,'ui_amount_mode':'scaled','padding':'false'}

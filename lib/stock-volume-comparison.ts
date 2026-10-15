@@ -77,10 +77,10 @@ export function stockVolumeDateLabel(comparison: StockVolumeComparison): string 
   return (first === last ? first : first + ' – ' + last) + ' · ET';
 }
 
-// The next matched day is collected at 06:30 UTC on the following UTC date.
+// The next matched day is collected at 09:15 UTC on the following UTC date.
 // Derive this from the published day, so a missed run cannot silently move
 // its due date forward. Do not use the visitor's local calendar or a 24h DST offset.
 export function nextStockVolumeCollection(comparison: StockVolumeComparison): number {
   const end = new Date(comparison.endUtc);
-  return Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate() + 1, 6, 30);
+  return Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate() + 1, 9, 15);
 }

@@ -167,6 +167,7 @@ class StockSourceConvergenceTests(unittest.TestCase):
             if '/calendar?' in url:return []
             if '/assets/' in url:return {'symbol':url.rsplit('/',1)[-1],'class':'us_equity','status':'active','exchange':'NASDAQ'}
             return {}
-        with patch.object(collect,'job',return_value={'alpacaId':'fixture-id','alpacaSecret':'fixture-secret','birdeye':'fixture-bird'}),patch.object(collect,'request_json',side_effect=request),patch.object(collect,'select_tokens',return_value=(tokens,{})),patch.object(collect,'stock_volume',side_effect=[20,collect.StockTapeMismatch('fixture mismatch')]),patch.object(collect,'birdeye_candles') as bird:
+        with patch.object(collect,'job',return_value={'alpacaId':'fixture-id','alpacaSecret':'fixture-secret'}) as job_call,patch.object(collect,'request_json',side_effect=request),patch.object(collect,'select_tokens',return_value=(tokens,{})),patch.object(collect,'stock_volume',side_effect=[20,collect.StockTapeMismatch('fixture mismatch')]),patch.object(collect,'birdeye_candles') as bird:
             with self.assertRaises(collect.StockTapeMismatch):collect.main()
             bird.assert_not_called()
+            self.assertEqual([call.args[0]['action'] for call in job_call.call_args_list],['preflight'])

@@ -6,7 +6,7 @@ import { triggerWorkflowCollection, type TriggerEnvironment } from './workflow-c
 // requests the same authenticated job, after its normal data-ready time.
 // The job still owns provider reservations, fencing and publication validation.
 export function stockCollectionNeeded(payload: string | null | undefined, now: number) {
-  const ready = new Date(now); ready.setUTCHours(6, 30, 0, 0);
+  const ready = new Date(now); ready.setUTCHours(9, 15, 0, 0);
   if (now < ready.getTime()) return false;
   let comparison: unknown;
   try { comparison = JSON.parse(payload ?? 'null'); } catch { return true; }

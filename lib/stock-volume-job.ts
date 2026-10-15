@@ -77,6 +77,21 @@ export async function stockVolumeJob(request: Request, env: JobEnvironment, fetc
   if (!owner) return new Response(null, { status: 403, headers: privateHeaders });
   const writeState = (status: string) => env.DB.prepare(`UPDATE market_cache SET payload=json_set(payload,'$.status',?,'$.checkedAt',?),fetched_at=?,retry_after=0
     WHERE key=? AND json_extract(payload,'$.owner')=? AND json_extract(payload,'$.status')='collecting'`).bind(status, now, now, STOCK_VOLUME_JOB_KEY, owner).run();
+  // Preflight leases the run and exposes only the non-metered stock source.
+  // Reserve Birdeye only after every stock reconciles; legacy begin still works.
+  if (data.action === 'preflight') {
+    if (!env.APCA_API_KEY_ID || !env.APCA_API_SECRET_KEY) return new Response(null, { status: 503, headers: privateHeaders });
+    const end = stockComparisonWindowEnd(now);
+    if (data.endUtc !== end) return new Response(null, { status: 422, headers: privateHeaders });
+    const saved = await env.DB.prepare('SELECT payload FROM market_cache WHERE key=?').bind(STOCK_VOLUME_KEY).first<{payload:string}>();
+    try { const value:unknown=JSON.parse(saved?.payload ?? 'null'); if (validStockVolumeComparison(value) && value.endUtc===end && (value.generatedAt??0)<=now+60000) return Response.json({ skipped:true }, {headers:privateHeaders}); } catch { /* Recollect invalid data. */ }
+    await env.DB.prepare(`INSERT INTO market_cache(key,payload,fetched_at,retry_after) VALUES (?,?,?,?)
+      ON CONFLICT(key) DO UPDATE SET payload=excluded.payload,fetched_at=excluded.fetched_at,retry_after=excluded.retry_after WHERE market_cache.retry_after<=?`).bind(STOCK_VOLUME_JOB_KEY,JSON.stringify({status:'collecting',checkedAt:now,owner,endUtc:end,reserved:false}),now,now+40*60000,now).run();
+    const row=await env.DB.prepare('SELECT payload,retry_after FROM market_cache WHERE key=?').bind(STOCK_VOLUME_JOB_KEY).first<{payload:string;retry_after:number}>();
+    const state=JSON.parse(row?.payload??'null') as {owner?:string;status?:string;endUtc?:string}|null;
+    if(state?.owner!==owner || state.status!=='collecting' || state.endUtc!==end || !row || row.retry_after<=now) return new Response(null,{status:409,headers:privateHeaders});
+    return Response.json({alpacaId:env.APCA_API_KEY_ID,alpacaSecret:env.APCA_API_SECRET_KEY},{headers:privateHeaders});
+  }
   if (data.action === 'begin') {
     if (!env.BIRDEYE_API_KEY || !env.APCA_API_KEY_ID || !env.APCA_API_SECRET_KEY) return new Response(null, { status: 503, headers: privateHeaders });
     const end = stockComparisonWindowEnd(now);
@@ -145,9 +160,9 @@ export async function readStockVolume(db: D1Database, now = Date.now()) {
   const result = await db.prepare('SELECT key,payload FROM market_cache WHERE key IN (?,?)').bind(STOCK_VOLUME_KEY, STOCK_VOLUME_JOB_KEY).all<{ key: string; payload: string | null }>();
   let comparison: StockVolumeComparison = snapshot as StockVolumeComparison, lastAttempt: { status: string; checkedAt: number } | null = null;
   for (const row of result.results) { try { const value: unknown = JSON.parse(row.payload ?? 'null'); if (row.key === STOCK_VOLUME_KEY && validStockVolumeComparison(value) && Date.parse(value.endUtc) <= now && (value.generatedAt ?? 0) <= now + 60000) comparison = value; if (row.key === STOCK_VOLUME_JOB_KEY) { const state = value as { status: string; checkedAt: number }; if (['ok', 'failed', 'collecting'].includes(state.status) && Number.isSafeInteger(state.checkedAt) && state.checkedAt <= now + 60000) lastAttempt = {status:state.status,checkedAt:state.checkedAt}; } } catch { /* Preserve the validated, explicitly dated fallback. */ } }
-  // Give the daily 06:30 UTC collection until 08:00 UTC. Do not label stale
+  // Give the daily 09:15 UTC collection until 11:00 UTC. Do not label stale
   // observations current; readers never trigger providers or perform recovery.
-  const cutoff = new Date(now); cutoff.setUTCHours(8, 0, 0, 0);
+  const cutoff = new Date(now); cutoff.setUTCHours(11, 0, 0, 0);
   const lag = Date.parse(stockComparisonWindowEnd(now))-Date.parse(comparison.endUtc);
   const delayed = lag>DAY || now>=cutoff.getTime() && lag>0 || lastAttempt?.status==='failed';
   const archived = await db.prepare('SELECT payload FROM market_cache WHERE key LIKE ? AND fetched_at>=? AND fetched_at<=? ORDER BY fetched_at DESC LIMIT 90').bind(STOCK_VOLUME_HISTORY_PREFIX+'%',now-91*DAY,now).all<{payload:string}>();

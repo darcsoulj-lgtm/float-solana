@@ -103,3 +103,33 @@ void test('legacy dispatch-day reservations do not block a different NY window b
  raw.prepare("UPDATE market_cache SET payload='7800' WHERE key LIKE 'stock-volume-usage:v1:%'").run();
  assert.equal((await a.stockVolumeJob(await request({action:'begin',endUtc:a.stockComparisonWindowEnd(now)}),env,fetcher,now)).status,429);raw.close();
 });
+
+void test('stock preflight failures spend no Birdeye budget; successful preflight promotes exactly once',async()=>{
+ const {raw,db}=database(),env={DB:db,STOCK_VOLUME_ENABLED:'1',BIRDEYE_API_KEY:'fixture-bird',APCA_API_KEY_ID:'fixture-id',APCA_API_SECRET_KEY:'fixture-secret'};
+ const preflight={action:'preflight',endUtc:a.stockComparisonWindowEnd(now)};
+ for(let i=0;i<4;i++){
+  const response=await a.stockVolumeJob(await request(preflight),env,fetcher,now);
+  assert.equal(response.status,200);assert.deepEqual(await response.json(),{alpacaId:'fixture-id',alpacaSecret:'fixture-secret'});
+  assert.equal((await a.stockVolumeJob(await request({action:'retry',retryId:'not-reserved'}),env,fetcher,now)).status,429);
+  await a.stockVolumeJob(await request({action:'failed'}),env,fetcher,now);
+ }
+ assert.equal(raw.prepare("SELECT COALESCE(SUM(CAST(payload AS INTEGER)),0) n FROM market_cache WHERE key LIKE 'stock-volume-window-usage:v2:%'").get().n,0);
+ assert.equal((await a.stockVolumeJob(await request(preflight),env,fetcher,now)).status,200);
+ const c={...a.publishedStockVolumeComparisons()[0],startUtc:'2026-10-03T04:00:00Z',endUtc:preflight.endUtc,selectionBasis:'latest-market-volume',selectedAt:now-10000,generatedAt:now-1000};
+ assert.equal((await a.stockVolumeJob(await request({action:'publish',comparison:c}),env,fetcher,now)).status,409);
+ for(let i=0;i<2;i++)assert.equal((await a.stockVolumeJob(await request({...preflight,action:'begin'}),env,fetcher,now)).status,200);
+ assert.equal(raw.prepare("SELECT payload FROM market_cache WHERE key LIKE 'stock-volume-window-usage:v2:%'").get().payload,'200');
+ assert.equal((await a.stockVolumeJob(await request({action:'publish',comparison:c}),env,fetcher,now)).status,204);
+ assert.deepEqual(await (await a.stockVolumeJob(await request(preflight),env,fetcher,now)).json(),{skipped:true});raw.close();
+});
+void test('preflight is fenced to a signed owner, window and lease; cannot bypass exhausted quota',async()=>{
+ const {raw,db}=database(),env={DB:db,STOCK_VOLUME_ENABLED:'1',BIRDEYE_API_KEY:'fixture-bird',APCA_API_KEY_ID:'fixture-id',APCA_API_SECRET_KEY:'fixture-secret'};
+ const body={action:'preflight',endUtc:a.stockComparisonWindowEnd(now)};
+ assert.equal((await a.stockVolumeJob(await request({...body,endUtc:'old'}),env,fetcher,now)).status,422);
+ assert.equal((await a.stockVolumeJob(await request(body),env,fetcher,now)).status,200);
+ const competing=new Request('https://joinfloat.xyz/api/stock-volume-job',{method:'POST',headers:{Authorization:'Bearer '+await jwt({run_id:'124'})},body:JSON.stringify(body)});
+ assert.equal((await a.stockVolumeJob(competing,env,fetcher,now)).status,409);
+ raw.prepare('INSERT INTO market_cache VALUES (?,?,?,0)').run('stock-volume-window-usage:v2:'+body.endUtc,'600',now);
+ const denied=await a.stockVolumeJob(await request({...body,action:'begin'}),env,fetcher,now);
+ assert.equal(denied.status,429);assert.equal(await denied.text(),'');raw.close();
+});
