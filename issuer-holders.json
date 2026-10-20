@@ -5,11 +5,11 @@
   "issuers": [
     {
       "issuer": "backpack",
-      "wallets": 331498,
-      "tokens": 81,
-      "registryHash": "fe840e64019c2177ca2a4ab27ab008e636ea1737c77adab6be9d1d04e4c6f287",
-      "startedAt": 1792476097927,
-      "checkedAt": 1792476284456
+      "wallets": 334990,
+      "tokens": 82,
+      "registryHash": "950431e4f777fca0f09fff669e58365e2810151291ccf153af9ca72963ce8895",
+      "startedAt": 1792523955293,
+      "checkedAt": 1792524190098
     },
     {
       "issuer": "xstocks",
