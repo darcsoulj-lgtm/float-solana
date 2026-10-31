@@ -39,6 +39,25 @@ void test('failed dispatch is bounded and cannot mark the old census fresh or le
  await assert.rejects(triggerHolderCollection(env,fail,now),/Collection trigger failed/);assert.equal(await triggerHolderCollection(env,fail,now+1),'cooldown');assert.equal(calls,1);
  assert.deepEqual(JSON.parse(raw.prepare('SELECT payload FROM market_cache WHERE key=?').get('issuer-holding-wallets:v1').payload),snapshot);raw.close();
 });
+void test('stale holder data permits two recovery dispatches per UTC day with six-hour spacing',async()=>{
+ const {env,raw,snapshot}=setup(86400000),p=provider();
+ assert.equal(await triggerHolderCollection(env,p.fetcher,now),'dispatched');
+ assert.equal(await triggerHolderCollection(env,p.fetcher,now+15*60000),'cooldown');
+ assert.equal(await triggerHolderCollection(env,p.fetcher,now+6*3600000),'dispatched');
+ assert.equal(await triggerHolderCollection(env,p.fetcher,now+12*3600000),'exhausted');
+ assert.equal(p.calls.filter(c=>c.options.method==='POST').length,2);
+ assert.deepEqual(JSON.parse(raw.prepare('SELECT payload FROM market_cache WHERE key=?').get('issuer-holding-wallets:v1').payload),snapshot);
+ assert.equal(await triggerHolderCollection(env,p.fetcher,now+86400000),'dispatched');raw.close();
+});
+void test('ambiguous holder dispatches consume the allowance and queued jobs consume none',async()=>{
+ const {env,raw}=setup(86400000);let posts=0;
+ const good=provider();const fetcher=async(u,o)=>{if(o.method==='POST'){posts++;throw Error('private endpoint');}return good.fetcher(u,o);};
+ await assert.rejects(triggerHolderCollection(env,fetcher,now),/Collection trigger failed/);
+ await assert.rejects(triggerHolderCollection(env,fetcher,now+6*3600000),/Collection trigger failed/);
+ assert.equal(await triggerHolderCollection(env,fetcher,now+12*3600000),'exhausted');assert.equal(posts,2);raw.close();
+ const active=setup(86400000),p=provider(true);assert.equal(await triggerHolderCollection(active.env,p.fetcher,now),'running');
+ assert.equal(active.raw.prepare("SELECT count(*) n FROM market_cache WHERE key LIKE 'holder-collection-dispatch:%'").get().n,0);active.raw.close();
+});
 void test('holder import preserves a prior census for the wrong scope, then imports the matching complete count within the bounded cadence',async()=>{
  const {env,raw,snapshot}=setup(86400000);const fresh=structuredClone(snapshot);fresh.issuers[0]={...fresh.issuers[0],wallets:456,startedAt:now-1000,checkedAt:now};
  const bad=structuredClone(fresh);bad.issuers[0].registryHash='a'.repeat(64);
