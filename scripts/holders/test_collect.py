@@ -28,6 +28,31 @@ class Tests(unittest.TestCase):
   with patch('collect.collect_batch',side_effect=[{MINT:({b'a'},1,2)},{'other':({b'a',b'b'},3,4)}]):
    result=collect_issuer(None,scope);self.assertEqual(result['wallets'],2);self.assertEqual(result['tokens'],2)
   with patch('collect.collect_batch',return_value={}):self.assertIsNone(collect_issuer(None,scope))
+ def test_diagnostics_distinguish_supply_change_and_truncated_balances(self):
+  class Fake:
+   def __init__(self,after,amount):self.step=0;self.after=after;self.amount=amount
+   def rpc(self,method,params):
+    self.step+=1
+    if self.step==2:return {'context':{'slot':2},'value':[account('PRIVATE_OWNER_ACCOUNT',1,self.amount)]}
+    return {'context':{'slot':self.step},'value':[mint(10 if self.step==1 else self.after)]}
+  for after,amount,reason in [(11,10,'Supply changed during scan'),(10,9,'Account balances do not reconcile to supply')]:
+   out=io.StringIO()
+   with patch('sys.stdout',out):self.assertEqual(collect_batch(Fake(after,amount),[MINT]),{})
+   row=json.loads(out.getvalue());self.assertEqual(row['stage'],'reconciliation');self.assertEqual(row['reason'],reason);self.assertEqual(row['mints'],[MINT]);self.assertNotIn('PRIVATE_OWNER_ACCOUNT',out.getvalue())
+ def test_malformed_after_record_is_isolated_and_unresolved_mints_are_reported(self):
+  class Fake:
+   def __init__(self):self.step=0
+   def rpc(self,method,params):
+    self.step+=1
+    if self.step==2:return {'context':{'slot':2},'value':[account('a',1,10)]}
+    return {'context':{'slot':self.step},'value':[mint(10) if self.step==1 else {'owner':PROGRAM,'data':{}}]}
+  out=io.StringIO()
+  with patch('sys.stdout',out):self.assertEqual(collect_batch(Fake(),[MINT]),{})
+  self.assertEqual(json.loads(out.getvalue())['reason'],'KeyError')
+  out=io.StringIO();scope={'issuer':'backpack','mints':[MINT],'registryHash':'a'*64}
+  with patch('sys.stdout',out),patch('collect.collect_batch',side_effect=ProviderError('Missing mint records')) as attempt:
+   self.assertIsNone(collect_issuer(None,scope))
+  self.assertEqual(attempt.call_count,3);self.assertIn('Unresolved after bounded retries',out.getvalue());self.assertIn(MINT,out.getvalue())
  def test_daily_collection_only_refreshes_backpack(self):
   rows=[{'issuer':issuer,'wallets':1,'tokens':1,'registryHash':issuer,'startedAt':1,'checkedAt':2} for issuer in ['backpack','xstocks','ondo']]
   scopes=[{'issuer':r['issuer'],'registryHash':r['registryHash']} for r in rows]

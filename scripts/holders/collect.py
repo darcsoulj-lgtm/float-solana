@@ -20,6 +20,11 @@ def validate_registry(doc):
    seen.add(m)
  return rows
 class ProviderError(Exception):pass
+def diagnostic(stage,mints,error):
+ # Public mint identity and fixed failure codes only; never owner addresses,
+ # response bodies, endpoint URLs or arbitrary exception strings.
+ reason=str(error) if isinstance(error,ProviderError) else type(error).__name__
+ print(json.dumps({'event':'holder_census_failure','stage':stage,'mints':mints,'reason':reason}),flush=True)
 class Client:
  def __init__(self,url,gap=2.1):self.url=url;self.last=0;self.gap=gap
  def rpc(self,method,params):
@@ -33,9 +38,12 @@ class Client:
   except urllib.error.HTTPError as e:
    # Stop the entire run on throttling/auth failure; do not hammer a blocked endpoint.
    if e.code in (401,403,429):raise SystemExit('RPC access or rate limit; prior snapshot retained')
-   raise ProviderError('RPC HTTP failure') from None
+   raise ProviderError('RPC HTTP '+str(e.code)) from None
   except (OSError,ValueError):raise ProviderError('RPC unavailable or malformed') from None
-  if doc.get('error') or not isinstance(doc.get('result'),dict):raise ProviderError('RPC returned an error')
+  if doc.get('error'):
+   error=doc['error'];code=error.get('code') if isinstance(error,dict) else None
+   raise ProviderError('RPC error code '+str(code) if type(code) is int else 'RPC returned an error')
+  if not isinstance(doc.get('result'),dict):raise ProviderError('Missing RPC result')
   return doc['result']
 def registry_url(url):
  request=urllib.request.Request(url,headers={'User-Agent':'Mozilla/5.0 (compatible; FloatHolderCensus/1.0; +https://joinfloat.xyz)','Accept':'application/json'})
@@ -73,15 +81,19 @@ def collect_batch(client,mints):
    if ac['context']['slot']<before['context']['slot']:raise ProviderError('Regressed slot')
    slot=max(slot,ac['context']['slot']);total,owners=parse_accounts(ac['value'],mint,m['owner'])
    observations[mint]=(total,owners,m['data']['parsed']['info']['supply'])
-  except (ProviderError,KeyError,ValueError,TypeError):pass
+  except (ProviderError,KeyError,ValueError,TypeError) as error:diagnostic('accounts',[mint],error)
  after=client.rpc('getMultipleAccounts',[mints,{'encoding':'jsonParsed','commitment':'finalized','minContextSlot':slot}])
  if len(after['value'])!=len(mints) or after['context']['slot']<slot:raise ProviderError('Invalid after snapshot')
  results={}
  for mint,m in zip(mints,after['value']):
-  if mint in observations and m:
-   total,owners,supply=observations[mint]
-   if str(total)==supply==m['data']['parsed']['info']['supply']:
-    results[mint]=(owners,start,int(time.time()*1000))
+  if mint not in observations:continue
+  try:
+   if not m or m['owner'] not in PROGRAMS or m['data']['parsed']['type']!='mint':raise ProviderError('Invalid after mint')
+   total,owners,supply=observations[mint];after_supply=m['data']['parsed']['info']['supply']
+   if supply!=after_supply:raise ProviderError('Supply changed during scan')
+   if str(total)!=supply:raise ProviderError('Account balances do not reconcile to supply')
+   results[mint]=(owners,start,int(time.time()*1000))
+  except (ProviderError,KeyError,ValueError,TypeError) as error:diagnostic('reconciliation',[mint],error)
  return results
 
 def collect_issuer(client,scope):
@@ -91,15 +103,18 @@ def collect_issuer(client,scope):
  for offset in range(0,len(mints),25):
   batch=mints[offset:offset+25]
   try:results=collect_batch(client,batch)
-  except (ProviderError,KeyError,ValueError,TypeError):results={}
+  except (ProviderError,KeyError,ValueError,TypeError) as error:diagnostic('batch',batch,error);results={}
   retain(results);failed.extend(m for m in batch if m not in results)
   print(scope['issuer'],min(offset+25,len(mints)),'/',len(mints),'checked',flush=True)
  for mint in failed[:]:
   for attempt in range(2):
    try:results=collect_batch(client,[mint])
-   except (ProviderError,KeyError,ValueError,TypeError):results={}
+   except (ProviderError,KeyError,ValueError,TypeError) as error:diagnostic('retry',[mint],error);results={}
    if mint in results:retain(results);failed.remove(mint);break
- if failed or max(ends,default=0)-min(starts,default=0)>86400000:return None
+ if failed:
+  diagnostic('incomplete',failed,ProviderError('Unresolved after bounded retries'));return None
+ if max(ends,default=0)-min(starts,default=0)>86400000:
+  diagnostic('incomplete',[],ProviderError('Scan exceeded 24 hours'));return None
  return {'issuer':scope['issuer'],'wallets':len(owners),'tokens':len(mints),'registryHash':scope['registryHash'],'startedAt':min(starts),'checkedAt':max(ends)}
 
 def main():
