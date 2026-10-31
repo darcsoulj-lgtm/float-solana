@@ -1,5 +1,7 @@
 """Finite daily collector. Publishes aggregate counts only; no raw address artifacts."""
 import argparse,base64,hashlib,json,pathlib,time,urllib.request,urllib.error
+from collections.abc import Iterator
+from stream_accounts import read_program_accounts,StreamError
 ISSUERS=('backpack','xstocks','ondo')
 PROGRAMS={'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA','TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'}
 AL='123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
@@ -32,6 +34,9 @@ class Client:
   request=urllib.request.Request(self.url,data=json.dumps({'jsonrpc':'2.0','id':1,'method':method,'params':params}).encode(),headers={'Content-Type':'application/json','User-Agent':'FloatHolderCensus/1.0'})
   try:
    with urllib.request.urlopen(request,timeout=60) as response:
+    if method=='getProgramAccounts':
+     mint=params[1]['filters'][0]['memcmp']['bytes'];program=params[0]
+     return read_program_accounts(response,lambda rows:parse_accounts(rows,mint,program))
     raw=response.read(120000001)
     if len(raw)>120000000:raise ProviderError('Response size limit')
     doc=json.loads(raw)
@@ -39,6 +44,7 @@ class Client:
    # Stop the entire run on throttling/auth failure; do not hammer a blocked endpoint.
    if e.code in (401,403,429):raise SystemExit('RPC access or rate limit; prior snapshot retained')
    raise ProviderError('RPC HTTP '+str(e.code)) from None
+  except StreamError as error:raise ProviderError(str(error)) from None
   except (OSError,ValueError):raise ProviderError('RPC unavailable or malformed') from None
   if doc.get('error'):
    error=doc['error'];code=error.get('code') if isinstance(error,dict) else None
@@ -60,7 +66,7 @@ def registry_url(url):
   time.sleep(2*(attempt+1))
 def parse_accounts(accounts,mint,program):
  owners=set();seen=set();total=0;expected=decode58(mint)
- if not isinstance(accounts,list):raise ProviderError('Missing accounts')
+ if not isinstance(accounts,(list,Iterator)):raise ProviderError('Missing accounts')
  for a in accounts:
   b=base64.b64decode(a['account']['data'][0],validate=True);key=a['pubkey']
   if key in seen or len(b)!=109 or b[:32]!=expected or b[108] not in (1,2) or a['account']['owner']!=program or a['account'].get('executable'):
@@ -79,7 +85,8 @@ def collect_batch(client,mints):
    if not m or m['owner'] not in PROGRAMS or m['data']['parsed']['type']!='mint':raise ProviderError('Unverified mint program')
    ac=client.rpc('getProgramAccounts',[m['owner'],{'encoding':'base64','dataSlice':{'offset':0,'length':109},'commitment':'finalized','minContextSlot':slot,'withContext':True,'filters':[{'memcmp':{'offset':0,'bytes':mint}}]}])
    if ac['context']['slot']<before['context']['slot']:raise ProviderError('Regressed slot')
-   slot=max(slot,ac['context']['slot']);total,owners=parse_accounts(ac['value'],mint,m['owner'])
+   slot=max(slot,ac['context']['slot'])
+   total,owners=ac['observation'] if 'observation' in ac else parse_accounts(ac['value'],mint,m['owner'])
    observations[mint]=(total,owners,m['data']['parsed']['info']['supply'])
   except (ProviderError,KeyError,ValueError,TypeError) as error:diagnostic('accounts',[mint],error)
  after=client.rpc('getMultipleAccounts',[mints,{'encoding':'jsonParsed','commitment':'finalized','minContextSlot':slot}])
