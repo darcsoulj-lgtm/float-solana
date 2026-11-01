@@ -1,6 +1,8 @@
 'use client';
 import { MarketActivityHistory } from './market-activity-history';
 import { IssuerComparisonPanel } from './issuer-comparison';
+import { StockVolumeComparisonCard } from './stock-volume-comparison';
+import type { StockVolumeComparison } from '@/lib/stock-volume-comparison';
 import { stockLogo } from '@/lib/stock-logo';
 import { HoldingWallets } from './holding-wallets';
 import { TesseraContext } from './tessera-context';
@@ -16,7 +18,7 @@ import { poolDisplayMetrics } from '@/lib/stock-pools';
 import { latestTokenPoolSource } from '@/lib/pool-observations';
 import { marketTokens, poolLink } from '@/lib/market-data';
 import { MetricInfo } from './metric-info';
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, useEffect, useState, type ReactNode } from 'react';
 import {
   ArrowUpRight,
   ChevronLeft,
@@ -27,6 +29,7 @@ import {
 } from 'lucide-react';
 import { api } from '@/lib/client';
 import { useMarketOverview } from '@/hooks/use-market-overview';
+import { MarketRefreshNotice } from './market-refresh-notice';
 import { issuerName, type IssuerId, type StockToken } from '@/lib/tokens';
 import { type Book, type Pool, type SourceResult } from '@/lib/market-data';
 import { Button } from './ui/button';
@@ -64,6 +67,8 @@ export function MarketOverviewPanel({
   assetSymbol,
   initialToken,
   issuerScope,
+  comparisonPreview,
+  stockComparisons,
 }: {
   holdings: string[];
   positions?: Holding[];
@@ -72,6 +77,8 @@ export function MarketOverviewPanel({
   assetSymbol?: string;
   initialToken?: string;
   issuerScope?: IssuerId;
+  comparisonPreview?: ReactNode;
+  stockComparisons?: StockVolumeComparison[];
 }) {
   const [onlyHoldings, setOnlyHoldings] = useState(false),
     [query, setQuery] = useState(''),
@@ -729,9 +736,7 @@ export function MarketOverviewPanel({
           held={holdings.includes(t.symbol)}
           mobileMarket={
             <>
-              <span className="stock-row-price-line"><strong>{money(displayedPrice)}</strong>
-              {display.saved && <small><MetricInfo label={`Last price for ${t.symbol}`}>{time(display.priceTime)} · {display.priceSource}. Not a live price.</MetricInfo></small>}
-              </span>
+              <span className="stock-row-price-line"><strong>{money(displayedPrice)}</strong></span>
               <span
                 className={
                   change === null
@@ -817,13 +822,17 @@ export function MarketOverviewPanel({
                 <p>{company.underlyingSymbol}{!issuerScope && <> · {matches.length} {matches.length === 1 ? 'issuer token' : 'issuer tokens'}</>}</p>
               </div>
             </header>
-            {error && <div className="error" role="alert">{error}</div>}
+            <MarketRefreshNotice failed={!!error} hasData={!!data} />
             {!issuerScope && <section className="market-asset-versions" aria-label={issuerScope ? "Stock details" : "Issuer tokens"}>
               {!issuerScope && <h2>Issuer tokens</h2>}
               {renderTokenTable(matches, false)}
             </section>}
             {stockDetail}
           </>
+        ) : !data && error ? (
+          <section className="market-asset-missing">
+            <MarketRefreshNotice failed hasData={false} />
+          </section>
         ) : !data || busy ? (
           <section className="market-asset-missing" aria-live="polite">
             <h1>Loading market</h1>
@@ -843,12 +852,7 @@ export function MarketOverviewPanel({
       {!hidePortfolio && (
         <PortfolioSummary positions={positions.filter((position) => tokens.some((token) => token.symbol === position.symbol))} data={data} now={now} />
       )}
-      {error && (
-        <div className="error" role="alert">
-          {error}{' '}
-          {data ? 'Previously loaded observations may be out of date.' : ''}
-        </div>
-      )}
+      <MarketRefreshNotice failed={!!error} hasData={!!data} />
       <SolanaEcosystem
         issuerScope={issuerScope}
         data={data}
@@ -857,6 +861,8 @@ export function MarketOverviewPanel({
       />
       {!issuerScope && <HoldingWallets />}
       {issuerScope === 'backpack' && <MarketActivityHistory data={data} now={now} />}
+      {issuerScope === 'backpack' && stockComparisons && <StockVolumeComparisonCard comparisons={stockComparisons} automatic />}
+      {issuerScope === 'backpack' && process.env.NODE_ENV === 'development' && comparisonPreview}
       {issuerScope === 'backpack' && data?.issuerComparisonEnabled && <IssuerComparisonPanel now={now} />}
       <div className="market-search-row">
         <label htmlFor="market-search">

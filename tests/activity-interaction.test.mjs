@@ -1,3 +1,4 @@
+import {loadComponent} from './helpers/component.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
@@ -18,9 +19,9 @@ void test('a recovered day is visibly distinguished in the inspection tooltip',(
  const html=renderToStaticMarkup(React.createElement(ActivityTooltip,{id:'recovered',point:recovered,x:50,composition:true}));
  assert.match(html,/Recovered UTC day/);assert.match(html,/\$100\.00/);
 });
-function load(history=[]){
+function load(history=[],current=point){
  let hook=0;const changes=[];const compiledModule={exports:{}};
- compileFunction(compiled,['require','module','exports'])(id=>id==='react'?{...React,useId:()=> 'activity-help',useEffect:()=>{},useMemo:fn=>fn(),useState:initial=>{const index=hook++;return [index===1?history:index===4?'ready':initial,value=>changes.push({index,value})];}}:id==='@/lib/client'?{api:()=>{throw Error('Unexpected API in render');}}:id==='@/lib/trading-activity'?{...activity,tradingActivity:()=>point}:id==='@/lib/market-presentation'?presentation:id==='@/components/site-link'?{default:'a'}:id==='./metric-info'?{MetricInfo:()=>null}:require(id),compiledModule,compiledModule.exports);
+ compileFunction(compiled,['require','module','exports'])(id=>id==='react'?{...React,useId:()=> 'activity-help',useRef:value=>({current:value}),useEffect:()=>{},useMemo:fn=>fn(),useState:initial=>{const index=hook++;return [index===1?history:index===4?'ready':initial,value=>changes.push({index,value})];}}:id==='@/lib/client'?{api:()=>{throw Error('Unexpected API in render');}}:id==='@/lib/trading-activity'?{...activity,tradingActivity:()=>current}:id==='@/lib/market-presentation'?presentation:id==='@/components/site-link'?{default:'a'}:id==='./market-date-navigation'?loadComponent('components/market-date-navigation.tsx'):id==='./metric-info'?{MetricInfo:()=>null}:require(id),compiledModule,compiledModule.exports);
  return {...compiledModule.exports,changes};
 }
 function nodes(tree){if(!tree || typeof tree!=='object') return [];if(Array.isArray(tree)) return tree.flatMap(nodes);return [tree,...(Array.isArray(tree?.props?.children)?tree.props.children:[tree?.props?.children]).flatMap(child=>child&&typeof child==='object'?nodes(child):[])];}
@@ -28,7 +29,7 @@ void test('Composition segments show the exact amount on hover, focus and tap; E
  const {MarketActivityHistory,changes}=load();const tree=MarketActivityHistory({data:null,now:point.capturedAt});
  const button=nodes(tree).find(n=>n.type==='button'&&n.props['aria-label']==='MU: $60');
  assert.ok(button);
- for(const event of ['onPointerEnter','onFocus','onClick']){button.props[event]();assert.equal(changes.at(-1).value.symbol,'MU');assert.equal(changes.at(-1).value.point,point);}
+ for(const event of ['onPointerEnter','onFocus','onClick']){button.props[event]({pointerType:'mouse',currentTarget:{matches:()=>true}});assert.equal(changes.at(-1).value.symbol,'MU');assert.equal(changes.at(-1).value.point,point);}
  assert.ok(changes.every(c=>c.index===0),'Inspection does not change the selected date');
  button.props.onBlur();assert.equal(changes.at(-1).value,null);
  button.props.onKeyDown({key:'Escape'});assert.equal(changes.at(-1).value,null);
@@ -37,10 +38,18 @@ void test('Historical hover is transient; tapping selects that observation',()=>
  const past={...point,day:'2026-10-02',capturedAt:point.capturedAt-86400000,oldestAt:point.oldestAt-86400000,newestAt:point.newestAt-86400000};
  const {MarketActivityHistory,changes}=load([past]);const tree=MarketActivityHistory({data:null,now:point.capturedAt});
  const bar=nodes(tree).find(n=>n.type==='button'&&n.props['aria-label']==='Oct 2: $100');assert.ok(bar);
- bar.props.onPointerEnter();assert.equal(changes.at(-1).value.point,past);assert.equal(changes.length,1);
- bar.props.onFocus();assert.equal(changes.at(-1).value.point,past);
- bar.props.onClick();assert.ok(changes.some(c=>c.index===3&&c.value==='2026-10-02'));
- nodes(tree).find(n=>n.props?.className==='activity-plot').props.onPointerLeave();assert.equal(changes.at(-1).value,null);
+ bar.props.onPointerEnter({pointerType:'mouse',currentTarget:{matches:()=>true}});assert.equal(changes.at(-1).value.point,past);assert.equal(changes.length,1);
+ bar.props.onFocus({currentTarget:{matches:()=>true}});assert.equal(changes.at(-1).value.point,past);
+ bar.props.onClick({currentTarget:{matches:()=>true}});assert.ok(changes.some(c=>c.index===3&&c.value==='2026-10-02'));
+ nodes(tree).find(n=>n.props?.className==='activity-plot').props.onPointerLeave({pointerType:'mouse'});assert.equal(changes.at(-1).value,null);
+});
+void test('touch entry and pointer focus do not open a popup before the tap',()=>{
+ const {MarketActivityHistory,changes}=load();const tree=MarketActivityHistory({data:null,now:point.capturedAt});
+ const button=nodes(tree).find(n=>n.type==='button'&&n.props['aria-label']==='MU: $60');
+ const event={pointerType:'touch',currentTarget:{matches:()=>true}};
+ button.props.onPointerEnter(event);assert.equal(changes.length,0);
+ button.props.onPointerDown();button.props.onFocus(event);assert.equal(changes.length,0);
+ button.props.onClick(event);assert.equal(changes.at(-1).value.symbol,'MU');
 });
 void test('Tooltip distinguishes total volume from token contribution and exposes exact currency',()=>{
  const {ActivityTooltip}=load();const render=props=>renderToStaticMarkup(React.createElement(ActivityTooltip,{id:'test',point,x:50,...props}));
@@ -88,4 +97,14 @@ void test('retained prior-day volume cannot create a transient bar for today',()
  assert.match(html,/Latest.*Oct 3.*12:00 UTC/);
  assert.ok(!html.includes('Oct 4'));
  assert.match(html,/\$100/);
+});
+
+void test('The chart uses latest volume after midnight rather than falling back to the frozen earlier total',()=>{
+ const latest={...point,day:'2026-10-05',basis:'turnover',capturedAt:Date.UTC(2026,9,6,5),oldestAt:Date.UTC(2026,9,5,15),newestAt:Date.UTC(2026,9,5,20),total:51332770.65,covered:72,known:73,tokens:[{symbol:'DJT',value:51332770.65}]};
+ const earlier={...latest,capturedAt:Date.UTC(2026,9,5,6),oldestAt:Date.UTC(2026,9,5,1),newestAt:Date.UTC(2026,9,5,5),total:26926953.44,covered:70,known:71,tokens:[{symbol:'DJT',value:26926953.44}]};
+ const {MarketActivityHistory}=load([earlier],latest);
+ const html=renderToStaticMarkup(MarketActivityHistory({data:{tokenVolumes:{}},now:latest.capturedAt}));
+ assert.match(html,/\$51\.33M/);assert.doesNotMatch(html,/\$26\.93M/);
+ assert.match(html,/Latest.*Oct 5.*20:00 UTC/);assert.match(html,/72\/73 tokens/);
+ assert.doesNotMatch(html,/Oct 6: /);
 });

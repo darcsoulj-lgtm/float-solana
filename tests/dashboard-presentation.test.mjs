@@ -5,6 +5,8 @@ import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import ts from 'typescript';
 import { bundle } from './helpers/bundle.mjs';
+import { loadComponent } from './helpers/component.mjs';
+const refreshNotice = loadComponent('components/market-refresh-notice.tsx');
 const birdeyeVolume = await bundle("export * from './lib/birdeye-volume';");
 const poolDisplay = await bundle("export {displayPoolActivity} from './lib/token-observation';");
 const holderHistory = await bundle("export * from './lib/holder-history';");
@@ -65,11 +67,11 @@ async function component(file, overrides) {
                   marketTokens: () => overrides['@/lib/tokens']?.TOKENS ?? [],
                 }
               : overrides[id]) ??
-      (id === '@/lib/market-presentation' ? marketPresentation : id === '@/lib/birdeye-volume' ? birdeyeVolume : id === '@/lib/pool-observations' ? poolObservations : id === '@/lib/stock-pools'
+      (id === './market-refresh-notice' ? refreshNotice : id === '@/lib/market-presentation' ? marketPresentation : id === '@/lib/birdeye-volume' ? birdeyeVolume : id === '@/lib/pool-observations' ? poolObservations : id === '@/lib/stock-pools'
         ? stockPools
         : id === '@/lib/wallet-handoff'
           ? { readWalletHandoff: () => null, walletHandoffId: () => null, WALLET_HANDOFF_KEY: 'float-wallet-handoff' }
-        : id === './issuer-comparison' ? { IssuerComparisonPanel: Empty } : id === './market-activity-history' ? { MarketActivityHistory: Empty } : id === './holding-wallets'
+        : id === './stock-volume-comparison' ? { StockVolumeComparisonCard: Empty } : id === './issuer-comparison' ? { IssuerComparisonPanel: Empty } : id === './market-activity-history' ? { MarketActivityHistory: Empty } : id === './holding-wallets'
           ? { HoldingWallets: Empty }
         : id === './ondo-primary-volume'
           ? { OndoPrimaryVolume: () => null }
@@ -703,7 +705,20 @@ void test('agenda failures are explicit and longer agendas expose bounded pagina
   );
 });
 
-async function marketFixture(props = {}, valuation = {}, observation = {}) {
+void test('public market routes sanitize failed refreshes and recover without a leftover warning', async () => {
+  const state = { data: null, busy: false, error: 'Could not refresh. Internal provider HTTP 503.' };
+  for (const props of [{ hidePortfolio: true }, { assetSymbol: 'MU' }, { assetSymbol: 'MISSING' }]) {
+    const fixture = await marketFixture(props, {}, {}, state);
+    const failed = renderToStaticMarkup(fixture.render());
+    assert.match(failed, /Market data temporarily unavailable/);
+    assert.doesNotMatch(failed, /Could not refresh|Internal provider|Previously loaded|Loading stock details/);
+    state.error = '';
+    assert.doesNotMatch(renderToStaticMarkup(fixture.render()), /Market data temporarily unavailable|Update delayed/);
+    state.error = 'Could not refresh. Internal provider HTTP 503.';
+  }
+});
+
+async function marketFixture(props = {}, valuation = {}, observation = {}, refreshState = { data: null, busy: false, error: '' }) {
   const states = [];
   let index = 0;
   const Wrap = ({ children }) => React.createElement('div', null, children);
@@ -760,7 +775,7 @@ async function marketFixture(props = {}, valuation = {}, observation = {}) {
     },
     '@/lib/market-data': {},
     '@/hooks/use-market-overview': {
-      useMarketOverview: () => ({ data: null, busy: false, error: '' }),
+      useMarketOverview: () => refreshState,
     },
     './ui/button': { Button: Wrap },
     './portfolio-summary': {
@@ -861,6 +876,8 @@ void test('historical display pairs remain dated in the table and detail while s
  assert.match(tableHtml,/\$105\.00/);
  assert.match(tableHtml,/\+4\.20%/);
  assert.doesNotMatch(tableHtml,/\$120\.00/);
+ assert.doesNotMatch(tableHtml,/aria-label="Last price for /);
+ assert.match(tableHtml,/About displayed price/);
 });
 void test('historical stock display does not misrepresent the current token quote used for value',async()=>{
  const historical=Date.UTC(2026,9,2,20),fresh=Date.UTC(2026,9,4,2);
@@ -1084,6 +1101,22 @@ void test('Ecosystem overview shows one valuation total and metric help without 
     html,
     /xStocks circulating value|issuer-comparison|issuer-card/,
   );
+});
+void test('summary help shows collection checks separately from original source dates and retains delayed-data disclosure',async()=>{
+ const now=Date.UTC(2026,9,5,0),old=now-36*3600000,observed=now-17*3600000,collected=now-3600000;
+ const token={symbol:'MU',issuer:'backpack',mint:'1'.repeat(32),underlyingSymbol:'MU'};
+ const issuers=[{id:'backpack',name:'Backpack',url:'https://backpack.exchange',basis:'minted',total:1050,rows:[{}],valued:[{}],observedAt:old}];
+ const {SolanaEcosystem}=await component('solana-ecosystem.tsx',{
+  './metric-info':{MetricInfo:({children,label})=>React.createElement('span',{'aria-label':label},children)},
+  '@/lib/tokens':{ISSUERS:issuers,TOKENS:[token],issuerName:()=> 'Backpack'},
+  '@/lib/token-observation':{displayPoolActivity:()=>({pools:[],observedVolume24h:null}),trackedValuation:()=>({total:1050,issuers,partial:false,mixedBases:false,delayed:true,rows:[{}],valued:[{symbol:'MU',value:1050,lastIssuedValueHistoricalReference:true}],issuerCount:1})},
+ });
+ const data={supplies:{asOf:{MU:now},fetchedAt:now},backpack:{fetchedAt:now},tokenVolumes:{source:'birdeye',intervalMs:14*3600000,data:{MU:{mint:token.mint,usd24h:1000,observedAt:observed,collectedAt:collected}}}};
+ const html=renderToStaticMarkup(React.createElement(SolanaEcosystem,{data,now,issuerScope:'backpack',onIssuer:()=>{}}));
+ const format=t=>new Date(t).toLocaleString(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+ for(const text of ['Backpack checked: '+format(now),'Supply checked: '+format(now),'Oldest value input: '+format(old),'Collected: '+format(collected),'Oldest source data: '+format(observed)])assert.ok(html.includes(text),text);
+ assert.match(html,/refreshed about every 14 hours/);assert.match(html,/Delayed update/);assert.doesNotMatch(html,/Oldest update:|Oldest observation:/);
+ assert.equal(data.tokenVolumes.data.MU.observedAt,observed);
 });
 
 void test('Legacy Backpack links open Markets and preserve the four-item member shell', async () => {

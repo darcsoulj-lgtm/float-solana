@@ -9,6 +9,7 @@ void test('chart preserves source and skips unfinished and empty hours',()=>{
  const result=parseBackpackChart([row(0),row(1),{...row(2),volume:'0',trades:'0'},row(3)],token,now);
  assert.equal(result.points.length,2);assert.equal(result.omittedHours,2);
  assert.equal(result.points[1][0],Date.parse('2026-09-30T02:00:00Z'));
+ assert.deepEqual(result.completedEmptyHours,[Date.parse('2026-09-30T03:00:00Z')]);
  assert.equal(result.source,'Backpack External');assert.equal(result.basis,'stock-reference');assert.equal(result.fetchedAt,now);
 });
 void test('chart rejects malformed, duplicate, unordered, empty, future and impossible data',()=>{

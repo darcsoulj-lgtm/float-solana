@@ -8,6 +8,7 @@ import './backpack-dashboard.css';
 import './member-experience.css';
 import './install-experience.css';
 import './issuer-comparison.css';
+import './stock-volume-comparison.css';
 import { InstallProvider, InstallEntry } from '@/components/install-experience';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { AgentTools } from '@/components/agent-tools';

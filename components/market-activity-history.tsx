@@ -1,21 +1,46 @@
 'use client';
-import { useEffect, useId, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { api } from '@/lib/client';
 import type { MarketOverview } from '@/lib/market-data';
 import { tradingActivity, activityBreakdown, validTradingActivity, type TradingActivity } from '@/lib/trading-activity';
 import { activityWindow, activitySnapshots, volumeObservationTime } from '@/lib/market-presentation';
 import Link from '@/components/site-link';
 import { MetricInfo } from './metric-info';
+import { MarketDateNavigation } from './market-date-navigation';
 
 const compact = (value: number | null) => value === null ? '—' : new Intl.NumberFormat('en-US', {
   style:'currency', currency:'USD', notation:'compact', maximumFractionDigits:2,
 }).format(value);
 const dateLabel = (day: string) => new Date(day+'T00:00:00Z').toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'});
 const colors = ['#cc3049','#d86072','#de8693','#e7aab3','#eed0d5','#b4b8c0'];
+type Inspection = {point: TradingActivity; x: number; symbol?: string};
+const inspectionKey = (value: Inspection) => value.point.day + ':' + (value.symbol ?? '');
 
 export function MarketActivityHistory({data, now}: {data: MarketOverview | null; now: number}) {
   const tooltipId = useId();
-  const [hovered,setHovered] = useState<{point: TradingActivity; x: number; symbol?: string}|null>(null);
+  const [hovered,setHovered] = useState<Inspection|null>(null);
+  const inspectionAnchor = useRef<HTMLButtonElement|null>(null);
+  const pointerFocus = useRef(false);
+  const dismissed = useRef<string|null>(null);
+  const dismiss = () => { if (hovered) dismissed.current=inspectionKey(hovered); setHovered(null); };
+  const inspect = (value: Inspection, target: HTMLButtonElement) => {
+    if (dismissed.current===inspectionKey(value)) return;
+    inspectionAnchor.current=target; setHovered(value);
+  };
+  const toggleInspection = (value: Inspection, target: HTMLButtonElement) => {
+    pointerFocus.current=false;
+    if (hovered && inspectionKey(hovered)===inspectionKey(value)) { dismiss(); return; }
+    dismissed.current=null; inspect(value,target);
+  };
+  useEffect(() => {
+    if (!hovered) return;
+    const close = () => { dismissed.current=inspectionKey(hovered); setHovered(null); };
+    const outside = (event: PointerEvent) => { if (!inspectionAnchor.current?.contains(event.target as Node)) close(); };
+    const escape = (event: KeyboardEvent) => { if(event.key==='Escape') close(); };
+    document.addEventListener('pointerdown',outside,true);
+    document.addEventListener('keydown',escape);
+    return () => { document.removeEventListener('pointerdown',outside,true); document.removeEventListener('keydown',escape); };
+  },[hovered]);
   const [points,setPoints] = useState<TradingActivity[]>([]);
   const [days,setDays] = useState<7|30|90>(30);
   const [selected,setSelected] = useState<string|null>(null);
@@ -53,15 +78,16 @@ export function MarketActivityHistory({data, now}: {data: MarketOverview | null;
   return <section className={`market-history-panel trading-activity${showHistory ? '' : ' activity-snapshot'}`} aria-labelledby="market-history-title">
     <header>
       <h3 id="market-history-title">Trading activity <MetricInfo label="About trading activity" learnMore="/data-methodology#activity">{metric}. Rolling observations; recovered UTC-day totals are marked separately. Missing days stay blank. {basis==='turnover' ? 'Source: Birdeye. Trades between tracked tokens may count twice.' : 'Shared pools are split between tokens.'}{chosen && <><br />Source times: {new Date(chosen.oldestAt).toLocaleString()} – {new Date(chosen.newestAt).toLocaleString()}. {chosen.covered}/{chosen.known} {chosen.basis==='pools'?'pools':'tokens'} included; coverage may be incomplete.</>}</MetricInfo></h3>
+      <div className="activity-heading-controls">{chosen && <MarketDateNavigation label="Activity date" days={series.filter(s=>s.point).map(s=>s.day)} value={chosen.day} onChange={day=>{choose(day);setHovered(null);}}/>}
       {hasPeriods && <div className="market-history-controls"><fieldset aria-label="Activity period"><legend className="sr-only">Activity period</legend>
         {([7,30,90] as const).map(n => <button key={n} type="button" disabled={n===90 && ![...byDay.keys()].some(day => Date.parse(day+'T00:00:00Z') < Date.parse(today+'T00:00:00Z')-30*86400000)} aria-pressed={days===n} onClick={() => {setDays(n);setSelected(null);setHovered(null);}}>{n}D</button>)}
-      </fieldset></div>}
+      </fieldset></div>}</div>
     </header>
     <div className="activity-body">
       <div className="activity-chart">
         <div className="activity-selected" aria-live="polite"><span className="activity-value-label">24h volume</span><strong>{compact(chosen?.total ?? null)}</strong><span>{chosen ? chosen.backfill ? `Recovered UTC day · ${dateLabel(chosen.day)}` : `${chosen === current ? 'Latest' : 'Snapshot'} · ${volumeObservationTime(chosen.newestAt)}` : 'Volume unavailable'}</span></div>
         {showHistory ? <>
-          <div className="activity-plot" onPointerLeave={() => setHovered(null)}>
+          <div className="activity-plot" onPointerLeave={e => {if(e.pointerType==='mouse'){dismissed.current=null;setHovered(null);}}}>
           <svg viewBox="0 0 1000 245" preserveAspectRatio="none" aria-label={`${metric}. ${available} observations over ${series.length} days. Missing dates are gaps.`}>
             {[0,.5,1].map(f => <g key={f}><line x1={plot.x} x2={plot.x+plot.width} y1={plot.y+plot.height*(1-f)} y2={plot.y+plot.height*(1-f)} className="market-history-grid"/><text x={plot.x-10} y={plot.y+plot.height*(1-f)+4} textAnchor="end" className="market-history-axis">{compact(max*f)}</text></g>)}
             {series.map(({day,point},i) => {
@@ -72,7 +98,7 @@ export function MarketActivityHistory({data, now}: {data: MarketOverview | null;
                 <rect x={plot.x+i*cell} y={plot.y} width={cell} height={plot.height} fill="transparent"/>
                 {parts.map((part,j) => { const height=part.value/max*plot.height; offset+=height; return <rect key={part.symbol} x={plot.x+i*cell+(cell-barWidth)/2} y={plot.y+plot.height-offset} width={barWidth} height={height} rx={0} fill={colors[j]} opacity={.65}/>;})}
                 {chosen?.day===day && <circle cx={plot.x+(i+.5)*cell} cy={plot.y+plot.height+10} r={3} fill="currentColor" aria-hidden="true"/>}
-                <foreignObject x={plot.x+i*cell} y={plot.y} width={cell} height={plot.height}><button type="button" className="activity-bar-target" aria-label={`${dateLabel(day)}: ${compact(point.total)}`} aria-pressed={chosen?.day===day} onKeyDown={e => {if(e.key==='Escape') setHovered(null);}} aria-describedby={hovered?.point.day===day ? tooltipId : undefined} onPointerEnter={() => setHovered({point,x:(plot.x+(i+.5)*cell)/10})} onFocus={() => setHovered({point,x:(plot.x+(i+.5)*cell)/10})} onBlur={() => setHovered(null)} onClick={() => {choose(day);setHovered({point,x:(plot.x+(i+.5)*cell)/10});}}><span className="sr-only">{dateLabel(day)}</span></button></foreignObject>
+                <foreignObject x={plot.x+i*cell} y={plot.y} width={cell} height={plot.height}><button type="button" className="activity-bar-target" aria-label={`${dateLabel(day)}: ${compact(point.total)}`} aria-pressed={chosen?.day===day} onKeyDown={e => {if(e.key==='Escape') dismiss();}} aria-describedby={hovered?.point.day===day ? tooltipId : undefined} onPointerDown={()=>{pointerFocus.current=true;}} onPointerEnter={e => {if(e.pointerType==='mouse') {dismissed.current=null;inspect({point,x:(plot.x+(i+.5)*cell)/10},e.currentTarget);}}} onFocus={e => {if(!pointerFocus.current && e.currentTarget.matches(':focus-visible')) {dismissed.current=null;inspect({point,x:(plot.x+(i+.5)*cell)/10},e.currentTarget);}}} onBlur={() => {pointerFocus.current=false;dismiss();}} onClick={e => {choose(day);toggleInspection({point,x:(plot.x+(i+.5)*cell)/10},e.currentTarget);}}><span className="sr-only">{dateLabel(day)}</span></button></foreignObject>
               </g>;
             })}
             <text x={plot.x+cell/2} y={232} textAnchor="middle" className="market-history-axis">{dateLabel(series[0].day)}</text><text x={plot.x+plot.width-cell/2} y={232} textAnchor="middle" className="market-history-axis">{dateLabel(series.at(-1)!.day)}</text>
@@ -80,11 +106,11 @@ export function MarketActivityHistory({data, now}: {data: MarketOverview | null;
           {hovered && <ActivityTooltip id={tooltipId} point={hovered.point} x={hovered.x} composition />}
           </div>
           <div className="activity-mobile-axis" aria-hidden="true"><span style={{left:`${(plot.x+cell/2)/10}%`}}>{dateLabel(series[0].day)}</span><span style={{left:`${(plot.x+plot.width-cell/2)/10}%`}}>{dateLabel(series.at(-1)!.day)}</span></div>
-          <label className="activity-date">Date <select aria-label="Select activity observation" value={chosen?.day ?? today} onChange={e => choose(e.target.value)}>{series.filter(s => s.point).map(s => <option key={s.day} value={s.day}>{dateLabel(s.day)}{s.day===series.at(-1)?.day?' · Latest':''}</option>)}</select></label>
-        </> : <div className="activity-building">{chosen && <div className="activity-plot activity-plot--mix" onPointerLeave={() => setHovered(null)}><div className="activity-current-mix" aria-label="Current volume composition">{breakdown.map((row,i) => {
+
+        </> : <div className="activity-building">{chosen && <div className="activity-plot activity-plot--mix" onPointerLeave={e => {if(e.pointerType==='mouse'){dismissed.current=null;setHovered(null);}}}><div className="activity-current-mix" aria-label="Current volume composition">{breakdown.map((row,i) => {
           const x = chosen.total ? (breakdown.slice(0,i).reduce((sum,r) => sum+r.value,0)+row.value/2)/chosen.total*100 : 50;
-          const show = () => setHovered({point:chosen,symbol:row.symbol,x});
-          return <button type="button" key={row.symbol} style={{width:`${chosen.total ? row.value/chosen.total*100 : 0}%`,background:colors[i]}} aria-label={`${row.symbol}: ${compact(row.value)}`} onKeyDown={e => {if(e.key==='Escape') setHovered(null);}} aria-describedby={hovered?.symbol===row.symbol ? tooltipId : undefined} onPointerEnter={show} onFocus={show} onBlur={() => setHovered(null)} onClick={show}><span className="sr-only">{row.symbol}</span></button>;
+          const value = {point:chosen,symbol:row.symbol,x};
+          return <button type="button" key={row.symbol} style={{width:`${chosen.total ? row.value/chosen.total*100 : 0}%`,background:colors[i]}} aria-label={`${row.symbol}: ${compact(row.value)}`} onKeyDown={e => {if(e.key==='Escape') dismiss();}} aria-describedby={hovered?.symbol===row.symbol ? tooltipId : undefined} onPointerDown={()=>{pointerFocus.current=true;}} onPointerEnter={e=>{if(e.pointerType==='mouse') {dismissed.current=null;inspect(value,e.currentTarget);}}} onFocus={e=>{if(!pointerFocus.current && e.currentTarget.matches(':focus-visible')) {dismissed.current=null;inspect(value,e.currentTarget);}}} onBlur={()=>{pointerFocus.current=false;dismiss();}} onClick={e=>toggleInspection(value,e.currentTarget)}><span className="sr-only">{row.symbol}</span></button>;
         })}</div>{hovered && <ActivityTooltip id={tooltipId} point={hovered.point} x={hovered.x} symbol={hovered.symbol}/>}</div>}{status !== 'ready' && <output>{status==='loading' ? 'Loading history…' : 'History temporarily unavailable'}</output>}</div>}
       </div>
       <div className="activity-ranking"><div className="activity-ranking-heading"><h4>By token</h4></div>
@@ -108,4 +134,3 @@ export function ActivityTooltip({id, point, x, symbol, composition=false}: {id: 
     {composition && <ul>{rows.map((r,i) => <li key={r.symbol}><span><i style={{background:colors[i]}}/>{r.symbol}</span><strong>{full(r.value)}<small>{point.total ? (r.value/point.total*100).toFixed(1) : '0'}%</small></strong></li>)}</ul>}
   </div>;
 }
-

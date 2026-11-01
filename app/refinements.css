@@ -1161,6 +1161,7 @@ fieldset.holding-filter-chips {
 
 .quote-delay { display: inline-flex; align-items: center; gap: .2rem; margin-left: .4rem; font-size: .72rem; font-weight: 400; color: var(--muted-foreground); vertical-align: middle; white-space: nowrap; }
 .quote-delay .holdings-info-trigger { margin: 0; }
+.market-refresh-notice { display: block; color: var(--muted-foreground); font-size: .8125rem; line-height: 1.5; }
 
 /* The discussion is a continuous reading surface; only structured content
    inside a post, such as polls, gets its own container. */

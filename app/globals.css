@@ -5610,9 +5610,18 @@ body:has(.community-entry) > footer {
 .activity-track > span { display:block; height:100%; }
 .activity-building { color:var(--muted-foreground); min-width:0; }
 .activity-building > output { display:block; font-size:12px; margin:12px 0 0; }
-.activity-date { display:flex; align-items:center; gap:10px; color:var(--muted-foreground); font-size:12px; }
-.activity-date select { color:var(--foreground); background:var(--background); border:1px solid var(--border); border-radius:6px; min-height:36px; padding:5px 8px; font:inherit; }
-.activity-footer { display:flex; justify-content:flex-end; gap:12px; border-top:1px solid var(--border); padding:14px 0 0; margin:0; font-size:12px; color:var(--muted-foreground); }
+/* Date controls share one calendar across market charts. */
+.activity-heading-controls { display:flex; flex-wrap:wrap; align-items:center; gap:12px; justify-content:flex-end; }
+.market-date-navigation { margin:0; padding:0; border:0; display:inline-flex; align-items:center; gap:2px; flex-shrink:0; }
+.market-date-navigation button { display:inline-flex; align-items:center; justify-content:center; min-width:36px; min-height:36px; padding:6px; border:0; border-radius:6px; background:transparent; color:var(--foreground); cursor:pointer; font:inherit; box-shadow:none; }
+.market-date-navigation .market-date-trigger { padding:6px 10px; font-size:13px; font-weight:500; white-space:nowrap; }
+.market-date-navigation button:hover:not(:disabled) { background:var(--muted); }
+.market-date-navigation button:disabled { opacity:.35; cursor:default; }
+.market-date-navigation button:focus-visible { outline:2px solid var(--brand-accent); outline-offset:2px; }
+.market-date-popover { width:fit-content; max-width:calc(100vw - 32px); background:var(--card); color:var(--foreground); border:1px solid var(--border); box-shadow:0 8px 24px #00000016; }
+@media(max-width:600px) { .market-date-navigation button { min-height:44px; min-width:44px; } .activity-heading-controls { justify-content:flex-start; } }
+.activity-footer { display:flex; justify-content:flex-end; flex-wrap:wrap; gap:12px; border-top:1px solid var(--border); padding:14px 0 0; margin:0; font-size:12px; color:var(--muted-foreground); }
+.activity-footer > span { margin-right:auto; }
 .activity-footer a { color:inherit; text-decoration:none; }
 .activity-footer a:hover { color:var(--foreground); }
 .activity-bar-target { display:block; width:100%; height:100%; padding:0; background:transparent; border:0; cursor:pointer; }

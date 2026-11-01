@@ -5,6 +5,7 @@ import { PortfolioSummary } from './portfolio-summary';
 import { MemberBrief } from './member-brief';
 import { UpcomingAgenda } from './upcoming-agenda';
 import { useMarketOverview } from '@/hooks/use-market-overview';
+import { MarketRefreshNotice } from './market-refresh-notice';
 import { api } from '@/lib/client';
 import type { Holding, ThreadPage } from '@/lib/community-types';
 import type { EditorialItem } from '@/lib/editorial';
@@ -81,7 +82,7 @@ export function MemberHomePanel({
         />
         <div className="home-portfolio-footer">
           {error ? (
-            <output>Prices could not update. Saved quotes may be dated.</output>
+            <MarketRefreshNotice failed hasData={!!data} />
           ) : (
             <span />
           )}

@@ -5,6 +5,7 @@ import { defineConfig } from 'vite';
 import hostingConfig from './.openai/hosting.json';
 import { localMarketPreview } from './scripts/local-market-preview.mjs';
 import { retainClientAssets } from './scripts/retain-client-assets.mjs';
+import { stockVolumePreview } from './scripts/stock-volume-preview.mjs';
 
 const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
   '00000000-0000-4000-8000-000000000000';
@@ -55,6 +56,7 @@ export default defineConfig(async () => {
     },
     plugins: [
       ...(process.env.FLOAT_LOCAL_PREVIEW === '1' ? [localMarketPreview()] : []),
+      ...(process.env.FLOAT_STOCK_VOLUME_PREVIEW === '1' ? [stockVolumePreview()] : []),
       vinext(),
       sites(),
       retainClientAssets(),

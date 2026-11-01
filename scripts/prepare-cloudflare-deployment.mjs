@@ -34,7 +34,7 @@ if (!['0','1'].includes(birdeyeEnabled) || !Number.isSafeInteger(Number(birdeyeB
 // Durable mode requires migration 0021 and staging CPU/quota/soak evidence.
 // RJ chose to keep the free plan and defer public issuer comparison. Never
 // inherit an old flag or activate collection as a side effect of a UI release.
-config.vars = { ...config.vars, SOURCE_FINGERPRINT: await sourceFingerprint(), PUBLIC_RENDER_VERSION: randomUUID(), BIRDEYE_COMPARISON_ENABLED: '0', BIRDEYE_VOLUME_ENABLED: birdeyeEnabled, BIRDEYE_VOLUME_BUDGET_CU: birdeyeBudget, MARKET_SCHEDULED: '1', MARKET_COLLECTION_SOURCE: collectionSource, MARKET_FAST_SOURCE: fastSource, TRADING_ENABLED: tradingEnabled, TRADING_RPC_URL: 'https://solana-rpc.publicnode.com' };
+config.vars = { ...config.vars, STOCK_VOLUME_ENABLED: '1', SOURCE_FINGERPRINT: await sourceFingerprint(), PUBLIC_RENDER_VERSION: randomUUID(), BIRDEYE_COMPARISON_ENABLED: '0', BIRDEYE_VOLUME_ENABLED: birdeyeEnabled, BIRDEYE_VOLUME_BUDGET_CU: birdeyeBudget, MARKET_SCHEDULED: '1', MARKET_COLLECTION_SOURCE: collectionSource, MARKET_FAST_SOURCE: fastSource, TRADING_ENABLED: tradingEnabled, TRADING_RPC_URL: 'https://solana-rpc.publicnode.com' };
 config.account_id = 'd3e7bd4eb990bc3978aa78cae19c509f';
 config.ratelimits = [{ name: 'MARKET_READ_LIMITER', namespace_id: '1001', simple: { limit: 120, period: 60 } }];
 config.ai = { binding: 'AI' };

@@ -56,6 +56,11 @@ function poolTiming(oldest: number | null, newest: number | null) {
   const format = (value: number) => new Date(value).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
   return `Observed ${format(oldest)}${newest !== oldest ? ` – ${format(newest)}` : ''}. Rolling 24h; update times vary.`;
 }
+function collectionTime(from: number | null, to: number | null = from) {
+  if (!from || !to) return 'Unavailable';
+  const format = (value: number) => new Date(value).toLocaleString(undefined, {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+  return `${format(from)}${to !== from ? ` – ${format(to)}` : ''}`;
+}
 export function SolanaEcosystem({
   data,
   now,
@@ -117,6 +122,8 @@ export function SolanaEcosystem({
     .filter(issuer => issuer.total !== null && issuer.observedAt != null && issuer.observedAt > 0)
     .map(issuer => issuer.observedAt!);
   const oldestValuation = valuationTimes.length ? Math.min(...valuationTimes) : null;
+  const supplyChecks = tokens.map(token => data?.supplies.asOf?.[token.symbol] ?? data?.supplies.fetchedAt).filter((at): at is number => typeof at === 'number' && at > 0);
+  const oldestSupplyCheck = supplyChecks.length ? Math.min(...supplyChecks) : null;
   const historicalEstimateCount = coverage.valued.filter(row => row.lastIssuedValueHistoricalReference).length;
   const delayedObservedValues = historicalEstimateCount === 0 ? coverage.delayed : coverage.issuers.some(issuer =>
     issuer.total !== null && ((issuer.basis === 'circulating' && issuer.delayed) || issuer.valued.some(row =>
@@ -136,7 +143,9 @@ export function SolanaEcosystem({
             <MetricInfo label="About tokenized value" learnMore="/data-methodology#value">
               {issuerScope ? 'Estimated value of issued tokens, including issuer holdings.' : 'Estimated tokenized value on Solana. Supply basis varies by issuer.'}
               <br />{data ? `${coverage.valued.length} / ${coverage.rows.length} tokens included.` : 'Loading coverage.'}
-              {oldestValuation && <><br />Oldest update: {new Date(oldestValuation).toLocaleString()}.</>}
+              {issuerScope === 'backpack' && data?.backpack?.fetchedAt && <><br />Backpack checked: {collectionTime(data.backpack.fetchedAt)}.</>}
+              {oldestSupplyCheck && <><br />Supply checked: {collectionTime(oldestSupplyCheck)}.</>}
+              {oldestValuation && <><br />Oldest value input: {collectionTime(oldestValuation)}.</>}
               {historicalEstimateCount > 0 && <><br />Includes last stock prices × fresh minted supply.</>}
               {delayedObservedValues && <><br />Includes delayed data.</>}
               {coverage.mixedBases && <><br />Supply basis varies by issuer.</>}
@@ -152,7 +161,7 @@ export function SolanaEcosystem({
           <span className="metric-label">
             <span>24h volume</span>
             <MetricInfo label="About market volume" learnMore="/data-methodology#pools">
-              {turnover ? <>Birdeye DEX token volume. Trades between tracked tokens may count twice.<br />{turnover.covered} / {turnover.count} tokens included. Refreshed approximately every {data!.tokenVolumes!.intervalMs / 3600000} hours.{data!.tokenVolumes!.pending?.length ? <><br />{data!.tokenVolumes!.pending!.join(', ')} awaiting first collection.</> : null}<br />Oldest observation: {turnover.oldestAt ? new Date(turnover.oldestAt).toLocaleString() : 'Unavailable'}.</> : <>24-hour volume from verified DEX pools, counted once. Coverage may be incomplete.
+              {turnover ? <>Birdeye DEX token volume. Trades between tracked tokens may count twice.<br />{turnover.covered} / {turnover.count} tokens · refreshed about every {data!.tokenVolumes!.intervalMs / 3600000} hours.{data!.tokenVolumes!.pending?.length ? <><br />{data!.tokenVolumes!.pending!.join(', ')} awaiting first collection.</> : null}<br />Collected: {collectionTime(turnover.collectedFrom, turnover.collectedTo)}.<br />Oldest source data: {collectionTime(turnover.oldestAt)}.</> : <>24-hour volume from verified DEX pools, counted once. Coverage may be incomplete.
               <br />{poolTiming(marketActivity.oldestAt, marketActivity.newestAt)}
               {data && <><br />{marketActivity.observedCount} / {marketActivity.knownCount} known pools included; {marketActivity.missingTokenCount} markets without observations.</>}
               {marketActivity.saved && <><br />Includes saved observations.</>}</>}
@@ -275,4 +284,3 @@ export function SolanaEcosystem({
     </section>
   );
 }
-

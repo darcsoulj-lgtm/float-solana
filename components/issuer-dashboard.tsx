@@ -607,8 +607,9 @@ export function IssuerDashboardContent({
         <output className="bp-status">
           {busy
             ? 'Updating…'
-            : error ||
-              (fetched
+            : error
+              ? data ? 'Update delayed' : 'Market data temporarily unavailable'
+              : (fetched
                 ? `Pools updated ${new Date(fetched).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · auto-updates`
                 : 'Waiting for market data')}
           {data?.pools.error && !busy ? ' · Partial coverage' : ''}
