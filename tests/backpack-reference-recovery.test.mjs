@@ -71,6 +71,18 @@ void test('dated recovery survives a fresh null snapshot and remains display-onl
  const future=a.overlayBackpackHistory(source({}),[token],new Map([[a.backpackHistoryKey(token.mint),{payload:JSON.stringify({...quote,externalObservedAt:now+1}),fetched_at:now}]]),now);assert.deepEqual(future.data,{});
  const fresh=a.overlayBackpackHistory(source({MU:{...quote,externalPrice:110,externalBasis:undefined,externalObservedAt:now}}),[token],saved,now);assert.equal(fresh.data.MU.externalPrice,110);
 });
+void test('the scheduled history executor persists the real earlier comparison when the latest baseline is empty',async()=>{
+ const {raw,db}=database(),hour=3600000,end=Math.floor(Date.now()/hour)*hour;
+ const candle=(at,price)=>({start:new Date(at-hour).toISOString().slice(0,19).replace('T',' '),end:new Date(at).toISOString().slice(0,19).replace('T',' '),open:String(price),high:String(price),low:String(price),close:String(price),volume:'1',trades:'1'});
+ const response=[candle(end-30*hour,100),candle(end-6*hour,105),candle(end-3*hour,120)];
+ await a.refreshFastMarketSource({DB:db},{kind:'reference-history',mint:token.mint},async()=>Response.json(response));
+ const history=JSON.parse(raw.prepare('SELECT payload FROM market_cache WHERE key=?').get(a.backpackHistoryKey(token.mint)).payload);
+ assert.equal(history.externalPrice,120);assert.equal(history.externalObservedAt,end-3*hour);
+ assert.equal(history.externalChange24h,null);assert.equal(history.historicalExternalReference.price,105);
+ assert.equal(history.historicalExternalReference.observedAt,end-6*hour);assert.equal(history.historicalExternalReference.firstPrice,100);
+ assert.equal(JSON.parse(raw.prepare('SELECT payload FROM market_cache WHERE key=?').get('market-fast:v1:reference-history:'+token.mint).payload).status,'ok');
+ raw.close();
+});
 void test('partial ticker refresh never renews or erases an omitted symbol',()=>{
  const previous=source({MU:quote,SKHY:{...quote,externalObservedAt:undefined}},now-360000);
  const rows=a.retainBackpackReferences({MU:{...quote,externalPrice:111},SKHY:{...quote,externalPrice:null}},previous,now);

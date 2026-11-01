@@ -11,8 +11,9 @@ export class BackpackReferenceRegression extends Error {}
 const validPrice = (row: BackpackMarket | undefined) => row?.externalPrice != null && Number.isFinite(row.externalPrice) && row.externalPrice > 0;
 
 export function historicalReferencePair(row:BackpackMarket | undefined,now:number):HistoricalExternalReference | null {
-  return row?.externalBasis==='hourly-history' && typeof row.externalPrice==='number' && typeof row.externalChange24h==='number' && typeof row.externalObservedAt==='number'
-    ? validatedHistoricalReferencePair({price:row.externalPrice,change24h:row.externalChange24h,observedAt:row.externalObservedAt,firstPrice:row.externalFirstPrice??null},now) : null;
+  if(!row || row.externalBasis!=='hourly-history')return null;
+  const latest=validatedHistoricalReferencePair({price:row.externalPrice!,change24h:row.externalChange24h!,observedAt:row.externalObservedAt!,firstPrice:row.externalFirstPrice??null},now);
+  return latest ?? validatedHistoricalReferencePair(row.historicalExternalReference,now);
 }
 
 // Only completed, traded hours reach this adapter. Compare the last observed
@@ -21,10 +22,18 @@ export function referenceFromChart(chart: BackpackChart): BackpackMarket {
   const latest = chart.points.at(-1);
   if (!latest) throw Error('No completed stock reference');
   const first = chart.points.find(point => point[0] === latest[0] - 86400000);
+  const prices=new Map(chart.points);
+  // Keep the latest close untouched. A separate dated pair can show the most
+  // recent real 24-hour comparison when the latest hour has no traded baseline.
+  const historicalPair=first ? null : chart.points.slice().reverse().map(([at,price])=>{
+    const baseline=prices.get(at-86400000);
+    return baseline===undefined?null:validatedHistoricalReferencePair({price,change24h:(price/baseline-1)*100,observedAt:at,firstPrice:baseline},chart.fetchedAt);
+  }).find((pair):pair is HistoricalExternalReference=>pair!==null);
   return {
     market: chart.market, externalPrice: latest[1], externalFirstPrice: first?.[1] ?? null,
     externalChange24h: first ? (latest[1] / first[1] - 1) * 100 : null,
     externalChangeUnit: 'percent', externalObservedAt: latest[0], externalBasis: 'hourly-history',
+    ...(historicalPair?{historicalExternalReference:historicalPair}:{}),
     externalVolume24h: null, externalQuoteVolume24h: null, externalTrades: null,
     venueVolume24h: null, venueQuoteVolume24h: null, venueTrades: null,
   };

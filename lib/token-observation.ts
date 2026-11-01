@@ -279,7 +279,21 @@ export function tokenObservation(
   // Keep issuedValue strict for eligibility, research and financial calculations.
   // A preferred historical stock reference is presentation only. It must not
   // suppress a newer validated price/supply pair from an independent source.
-  const observedPairQuote = lastQuotes.find(quote => lastObserved(quote.time, now) && !!oldSupplyTime && Math.abs(quote.time - oldSupplyTime) <= VALUATION_PAIR_MAX_SKEW_MS);
+  // Validate each candidate before selection. A conflicting recent pool must
+  // not suppress a separately valid, dated official stock-reference estimate.
+  const conflictsWithSavedReference = (quote: {value:number;time:number}) => {
+    const comparable = [quote,
+      oldBackpack && oldBackpackTime
+        ? {value:oldBackpack.externalPrice,time:oldBackpackTime} : null,
+      oldReference && (oldReference.confidence ?? 0) >= 0.8
+        ? {value:oldReference.price,time:oldReference.timestamp} : null,
+      oldPoolPrice ? {value:oldPoolPrice.price,time:oldPoolPrice.observedAt ?? oldPoolTime} : null,
+    ].filter((q):q is {value:number;time:number} => !!q && typeof q.value==='number' && Number.isFinite(q.value) && q.value>0 &&
+      !!q.time && Math.abs(q.time-quote.time)<=VALUATION_PAIR_MAX_SKEW_MS);
+    return comparable.length>1 && Math.max(...comparable.map(q=>q.value))/Math.min(...comparable.map(q=>q.value))-1>.05;
+  };
+  const observedPairQuote = lastQuotes.find(quote => lastObserved(quote.time, now) && !!oldSupplyTime &&
+    Math.abs(quote.time - oldSupplyTime) <= VALUATION_PAIR_MAX_SKEW_MS && !conflictsWithSavedReference(quote));
   // A stock reference can stop trading over a long weekend while minted
   // supply continues to change. Estimate today's verified supply at the last
   // official hourly close only for display; never widen arbitrary quote pairs.
@@ -289,25 +303,18 @@ export function tokenObservation(
       : storedHistoricalPair ? {value:storedHistoricalPair.price,time:storedHistoricalPair.observedAt,source:'Backpack · external'} : undefined;
   const historicalValuationQuote = officialHistoricalQuote && supply?.valuationSafe === true &&
     lastObserved(oldSupplyTime, now, SUPPLY_MAX_AGE_MS) &&
-    lastObserved(officialHistoricalQuote.time, now, BACKPACK_REFERENCE_RETAIN_MS)
+    lastObserved(officialHistoricalQuote.time, now, BACKPACK_REFERENCE_RETAIN_MS) && !conflictsWithSavedReference(officialHistoricalQuote)
       ? officialHistoricalQuote : undefined;
   const valuationQuote = observedPairQuote ?? historicalValuationQuote;
   const historicalValuation = !observedPairQuote && !!historicalValuationQuote;
   const savedPrice = valuationQuote?.value;
   const savedPriceTime = valuationQuote?.time;
-  const savedComparables = [
-    valuationQuote,
-    oldReference && (oldReference.confidence ?? 0) >= 0.8
-      ? {value: oldReference.price, time: oldReference.timestamp} : null,
-    oldPoolPrice ? {value: oldPoolPrice.price, time: oldPoolPrice.observedAt ?? oldPoolTime} : null,
-  ].filter((q): q is {value:number;time:number} => !!q && typeof q.value === 'number' && Number.isFinite(q.value) && q.value > 0 && !!q.time && !!savedPriceTime && Math.abs(q.time-savedPriceTime) <= VALUATION_PAIR_MAX_SKEW_MS);
-  const savedConflict = savedComparables.length > 1 && Math.max(...savedComparables.map(q=>q.value)) / Math.min(...savedComparables.map(q=>q.value)) - 1 > .05;
   const savedValue = token?.issuer === 'backpack' && issuedValue === null &&
     savedPrice != null && lastObserved(savedPriceTime, now, historicalValuation ? BACKPACK_REFERENCE_RETAIN_MS : LAST_OBSERVATION_DISPLAY_MAX_AGE_MS) &&
     lastSupply?.valuationSafe === true && Number.isFinite(lastSupply.supply) && lastSupply.supply >= 0 &&
     lastObserved(oldSupplyTime, now, historicalValuation ? SUPPLY_MAX_AGE_MS : LAST_OBSERVATION_DISPLAY_MAX_AGE_MS) &&
     (historicalValuation || Math.abs(savedPriceTime!-oldSupplyTime!) <= VALUATION_PAIR_MAX_SKEW_MS) &&
-    (!lastSupply.adjustmentAt || savedPriceTime! >= lastSupply.adjustmentAt) && !savedConflict
+    (!lastSupply.adjustmentAt || savedPriceTime! >= lastSupply.adjustmentAt)
       ? savedPrice * lastSupply.supply : null;
   // Keep the dated percentage paired with the displayed Backpack price during
   // a short refresh failure. Never substitute a different venue or renew its age.

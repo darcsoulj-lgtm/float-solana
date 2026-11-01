@@ -31,6 +31,22 @@ void test('a conflicting same-time independent reference blocks the historical e
  const data=fixture(),at=data.backpack.data.MU.externalObservedAt;data.prices=source({MU:{price:200,confidence:1,timestamp:at}},at);
  assert.equal(a.tokenObservation(data,'MU',now).lastIssuedValue,null);
 });
+void test('a conflicting recent pool cannot exclude a separately valid historical stock estimate (META regression)',()=>{
+ const data=fixture(30*HOUR,5*60000);
+ const referenceAt=now-24*60000,poolAt=now-9*60000;
+ data.prices=source({MU:{price:104.9,confidence:1,timestamp:referenceAt}},referenceAt);
+ data.pools=source({MU:[{address:'pool',dex:'fixture',price:121,change24h:null,observedAt:poolAt}]},poolAt);
+ const row=a.tokenObservation(data,'MU',now);
+ assert.equal(row.issuedValue,null);assert.equal(row.lastIssuedValue,1050);
+ assert.equal(row.lastIssuedValueBasis,'historical-stock-reference');
+ assert.equal(row.lastIssuedValuePriceTime,now-30*HOUR);
+ for(const invalid of [fixture(96*HOUR+1),fixture(30*HOUR,20*60000+1)]){
+  invalid.prices=data.prices;invalid.pools=data.pools;
+  assert.equal(a.tokenObservation(invalid,'MU',now).lastIssuedValue,null);
+ }
+ data.supplies.data.MU.adjustmentAt=now-29*HOUR;
+ assert.equal(a.tokenObservation(data,'MU',now).lastIssuedValue,null);
+});
 function overlay(current,history=quote()){const saved=new Map([[a.backpackHistoryKey(token.mint),{payload:JSON.stringify(history),fetched_at:now,retry_after:0}]]);return a.overlayBackpackHistory(source({MU:current}),[token],saved,now);}
 void test('a fresh official quote without a return preserves the complete historical display pair separately',()=>{
  const current={...quote(),externalPrice:110,externalFirstPrice:null,externalChange24h:null,externalBasis:undefined,externalObservedAt:now},data=fixture();data.backpack=overlay(current);
