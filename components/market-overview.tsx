@@ -19,6 +19,7 @@ import { MetricInfo } from './metric-info';
 import { Fragment, useEffect, useState, type ReactNode } from 'react';
 import {
   ArrowUpRight,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Copy,
@@ -92,7 +93,6 @@ export function MarketOverviewPanel({
   const tokens = marketTokens(data).filter((token) => !issuerScope || token.issuer === issuerScope);
   const knownFunds = fundUnderlyings(tokens);
   const [bookData, setBook] = useState<SourceResult<Book> | null>(null),
-    [bookMessage, setBookReason] = useState('Loading order book…'),
     [bookSymbol, setBookSymbol] = useState(''),
     [now, setNow] = useState(() => Date.now());
   const [poolDetail, setPoolDetail] = useState<{
@@ -174,8 +174,6 @@ export function MarketOverviewPanel({
     selection;
   const selectedIssuer = tokens.find((t) => t.symbol === selected)?.issuer;
   const book = bookSymbol === selected ? bookData : null;
-  const bookReason =
-    bookSymbol === selected ? bookMessage : 'Loading order book…';
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 10000);
     return () => clearInterval(timer);
@@ -223,18 +221,15 @@ export function MarketOverviewPanel({
       try {
         const next = await api<{
           book: SourceResult<Book> | null;
-          reason: string | null;
         }>('market-data?symbol=' + encodeURIComponent(selected));
         if (active) {
           setBookSymbol(selected);
           setBook(next.book);
-          setBookReason(next.reason || '');
         }
-      } catch (e) {
+      } catch {
         if (active) {
           setBookSymbol(selected);
           setBook(null);
-          setBookReason((e as Error).message);
         }
       }
     }
@@ -280,6 +275,8 @@ export function MarketOverviewPanel({
     book?.data && !book.stale && now - book.data.timestamp <= 120000
       ? book.data
       : null;
+  const catalog = data?.catalog;
+  const catalogReady = Boolean(catalog?.fetchedAt && !catalog.stale && catalog.data);
   const stockDetail =
     detailOpen && matches.length > 0 ? (
       <section
@@ -420,55 +417,46 @@ export function MarketOverviewPanel({
         )}
         {token.issuer === 'backpack' && (
           <details className="market-methodology market-exchange-details">
-            <summary>Backpack exchange status</summary>
-          <div className="market-detail-grid">
-            <section>
-              <h3>Trading availability</h3>
-              <dl className="market-facts">
-                <div>
-                  <dt>Deposits</dt>
-                  <dd>
-                    {data?.catalog.stale
-                      ? 'Unconfirmed'
-                      : listing
-                        ? listing.deposit
-                          ? 'Enabled'
-                          : 'Unavailable'
-                        : 'Not reported'}
-                  </dd>
+            <summary>Backpack exchange status <ChevronDown size={16} aria-hidden="true" /></summary>
+            <div className={`market-exchange-content${quote ? ' market-exchange-with-book' : ''}`}>
+              <div>
+                {catalogReady && listing ? (
+                  <dl className="market-facts">
+                    <div>
+                      <dt>Deposits</dt>
+                      <dd>{listing.deposit ? 'Enabled' : 'Unavailable'}</dd>
+                    </div>
+                    <div>
+                      <dt>Withdrawals</dt>
+                      <dd>{listing.withdraw ? 'Enabled' : 'Unavailable'}</dd>
+                    </div>
+                    <div>
+                      <dt>Spot order book</dt>
+                      <dd>{listing.spot ? listing.bookState ?? 'Listed' : 'Not listed'}</dd>
+                    </div>
+                  </dl>
+                ) : (
+                  <p className="market-exchange-message">Deposit, withdrawal and spot listing status are unconfirmed.</p>
+                )}
+                {catalogReady && listing && listing.spot && !quote && (
+                  <p className="market-exchange-message">
+                    {bookSymbol === selected ? 'No current spot quotes available.' : 'Checking spot quotes…'}
+                  </p>
+                )}
+                {catalogReady && listing && !listing.spot && (
+                  <p className="market-exchange-message">RFQ trading may still be available.</p>
+                )}
+                <div className="market-exchange-meta">
+                  {catalog?.fetchedAt && <span>{catalogReady ? 'Checked' : 'Last checked'} {time(catalog.fetchedAt)}</span>}
+                  <a href="https://docs.backpack.exchange/#tag/Markets" target="_blank" rel="noopener noreferrer">
+                    Backpack market documentation <ArrowUpRight size={14} aria-hidden="true" />
+                  </a>
                 </div>
-                <div>
-                  <dt>Withdrawals</dt>
-                  <dd>
-                    {data?.catalog.stale
-                      ? 'Unconfirmed'
-                      : listing
-                        ? listing.withdraw
-                          ? 'Enabled'
-                          : 'Unavailable'
-                        : 'Not reported'}
-                  </dd>
-                </div>
-                <div>
-                  <dt>Spot order book</dt>
-                  <dd>{listing?.spot ? listing.bookState : 'Not listed'}</dd>
-                </div>
-              </dl>
-              <p className="market-footnote">
-                Checked {time(data?.catalog.fetchedAt)}. Your account and region may still affect access. An open book does not guarantee a trade.
-              </p>
-              <a
-                href="https://docs.backpack.exchange/#tag/Markets"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Backpack market documentation <ArrowUpRight size={14} />
-              </a>
-            </section>
-            <section>
-              <h3>Spot order book</h3>
-              {quote ? (
-                <>
+                {catalogReady && listing && <p className="market-exchange-message">Access may vary by account and region.</p>}
+              </div>
+              {quote && (
+                <section className="market-exchange-book">
+                  <h3>Spot quotes</h3>
                   <dl className="market-facts">
                     <div>
                       <dt>Best bid / ask</dt>
@@ -489,19 +477,12 @@ export function MarketOverviewPanel({
                       <dd>{money(quote.askDepth1pct, true)}</dd>
                     </div>
                   </dl>
-                  <p className="market-footnote">
-                    Checked {time(quote.timestamp)}. Updates every 30 seconds. 100 bps = 1%. RFQ quotes are not included, and liquidity can change.
+                  <p className="market-exchange-message">
+                    Checked {time(quote.timestamp)}. Spot liquidity can change before execution. RFQ quotes are separate.
                   </p>
-                </>
-              ) : (
-                <p className="market-empty">
-                  {book?.stale
-                    ? 'No fresh order-book observation is available.'
-                    : bookReason || 'No order-book data available.'}
-                </p>
+                </section>
               )}
-            </section>
-          </div>
+            </div>
           </details>
         )}
         <details className="market-pools">

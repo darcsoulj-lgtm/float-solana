@@ -847,6 +847,30 @@ function findElement(tree, predicate) {
   }
   return null;
 }
+void test('Backpack exchange status only reports an unlisted spot book from a current catalog', async () => {
+  const listing = { symbol: 'MU', deposit: true, withdraw: false, spot: null };
+  const catalog = { data: [listing], fetchedAt: Date.now(), stale: true };
+  const fixture = await marketFixture({ assetSymbol: 'MU' }, {}, {}, {
+    data: { catalog }, busy: false, error: '',
+  });
+  const panel = () => renderToStaticMarkup(findElement(fixture.render(), node =>
+    node.props?.className === 'market-methodology market-exchange-details'));
+
+  assert.match(panel(), /Deposit, withdrawal and spot listing status are unconfirmed/);
+  assert.match(panel(), /Last checked/);
+  assert.doesNotMatch(panel(), /Not listed|Spot quotes|RFQ trading/);
+
+  catalog.stale = false;
+  assert.match(panel(), /Deposits<\/dt><dd>Enabled/);
+  assert.match(panel(), /Withdrawals<\/dt><dd>Unavailable/);
+  assert.match(panel(), /Spot order book<\/dt><dd>Not listed/);
+  assert.match(panel(), /RFQ trading may still be available/);
+  assert.doesNotMatch(panel(), /Spot quotes/);
+
+  catalog.data = [];
+  assert.match(panel(), /spot listing status are unconfirmed/);
+  assert.doesNotMatch(panel(), /Not listed/);
+});
 void test('displayed historical prices and saved valuations keep matching timestamps in expanded disclosures',async()=>{
  const historical=Date.now()-36*3600000,saved=Date.now()-3600000;
  const f=await marketFixture({assetSymbol:'MU',issuerScope:'backpack'}, {}, {price:null,lastPrice:105,lastPriceTime:historical,lastPriceSource:'Backpack · external',priceTime:saved,priceSource:'Unavailable',lastIssuedValue:12000,lastIssuedValuePriceSource:'DefiLlama',lastIssuedValuePriceTime:saved,lastIssuedValueSupplyTime:saved,lastIssuedValueTime:saved});
