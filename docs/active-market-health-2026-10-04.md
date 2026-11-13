@@ -1,7 +1,7 @@
 # Active source monitoring and temporary-record maintenance
 
-The custom-domain production collector uses GitHub snapshots plus fast reference,
-history, supply and Birdeye jobs. Durable-queue state alone does not describe these
+The custom-domain production collector uses GitHub snapshots plus fast exchange
+status, reference, history, supply and Birdeye jobs. Durable-queue state alone does not describe these
 lanes. The private health job now checks their cache contracts, writes a small
 public-safe summary, and maintains aggregate failure/recovery incidents.
 
@@ -18,6 +18,9 @@ independently of upstream collection.
 - Reference coverage: dated history remains displayable only under the existing
   96-hour retention policy; history collection itself must have checked within two
   hours when the ticker is not fresh.
+- Backpack exchange status: the existing Worker schedule refreshes the public
+  asset and market lists with a shared lease. The five-minute display limit also
+  applies to cached browser data. The health summary flags a stale or empty catalog.
 - Supply: existing 20-minute validity plus ten minutes operational grace.
 - Birdeye: observation overdue after configured collection interval plus two
   hours; scheduler status must be healthy and checked within 15 minutes. Tokens
@@ -46,6 +49,11 @@ not evidence that email was delivered. A public publication workflow can poll th
 allowlisted summary and fail on actionable degradation using existing GitHub
 notification preferences. Worker/workflow deployment and delivery evidence are
 separate release steps.
+
+On November 13, the GitHub collector had fresh exchange status but published 107
+chunks, exceeding the import limit of 100. Publication now includes the current
+verified registry's canonical keys. Previous observations stay in collector state
+for recovery. The importer keeps the existing per-tick request and chunk limits.
 
 Temporary-record cleanup runs independently of sign-in traffic. It deletes at
 most 100 expired rows per fixed table (1,200 maximum per invocation), preserving

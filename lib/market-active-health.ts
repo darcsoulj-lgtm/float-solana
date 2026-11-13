@@ -9,7 +9,7 @@ import { holderRegistry } from './issuer-holder-registry';
 import { readHoldingWallets } from './issuer-holders-server';
 import { readTradingActivity } from './trading-activity-server';
 import type { HoldingWallets } from './issuer-holders';
-import type { MarketOverview } from './market-data';
+import { BACKPACK_CATALOG_MAX_AGE_MS, type MarketOverview } from './market-data';
 import type { StockToken } from './tokens';
 import { PUBLIC_MARKET_COMPACT_SNAPSHOT_KEY, PUBLIC_MARKET_SNAPSHOT_KEY, PUBLIC_MARKET_SNAPSHOT_MAX_AGE_MS, PUBLIC_MARKET_SNAPSHOT_WARNING_BYTES } from './public-market-snapshot';
 
@@ -52,6 +52,7 @@ export function activeHealthIssues(input: {
     if(volumeEnabled && ((volume && !recent(volume.collectedAt,(market.tokenVolumes?.intervalMs??14*HOUR)+2*HOUR,now)) || (!volume && !checkedMissing && !!prior?.payload && prior.fetched_at>0)))volumes++;
   }
   if(references)issues.push({source:'references',code:'reference_coverage_missing',affected:references});
+  if(eligible.length && (!market.catalog?.data?.length || market.catalog.stale || !recent(market.catalog.fetchedAt,BACKPACK_CATALOG_MAX_AGE_MS,now)))issues.push({source:'catalog',code:'catalog_collection_overdue',affected:1});
   if(historyChecks)issues.push({source:'reference-history',code:'history_collection_overdue',affected:historyChecks});
   if(supplies)issues.push({source:'supplies',code:'supply_collection_overdue',affected:supplies});
   if(volumes)issues.push({source:'volume',code:'volume_coverage_overdue',affected:volumes});
@@ -131,8 +132,8 @@ export async function readActiveMarketHealth(database:D1Database,now=Date.now())
   const row=await database.prepare('SELECT payload FROM market_cache WHERE key=?').bind(ACTIVE_HEALTH_KEY).first<{payload:string|null}>();
   try{
     const value=JSON.parse(row?.payload??'null') as ActiveHealthSummary|null;
-    const sources=['references','reference-history','supplies','volume','volume-collector','holders','activity','snapshot','snapshot-capacity','stock-comparison'];
-    const codes=['reference_coverage_missing','history_collection_overdue','supply_collection_overdue','volume_coverage_overdue','volume_budget_exhausted','volume_collector_unhealthy','holder_collection_overdue','holder_registry_mismatch','activity_recording_overdue','snapshot_publication_overdue','snapshot_payload_large','stock_comparison_overdue'];
+    const sources=['references','catalog','reference-history','supplies','volume','volume-collector','holders','activity','snapshot','snapshot-capacity','stock-comparison'];
+    const codes=['reference_coverage_missing','catalog_collection_overdue','history_collection_overdue','supply_collection_overdue','volume_coverage_overdue','volume_budget_exhausted','volume_collector_unhealthy','holder_collection_overdue','holder_registry_mismatch','activity_recording_overdue','snapshot_publication_overdue','snapshot_payload_large','stock_comparison_overdue'];
     if(value?.version===1 && ['ok','degraded'].includes(value.status) && value.status===(value.issues?.length?'degraded':'ok') && recent(value.checkedAt,15*60000,now) && Array.isArray(value.issues) && value.issues.length<=11 && value.issues.every(i=>sources.includes(i.source)&&codes.includes(i.code)&&Number.isSafeInteger(i.affected)&&i.affected>0) &&
         (value.warnings===undefined || (Array.isArray(value.warnings) && value.warnings.length<=3 && value.warnings.every(i=>((i.source==='volume'&&['volume_source_delayed','volume_source_unavailable'].includes(i.code))||(i.source==='references'&&i.code==='reference_return_unavailable'))&&Number.isSafeInteger(i.affected)&&i.affected>0)))){
       const c=value.coverage,coverage=c && Number.isSafeInteger(c.tracked)&&c.tracked>0&&[c.references,c.supplies,c.volume].every(n=>Number.isSafeInteger(n)&&n>=0&&n<=c.tracked)&& (c.changes===undefined || (Number.isSafeInteger(c.changes)&&c.changes>=0&&c.changes<=c.tracked))?{references:c.references,...(c.changes!==undefined?{changes:c.changes}:{}),supplies:c.supplies,volume:c.volume,tracked:c.tracked}:undefined;

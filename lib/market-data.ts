@@ -15,6 +15,7 @@ export const MARKET_REFRESH_MS = 60000;
 // public-provider traffic while remaining inside the five-minute validity limit.
 export const POOL_REFRESH_MS = 240000;
 export const MARKET_MAX_AGE_MS = 300000;
+export const BACKPACK_CATALOG_MAX_AGE_MS = 5 * 60000;
 export type SourceResult<T> = {
   data: T | null;
   fetchedAt: number | null;
@@ -141,21 +142,21 @@ export function parseListings(
 ): Listing[] {
   if (!Array.isArray(assets) || !Array.isArray(markets))
     throw new Error('Invalid registry response');
+  const wanted = new Set(tokens.map(token => token.mint));
+  const byMint = new Map<string, { asset: Record<string, unknown>; token: Record<string, unknown>; index: number } | null>();
+  for (const [index, value] of assets.entries()) {
+    const asset = record(value);
+    for (const value of list(asset.tokens)) {
+      const token = record(value), mint = token.contractAddress;
+      if (token.blockchain !== 'Solana' || typeof mint !== 'string' || !wanted.has(mint)) continue;
+      const prior = byMint.get(mint);
+      if (prior?.index !== index) byMint.set(mint, prior === undefined ? { asset, token, index } : null);
+    }
+  }
   return tokens.flatMap((token) => {
-    const matches = assets.filter((a) =>
-      list(record(a).tokens).some(
-        (t) =>
-          record(t).blockchain === 'Solana' &&
-          record(t).contractAddress === token.mint,
-      ),
-    );
-    if (matches.length !== 1) return [];
-    const asset = record(matches[0]),
-      match = list(asset.tokens)
-        .map(record)
-        .find(
-          (t) => t.blockchain === 'Solana' && t.contractAddress === token.mint,
-        )!;
+    const listing = byMint.get(token.mint);
+    if (!listing) return [];
+    const { asset, token: match } = listing;
     if (typeof asset.symbol !== 'string') return [];
     const books = markets
       .map(record)
@@ -585,7 +586,9 @@ export async function fetchCatalog(
     publicJson('https://api.backpack.exchange/api/v1/assets', fetcher),
     publicJson('https://api.backpack.exchange/api/v1/markets', fetcher),
   ]);
-  return parseListings(a, m, tokens);
+  const listings = parseListings(a, m, tokens);
+  if (!listings.length || !Array.isArray(m) || !m.length) throw Error('Backpack catalog is empty');
+  return listings;
 }
 export async function fetchPools(
   fetcher: typeof fetch = fetch,

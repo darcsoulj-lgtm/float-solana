@@ -15,6 +15,7 @@ const stockLogos = await bundle("export * from './lib/stock-logo';");
 const stockPools = await bundle("export * from './lib/stock-pools';");
 const marketBrowse = await bundle("export * from './lib/market-browse';");
 const marketPresentation = await bundle("export * from './lib/market-presentation';");
+const { BACKPACK_CATALOG_MAX_AGE_MS } = await bundle("export {BACKPACK_CATALOG_MAX_AGE_MS} from './lib/market-data';");
 const communityTypes = await bundle("export * from './lib/community-types';");
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -64,6 +65,7 @@ async function component(file, overrides) {
             : id === '@/lib/market-data'
               ? {
                   ...overrides[id],
+                  BACKPACK_CATALOG_MAX_AGE_MS,
                   marketTokens: () => overrides['@/lib/tokens']?.TOKENS ?? [],
                 }
               : overrides[id]) ??
@@ -868,6 +870,11 @@ void test('Backpack exchange status only reports an unlisted spot book from a cu
   assert.doesNotMatch(panel(), /Spot quotes/);
 
   catalog.data = [];
+  assert.match(panel(), /spot listing status are unconfirmed/);
+  assert.doesNotMatch(panel(), /Not listed/);
+
+  catalog.data = [listing];
+  catalog.fetchedAt -= BACKPACK_CATALOG_MAX_AGE_MS + 1;
   assert.match(panel(), /spot listing status are unconfirmed/);
   assert.doesNotMatch(panel(), /Not listed/);
 });

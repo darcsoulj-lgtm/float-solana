@@ -24,7 +24,8 @@ import {
 } from '../../lib/pool-reconciliation';
 import type { Pool } from '../../lib/market-data';
 import { parseMarketRows } from '../../lib/market-snapshot-sync';
-import { restoreCollectorState } from './state';
+import { marketPublicationRows, restoreCollectorState } from './state';
+import limits from '../../lib/market-snapshot-limits.json';
 import { poolVenueCoverage } from '../../lib/pool-venue-coverage';
 
 const raw = new DatabaseSync(':memory:');
@@ -335,13 +336,9 @@ if (process.env.GITHUB_STEP_SUMMARY) {
 }
 const all = raw.prepare('SELECT * FROM market_cache').all();
 await writeFile(output + '/state.json', JSON.stringify(all));
-const rows = all.filter(
-  (row) =>
-    row.payload &&
-    /^(backpack-verified-listings-v1|pool-token-|llama-prices-v3:|llama-history-v1:|solana-supplies-v4:|backpack-catalog-v2:|backpack-tickers-v1:)/.test(
-      row.key as string,
-    ),
-);
+// Keep prior observations in collector state for retry/recovery. Publish only
+// keys that the current verified registry and canonical batches can read.
+const rows = await marketPublicationRows(all, tokens);
 const chunks: string[] = [];
 let group: unknown[] = [];
 async function flush() {
@@ -359,7 +356,7 @@ for (const row of rows) {
   group.push(row);
 }
 await flush();
-if (!chunks.length) throw Error('No publishable market observations');
+if (!chunks.length || chunks.length > limits.maxChunks) throw Error('Invalid publication chunk count: ' + chunks.length);
 await writeFile(
   output + '/pending.json',
   JSON.stringify({ version: 1, generatedAt, chunks }),

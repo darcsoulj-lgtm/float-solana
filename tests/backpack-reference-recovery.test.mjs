@@ -105,6 +105,29 @@ void test('history recovery is bounded, includes newly registered tokens, and ru
  assert.equal(jobs.filter(j=>j.kind==='reference-history').length,4);assert.equal(jobs.filter(j=>j.kind==='references').length,1);raw.close();
 });
 
+void test('the scheduled catalog refresh accepts the large assets directory and preserves status on failure',async()=>{
+ const {raw,db}=database(),env={DB:db},jobs=[],calls=[];
+ const listing={symbol:'MU.US',tokens:[{blockchain:'Solana',contractAddress:token.mint,depositEnabled:true,withdrawEnabled:false}]};
+ const market={symbol:'MU.US_USDC',baseSymbol:'MU.US',quoteSymbol:'USDC',marketType:'SPOT',rwaMarketType:'STOCK',visible:true,orderBookState:'Open'};
+ const fetcher=async url=>{
+  const path=new URL(url).pathname;
+  calls.push(path);
+  return Response.json(path.endsWith('/assets')?[{description:'x'.repeat(2100000)},listing]:[market]);
+ };
+ const run={...env,MARKET_REFRESH:{async fast(job){jobs.push(job.kind);if(job.kind==='catalog')await a.refreshFastMarketSource(env,job,fetcher);}}};
+ await a.runFastMarketSchedule(run,now);
+ await a.runFastMarketSchedule(run,now);
+ assert.deepEqual(calls,['/api/v1/assets','/api/v1/markets']);
+ assert.ok(jobs.includes('references'));
+ const catalog=(await a.readMarketGlobals(env,a.TOKENS)).catalog;
+ assert.equal(catalog.stale,false);
+ assert.deepEqual(catalog.data,[{symbol:'MU',asset:'MU.US',deposit:true,withdraw:false,spot:'MU.US_USDC',bookState:'Open'}]);
+ raw.exec("UPDATE market_cache SET retry_after=0 WHERE key='market-fast:v1:catalog'");
+ await assert.rejects(a.refreshFastMarketSource(env,{kind:'catalog'},async()=>Response.json([])),/catalog is empty/);
+ assert.deepEqual((await a.readMarketGlobals(env,a.TOKENS)).catalog,catalog);
+ raw.close();
+});
+
 void test('failed history mints do not starve unvisited stocks in the rotating schedule',async()=>{
  const {raw,db}=database(),jobs=[];
  const env={DB:db,MARKET_REFRESH:{async fast(job){if(job.kind!=='reference-history')return; jobs.push(job.mint);raw.prepare('INSERT OR REPLACE INTO market_cache VALUES (?,NULL,?,0)').run('market-fast:v1:reference-history:'+job.mint,now);throw Error('empty history');}}};

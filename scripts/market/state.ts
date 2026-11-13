@@ -1,4 +1,27 @@
+import { REGISTRY_KEY, tokenBatchKey } from '../../lib/backpack-registry';
+import { marketGlobalKeys, marketPartitions } from '../../lib/market-overview-server';
+import { poolObservationKey } from '../../lib/pool-inventory';
+import { TOKEN_REVIEW_DATE, type StockToken } from '../../lib/tokens';
+
 export type CollectorRow={key:string;payload:string|null;fetched_at:number;retry_after:number};
+
+export async function marketPublicationRows<T extends Record<string, unknown>>(rows: readonly T[], tokens: readonly StockToken[]): Promise<T[]> {
+  const { catalog, backpack } = await marketGlobalKeys(tokens);
+  // Import the registry and exchange status before the remaining batches.
+  const keys = [REGISTRY_KEY, catalog, backpack];
+  for (const batch of marketPartitions(tokens)) {
+    const active = batch.filter(token => token.issuer === 'backpack');
+    if (!active.length) continue;
+    const suffix = TOKEN_REVIEW_DATE + ':' + await tokenBatchKey(batch);
+    keys.push('llama-prices-v3:' + suffix, 'llama-history-v1:' + suffix, 'solana-supplies-v4:' + suffix);
+    keys.push(...active.map(poolObservationKey));
+  }
+  const byKey = new Map(rows.filter(row => typeof row.payload === 'string').map(row => [row.key, row]));
+  return keys.flatMap(key => {
+    const row = byKey.get(key);
+    return row ? [row] : [];
+  });
+}
 const repo='darcsoulj-lgtm/float-solana';
 export async function restoreCollectorState(fetcher:typeof fetch,token:string|undefined,now=Date.now()):Promise<CollectorRow[]> {
  const refResponse=await fetcher('https://api.github.com/repos/'+repo+'/git/ref/heads/market-data',{headers:{Accept:'application/vnd.github+json',...(token?{Authorization:'Bearer '+token}:{})},signal:AbortSignal.timeout(15000)});

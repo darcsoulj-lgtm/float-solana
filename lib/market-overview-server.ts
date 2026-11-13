@@ -10,7 +10,7 @@ import { MARKET_BATCH_SIZE, TOKEN_REVIEW_DATE, type StockToken } from './tokens'
 import { POOL_POLICY_VERSION } from './stock-pools';
 import type { RegistryStatus } from './token-registry';
 import {
-  MARKET_MAX_AGE_MS, BACKPACK_TICKER_REFRESH_MS,
+  MARKET_MAX_AGE_MS, BACKPACK_CATALOG_MAX_AGE_MS, BACKPACK_TICKER_REFRESH_MS,
   fetchCatalog, fetchBackpackMarkets, normalizeBackpackChanges, mergeMarketPages,
 } from './market-data';
 
@@ -42,7 +42,7 @@ export async function readMarketGlobals(
       : cachedMarket(env.DB, key, ttl, loader, Date.now(), rows.get(key) ?? null);
   const backpackTokens = tokens.filter((t) => t.issuer === 'backpack');
   // Sequential provider jobs avoid a burst of unrelated requests on every visit.
-  const catalog = await read(keys.catalog, 300000, () => fetchCatalog(fetch, backpackTokens));
+  const catalog = await read(keys.catalog, BACKPACK_CATALOG_MAX_AGE_MS, () => fetchCatalog(fetch, backpackTokens));
   const savedBackpack = await read(keys.backpack, BACKPACK_TICKER_REFRESH_MS, async () => {
     const fresh = await fetchBackpackMarkets(fetch, backpackTokens);
     const old = rows.get(keys.backpack);

@@ -8,8 +8,16 @@ const other={...token,mint:'2'.repeat(32),symbol:'NVDA'};
 function fixture(tokens=[token]){
  const market={backpack:{data:{MU:{externalPrice:100,externalFirstPrice:100/1.02,externalChange24h:2,externalBasis:'hourly-history',externalObservedAt:now-36*HOUR}},fetchedAt:now-36*HOUR},supplies:{data:{MU:{supply:20}},asOf:{MU:now},fetchedAt:now},tokenVolumes:{intervalMs:14*HOUR,data:{MU:{mint:token.mint,usd24h:50,observedAt:now,collectedAt:now}}}};
  const controls=new Map([['public-backpack-snapshot:v1',{payload:'{}',fetched_at:now,retry_after:0}],[api.backpackHistoryKey(token.mint),{payload:'{}',fetched_at:now,retry_after:0}],['birdeye-schedule:v1',{payload:JSON.stringify({status:'ok',checkedAt:now}),fetched_at:now,retry_after:now+60000}]]);
+ market.catalog={data:[{symbol:'MU'}],fetchedAt:now,stale:false};
  return{market,tokens,controls,firstSeen:Object.fromEntries(tokens.map(t=>[t.mint,now-2*HOUR])),holder:{issuer:'backpack',registryHash:'scope',tokens:tokens.length,checkedAt:now},holderScope:{registryHash:'scope',mints:tokens.map(t=>t.mint)},activityAt:now,volumeEnabled:true,now};
 }
+void test('a fresh public snapshot cannot hide stale or missing Backpack exchange status',()=>{
+ const input=fixture();
+ input.market.catalog.fetchedAt=now-300001;
+ assert.deepEqual(api.activeHealthIssues(input),[{source:'catalog',code:'catalog_collection_overdue',affected:1}]);
+ input.market.catalog={data:[],fetchedAt:now,stale:false};
+ assert.deepEqual(api.activeHealthIssues(input),[{source:'catalog',code:'catalog_collection_overdue',affected:1}]);
+});
 void test('a closed stock market with unchanged dated candles is healthy while history checks run',()=>{
  const input=fixture();assert.deepEqual(api.activeHealthIssues(input),[]);
  input.controls.get(api.backpackHistoryKey(token.mint)).fetched_at=now-3*HOUR;

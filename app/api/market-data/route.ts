@@ -14,6 +14,7 @@ import { TOKEN_REVIEW_DATE, MARKET_BATCH_SIZE } from '@/lib/tokens';
 import {
   MARKET_REFRESH_MS,
   MARKET_MAX_AGE_MS,
+  BACKPACK_CATALOG_MAX_AGE_MS,
   fetchCatalog,
   fetchBackpackMarkets,
   BACKPACK_TICKER_REFRESH_MS,
@@ -120,7 +121,7 @@ export async function GET(req: Request) {
               TOKEN_REVIEW_DATE +
               ':' +
               (await tokenBatchKey(backpackTokens)),
-            300000,
+            BACKPACK_CATALOG_MAX_AGE_MS,
             () => fetchCatalog(fetch, backpackTokens),
           );
     if (symbol) {
@@ -128,7 +129,7 @@ export async function GET(req: Request) {
       if (!listing?.spot || catalog.stale)
         return json({
           book: null,
-          reason: catalog.stale
+          reason: catalog.stale || !listing
             ? 'Backpack market mapping is temporarily unavailable.'
             : 'No Backpack spot order book is listed for this token. RFQ trading may still be available.',
         });

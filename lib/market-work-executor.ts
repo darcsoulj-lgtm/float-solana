@@ -26,8 +26,11 @@ const write = (key: string, value: unknown, fetchedAt: number): MarketWrite => (
 
 // The transport is bounded before parsing, including RPC responses. Provider
 // destinations and identity/volume eligibility still belong to shared adapters.
-export function boundedMarketFetch(fetcher: typeof fetch, signal: AbortSignal): typeof fetch {
+export function boundedMarketFetch(fetcher: typeof fetch, signal: AbortSignal, backpackCatalog = false): typeof fetch {
   return async (input, init) => {
+    // Backpack's public assets directory includes thousands of unrelated assets.
+    const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+    const maxBytes = backpackCatalog && url === 'https://api.backpack.exchange/api/v1/assets' ? 4000000 : 400000;
     const response = await fetcher(input, {...init, signal:AbortSignal.any([signal, ...(init?.signal ? [init.signal] : [])]), redirect:'manual'});
     if (!response.ok) return response;
     const reader = response.body?.getReader();
@@ -36,7 +39,7 @@ export function boundedMarketFetch(fetcher: typeof fetch, signal: AbortSignal): 
     try { while (true) {
       const part = await reader.read(); if (part.done) break;
       size += part.value.byteLength;
-      if (size > 400000) throw new MarketWorkError('invalid_response');
+      if (size > maxBytes) throw new MarketWorkError('invalid_response');
       parts.push(part.value);
     } } finally { await reader.cancel().catch(() => {}); reader.releaseLock(); }
     return new Response(new Blob(parts as BlobPart[]), {status:response.status, headers:response.headers});
@@ -48,7 +51,7 @@ function officialIdentities(known: readonly Pool[], verified: readonly StockToke
 }
 const belongs = (pool: Pool, mint: string) => pool.baseMint === mint || pool.quoteMint === mint;
 export async function executeMarketWork(env: MarketEnvironment, job: DurableMarketJob, fetcher: typeof fetch = fetch): Promise<{writes:MarketWrite[]; wakeMint?:string | string[]}> {
-  const signal = AbortSignal.timeout(20000), bounded = boundedMarketFetch(fetcher, signal);
+  const signal = AbortSignal.timeout(20000), bounded = boundedMarketFetch(fetcher, signal, job.kind === 'catalog');
   const registry = await backpackRegistry(env.DB, () => {}, env.SOLANA_RPC_URL, bounded, Date.now(), true);
   const tokens = registryTokens(registry).filter(t => t.issuer === 'backpack');
   const byMint = new Map(tokens.map(t => [t.mint, t]));

@@ -14,7 +14,7 @@ import {
 } from '@/lib/market-browse';
 import { poolDisplayMetrics } from '@/lib/stock-pools';
 import { latestTokenPoolSource } from '@/lib/pool-observations';
-import { marketTokens, poolLink } from '@/lib/market-data';
+import { BACKPACK_CATALOG_MAX_AGE_MS, marketTokens, poolLink } from '@/lib/market-data';
 import { MetricInfo } from './metric-info';
 import { Fragment, useEffect, useState, type ReactNode } from 'react';
 import {
@@ -276,7 +276,8 @@ export function MarketOverviewPanel({
       ? book.data
       : null;
   const catalog = data?.catalog;
-  const catalogReady = Boolean(catalog?.fetchedAt && !catalog.stale && catalog.data);
+  const catalogReady = Boolean(catalog?.fetchedAt && !catalog.stale && catalog.data &&
+    catalog.fetchedAt <= now && now - catalog.fetchedAt < BACKPACK_CATALOG_MAX_AGE_MS);
   const stockDetail =
     detailOpen && matches.length > 0 ? (
       <section

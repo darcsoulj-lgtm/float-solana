@@ -1,9 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {bundle} from './helpers/bundle.mjs';
-const {restoreCollectorState}=await bundle(`export * from './scripts/market/state';`);
+const {restoreCollectorState,marketPublicationRows,marketGlobalKeys,poolObservationKey,TOKENS}=await bundle(`export * from './scripts/market/state'; export {marketGlobalKeys} from './lib/market-overview-server'; export {poolObservationKey} from './lib/pool-inventory'; export {TOKENS} from './lib/tokens';`);
 const now=200000000,sha='a'.repeat(40),row={key:'pool-token-stonkfun-v2:mint',payload:'[]',fetched_at:now,retry_after:0};
 const provider=(state,status=200)=>async url=>url.includes('api.github.com')?Response.json({object:{sha}}):Response.json(state,{status});
+void test('publication ignores retired registry keys without removing stored collector observations',async()=>{
+ const token=TOKENS.find(t=>t.issuer==='backpack');
+ const keys=await marketGlobalKeys([token]);
+ const current={...row,key:keys.catalog};
+ const pool={...row,key:poolObservationKey(token)};
+ const retired=Array.from({length:120},(_,i)=>({...row,key:'backpack-catalog-v2:'+i}));
+ const rows=[...retired,pool,current,{...row,key:keys.backpack,payload:null}];
+ assert.deepEqual(await marketPublicationRows(rows,[token]),[current,pool]);
+ assert.equal(rows.length,123);
+});
 void test('collector restores a pinned generation and sends credentials only to GitHub API',async()=>{
  const calls=[];const source=provider([row]);
  assert.deepEqual(await restoreCollectorState(async(url,init)=>{calls.push({url,init});return source(url);},'test-key',now),[row]);
