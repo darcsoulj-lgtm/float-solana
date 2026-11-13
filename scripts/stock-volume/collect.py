@@ -128,12 +128,23 @@ def token_volume(payload, mint, start, end):
 class TradeAccumulator:
     def __init__(self, start, end):
         self.start, self.end = start, end
+        self.last_stamp = None
         self.seen = set(); self.shares = D(0); self.usd = D(0); self.count = 0
     def add(self, trades):
         for trade in trades:
             t = parse_time(trade['t'])
             if not self.start <= t < self.end: raise ValueError('Trade outside comparison day')
-            key = (trade['x'], str(trade['i']), trade['t'])
+            fraction = re.search(r'\.(\d+)(?=Z|[+-]\d{2}:\d{2}$)', trade['t'])
+            nanoseconds = int(fraction[1].ljust(9, '0')[6:9]) if fraction else 0
+            # For one symbol Alpaca sorts by time, including across pages.
+            # Keep identities only for the most recent exact timestamp.
+            stamp = (t, nanoseconds)
+            if self.last_stamp is not None and stamp < self.last_stamp:
+                raise ValueError('Stock tape out of order')
+            if stamp != self.last_stamp:
+                self.seen.clear()
+                self.last_stamp = stamp
+            key = (trade['x'], str(trade['i']))
             if key in self.seen: raise ValueError('Duplicate eligible tape identity')
             self.seen.add(key)
             update = trade.get('u')
@@ -169,10 +180,14 @@ def stock_volume_once(symbol, start, end, headers, closed, fetch, pause):
     inclusive_end = iso(end - timedelta(seconds=1)).replace('Z', '.999999999Z')
     query = {'symbols':symbol, 'start':iso(start), 'end':inclusive_end, 'feed':'sip', 'currency':'USD', 'asof':start.date().isoformat()}
     acc = TradeAccumulator(start, end); cursor = None; cursors = set()
-    for _ in range(400):
+    pages = 0
+    # The scheduled job's timeout bounds the walk. A busy day may need more
+    # than 400 pages, and a short page can still have a continuation token.
+    while True:
         pause(0.35)
         q = {**query, 'limit':10000, 'sort':'asc', **({'page_token':cursor} if cursor else {})}
         payload = fetch('https://data.alpaca.markets/v2/stocks/trades?' + urllib.parse.urlencode(q), headers)
+        pages += 1
         trades = payload.get('trades')
         if not isinstance(trades, dict) or set(trades)-{symbol} or not isinstance(trades.get(symbol, []), list): raise ValueError('Wrong stock identity')
         acc.add(trades.get(symbol, [])); cursor = payload.get('next_page_token')
@@ -181,10 +196,14 @@ def stock_volume_once(symbol, start, end, headers, closed, fetch, pause):
             if daily.get('next_page_token') or set(daily.get('bars', {})) - {symbol}: raise ValueError('Invalid daily stock response')
             bars = daily.get('bars', {}).get(symbol, [])
             if len(bars) > 1: raise ValueError('Unexpected daily bar count')
-            return acc.reconcile(bars[0] if bars else None, closed)
+            usd = acc.reconcile(bars[0] if bars else None, closed)
+            print(json.dumps({
+                'symbol': symbol, 'date': query['asof'], 'phase': 'stock-reconciled',
+                'pages': pages, 'trades': acc.count, 'shares': str(acc.shares), 'marketClosed': closed,
+            }), flush=True)
+            return usd
         if cursor in cursors: raise ValueError('Stock pagination loop')
         cursors.add(cursor)
-    raise ValueError('Stock pagination incomplete')
 
 def main():
     now = datetime.now(timezone.utc); start, end = window(now)

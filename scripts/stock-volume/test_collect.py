@@ -130,6 +130,45 @@ class ProviderPacingTests(unittest.TestCase):
         self.assertEqual(fetch.call_count,1)
 
 class StockSourceConvergenceTests(unittest.TestCase):
+    def test_busy_stock_follows_every_cursor_past_400_pages(self):
+        from urllib.parse import parse_qs, urlsplit
+
+        a, b = window(datetime(2026, 11, 13, 12, tzinfo=timezone.utc))
+        trade = {'t': iso(a), 'x': 'Q', 'p': 10, 's': 2, 'c': ['@'], 'z': 'C'}
+        total_pages = 403
+        pages = 0
+
+        def provider(url, _headers):
+            nonlocal pages
+            if '/bars?' in url:
+                self.assertEqual(pages, total_pages)
+                return {'bars': {'NVDA': [{'t': iso(a), 'v': total_pages * 2, 'n': total_pages}]}}
+            query = parse_qs(urlsplit(url).query)
+            self.assertEqual(query.get('page_token'), [str(pages)] if pages else None)
+            self.assertEqual(query['sort'], ['asc'])
+            self.assertEqual(query['limit'], ['10000'])
+            pages += 1
+            return {
+                'trades': {'NVDA': [{**trade, 'i': pages}]},
+                'next_page_token': str(pages) if pages < total_pages else None,
+            }
+
+        self.assertEqual(stock_volume('NVDA', a, b, {}, False, provider, lambda _: None), 8060)
+
+    def test_duplicate_and_order_checks_keep_nanosecond_precision_across_pages(self):
+        a, b = window(datetime(2026, 11, 13, 12, tzinfo=timezone.utc))
+        trade = {'x': 'Q', 'i': 10, 'p': 10, 's': 2, 'c': ['@'], 'z': 'C'}
+        first = {**trade, 't': '2026-11-12T05:00:00.000000001Z'}
+        second = {**trade, 't': '2026-11-12T05:00:00.000000002Z'}
+        acc = TradeAccumulator(a, b)
+        acc.add([first])
+        acc.add([second])
+        self.assertEqual(acc.reconcile({'t': iso(a), 'v': 4, 'n': 2}), 40)
+        with self.assertRaisesRegex(ValueError, 'Duplicate eligible tape identity'):
+            acc.add([second])
+        with self.assertRaisesRegex(ValueError, 'Stock tape out of order'):
+            acc.add([first])
+
     def test_daily_bar_is_read_after_the_final_trade_page(self):
         import collect
         a,b=window(datetime(2026,10,10,12,tzinfo=timezone.utc));order=[]
