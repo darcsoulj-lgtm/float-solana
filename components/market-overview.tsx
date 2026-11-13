@@ -1,8 +1,6 @@
 'use client';
 import { MarketActivityHistory } from './market-activity-history';
 import { IssuerComparisonPanel } from './issuer-comparison';
-import { StockVolumeComparisonCard } from './stock-volume-comparison';
-import type { StockVolumeComparison } from '@/lib/stock-volume-comparison';
 import { stockLogo } from '@/lib/stock-logo';
 import { HoldingWallets } from './holding-wallets';
 import { TesseraContext } from './tessera-context';
@@ -68,7 +66,6 @@ export function MarketOverviewPanel({
   initialToken,
   issuerScope,
   comparisonPreview,
-  stockComparisons,
 }: {
   holdings: string[];
   positions?: Holding[];
@@ -78,7 +75,6 @@ export function MarketOverviewPanel({
   initialToken?: string;
   issuerScope?: IssuerId;
   comparisonPreview?: ReactNode;
-  stockComparisons?: StockVolumeComparison[];
 }) {
   const [onlyHoldings, setOnlyHoldings] = useState(false),
     [query, setQuery] = useState(''),
@@ -861,7 +857,6 @@ export function MarketOverviewPanel({
       />
       {!issuerScope && <HoldingWallets />}
       {issuerScope === 'backpack' && <MarketActivityHistory data={data} now={now} />}
-      {issuerScope === 'backpack' && stockComparisons && <StockVolumeComparisonCard comparisons={stockComparisons} automatic />}
       {issuerScope === 'backpack' && process.env.NODE_ENV === 'development' && comparisonPreview}
       {issuerScope === 'backpack' && data?.issuerComparisonEnabled && <IssuerComparisonPanel now={now} />}
       <div className="market-search-row">

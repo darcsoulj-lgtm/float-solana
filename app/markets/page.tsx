@@ -2,7 +2,6 @@ import Link from '@/components/site-link';
 import { MARKET_ISSUER_SCOPE } from '@/lib/market-scope';
 import type { Metadata } from 'next';
 import { MarketOverviewPanel } from '@/components/market-overview';
-import { publishedStockVolumeComparisons } from '@/lib/stock-volume-published';
 
 export const metadata: Metadata = {
   title: 'Backpack tokenized stocks',
@@ -14,7 +13,7 @@ export default function Page() {
   return (
     <div className="public-markets">
       {process.env.NODE_ENV === 'development' && <p style={{ padding: '12px 0', fontSize: 14 }}><Link href="/preview/social">Preview chart posts & portfolio snapshots ↗</Link></p>}
-      <MarketOverviewPanel issuerScope={MARKET_ISSUER_SCOPE} holdings={[]} hidePortfolio stockComparisons={publishedStockVolumeComparisons()} />
+      <MarketOverviewPanel issuerScope={MARKET_ISSUER_SCOPE} holdings={[]} hidePortfolio />
     </div>
   );
 }

@@ -4,7 +4,6 @@ import type { Holding } from '@/lib/community-types';
 import type { MarketView } from '@/lib/member-navigation';
 import { MARKET_ISSUER_SCOPE } from '@/lib/market-scope';
 import { loadClientModule } from '@/lib/client-module';
-import { publishedStockVolumeComparisons } from '@/lib/stock-volume-published';
 const MarketOverviewPanel = lazy(() =>
   loadClientModule(() => import('./market-overview')).then((m) => ({ default: m.MarketOverviewPanel })),
 );
@@ -17,7 +16,7 @@ export function MemberMarkets({ positions }: {
   return <div className="member-markets">
     <header className="mobile-market-heading"><span>Backpack tokenized stocks</span><h1>Markets</h1></header>
     <Suspense fallback={<output className="inline-status">Loading markets…</output>}>
-      <MarketOverviewPanel holdings={positions.map(p => p.symbol)} positions={positions} hidePortfolio issuerScope={MARKET_ISSUER_SCOPE} stockComparisons={publishedStockVolumeComparisons()} />
+      <MarketOverviewPanel holdings={positions.map(p => p.symbol)} positions={positions} hidePortfolio issuerScope={MARKET_ISSUER_SCOPE} />
     </Suspense>
   </div>;
 }

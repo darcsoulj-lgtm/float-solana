@@ -95,15 +95,16 @@ void test('public historical export preserves verified values, dates and unavail
   assert.match(html,/href="\/data-methodology#stock-volume-comparison"/);
 });
 
-void test('member Markets and public Markets both mount the same verified automatic comparison', async () => {
+void test('member and public Markets omit the stock comparison while mounting the market overview', async () => {
   const inputs=[];
-  // Capture the overview boundary, rendering the real comparison card. Lazy
-  // chunk transport is exercised separately in the compiled-browser check.
-  const Overview=props=>{inputs.push(props);return React.createElement(compiled.exports.StockVolumeComparisonCard,{comparisons:props.stockComparisons??[],automatic:true});};
+  const Overview=props=>{
+    inputs.push(props);
+    return React.createElement('div',null,'Market overview');
+  };
   async function entry(path, member=false) {
     const code=ts.transpileModule(await readFile(new URL('../'+path,import.meta.url),'utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText;
     const output={exports:{}};
-    compileFunction(code,['require','module','exports'])(id=>id==='react'&&member?{...React,lazy:()=>Overview}:id==='@/lib/stock-volume-published'?a:id==='@/lib/market-scope'?{MARKET_ISSUER_SCOPE:'backpack'}:id==='@/lib/client-module'?{loadClientModule:fn=>fn()}:id==='@/components/market-overview'?{MarketOverviewPanel:Overview}:id==='@/components/site-link'?{default:'a'}:require(id),output,output.exports);
+    compileFunction(code,['require','module','exports'])(id=>id==='react'&&member?{...React,lazy:()=>Overview}:id==='@/lib/market-scope'?{MARKET_ISSUER_SCOPE:'backpack'}:id==='@/lib/client-module'?{loadClientModule:fn=>fn()}:id==='@/components/market-overview'?{MarketOverviewPanel:Overview}:id==='@/components/site-link'?{default:'a'}:require(id),output,output.exports);
     return output.exports;
   }
   const member=await entry('components/member-markets.tsx',true);
@@ -112,13 +113,12 @@ void test('member Markets and public Markets both mount the same verified automa
   const publicPage=await entry('app/markets/page.tsx');
   const publicHtml=renderToStaticMarkup(React.createElement(publicPage.default));
   for(const html of [memberHtml,publicHtml]){
-    assert.match(html,/Token vs stock volume/);
-    assert.match(html,/\$607\.61M/);
-    assert.match(html,/Daily update pending/);
-    assert.equal((html.match(/class="stock-volume-comparison"/g)??[]).length,1);
+    assert.match(html,/Market overview/);
   }
-  assert.deepEqual(inputs[0].stockComparisons,inputs[1].stockComparisons);
+  for (const props of inputs) {
+    assert.equal(Object.hasOwn(props,'stockComparisons'),false);
+    assert.equal(props.issuerScope,'backpack');
+  }
   assert.deepEqual(inputs[0].holdings,['MU']);
   assert.deepEqual(inputs[0].positions,positions);
-  assert.equal(inputs[0].issuerScope,'backpack');
 });
