@@ -173,6 +173,11 @@ export function MarketOverviewPanel({
     matches[0]?.symbol ||
     selection;
   const selectedIssuer = tokens.find((t) => t.symbol === selected)?.issuer;
+  const catalog = data?.catalog;
+  const listing = catalog?.data?.find(t => t.symbol === selected);
+  const catalogReady = Boolean(catalog?.fetchedAt && !catalog.stale && catalog.data &&
+    catalog.fetchedAt <= now && now - catalog.fetchedAt < BACKPACK_CATALOG_MAX_AGE_MS);
+  const spotMarket = catalogReady ? listing?.spot : null;
   const book = bookSymbol === selected ? bookData : null;
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 10000);
@@ -210,38 +215,42 @@ export function MarketOverviewPanel({
     };
   }, [selected, detailOpen]);
   useEffect(() => {
-    if (
-      !detailOpen ||
-      selectedIssuer !== 'backpack' ||
-      !data?.catalog.fetchedAt
-    )
-      return;
+    if (!detailOpen || selectedIssuer !== 'backpack' || !spotMarket) return;
     let active = true;
+    let retry = 0;
+    let timer: ReturnType<typeof setTimeout>;
     async function load() {
-      try {
-        const next = await api<{
-          book: SourceResult<Book> | null;
-        }>('market-data?symbol=' + encodeURIComponent(selected));
-        if (active) {
-          setBookSymbol(selected);
-          setBook(next.book);
-        }
-      } catch {
-        if (active) {
+      let delay = 30000;
+      if (document.visibilityState === 'visible') {
+        try {
+          const next = await api<{ book: SourceResult<Book> | null }>(
+            'market-data?symbol=' + encodeURIComponent(selected),
+          );
+          if (!active) return;
+          // A cache miss starts a background refresh. Read its result before
+          // the 30-second cache expires again.
+          if (next.book?.refreshing && retry < 3) {
+            retry += 1;
+            delay = 2000;
+          } else {
+            setBookSymbol(selected);
+            setBook(next.book);
+          }
+        } catch {
+          if (!active) return;
           setBookSymbol(selected);
           setBook(null);
         }
       }
+      if (delay === 30000) retry = 0;
+      if (active) timer = setTimeout(() => void load(), delay);
     }
     void load();
-    const id = setInterval(() => {
-      if (document.visibilityState === 'visible') void load();
-    }, 30000);
     return () => {
       active = false;
-      clearInterval(id);
+      clearTimeout(timer);
     };
-  }, [selected, selectedIssuer, detailOpen, data?.catalog.fetchedAt]);
+  }, [selected, selectedIssuer, detailOpen, spotMarket]);
   const groups = groupMarketTokens(matches).sort((a, b) =>
     a.versions[0].shortName.localeCompare(b.versions[0].shortName, undefined, { numeric: true }) ||
     a.key.localeCompare(b.key),
@@ -260,7 +269,6 @@ export function MarketOverviewPanel({
     return display.historical ? [display.priceTime, display.changeTime] : [];
   }));
   const token = tokens.find((t) => t.symbol === selected)!,
-    listing = data?.catalog.data?.find((t) => t.symbol === selected),
     detailedPools = latestTokenPoolSource(data?.pools, poolDetail?.symbol === selected ? poolDetail.source : null, selected, now),
     pools = (detailedPools.data || []).filter(pool => !pool.unavailable);
   const detailMetrics = poolDisplayMetrics(detailedPools.data || [], now, detailedPools.fetchedAt);
@@ -272,12 +280,9 @@ export function MarketOverviewPanel({
   const volumeTime = providerVolumeMode ? observation.dexVolumeTime : detailedPools.fetchedAt;
   const observed = observation.cmc;
   const quote =
-    book?.data && !book.stale && now - book.data.timestamp <= 120000
+    book?.data && book.data.market === spotMarket && !book.stale && now - book.data.timestamp <= 120000
       ? book.data
       : null;
-  const catalog = data?.catalog;
-  const catalogReady = Boolean(catalog?.fetchedAt && !catalog.stale && catalog.data &&
-    catalog.fetchedAt <= now && now - catalog.fetchedAt < BACKPACK_CATALOG_MAX_AGE_MS);
   const stockDetail =
     detailOpen && matches.length > 0 ? (
       <section

@@ -720,7 +720,7 @@ void test('public market routes sanitize failed refreshes and recover without a 
   }
 });
 
-async function marketFixture(props = {}, valuation = {}, observation = {}, refreshState = { data: null, busy: false, error: '' }) {
+async function marketFixture(props = {}, valuation = {}, observation = {}, refreshState = { data: null, busy: false, error: '' }, runtime = {}) {
   const states = [];
   let index = 0;
   const Wrap = ({ children }) => React.createElement('div', null, children);
@@ -759,13 +759,13 @@ async function marketFixture(props = {}, valuation = {}, observation = {}, refre
           },
         ];
       },
-      useEffect: () => {},
+      useEffect: runtime.useEffect ?? (() => {}),
       useRef: (v) => ({ current: v }),
     },
     '@/lib/market-browse': marketBrowse,
     './tessera-context': { TesseraContext: Empty },
     './market-browse-filters': { MarketBrowseFilters: Empty },
-    '@/lib/client': { api: () => {} },
+    '@/lib/client': { api: runtime.api ?? (() => {}) },
     '@/lib/tokens': {
       TOKENS: tokens,
       ISSUERS: [
@@ -877,6 +877,41 @@ void test('Backpack exchange status only reports an unlisted spot book from a cu
   catalog.fetchedAt -= BACKPACK_CATALOG_MAX_AGE_MS + 1;
   assert.match(panel(), /spot listing status are unconfirmed/);
   assert.doesNotMatch(panel(), /Not listed/);
+});
+void test('a spot quote cache miss retries before the refreshed observation expires', async () => {
+  const saved = { document: globalThis.document, setTimeout: globalThis.setTimeout, clearTimeout: globalThis.clearTimeout };
+  const effects = [], timers = new Map();
+  const now = Date.now();
+  const spot = 'MU.US_USDC';
+  const quote = { market: spot, bid: 100, ask: 101, spreadBps: 100, bidDepth1pct: 1000, askDepth1pct: 2000, timestamp: now };
+  let calls = 0;
+  const catalog = { data: [{ symbol: 'MU', deposit: true, withdraw: true, spot, bookState: 'Open' }], fetchedAt: now, stale: false };
+  const fixture = await marketFixture({ assetSymbol: 'MU' }, {}, {}, { data: { catalog }, busy: false, error: '' }, {
+    useEffect: callback => effects.push(callback),
+    api: async path => {
+      assert.equal(path, 'market-data?symbol=MU');
+      return { book: ++calls === 1 ? { data: null, stale: true, refreshing: true } : { data: quote, stale: false } };
+    },
+  });
+  try {
+    globalThis.document = { visibilityState: 'visible' };
+    globalThis.setTimeout = (callback, delay) => (timers.set(callback, delay), callback);
+    globalThis.clearTimeout = callback => timers.delete(callback);
+    fixture.render();
+    const stop = effects[2]();
+    await Promise.resolve();
+    const [[retry, delay]] = timers;
+    assert.equal(delay, 2000);
+    timers.delete(retry);
+    retry();
+    await Promise.resolve();
+    assert.match(renderToStaticMarkup(fixture.render()), /Spot quotes/);
+    assert.deepEqual([...timers.values()], [30000]);
+    stop();
+    assert.equal(timers.size, 0);
+  } finally {
+    Object.assign(globalThis, saved);
+  }
 });
 void test('displayed historical prices and saved valuations keep matching timestamps in expanded disclosures',async()=>{
  const historical=Date.now()-36*3600000,saved=Date.now()-3600000;
